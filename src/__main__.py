@@ -167,27 +167,48 @@ def _patch_morphe(
     --continue-on-error is passed so that individual patch fingerprint failures
     (e.g. upstream patch not yet updated for the latest APK version) do not
     abort the entire build.
+
+    NOTE: Morphe CLI does NOT support -e/--exclude or -i/--include flags.
+    These flags are silently ignored by the CLI, causing patches/*.txt entries
+    to have no effect when the Morphe patching path is taken.
+    If enables/disables are non-empty, a warning is emitted so the issue is
+    visible in build logs.
     """
+    if enables or disables:
+        logging.warning(
+            "⚠️  patches/*.txt has %d enable(s) and %d disable(s) configured, "
+            "but Morphe CLI does NOT support -e/-i patch selection flags — "
+            "these entries will be IGNORED. "
+            "To apply patch selection, use a ReVanced-based source (revanced-cli + .rvp/.jar bundle) "
+            "instead of a Morphe CLI + .mpp bundle combination.",
+            len(enables) // 2,
+            len(disables) // 2,
+        )
+
+    logging.info("Morphe patch cmd enables=%s disables=%s", enables, disables)
+
     cmd = [
         "java", "-jar", str(cli),
         "patch", "--patches", str(bundle),
         "--out", str(output_apk),
         "--continue-on-error",
-        *disables, *enables,
         str(input_apk),
     ]
+    logging.info("Running: %s", " ".join(cmd))
     try:
         utils.run_process(cmd, stream=True)
     except subprocess.CalledProcessError:
         # Some Morphe versions use a different argument order
         logging.warning("Standard Morphe command failed; retrying with alternative format…")
-        utils.run_process([
+        retry_cmd = [
             "java", "-jar", str(cli),
             "--patches", str(bundle),
             "--input",   str(input_apk),
             "--output",  str(output_apk),
             "--continue-on-error",
-        ], stream=True)
+        ]
+        logging.info("Retrying: %s", " ".join(retry_cmd))
+        utils.run_process(retry_cmd, stream=True)
 
 
 def _patch_revanced(
@@ -216,7 +237,7 @@ def _patch_revanced(
     # v4 uses -b/--bundle; v5+ renamed it to -p/--patches
     bundle_flag = "-b" if cli_ver == "v4" else "-p"
 
-    utils.run_process([
+    cmd = [
         "java", "-jar", str(cli),
         "patch",
         bundle_flag, str(bundle),
@@ -225,7 +246,9 @@ def _patch_revanced(
         *disables,
         *enables,
         str(input_apk),
-    ], stream=True)
+    ]
+    logging.info("Running: %s", " ".join(cmd))
+    utils.run_process(cmd, stream=True)
 
 
 def _patch_legacy(
@@ -237,13 +260,15 @@ def _patch_legacy(
     disables: list[str],
 ) -> None:
     """Patch using ReVanced CLI v3 (legacy *-all.jar without version number)."""
-    utils.run_process([
+    cmd = [
         "java", "-jar", str(cli),
         "patch", "--patches", str(bundle),
         "--out", str(output_apk),
         *disables, *enables,
         str(input_apk),
-    ], stream=True)
+    ]
+    logging.info("Running: %s", " ".join(cmd))
+    utils.run_process(cmd, stream=True)
 
 
 # ---------------------------------------------------------------------------
@@ -432,6 +457,19 @@ def run_build(app_name: str, source: str, arch: str = "universal") -> str:
     # ── 7. Parse patch selection ─────────────────────────────────────────────
     patches_txt = Path("patches") / f"{app_name}-{source}.txt"
     enables, disables = _parse_patch_flags(patches_txt, cli_ver)
+    logging.info(
+        "📋 Patch selection from %s: %d enable(s), %d disable(s)",
+        patches_txt.name,
+        len(enables) // 2,
+        len(disables) // 2,
+    )
+    if patches_txt.exists() and (enables or disables) and is_morphe:
+        logging.warning(
+            "⚠️  %s has patch selection rules, but Morphe CLI (.mpp bundle) "
+            "does not support -e/-i flags — rules will be ignored. "
+            "Consider switching to a ReVanced CLI source for this app.",
+            patches_txt.name,
+        )
 
     # ── 8. Repair APK ────────────────────────────────────────────────────────
     logging.info("Checking APK integrity…")
