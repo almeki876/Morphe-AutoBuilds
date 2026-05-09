@@ -1,4 +1,5 @@
 import json, os, re, sys, pathlib, subprocess
+from urllib.parse import unquote
 sys.path.insert(0, str(pathlib.Path(__file__).parent.parent))
 
 reuse_json = os.environ.get("REUSE_JSON", "{}").strip()
@@ -46,10 +47,28 @@ if not data:
 token = os.environ.get("GITHUB_TOKEN", "")
 os.makedirs("./release-apks", exist_ok=True)
 
+# 重複ファイル名を事前に検出して警告
+fname_to_sources: dict[str, list[str]] = {}
+for source, url in data.items():
+    fname = unquote(url.split('/')[-1])
+    fname_to_sources.setdefault(fname, []).append(source)
+for fname, sources in fname_to_sources.items():
+    if len(sources) > 1:
+        print(f"[WARN] Duplicate filename detected ({fname}): {sources} — only the first will be kept.", file=sys.stderr)
+
+seen_fnames: set[str] = set()
 failed = []
 for source, url in data.items():
-    fname = url.split('/')[-1]
+    # URLエンコードされたファイル名(%2B等)をデコードして正規のファイル名に戻す。
+    # デコードしないままだとgh release createが再エンコードして %252B になり HTTP 404 が発生する。
+    fname = unquote(url.split('/')[-1])
     dest = f'./release-apks/{fname}'
+
+    # 同名ファイルが既にダウンロード済みの場合はスキップ（重複回避）
+    if fname in seen_fnames:
+        print(f"[SKIP] {source}: {fname} already downloaded (duplicate key), skipping.", flush=True)
+        continue
+    seen_fnames.add(fname)
     print(f"Downloading reused APK for {source}: {url}", flush=True)
     result = subprocess.run(
         [
