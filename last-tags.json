@@ -1,7 +1,7 @@
 {
   "apk_youtube": "21.19.288",
   "apk_youtube-music": "9.19.20",
-  "apk_instagram": "430.0.0.36.80",
+  "apk_instagram": "430.0.0.53.80",
   "apk_adguard": "4.14.68",
   "apk_prime-video": "3.0.451",
   "apk_duolingo": "6.79.5",
@@ -20,12 +20,12 @@
   "apk_crunchyroll": "3.99.3",
   "apk_photomath": "8.47.1",
   "apk_pixiv": "6.181.0",
-  "morphe": "v1.29.0-dev.1",
+  "morphe": "v1.29.0-dev.3",
   "anddea": "v4.0.1-dev.1",
-  "piko": "v3.4.0-dev.2",
+  "piko": "v3.4.0",
   "hoo": "v1.32.1-dev.1",
   "rookie": "v1.0.4",
   "tosox": "v1.6.0",
-  "yuzu": "v1.0",
+  "yuzu": "{\"message\":\"Not Found\",\"documentation_url\":\"https://docs.github.com/rest/releases/releases#list-releases\",\"status\":\"404\"}",
   "dropped": "v1.5.1"
 }
