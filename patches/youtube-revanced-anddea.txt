@@ -1,5 +1,71 @@
-# YouTube × Anddea パッチ除外ルール
+# YouTube × Anddea パッチ設定
 # - で始まる行 = 除外（ブラックリスト）
 # + で始まる行 = 強制含有
+
 - Custom branding name for YouTube
 - Custom branding icon for YouTube
+
++ Change version code
++ Alternative thumbnails
++ Ambient mode control
++ Bypass URL redirects
++ Bypass image region restrictions
++ Change form factor
++ Change player flyout menu toggles
++ Change share sheet
++ Change start page
++ Custom Shorts action buttons
++ Custom double tap length
++ Description components
++ Disable QUIC protocol
++ Disable forced auto audio tracks
++ Disable forced auto captions
++ Disable haptic feedback
++ Disable layout updates
++ Disable resuming Miniplayer on startup
++ Disable resuming Shorts on startup
++ Disable sign in to TV popup
++ Disable splash animation
++ Enable debug logging
++ Enable gradient loading screen
++ Force player buttons background
++ Fullscreen components
++ GmsCore support
++ Hide accessibility controls dialog
++ Hide action buttons
++ Hide ads
++ Hide comments components
++ Hide feed components
++ Hide feed flyout menu
++ Hide layout components
++ Hide player buttons
++ Hide player flyout menu
++ Hook YouTube Music actions
++ Hook download actions
++ Miniplayer
++ Navigation bar components
++ Open links externally
++ Overlay buttons
++ Player components
++ Reload video
++ Remove background playback restrictions
++ Remove viewer discretion dialog
++ Return YouTube Dislike
++ Return YouTube Username
++ Sanitize sharing links
++ Seekbar components
++ Set transcript cookies
++ Settings for YouTube
++ Shorts components
++ Snack bar components
++ SponsorBlock
++ Spoof app version
++ Spoof watch history
++ Swipe controls
++ Toolbar components
++ Translations for YouTube
++ Video playback
++ Visual preferences icons for YouTube
++ Voice Over Translation
++ Custom header for YouTube
++ Theme

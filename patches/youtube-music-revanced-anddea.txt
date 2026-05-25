@@ -1,4 +1,46 @@
-# YouTube Music × Anddea パッチ除外ルール
+# YouTube Music × Anddea パッチ設定
 # - で始まる行 = 除外（ブラックリスト）
 # + で始まる行 = 強制含有
+
 - AddResourcesPatch
+
++ Bitrate default value
++ Bypass image region restrictions
++ Certificate spoof
++ Change share sheet
++ Change start page
++ Dark theme
++ Disable Cairo splash animation
++ Disable QUIC protocol
++ Disable dislike redirection
++ Disable forced auto audio tracks
++ Disable forced auto captions
++ Enable landscape mode
++ Flyout menu components
++ GmsCore support
++ Hide account components
++ Hide action bar components
++ Hide ads
++ Hide layout components
++ Navigation bar components
++ Player components
++ Remove background playback restrictions
++ Remove viewer discretion dialog
++ Restore old style library shelf
++ Return YouTube Dislike
++ Return YouTube Username
++ Sanitize sharing links
++ Settings for YouTube Music
++ SponsorBlock
++ Spoof app version for lyrics
++ Translations for YouTube Music
++ Video playback
++ Visual preferences icons for YouTube Music
++ Watch history
++ Custom branding icon for YouTube Music
++ Custom branding name for YouTube Music
++ Custom header for YouTube Music
++ Disable music video in album
++ Hide overlay filter
++ Hide player overlay filter
++ Change version code

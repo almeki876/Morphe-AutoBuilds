@@ -309,6 +309,7 @@ def _patch_morphe(
     enables: list[str],
     disables: list[str],
     option_flags: list[str],
+    patch_options: "list[PatchOption] | None" = None,
 ) -> None:
     """Patch using Morphe CLI.
 
@@ -403,32 +404,46 @@ def _patch_morphe(
                 str(input_apk),
             ]
         else:
-            # No enables. If there are option_flags, write them to a temp
-            # options JSON file to avoid the mandatory -e requirement.
-            import tempfile as _tempfile, json as _json, os as _os
-            options_file_args: list[str] = []
+            # No enables. Use --options-file to pass options without needing -e.
+            import tempfile as _tempfile, json as _json
 
-            if option_flags:
-                # Parse option_flags like ["--options=key=val", ...] into JSON.
-                opts_dict: dict[str, str] = {}
-                for flag in option_flags:
-                    # flag is "--options=key=val"
-                    kv = flag.split("=", 2)
-                    if len(kv) == 3:
-                        opts_dict[kv[1]] = kv[2]
+            options_file_arg: list[str] = []
 
-                # morphe-cli options-file format: list of PatchBundle JSON.
-                # Since we don't know patch names, we pass options globally.
-                # The safest approach is to use --options-file with an empty
-                # bundles list — but morphe-cli may reject it.
-                # Alternative: skip per-patch options for disable-only runs
-                # and log a warning (options are cosmetic when no enables exist).
+            if option_flags and patch_options:
+                # Build options-file JSON from PatchOption objects.
+                # Format: [{"meta": {"source": "..."}, "patches": {"PatchName": {"enabled": true, "options": {...}}}}]
+                patches_dict: dict[str, dict] = {}
+                for opt in patch_options:
+                    pname = opt.patch
+                    if pname not in patches_dict:
+                        patches_dict[pname] = {"enabled": True, "options": {}}
+                    v = opt.value
+                    if isinstance(v, bool):
+                        patches_dict[pname]["options"][opt.key] = v
+                    elif isinstance(v, (int, float)):
+                        patches_dict[pname]["options"][opt.key] = v
+                    elif isinstance(v, list):
+                        patches_dict[pname]["options"][opt.key] = v
+                    else:
+                        patches_dict[pname]["options"][opt.key] = str(v)
+
+                options_json = [{"meta": {"source": bundle.name}, "patches": patches_dict}]
+                tmp = _tempfile.NamedTemporaryFile(
+                    mode="w", suffix=".json", delete=False, encoding="utf-8"
+                )
+                _json.dump(options_json, tmp, ensure_ascii=False)
+                tmp.flush()
+                tmp.close()
+                options_file_arg = ["--options-file", tmp.name]
+                logging.info(
+                    "📄 morphe-cli v1.9.0+: writing options to temp file %s (patches: %s)",
+                    tmp.name,
+                    list(patches_dict.keys()),
+                )
+            elif option_flags:
                 logging.warning(
-                    "⚠️  morphe-cli v1.9.0+: --options require -e (enable) in the same "
-                    "-p block. No patches are being explicitly enabled, so per-patch "
-                    "options cannot be passed via CLI flags. "
-                    "Use --options-file or add explicit enables in patches/<app>-<source>.txt "
-                    "to apply options. Options that will be skipped: %s",
+                    "⚠️  morphe-cli v1.9.0+: --options require -e in the same -p block. "
+                    "Options will be skipped: %s",
                     option_flags,
                 )
 
@@ -442,6 +457,7 @@ def _patch_morphe(
                 *patch_bundle_flag,
                 f"--out={output_apk}",
                 "--bytecode-mode=STRIP_SAFE",
+                *options_file_arg,
                 *disables,
                 str(input_apk),
             ]
@@ -749,7 +765,7 @@ def run_build(app_name: str, source: str, arch: str = "universal") -> str:
     logging.info("🔧 Patching with %s CLI (%s)…", cli_ver, cli.name)
 
     if is_morphe:
-        _patch_morphe(cli, bundle, input_apk, output_apk, enables, disables, option_flags)
+        _patch_morphe(cli, bundle, input_apk, output_apk, enables, disables, option_flags, patch_config.options)
     elif cli_ver in ("v4", "v5plus"):
         _patch_revanced(cli, bundle, input_apk, output_apk, enables, disables, option_flags, cli_ver)
     else:
