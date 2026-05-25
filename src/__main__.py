@@ -301,12 +301,8 @@ def _patch_morphe(
         str(input_apk),
     ]
     logging.info("Running: %s", " ".join(cmd))
-    try:
         utils.run_process(cmd, stream=True)
     except subprocess.CalledProcessError:
-        logging.warning("Standard Morphe command failed; retrying with alternative format…")
-        retry_cmd = [
-            "java", "-jar", str(cli),
             "--patches", str(bundle),
             "--input",   str(input_apk),
             "--output",  str(output_apk),
