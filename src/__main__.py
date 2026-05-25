@@ -263,6 +263,44 @@ def _log_available_patches(cli: Path, bundle: Path) -> None:
         logging.warning("Could not list patches: %s", exc)
 
 
+def _build_java_args() -> list[str]:
+    """Build JVM arguments for Morphe CLI patching.
+
+    Mirrors Enhancify's buildJavaArgs() — tuned for G1GC which is the
+    default on GitHub Actions runners (4 vCPU / 16 GB RAM).
+    """
+    import os
+    cpu_cores = os.cpu_count() or 4
+    conc_gc_threads = max(2, cpu_cores // 4)
+
+    return [
+        "-Djava.awt.headless=true",
+        "-Xmx6g",
+        "-Xms3g",
+        "-Dfile.encoding=UTF-8",
+        "-XX:-UsePerfData",
+        "-XX:+UseG1GC",
+        "-XX:MaxGCPauseMillis=150",
+        "-XX:G1HeapRegionSize=2m",
+        "-XX:+UseStringDeduplication",
+        "-XX:+ParallelRefProcEnabled",
+        f"-XX:ConcGCThreads={conc_gc_threads}",
+        f"-XX:ParallelGCThreads={cpu_cores}",
+        "-XX:CICompilerCount=3",
+        "-XX:+UseCompressedOops",
+        "-XX:+OptimizeStringConcat",
+        "-XX:+DisableExplicitGC",
+        "-XX:+TieredCompilation",
+        "-XX:ReservedCodeCacheSize=128m",
+        "-XX:InitialCodeCacheSize=32m",
+        "-XX:MaxMetaspaceSize=128m",
+        "-XX:SoftRefLRUPolicyMSPerMB=50",
+        "--add-opens=java.base/java.lang=ALL-UNNAMED",
+        "--add-opens=java.base/java.util=ALL-UNNAMED",
+        "--add-opens=java.base/java.io=ALL-UNNAMED",
+    ]
+
+
 def _patch_morphe(
     cli: Path,
     bundle: Path,
@@ -274,12 +312,15 @@ def _patch_morphe(
 ) -> None:
     """Patch using Morphe CLI.
 
-    --continue-on-error is passed so that individual patch fingerprint failures
-    do not abort the entire build.
-
-    Morphe CLI supports --options=key=value (confirmed via Enhancify source).
-    Patch selection flags (-e/-i) are NOT supported by Morphe CLI.
+    Follows Enhancify's patchApp() approach:
+      - --force --exclusive --purge  (always applied, as Enhancify does)
+      - --bytecode-mode=STRIP_SAFE   (Enhancify sets this for G1GC/ParallelGC)
+      - --patches=<bundle>  --out=<out>  (= form, as Enhancify uses)
+      - Patch selection flags (-e/-i) are NOT supported by Morphe CLI.
+      - option_flags (--options=key=value) ARE supported.
     """
+    _log_available_patches(cli, bundle)
+
     if enables or disables:
         logging.warning(
             "⚠️  Morphe CLI (.mpp bundle) does NOT support patch selection flags "
@@ -292,22 +333,40 @@ def _patch_morphe(
     if option_flags:
         logging.info("🔩 Morphe options: %s", option_flags)
 
+    java_args = _build_java_args()
+
+    # Enhancify always passes --force --exclusive --purge for Morphe CLI.
+    # --bytecode-mode=STRIP_SAFE is what Enhancify uses with G1GC / ParallelGC.
     cmd = [
-        "java", "-jar", str(cli),
-        "patch", "--patches", str(bundle),
-        "--out", str(output_apk),
-        "--continue-on-error",
+        "java", *java_args,
+        "-jar", str(cli),
+        "patch",
+        "--force",
+        "--exclusive",
+        "--purge",
+        f"--patches={bundle}",
+        f"--out={output_apk}",
+        "--bytecode-mode=STRIP_SAFE",
         *option_flags,
         str(input_apk),
     ]
     logging.info("Running: %s", " ".join(cmd))
+    try:
         utils.run_process(cmd, stream=True)
     except subprocess.CalledProcessError:
-            "--patches", str(bundle),
-            "--input",   str(input_apk),
-            "--output",  str(output_apk),
-            "--continue-on-error",
+        # Retry without --bytecode-mode in case the CLI version doesn't support it
+        logging.warning("⚠️  First attempt failed; retrying without --bytecode-mode…")
+        retry_cmd = [
+            "java", *java_args,
+            "-jar", str(cli),
+            "patch",
+            "--force",
+            "--exclusive",
+            "--purge",
+            f"--patches={bundle}",
+            f"--out={output_apk}",
             *option_flags,
+            str(input_apk),
         ]
         logging.info("Retrying: %s", " ".join(retry_cmd))
         utils.run_process(retry_cmd, stream=True)
