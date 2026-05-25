@@ -168,9 +168,9 @@ def _parse_patch_flags(
     Read a patches/<app>-<source>.txt file and return
     (enable_flags, disable_flags) ready to be spliced into a CLI command.
 
-    For Morphe / legacy ReVanced (v3):
-      enable  → -i "Name"   (--include)
-      disable → -e "Name"   (--exclude)
+    For Morphe CLI (v1.8.1+):
+      enable  → -e "Name"   (--enable)
+      disable → -d "Name"   (--disable)
 
     For ReVanced v4.x:
       enable  → -i "Name"   (--include)
@@ -183,11 +183,11 @@ def _parse_patch_flags(
     if not patches_txt.exists():
         return [], []
 
-    if cli_ver == "v5plus":
+    if cli_ver in ("v5plus", "morphe"):
         enable_flag  = "-e"
         disable_flag = "-d"
     else:
-        # morphe / legacy (v3) / v4: -i = include/enable, -e = exclude/disable
+        # legacy (v3) / v4: -i = include/enable, -e = exclude/disable
         enable_flag  = "-i"
         disable_flag = "-e"
 
@@ -310,66 +310,55 @@ def _patch_morphe(
     disables: list[str],
     option_flags: list[str],
 ) -> None:
-    """Patch using Morphe CLI.
+    """Patch using Morphe CLI (v1.8.1 stable, confirmed from source).
 
-    Follows Enhancify's patchApp() approach:
-      - --force --exclusive --purge  (always applied, as Enhancify does)
-      - --bytecode-mode=STRIP_SAFE   (Enhancify sets this for G1GC/ParallelGC)
-      - --patches=<bundle>  --out=<out>  (= form, as Enhancify uses)
-      - Patch selection flags (-e/-i) are NOT supported by Morphe CLI.
-      - option_flags (--options=key=value) ARE supported.
+    Confirmed flags in v1.8.1:
+      -f / --force            skip version compatibility check
+      --exclusive             disable all patches except explicitly enabled ones
+      --continue-on-error     keep going if a patch fails
+      --purge                 delete scratch files after patching
+      -p / --patches=         .mpp bundle path
+      -o / --out=             output APK path
+      --bytecode-mode=        FULL | STRIP_SAFE | STRIP_FAST (default: STRIP_FAST)
+      -e / --enable           enable a patch by name  (repeated)
+      -d / --disable          disable a patch by name (repeated)
+      -O / --options=         key=value patch options (repeated)
+      --striplibs=            keep specified arch(es), strip others
+
+    Unlike the previous assumption, Morphe CLI DOES support patch selection
+    (-e/-d/--exclusive), so enables/disables are passed through.
     """
     _log_available_patches(cli, bundle)
 
-    if enables or disables:
-        logging.warning(
-            "⚠️  Morphe CLI (.mpp bundle) does NOT support patch selection flags "
-            "(-e/-i): %d enable(s), %d disable(s) will be IGNORED. "
-            "Switch to a ReVanced-based source to use patch selection.",
-            len(enables) // 2,
-            len(disables) // 2,
-        )
-
+    logging.info("enable_patches=%s  disable_patches=%s", enables, disables)
     if option_flags:
         logging.info("🔩 Morphe options: %s", option_flags)
 
     java_args = _build_java_args()
 
-    # Enhancify always passes --force --exclusive --purge for Morphe CLI.
-    # --bytecode-mode=STRIP_SAFE is what Enhancify uses with G1GC / ParallelGC.
+    # --exclusive is only meaningful when patches are explicitly enabled.
+    exclusive = ["--exclusive"] if enables else []
+
+    # --bytecode-mode=STRIP_SAFE mirrors Enhancify's G1GC/ParallelGC setting
+    # (Enhancify uses STRIP_FAST for SerialGC, STRIP_SAFE for G1GC/ParallelGC).
     cmd = [
         "java", *java_args,
         "-jar", str(cli),
         "patch",
         "--force",
-        "--exclusive",
+        "--continue-on-error",
         "--purge",
         f"--patches={bundle}",
         f"--out={output_apk}",
         "--bytecode-mode=STRIP_SAFE",
+        *exclusive,
+        *disables,
+        *enables,
         *option_flags,
         str(input_apk),
     ]
     logging.info("Running: %s", " ".join(cmd))
-    try:
-        utils.run_process(cmd, stream=True)
-    except subprocess.CalledProcessError:
-        # Retry without --bytecode-mode in case the CLI version doesn't support it
-        logging.warning("⚠️  First attempt failed; retrying without --bytecode-mode…")
-        retry_cmd = [
-            "java", *java_args,
-            "-jar", str(cli),
-            "patch",
-            "--force",
-            "--exclusive",
-            "--purge",
-            f"--patches={bundle}",
-            f"--out={output_apk}",
-            *option_flags,
-            str(input_apk),
-        ]
-        logging.info("Retrying: %s", " ".join(retry_cmd))
-        utils.run_process(retry_cmd, stream=True)
+    utils.run_process(cmd, stream=True)
 
 
 def _patch_revanced(
@@ -641,13 +630,6 @@ def run_build(app_name: str, source: str, arch: str = "universal") -> str:
         len(enables) // 2,
         len(disables) // 2,
     )
-    if patches_txt.exists() and (enables or disables) and is_morphe:
-        logging.warning(
-            "⚠️  %s has patch selection rules, but Morphe CLI (.mpp bundle) "
-            "does not support -e/-i flags — rules will be ignored. "
-            "Consider switching to a ReVanced CLI source for this app.",
-            patches_txt.name,
-        )
 
     # ── 7b. Build option flags ───────────────────────────────────────────────
     option_flags = _build_option_flags(patch_config.options, cli_ver)
