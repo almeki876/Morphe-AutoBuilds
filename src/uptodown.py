@@ -26,6 +26,10 @@ def get_latest_version(app_name: str, config: dict) -> str:
             elif response.status_code == 404:
                 logging.debug(f"✗ Not found: {url}")
                 continue
+            elif response.status_code == 410:
+                # 410 Gone: このスラッグは恒久的に削除されている。次の候補へ。
+                logging.debug(f"✗ Gone (410): {url}")
+                continue
             else:
                 response.raise_for_status()
         except Exception as e:

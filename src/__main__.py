@@ -32,17 +32,98 @@ patches/<app>-<source>.txt syntax
   + Patch Name   →  enable / include this patch  (--exclusive mode activated)
   - Patch Name   →  disable / exclude this patch
   # …            →  comment, ignored
+
+my-patch-config.json "options" syntax
+--------------------------------------
+Each entry in patch_list may carry an optional "options" array:
+
+  {
+    "app_name": "youtube",
+    "source": "revanced-anddea",
+    "options": [
+      { "patch": "Custom branding name for YouTube", "key": "appName", "value": "YouTube" },
+      { "patch": "Some boolean patch",               "key": "enable",  "value": true },
+      { "patch": "Some list patch",                  "key": "items",   "value": ["a","b"] }
+    ]
+  }
+
+These become  --options=<key>=<value>  arguments passed to the CLI,
+matching the behaviour of Enhancify's editOptions()/patchApp() flow.
+Options are silently ignored for Morphe CLI (which does not support them).
 """
 
 import json
 import logging
 import re
 import subprocess
+from dataclasses import dataclass, field
 from os import getenv
 from pathlib import Path
 from sys import exit
+from typing import Any
 
 from src import downloader, utils
+
+
+# ---------------------------------------------------------------------------
+# Data model
+# ---------------------------------------------------------------------------
+
+@dataclass
+class PatchOption:
+    """A single key/value option for a specific patch, as read from my-patch-config.json."""
+    patch: str
+    key: str
+    value: Any  # str | bool | int | list[str]
+
+    def to_cli_flag(self) -> str:
+        """Render as  --options=key=value  for ReVanced CLI v5+."""
+        v = self.value
+        if isinstance(v, bool):
+            encoded = "true" if v else "false"
+        elif isinstance(v, list):
+            # ReVanced CLI expects repeated --options flags for array values;
+            # the caller is responsible for expanding lists (see _build_option_flags).
+            encoded = str(v[0]) if v else ""
+        else:
+            encoded = str(v)
+        return f"--options={self.key}={encoded}"
+
+
+@dataclass
+class PatchConfig:
+    """Parsed representation of one entry in my-patch-config.json."""
+    app_name: str
+    source: str
+    options: list[PatchOption] = field(default_factory=list)
+
+    @classmethod
+    def from_dict(cls, d: dict) -> "PatchConfig":
+        raw_options = d.get("options") or []
+        options = [
+            PatchOption(
+                patch=o["patch"],
+                key=o["key"],
+                value=o["value"],
+            )
+            for o in raw_options
+            if "patch" in o and "key" in o and "value" in o
+        ]
+        return cls(app_name=d["app_name"], source=d["source"], options=options)
+
+
+def _load_patch_config(app_name: str, source: str) -> PatchConfig:
+    """Read my-patch-config.json and return the matching PatchConfig (or an empty one)."""
+    config_path = Path("my-patch-config.json")
+    if not config_path.exists():
+        return PatchConfig(app_name=app_name, source=source)
+
+    raw = json.loads(config_path.read_text(encoding="utf-8"))
+    for entry in raw.get("patch_list", []):
+        if entry.get("app_name") == app_name and entry.get("source") == source:
+            return PatchConfig.from_dict(entry)
+
+    return PatchConfig(app_name=app_name, source=source)
 
 
 # ---------------------------------------------------------------------------
@@ -60,16 +141,12 @@ def _cli_version(cli: Path) -> str:
     name = cli.name.lower()
     if "morphe" in name:
         return "morphe"
-    # Match explicit major version numbers: revanced-cli-4.x, -5.x, -6.x, …
     m = re.search(r"revanced-cli-(\d+)\.", name)
     if m:
         major = int(m.group(1))
         if major == 4:
             return "v4"
         if major >= 6:
-            # CLI v6+ uses patcher v22 which is incompatible with patches built
-            # against patcher v21 (e.g. YuzuMikan404/linegms-fork-second-).
-            # Pin revanced-cli to v5.x in sources/<source>.json to avoid this.
             logging.warning(
                 "⚠️  CLI major version is %d (patcher v22+). "
                 "Patches built against patcher v21 (e.g. YuzuMikan404) will NOT work. "
@@ -77,7 +154,6 @@ def _cli_version(cli: Path) -> str:
                 major,
             )
         return "v5plus"
-    # Fallback: any *-all.jar that doesn't carry an explicit version number
     return "legacy"
 
 
@@ -98,9 +174,7 @@ def _parse_patch_flags(
 
     For ReVanced v4.x:
       enable  → -i "Name"   (--include)
-      disable → -d "Name"   (--disable / not used in v4 but harmless)
-      NOTE: In v4, -e means --exclude (not enable!).
-            Use -i to include, and --exclusive to suppress all others.
+      disable → -e "Name"   (--exclude)
 
     For ReVanced v5+:
       enable  → -e "Name"   (--enable)
@@ -109,16 +183,11 @@ def _parse_patch_flags(
     if not patches_txt.exists():
         return [], []
 
-    if cli_ver == "v4":
-        # v4: -i = --include (add patch), -e = --exclude (remove patch, NOT enable!)
-        enable_flag  = "-i"
-        disable_flag = "-e"
-    elif cli_ver == "v5plus":
-        # v5+: -e = --enable, -d = --disable
+    if cli_ver == "v5plus":
         enable_flag  = "-e"
         disable_flag = "-d"
     else:
-        # morphe / legacy (v3): -i = include, -e = exclude
+        # morphe / legacy (v3) / v4: -i = include/enable, -e = exclude/disable
         enable_flag  = "-i"
         disable_flag = "-e"
 
@@ -135,6 +204,46 @@ def _parse_patch_flags(
             disables.extend([disable_flag, line[1:].strip()])
 
     return enables, disables
+
+
+def _build_option_flags(options: list[PatchOption], cli_ver: str) -> list[str]:
+    """
+    Convert PatchOption objects into CLI --options=key=value flags.
+
+    Supported by both Morphe CLI and ReVanced CLI v4/v5+.
+    Enhancify passes --options= regardless of patch system (mpp or jar),
+    so we do the same here — no source-based suppression.
+
+    null values are skipped (value=None means "use CLI default").
+    Array values generate one --options flag per element.
+    """
+    if not options:
+        return []
+
+    if cli_ver == "legacy":
+        logging.warning(
+            "⚠️  %d option(s) defined in my-patch-config.json, but legacy CLI "
+            "may not support --options flags — passing them anyway.",
+            len(options),
+        )
+
+    flags: list[str] = []
+    for opt in options:
+        v = opt.value
+        if v is None:
+            # null = CLIデフォルトに委ねる → スキップ
+            logging.debug("Skipping null option: [%s] %s", opt.patch, opt.key)
+            continue
+        if isinstance(v, list):
+            for item in v:
+                flags.append(f"--options={opt.key}={item}")
+        elif isinstance(v, bool):
+            flags.append(f"--options={opt.key}={'true' if v else 'false'}")
+        else:
+            flags.append(f"--options={opt.key}={v}")
+
+    logging.info("🔩 Option flags (%d): %s", len(flags), flags)
+    return flags
 
 
 # ---------------------------------------------------------------------------
@@ -161,33 +270,51 @@ def _patch_morphe(
     output_apk: Path,
     enables: list[str],
     disables: list[str],
+    option_flags: list[str],
 ) -> None:
     """Patch using Morphe CLI.
 
     --continue-on-error is passed so that individual patch fingerprint failures
-    (e.g. upstream patch not yet updated for the latest APK version) do not
-    abort the entire build.
+    do not abort the entire build.
+
+    Morphe CLI supports --options=key=value (confirmed via Enhancify source).
+    Patch selection flags (-e/-i) are NOT supported by Morphe CLI.
     """
+    if enables or disables:
+        logging.warning(
+            "⚠️  Morphe CLI (.mpp bundle) does NOT support patch selection flags "
+            "(-e/-i): %d enable(s), %d disable(s) will be IGNORED. "
+            "Switch to a ReVanced-based source to use patch selection.",
+            len(enables) // 2,
+            len(disables) // 2,
+        )
+
+    if option_flags:
+        logging.info("🔩 Morphe options: %s", option_flags)
+
     cmd = [
         "java", "-jar", str(cli),
         "patch", "--patches", str(bundle),
         "--out", str(output_apk),
         "--continue-on-error",
-        *disables, *enables,
+        *option_flags,
         str(input_apk),
     ]
+    logging.info("Running: %s", " ".join(cmd))
     try:
         utils.run_process(cmd, stream=True)
     except subprocess.CalledProcessError:
-        # Some Morphe versions use a different argument order
         logging.warning("Standard Morphe command failed; retrying with alternative format…")
-        utils.run_process([
+        retry_cmd = [
             "java", "-jar", str(cli),
             "--patches", str(bundle),
             "--input",   str(input_apk),
             "--output",  str(output_apk),
             "--continue-on-error",
-        ], stream=True)
+            *option_flags,
+        ]
+        logging.info("Retrying: %s", " ".join(retry_cmd))
+        utils.run_process(retry_cmd, stream=True)
 
 
 def _patch_revanced(
@@ -197,26 +324,25 @@ def _patch_revanced(
     output_apk: Path,
     enables: list[str],
     disables: list[str],
+    option_flags: list[str],
     cli_ver: str = "v5plus",
 ) -> None:
     """
     Patch using ReVanced CLI v4 or v5+.
 
-    v4.x: patch -b  <bundle> [--exclusive] [-i "Name"] [-e "Name"] --out <out> <input>
-          (-b = --bundle)
-    v5+:  patch -p  <bundle> [--exclusive] [-e "Name"] [-d "Name"] --out <out> <input>
+    v4.x: patch -b <bundle> [--exclusive] [-i "Name"] [-e "Name"] [--options=k=v] --out <out> <input>
+    v5+:  patch -p <bundle> [--exclusive] [-e "Name"] [-d "Name"] [--options=k=v] --out <out> <input>
           (-p = --patches  ※ v5で -b から -p にリネームされた)
     """
     _log_available_patches(cli, bundle)
     logging.info("enable_patches=%s  disable_patches=%s", enables, disables)
+    if option_flags:
+        logging.info("option_flags=%s", option_flags)
 
-    # --exclusive: apply *only* the explicitly enabled patches
-    exclusive = ["--exclusive"] if enables else []
+    exclusive    = ["--exclusive"] if enables else []
+    bundle_flag  = "-b" if cli_ver == "v4" else "-p"
 
-    # v4 uses -b/--bundle; v5+ renamed it to -p/--patches
-    bundle_flag = "-b" if cli_ver == "v4" else "-p"
-
-    utils.run_process([
+    cmd = [
         "java", "-jar", str(cli),
         "patch",
         bundle_flag, str(bundle),
@@ -224,8 +350,11 @@ def _patch_revanced(
         *exclusive,
         *disables,
         *enables,
+        *option_flags,
         str(input_apk),
-    ], stream=True)
+    ]
+    logging.info("Running: %s", " ".join(cmd))
+    utils.run_process(cmd, stream=True)
 
 
 def _patch_legacy(
@@ -235,15 +364,25 @@ def _patch_legacy(
     output_apk: Path,
     enables: list[str],
     disables: list[str],
+    option_flags: list[str],
 ) -> None:
     """Patch using ReVanced CLI v3 (legacy *-all.jar without version number)."""
-    utils.run_process([
+    if option_flags:
+        logging.warning(
+            "⚠️  Legacy ReVanced CLI may not support --options flags; "
+            "they will be passed anyway: %s",
+            option_flags,
+        )
+    cmd = [
         "java", "-jar", str(cli),
         "patch", "--patches", str(bundle),
         "--out", str(output_apk),
         *disables, *enables,
+        *option_flags,
         str(input_apk),
-    ], stream=True)
+    ]
+    logging.info("Running: %s", " ".join(cmd))
+    utils.run_process(cmd, stream=True)
 
 
 # ---------------------------------------------------------------------------
@@ -267,7 +406,6 @@ def _merge_split_apk(input_apk: Path, app_name: str, version: str) -> Path:
         logging.error("❌ FATAL: APKEditor produced no output for '%s'", app_name)
         exit(1)
 
-    # Normalise file name: strip artefact suffixes injected by APKEditor
     clean = re.sub(r"\(\d+\)", "", merged.name)
     clean = re.sub(r"-\d+_", "_", clean)
     if clean != merged.name:
@@ -347,6 +485,16 @@ def _sign_apk(unsigned: Path, signed: Path, app_name: str) -> None:
 
 def run_build(app_name: str, source: str, arch: str = "universal") -> str:
     """Download, patch, and sign one APK. Returns the signed APK path."""
+
+    # ── 0. Load patch config (options) ─────────────────────────────────────
+    patch_config = _load_patch_config(app_name, source)
+    if patch_config.options:
+        logging.info(
+            "⚙️  Loaded %d option(s) from my-patch-config.json for '%s' × '%s':",
+            len(patch_config.options), app_name, source,
+        )
+        for opt in patch_config.options:
+            logging.info("   • [%s] %s = %r", opt.patch, opt.key, opt.value)
 
     # ── 1. Download tools ───────────────────────────────────────────────────
     download_files, source_name = downloader.download_required(source)
@@ -432,6 +580,22 @@ def run_build(app_name: str, source: str, arch: str = "universal") -> str:
     # ── 7. Parse patch selection ─────────────────────────────────────────────
     patches_txt = Path("patches") / f"{app_name}-{source}.txt"
     enables, disables = _parse_patch_flags(patches_txt, cli_ver)
+    logging.info(
+        "📋 Patch selection from %s: %d enable(s), %d disable(s)",
+        patches_txt.name,
+        len(enables) // 2,
+        len(disables) // 2,
+    )
+    if patches_txt.exists() and (enables or disables) and is_morphe:
+        logging.warning(
+            "⚠️  %s has patch selection rules, but Morphe CLI (.mpp bundle) "
+            "does not support -e/-i flags — rules will be ignored. "
+            "Consider switching to a ReVanced CLI source for this app.",
+            patches_txt.name,
+        )
+
+    # ── 7b. Build option flags ───────────────────────────────────────────────
+    option_flags = _build_option_flags(patch_config.options, cli_ver)
 
     # ── 8. Repair APK ────────────────────────────────────────────────────────
     logging.info("Checking APK integrity…")
@@ -442,11 +606,11 @@ def run_build(app_name: str, source: str, arch: str = "universal") -> str:
     logging.info("🔧 Patching with %s CLI (%s)…", cli_ver, cli.name)
 
     if is_morphe:
-        _patch_morphe(cli, bundle, input_apk, output_apk, enables, disables)
+        _patch_morphe(cli, bundle, input_apk, output_apk, enables, disables, option_flags)
     elif cli_ver in ("v4", "v5plus"):
-        _patch_revanced(cli, bundle, input_apk, output_apk, enables, disables, cli_ver)
+        _patch_revanced(cli, bundle, input_apk, output_apk, enables, disables, option_flags, cli_ver)
     else:
-        _patch_legacy(cli, bundle, input_apk, output_apk, enables, disables)
+        _patch_legacy(cli, bundle, input_apk, output_apk, enables, disables, option_flags)
 
     input_apk.unlink(missing_ok=True)
 

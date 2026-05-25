@@ -15,11 +15,58 @@ HEADERS = {
 TIMEOUT = 15
 
 
+def _resolve_apkpure_slug(app_name: str, config: dict) -> str | None:
+    """
+    config['name'] のスラッグで 410 Gone が返った場合、パッケージIDを使って
+    APKPure の検索APIからスラッグを再解決する。
+    成功時は正しいスラッグ文字列を返す。失敗時は None を返す。
+    """
+    package = config.get('package', '')
+    if not package:
+        return None
+
+    search_url = f"https://apkpure.net/search?q={package}"
+    try:
+        resp = session.get(search_url, headers=HEADERS, timeout=TIMEOUT)
+        if resp.status_code != 200:
+            logging.debug(f"APKPure slug search returned {resp.status_code} for {app_name}")
+            return None
+        soup = BeautifulSoup(resp.content, "html.parser")
+        # 検索結果の最初のアプリリンクからスラッグを抽出
+        # 例: /protonvpn/ch.protonvpn.android → "protonvpn"
+        for a in soup.find_all('a', href=True):
+            href = a['href']
+            parts = href.strip('/').split('/')
+            if len(parts) == 2 and parts[1] == package:
+                slug = parts[0]
+                logging.info(f"Resolved APKPure slug for {app_name}: {slug}")
+                return slug
+    except Exception as e:
+        logging.debug(f"APKPure slug resolution failed for {app_name}: {e}")
+    return None
+
+
 def get_latest_version(app_name: str, config: str) -> str:
     url = f"https://apkpure.net/{config['name']}/{config['package']}/versions"
 
     try:
         response = session.get(url, headers=HEADERS, timeout=TIMEOUT)
+
+        # 410 Gone: スラッグが変更された可能性があるためパッケージIDで再検索
+        if response.status_code == 410:
+            logging.warning(
+                f"APKPure returned 410 for {app_name} (slug: {config['name']}). "
+                "Attempting slug re-resolution via package ID."
+            )
+            new_slug = _resolve_apkpure_slug(app_name, config)
+            if new_slug:
+                url = f"https://apkpure.net/{new_slug}/{config['package']}/versions"
+                response = session.get(url, headers=HEADERS, timeout=TIMEOUT)
+            else:
+                logging.warning(f"Could not resolve new APKPure slug for {app_name}. "
+                                "Update apps/apkpure/{app_name}.json with the correct name.")
+                return None
+
         response.raise_for_status()
 
         content_size = len(response.content)

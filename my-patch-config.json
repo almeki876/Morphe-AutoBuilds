@@ -1,20 +1,351 @@
 {
+    "_comment": [
+        "patch_list の各エントリに 'options' を追加することで、パッチにオプションを渡せます。",
+        "",
+        "options の書式:",
+        "  {",
+        "    \"patch\": \"パッチ名（CLI の --list-patches で確認）\",",
+        "    \"key\":   \"オプションキー名\",",
+        "    \"value\": \"文字列 / true / false / 数値 / 文字列配列\"",
+        "  }",
+        "",
+        "⚠️  Morphe CLI (.mpp バンドル) は --options 未対応のため無視されます。",
+        "    ReVanced ベースのソース (revanced-anddea, piko, hoo 等) のみ有効です。"
+    ],
     "patch_list": [
         {
             "app_name": "youtube",
-            "source": "morphe"
+            "source": "morphe",
+            "options": [
+                {
+                    "patch": "Hide Shorts components",
+                    "key": "hideShortsAppShortcut",
+                    "value": false
+                },
+                {
+                    "patch": "Hide Shorts components",
+                    "key": "hideShortsWidget",
+                    "value": false
+                },
+                {
+                    "patch": "Theme",
+                    "key": "darkThemeBackgroundColor",
+                    "value": "@android:color/black"
+                },
+                {
+                    "patch": "Theme",
+                    "key": "lightThemeBackgroundColor",
+                    "value": "@android:color/white"
+                }
+            ]
         },
         {
             "app_name": "youtube",
-            "source": "revanced-anddea"
+            "source": "revanced-anddea",
+            "options": [
+                {
+                    "patch": "Change version code",
+                    "key": "versionCode",
+                    "value": "2147483647"
+                },
+                {
+                    "patch": "Custom Shorts action buttons",
+                    "key": "iconType",
+                    "value": "round"
+                },
+                {
+                    "patch": "Custom branding icon for YouTube",
+                    "key": "appIcon",
+                    "value": "xisr_evergreen"
+                },
+                {
+                    "patch": "Custom branding icon for YouTube",
+                    "key": "changeSplashIcon",
+                    "value": true
+                },
+                {
+                    "patch": "Custom branding icon for YouTube",
+                    "key": "restoreOldSplashAnimation",
+                    "value": false
+                },
+                {
+                    "patch": "Custom branding name for YouTube",
+                    "key": "appName",
+                    "value": "RVA"
+                },
+                {
+                    "patch": "Custom double tap length",
+                    "key": "doubleTapLengthArrays",
+                    "value": "3, 5, 10, 15, 20, 30, 60, 120, 180"
+                },
+                {
+                    "patch": "Custom header for YouTube",
+                    "key": "customHeader",
+                    "value": "custom_branding_icon"
+                },
+                {
+                    "patch": "Force player buttons background",
+                    "key": "BackgroundColor",
+                    "value": "?ytOverlayBackgroundMediumLight"
+                },
+                {
+                    "patch": "GmsCore support",
+                    "key": "gmsCoreVendorGroupId",
+                    "value": "app.revanced"
+                },
+                {
+                    "patch": "GmsCore support",
+                    "key": "checkGmsCore",
+                    "value": true
+                },
+                {
+                    "patch": "GmsCore support",
+                    "key": "disableCoreServices",
+                    "value": false
+                },
+                {
+                    "patch": "GmsCore support",
+                    "key": "packageNameYouTube",
+                    "value": "bill.youtube"
+                },
+                {
+                    "patch": "GmsCore support",
+                    "key": "packageNameYouTubeMusic",
+                    "value": "bill.youtube.music"
+                },
+                {
+                    "patch": "GmsCore support",
+                    "key": "patchAllManifest",
+                    "value": true
+                },
+                {
+                    "patch": "Overlay buttons",
+                    "key": "iconType",
+                    "value": "rounded"
+                },
+                {
+                    "patch": "Overlay buttons",
+                    "key": "bottomMargin",
+                    "value": "2.5dip"
+                },
+                {
+                    "patch": "Overlay buttons",
+                    "key": "widerButtonsSpace",
+                    "value": false
+                },
+                {
+                    "patch": "Overlay buttons",
+                    "key": "changeTopButtons",
+                    "value": true
+                },
+                {
+                    "patch": "Settings for YouTube",
+                    "key": "insertPosition",
+                    "value": "@string/about_key"
+                },
+                {
+                    "patch": "Settings for YouTube",
+                    "key": "rvxSettingsLabel",
+                    "value": "RVA"
+                },
+                {
+                    "patch": "Snack bar components",
+                    "key": "cornerRadius",
+                    "value": "8.0dip"
+                },
+                {
+                    "patch": "Snack bar components",
+                    "key": "applyCornerRadiusToPlaylistBottomBar",
+                    "value": false
+                },
+                {
+                    "patch": "Snack bar components",
+                    "key": "darkThemeBackgroundColor",
+                    "value": "@color/yt_black3"
+                },
+                {
+                    "patch": "Snack bar components",
+                    "key": "lightThemeBackgroundColor",
+                    "value": "@color/yt_white3"
+                },
+                {
+                    "patch": "Snack bar components",
+                    "key": "strokeColor",
+                    "value": ""
+                },
+                {
+                    "patch": "SponsorBlock",
+                    "key": "NewSegmentAlignment",
+                    "value": "right"
+                },
+                {
+                    "patch": "Theme",
+                    "key": "darkThemeBackgroundColor",
+                    "value": "@android:color/black"
+                },
+                {
+                    "patch": "Theme",
+                    "key": "lightThemeBackgroundColor",
+                    "value": "@android:color/white"
+                },
+                {
+                    "patch": "Translations for YouTube",
+                    "key": "customTranslations",
+                    "value": ""
+                },
+                {
+                    "patch": "Translations for YouTube",
+                    "key": "selectedTranslations",
+                    "value": "ar, az-rAZ, be-rBY, bg-rBG, cs-rCZ, da-rDK, de-rDE, el-rGR, en-rGB, en-rUS, es-rES, es-rUS, fa-rIR, fil-rPH, fr-rFR, ga-rIE, hu-rHU, id-rID, in, it-rIT, iw-rIL, ja-rJP, ko-rKR, lo-rLA, my-rMM, nl-rNL, pa-rIN, pl-rPL, pt-rBR, ru-rRU, sk-rSK, sv-rSE, ta-rIN, tr-rTR, uk-rUA, ur-rPK, uz-rUZ, vi-rVN, zh-rCN, zh-rTW"
+                },
+                {
+                    "patch": "Translations for YouTube",
+                    "key": "selectedStringResources",
+                    "value": "af, am, ar, ar-rXB, as, az, b+es+419, b+sr+Latn, be, bg, bn, bs, ca, cs, da, de, el, en-rAU, en-rCA, en-rGB, en-rIN, en-rXA, en-rXC, es, es-rUS, et, eu, fa, fi, fil-rPH, fr, fr-rCA, gl, gu, hi, hr, hu, hy, id, in, is, it, iw, ja, ka, kk, km, kn, ko, ky, lo, lt, lv, mk, ml, mn, mr, ms, my, nb, ne, nl, no, or, pa, pl, pt, pt-rBR, pt-rPT, ro, ru, si, sk, sl, sq, sr, sv, sw, ta, te, th, tl, tr, uk, ur, uz, vi, zh, zh-rCN, zh-rHK, zh-rTW, zu"
+                },
+                {
+                    "patch": "Visual preferences icons for YouTube",
+                    "key": "settingsMenuIcon",
+                    "value": "extension"
+                },
+                {
+                    "patch": "Visual preferences icons for YouTube",
+                    "key": "applyToAll",
+                    "value": true
+                }
+            ]
         },
         {
             "app_name": "youtube-music",
-            "source": "morphe"
+            "source": "morphe",
+            "options": [
+                {
+                    "patch": "Theme",
+                    "key": "darkThemeBackgroundColor",
+                    "value": "@android:color/black"
+                }
+            ]
         },
         {
             "app_name": "youtube-music",
-            "source": "revanced-anddea"
+            "source": "revanced-anddea",
+            "options": [
+                {
+                    "patch": "Custom branding icon for YouTube Music",
+                    "key": "appIcon",
+                    "value": "xisr_yellow"
+                },
+                {
+                    "patch": "Custom branding icon for YouTube Music",
+                    "key": "changeSplashIcon",
+                    "value": true
+                },
+                {
+                    "patch": "Custom branding icon for YouTube Music",
+                    "key": "restoreOldSplashIcon",
+                    "value": false
+                },
+                {
+                    "patch": "Custom branding name for YouTube Music",
+                    "key": "appNameNotification",
+                    "value": "RVA Music"
+                },
+                {
+                    "patch": "Custom branding name for YouTube Music",
+                    "key": "appNameLauncher",
+                    "value": "RVA Music"
+                },
+                {
+                    "patch": "Custom header for YouTube Music",
+                    "key": "customHeader",
+                    "value": "custom_branding_icon"
+                },
+                {
+                    "patch": "Dark theme",
+                    "key": "darkThemeBackgroundColor",
+                    "value": "@android:color/black"
+                },
+                {
+                    "patch": "Dark theme",
+                    "key": "materialYou",
+                    "value": false
+                },
+                {
+                    "patch": "GmsCore support",
+                    "key": "gmsCoreVendorGroupId",
+                    "value": "app.revanced"
+                },
+                {
+                    "patch": "GmsCore support",
+                    "key": "checkGmsCore",
+                    "value": true
+                },
+                {
+                    "patch": "GmsCore support",
+                    "key": "disableCoreServices",
+                    "value": false
+                },
+                {
+                    "patch": "GmsCore support",
+                    "key": "packageNameYouTube",
+                    "value": "bill.youtube"
+                },
+                {
+                    "patch": "GmsCore support",
+                    "key": "packageNameYouTubeMusic",
+                    "value": "bill.youtube.music"
+                },
+                {
+                    "patch": "GmsCore support",
+                    "key": "patchAllManifest",
+                    "value": true
+                },
+                {
+                    "patch": "Player components",
+                    "key": "swipeToDismissMiniPlayer",
+                    "value": true
+                },
+                {
+                    "patch": "Settings for YouTube Music",
+                    "key": "insertPosition",
+                    "value": "pref_key_parent_tools"
+                },
+                {
+                    "patch": "Settings for YouTube Music",
+                    "key": "rvxSettingsLabel",
+                    "value": "RVA"
+                },
+                {
+                    "patch": "Translations for YouTube Music",
+                    "key": "customTranslations",
+                    "value": ""
+                },
+                {
+                    "patch": "Translations for YouTube Music",
+                    "key": "selectedTranslations",
+                    "value": "bg-rBG, bn, cs-rCZ, el-rGR, es-rES, fr-rFR, hu-rHU, id-rID, in, it-rIT, ja-rJP, ko-rKR, nl-rNL, pl-rPL, pt-rBR, ro-rRO, ru-rRU, ta-rIN, tr-rTR, uk-rUA, vi-rVN, zh-rCN, zh-rTW"
+                },
+                {
+                    "patch": "Translations for YouTube Music",
+                    "key": "selectedStringResources",
+                    "value": "af, am, ar, ar-rXB, as, az, b+es+419, b+sr+Latn, be, bg, bn, bs, ca, cs, da, de, el, en-rAU, en-rCA, en-rGB, en-rIN, en-rXA, en-rXC, es, es-rUS, et, eu, fa, fi, fil-rPH, fr, fr-rCA, gl, gu, hi, hr, hu, hy, id, in, is, it, iw, ja, ka, kk, km, kn, ko, ky, lo, lt, lv, mk, ml, mn, mr, ms, my, nb, ne, nl, no, or, pa, pl, pt, pt-rBR, pt-rPT, ro, ru, si, sk, sl, sq, sr, sv, sw, ta, te, th, tl, tr, uk, ur, uz, vi, zh, zh-rCN, zh-rHK, zh-rTW, zu"
+                },
+                {
+                    "patch": "Visual preferences icons for YouTube Music",
+                    "key": "settingsMenuIcon",
+                    "value": "extension"
+                },
+                {
+                    "patch": "Visual preferences icons for YouTube Music",
+                    "key": "applyToAll",
+                    "value": true
+                },
+                {
+                    "patch": "Change version code",
+                    "key": "versionCode",
+                    "value": "2147483647"
+                }
+            ]
         },
         {
             "app_name": "instagram",
