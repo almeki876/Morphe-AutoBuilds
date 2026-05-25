@@ -26,6 +26,6 @@
   "hoo": "v1.33.0",
   "rookie": "v1.0.4",
   "tosox": "v1.6.0",
-  "yuzu": "{\"message\":\"Not Found\",\"documentation_url\":\"https://docs.github.com/rest/releases/releases#list-releases\",\"status\":\"404\"}",
+  "yuzu": "v1.0",
   "dropped": "v1.5.1"
 }
