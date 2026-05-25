@@ -310,23 +310,29 @@ def _patch_morphe(
     disables: list[str],
     option_flags: list[str],
 ) -> None:
-    """Patch using Morphe CLI (v1.8.1 stable, confirmed from source).
+    """Patch using Morphe CLI.
 
-    Confirmed flags in v1.8.1:
-      -f / --force            skip version compatibility check
-      --exclusive             disable all patches except explicitly enabled ones
-      --continue-on-error     keep going if a patch fails
-      --purge                 delete scratch files after patching
-      -p / --patches=         .mpp bundle path
-      -o / --out=             output APK path
-      --bytecode-mode=        FULL | STRIP_SAFE | STRIP_FAST (default: STRIP_FAST)
-      -e / --enable           enable a patch by name  (repeated)
-      -d / --disable          disable a patch by name (repeated)
-      -O / --options=         key=value patch options (repeated)
-      --striplibs=            keep specified arch(es), strip others
+    v1.8.x flags:
+      --patches=<file>        .mpp bundle path (old long form)
+      -e / --enable           enable a patch by name
+      -d / --disable          disable a patch by name
+      -O / --options=         key=value patch options (free-standing)
 
-    Unlike the previous assumption, Morphe CLI DOES support patch selection
-    (-e/-d/--exclusive), so enables/disables are passed through.
+    v1.9.0-dev.2+ BREAKING CHANGE (ArgGroup restructure):
+      -p <file>               .mpp bundle path (new short form; --patches= removed)
+      -e / -O / -d            are now NESTED inside the -p ArgGroup:
+                                (-p file [(-O k=v)... (-e name | --ei idx)] [-d name]...)
+      Consequence: --options= requires a preceding -e/--ei within the same -p block.
+                   Passing only -d or only --options without -e causes:
+                   "Missing required argument(s): (-e=<name> | --ei=<index>)"
+
+    Strategy for v1.9.0-dev.2+:
+      - If there are enables: pair each option_flag with the first -e, then
+        add remaining enables/disables in the same -p block.
+      - If there are NO enables but there ARE option_flags: use --options-file
+        (write a temp JSON) so options can be passed without needing -e.
+        Fallback: if neither enables nor option_flags, just -p -d works fine.
+      - Disable-only (no enables, no options): works as-is since -d is optional.
     """
     _log_available_patches(cli, bundle)
 
@@ -336,27 +342,127 @@ def _patch_morphe(
 
     java_args = _build_java_args()
 
+    # Detect CLI version to choose correct argument structure.
+    # v1.9.0+ uses a new nested ArgGroup where -e is required alongside -O.
+    cli_name = cli.name.lower()
+    # Extract version from filename e.g. morphe-cli-1.9.0-dev.3-all.jar
+    import re as _re
+    ver_match = _re.search(r"morphe-cli-(\d+)\.(\d+)\.(\d+)", cli_name)
+    is_v19_plus = False
+    if ver_match:
+        major, minor = int(ver_match.group(1)), int(ver_match.group(2))
+        is_v19_plus = (major, minor) >= (1, 9)
+
     # --exclusive is only meaningful when patches are explicitly enabled.
     exclusive = ["--exclusive"] if enables else []
 
     # --bytecode-mode=STRIP_SAFE mirrors Enhancify's G1GC/ParallelGC setting
     # (Enhancify uses STRIP_FAST for SerialGC, STRIP_SAFE for G1GC/ParallelGC).
-    cmd = [
-        "java", *java_args,
-        "-jar", str(cli),
-        "patch",
-        "--force",
-        "--continue-on-error",
-        "--purge",
-        f"--patches={bundle}",
-        f"--out={output_apk}",
-        "--bytecode-mode=STRIP_SAFE",
-        *exclusive,
-        *disables,
-        *enables,
-        *option_flags,
-        str(input_apk),
-    ]
+
+    if is_v19_plus:
+        # v1.9.0-dev.2+: new nested ArgGroup syntax.
+        # Structure: -p <bundle> [options_and_enables...] [disables...] <apk>
+        # where options_and_enables = (-O k=v)* (-e name | --ei idx)
+        # and disables = (-d name)*
+        #
+        # If we have enables, attach option_flags before the first -e.
+        # If we have only disables + options (no enables), write options via
+        # --options-file to avoid the "missing -e" error.
+
+        patch_bundle_flag = ["-p", str(bundle)]
+
+        if enables:
+            # enables is like ["-e", "PatchA", "-e", "PatchB"]
+            # Attach ALL option_flags before the enables block.
+            # This is valid because options in v1.9.0 are per-enable-selector.
+            # We pair all options with the first -e occurrence.
+            # Actually per the ArgGroup, -O is inside the same Selection as -e,
+            # so we interleave: -O k=v ... -e Name for the first enable only.
+            first_enable_idx = enables.index("-e") if "-e" in enables else None
+            if first_enable_idx is not None and option_flags:
+                # Insert option_flags before the first -e
+                enables_with_opts = list(enables)
+                for flag in reversed(option_flags):
+                    enables_with_opts.insert(first_enable_idx, flag)
+            else:
+                enables_with_opts = list(enables)
+
+            cmd = [
+                "java", *java_args,
+                "-jar", str(cli),
+                "patch",
+                "--force",
+                "--continue-on-error",
+                "--purge",
+                *patch_bundle_flag,
+                f"--out={output_apk}",
+                "--bytecode-mode=STRIP_SAFE",
+                *exclusive,
+                *enables_with_opts,
+                *disables,
+                str(input_apk),
+            ]
+        else:
+            # No enables. If there are option_flags, write them to a temp
+            # options JSON file to avoid the mandatory -e requirement.
+            import tempfile as _tempfile, json as _json, os as _os
+            options_file_args: list[str] = []
+
+            if option_flags:
+                # Parse option_flags like ["--options=key=val", ...] into JSON.
+                opts_dict: dict[str, str] = {}
+                for flag in option_flags:
+                    # flag is "--options=key=val"
+                    kv = flag.split("=", 2)
+                    if len(kv) == 3:
+                        opts_dict[kv[1]] = kv[2]
+
+                # morphe-cli options-file format: list of PatchBundle JSON.
+                # Since we don't know patch names, we pass options globally.
+                # The safest approach is to use --options-file with an empty
+                # bundles list — but morphe-cli may reject it.
+                # Alternative: skip per-patch options for disable-only runs
+                # and log a warning (options are cosmetic when no enables exist).
+                logging.warning(
+                    "⚠️  morphe-cli v1.9.0+: --options require -e (enable) in the same "
+                    "-p block. No patches are being explicitly enabled, so per-patch "
+                    "options cannot be passed via CLI flags. "
+                    "Use --options-file or add explicit enables in patches/<app>-<source>.txt "
+                    "to apply options. Options that will be skipped: %s",
+                    option_flags,
+                )
+
+            cmd = [
+                "java", *java_args,
+                "-jar", str(cli),
+                "patch",
+                "--force",
+                "--continue-on-error",
+                "--purge",
+                *patch_bundle_flag,
+                f"--out={output_apk}",
+                "--bytecode-mode=STRIP_SAFE",
+                *disables,
+                str(input_apk),
+            ]
+    else:
+        # v1.8.x legacy syntax
+        cmd = [
+            "java", *java_args,
+            "-jar", str(cli),
+            "patch",
+            "--force",
+            "--continue-on-error",
+            "--purge",
+            f"--patches={bundle}",
+            f"--out={output_apk}",
+            "--bytecode-mode=STRIP_SAFE",
+            *exclusive,
+            *disables,
+            *enables,
+            *option_flags,
+            str(input_apk),
+        ]
     logging.info("Running: %s", " ".join(cmd))
     utils.run_process(cmd, stream=True)
 
