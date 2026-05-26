@@ -97,6 +97,7 @@ class PatchConfig:
     source: str
     options: list[PatchOption] = field(default_factory=list)
     disable: list[str] = field(default_factory=list)
+    force_enable: list[str] = field(default_factory=list)
 
     @classmethod
     def from_dict(cls, d: dict) -> "PatchConfig":
@@ -111,7 +112,8 @@ class PatchConfig:
             if "patch" in o and "key" in o and "value" in o
         ]
         disable = d.get("disable") or []
-        return cls(app_name=d["app_name"], source=d["source"], options=options, disable=disable)
+        force_enable = d.get("force_enable") or []
+        return cls(app_name=d["app_name"], source=d["source"], options=options, disable=disable, force_enable=force_enable)
 
 
 def _load_patch_config(app_name: str, source: str) -> PatchConfig:
@@ -212,6 +214,7 @@ def _build_patch_flags(
             # options が設定されているパッチ名セット（use=false でも有効化する）
             config_opts_patches = {o.patch for o in patch_config.options}
             disable_set = {d.lower() for d in patch_config.disable}
+            force_enable_set = {f for f in patch_config.force_enable}
 
             enables: list[str] = []
             for patch in patch_list:
@@ -225,12 +228,18 @@ def _build_patch_flags(
                     pkg_names = [c.get("packageName", c.get("name", "")) for c in compat]
                 if compat and pkg_name not in pkg_names:
                     continue
-                # use=false でも options が config に設定されていれば有効化
-                if not use and name not in config_opts_patches:
+                # use=false でも options または force_enable が config に設定されていれば有効化
+                if not use and name not in config_opts_patches and name not in force_enable_set:
                     continue
                 if name.lower() in disable_set:
                     continue
                 enables.extend([enable_flag, name])
+            
+            # force_enable に指定されているがパッチバンドルに存在しなかったものを警告
+            enabled_names = {enables[i+1] for i in range(0, len(enables), 2)}
+            for fe in force_enable_set:
+                if fe not in enabled_names and fe.lower() not in disable_set:
+                    logging.warning("⚠️  force_enable: '%s' not found in patches-list.json", fe)
 
             # disable はバンドル内に実在する use=true パッチのみ意味を持つ
             # use=false パッチは最初から除外されるので disable 不要
