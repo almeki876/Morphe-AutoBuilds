@@ -8,161 +8,200 @@
 [![Python Version](https://img.shields.io/badge/Python-3.11%2B-blue?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
 
 <p align="center">
-  <strong>Automated YouTube & YouTube Music APK Builder</strong><br>
-  Official Morphe + Anddea Patches • GitHub Actions Powered • JST-Tagged Releases
+  <strong>自動 Android APK ビルドシステム</strong><br>
+  複数パッチソース対応 • GitHub Actions 自動実行 • JST タイムスタンプリリース
 </p>
 
 <p align="center">
-  A sophisticated, automated pipeline that builds ready-to-install YouTube and YouTube Music APKs with Official Morphe and Anddea patches. This system automatically monitors upstream releases, downloads base APKs, applies patches, and publishes optimized arm64-v8a builds with integrated release notes.
+  アップストリームのパッチリリースを自動検知し、ベース APK のダウンロード・パッチ適用・署名・リリース公開までを全自動で行うパイプラインです。
 </p>
 
-[![View Latest Release](https://img.shields.io/badge/View%20Latest%20Release-0A0A0A?style=flat&logo=github&logoColor=white)](https://github.com/matchadaisuke/Morphe-AutoBuilds/releases/latest)
-[![Report Bug](https://img.shields.io/badge/Report%20Bug-0A0A0A?style=flat&logo=github&logoColor=white)](https://github.com/matchadaisuke/Morphe-AutoBuilds/issues)
-[![View Docs](https://img.shields.io/badge/View%20Docs-0A0A0A?style=flat&logo=github&logoColor=white)](./IMPLEMENTATION.md)
+[![最新リリースを見る](https://img.shields.io/badge/最新リリースを見る-0A0A0A?style=flat&logo=github&logoColor=white)](https://github.com/matchadaisuke/Morphe-AutoBuilds/releases/latest)
+[![バグ報告](https://img.shields.io/badge/バグ報告-0A0A0A?style=flat&logo=github&logoColor=white)](https://github.com/matchadaisuke/Morphe-AutoBuilds/issues)
 
 </div>
 
 ---
 
-## ⚡ Quick Start
+## ⚡ ダウンロード
 
-> **Note:** All APKs are automatically built when Official Morphe or Anddea releases a new version. Releases are tagged with JST timestamps (e.g., `2026-04-21_15-30-JST`).
+アップストリームが新バージョンをリリースすると自動的にビルドされます。タグは JST タイムスタンプ形式（例: `2026-04-21_15-30-JST`）です。
 
-### 📥 Download Latest APKs
-
-| App | Morphe | Anddea |
+| アプリ | Morphe | Anddea |
 | :--- | :--- | :--- |
 | **YouTube** | [Download](https://github.com/matchadaisuke/Morphe-AutoBuilds/releases/latest) | [Download](https://github.com/matchadaisuke/Morphe-AutoBuilds/releases/latest) |
 | **YouTube Music** | [Download](https://github.com/matchadaisuke/Morphe-AutoBuilds/releases/latest) | [Download](https://github.com/matchadaisuke/Morphe-AutoBuilds/releases/latest) |
 
-### 📱 Supported Configuration
+その他のアプリ（Instagram、AdGuard、Nova Launcher 等）も同一リリースに含まれています。
 
-| App | Patch Source | Architecture |
+---
+
+## 📱 ビルド対象
+
+### YouTube / YouTube Music
+
+| アプリ | パッチソース | アーキテクチャ | CLI |
+| :--- | :--- | :--- | :--- |
+| YouTube | Morphe | arm64-v8a | morphe-cli |
+| YouTube | Anddea (revanced-anddea) | arm64-v8a | morphe-cli |
+| YouTube Music | Morphe | arm64-v8a | morphe-cli |
+| YouTube Music | Anddea (revanced-anddea) | arm64-v8a | morphe-cli |
+
+### その他のアプリ
+
+| アプリ | パッチソース | CLI |
 | :--- | :--- | :--- |
-| **YouTube** | Official Morphe | arm64-v8a |
-| **YouTube** | Anddea | arm64-v8a |
-| **YouTube Music** | Official Morphe | arm64-v8a |
-| **YouTube Music** | Anddea | arm64-v8a |
+| Instagram | Piko (crimera) | morphe-cli |
+| AdGuard、Prime Video、Duolingo、IBS Paint、Icon Packer、Nova Launcher、Proton VPN、Smart Launcher、SoundCloud、WPS Office | hoo-dles | morphe-cli |
+| MEGA | Tosox | revanced-cli v4.4.0 |
+| Proton Mail、Disney+、Photomath、Pixiv | RookieEnough (De-ReVanced) | morphe-cli |
+| ゆうちょ通帳アプリ、ゆうちょ認証アプリ | YuzuMikan404 | revanced-cli v5.0.1 |
 
 ---
 
-## ✨ Key Features
+## ✨ 主な機能
 
-* **Upstream-Triggered Builds:** Automatically detects when Official Morphe or Anddea releases a new version and triggers builds immediately.
-* **Integrated Release Strategy:** All APKs are released together with a single JST-timestamped tag, ensuring consistency across all builds.
-* **Smart Patch Control:** Text-based patch filter files allow precise inclusion or exclusion of specific patches per app/source combination.
-* **Optimized Architecture:** arm64-v8a only for modern Android devices, reducing file size while maintaining compatibility.
-* **Automated Release Notes:** README.md and detailed release notes are automatically generated with version info and update status.
-* **GitHub Actions Powered:** Zero manual intervention required—everything runs on GitHub's infrastructure.
-* **Reproducible Builds:** Previous APK versions are preserved in release history, allowing users to downgrade if needed.
-
----
-
-## 📋 System Architecture
-
-### Workflow Components
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│ check-upstream.yml (Daily 6:00 UTC)                         │
-│ - Fetch latest Morphe & Anddea tags                         │
-│ - Compare with stored Variables                             │
-│ - Trigger build.yml if updates found                        │
-└────────────────────┬────────────────────────────────────────┘
-                     │
-                     ▼
-┌─────────────────────────────────────────────────────────────┐
-│ build.yml (Triggered on upstream update)                    │
-│ - Download Morphe & Anddea tools                            │
-│ - Build 4 APK combinations in parallel                      │
-│ - Generate README.md                                        │
-│ - Create JST-timestamped release                            │
-└─────────────────────────────────────────────────────────────┘
-```
-
-### Build Matrix
-
-The system builds 4 APK combinations automatically:
-
-1. YouTube × Official Morphe
-2. YouTube × Anddea
-3. YouTube Music × Official Morphe
-4. YouTube Music × Anddea
+- **アップストリーム自動検知**: Morphe・Anddea の新リリースを毎日監視し、更新があれば自動でビルドをトリガー
+- **統合リリース**: 全 APK を JST タイムスタンプタグでまとめてリリース
+- **複数 CLi 対応**: morphe-cli (v1.8.x / v1.9.x+) と revanced-cli (v4・v5+) を自動判別して適切な引数を構築
+- **動的パッチ選択**: `patches-list.json` から対象アプリ・バージョンに互換性のあるパッチを自動選択
+- **オプション制御**: `my-patch-config.json` でパッチオプション・無効化・強制有効化を一元管理
+- **APK 自動取得**: APKMirror・APKPure・Uptodown・Aptoide から互換バージョンを自動検索してダウンロード
+- **ツールキャッシュ**: ビルドツールをジョブ間でキャッシュし、ダウンロード時間を削減
 
 ---
 
-## 🛠️ Repository Structure
+## 📋 システム構成
+
+### ワークフロー
 
 ```
-morphe-autobuilds/
+check-upstream.yml（毎日 6:00 UTC）
+  └─ Morphe・Anddea の最新タグを取得
+  └─ Repository Variables と比較
+  └─ 差分があれば build.yml をトリガー
+
+build.yml（アップストリーム更新時 or 手動実行）
+  ├─ Prepare Build Matrix  … ビルド対象の組み合わせを生成
+  ├─ Download Build Tools  … 各ソースのツールをダウンロード・キャッシュ
+  ├─ Build APK（並列）     … 各 app × source の組み合わせをビルド
+  └─ Create Integrated Release … 全 APK を統合してリリース作成
+```
+
+### リポジトリ構造
+
+```
+Morphe-AutoBuilds/
 ├── .github/workflows/
-│   ├── check-upstream.yml      # Upstream monitoring workflow
-│   └── build.yml               # Build & release workflow
-├── apps/apkmirror/
-│   ├── youtube.json            # YouTube APKMirror config
-│   └── youtube-music.json      # YouTube Music APKMirror config
+│   ├── check-upstream.yml      # アップストリーム監視
+│   └── build.yml               # ビルド & リリース
+├── src/                        # Python ビルドコア
+│   ├── __main__.py             # エントリポイント・パッチ実行ロジック
+│   ├── downloader.py           # APK・ツールダウンロード
+│   ├── apkmirror.py            # APKMirror 対応
+│   ├── apkpure.py              # APKPure 対応
+│   ├── uptodown.py             # Uptodown 対応
+│   ├── aptoide.py              # Aptoide 対応
+│   ├── github.py               # GitHub Releases 対応
+│   ├── utils.py                # 共通ユーティリティ
+│   └── __init__.py             # セッション・ロギング初期化
+├── scripts/
+│   ├── prepare_matrix.py       # ビルドマトリクス生成
+│   ├── download_all_tools.py   # ツール一括ダウンロード
+│   ├── download_reused_apks.py # 再利用 APK のダウンロード
+│   ├── check_apk_versions.py   # APK バージョン確認
+│   └── save_apk_versions.py    # APK バージョン保存
+├── apps/
+│   ├── apkmirror/              # APKMirror からダウンロードするアプリの設定
+│   ├── apkpure/                # APKPure からダウンロードするアプリの設定
+│   ├── uptodown/               # Uptodown からダウンロードするアプリの設定
+│   ├── aptoide/                # Aptoide からダウンロードするアプリの設定
+│   └── github/                 # GitHub Releases からダウンロードするアプリの設定
+├── sources/
+│   ├── morphe.json             # Morphe ツール定義
+│   ├── revanced-anddea.json    # Anddea ツール定義
+│   ├── piko.json               # Piko ツール定義
+│   ├── hoo.json                # hoo-dles ツール定義
+│   ├── tosox.json              # Tosox ツール定義
+│   ├── yuzu.json               # YuzuMikan404 ツール定義
+│   └── rookie.json             # RookieEnough ツール定義
 ├── patches/
 │   ├── youtube-morphe.txt
 │   ├── youtube-revanced-anddea.txt
 │   ├── youtube-music-morphe.txt
-│   └── youtube-music-revanced-anddea.txt
-├── scripts/
-│   └── generate_readme.py      # README.md auto-generation script
-├── sources/
-│   ├── morphe.json             # Morphe tool sources
-│   └── revanced-anddea.json    # Anddea tool sources
-├── src/                        # Core build logic (Python)
-├── my-patch-config.json        # Target apps & sources
-├── arch-config.json            # Architecture configuration
-├── IMPLEMENTATION.md           # Implementation details
-├── SETUP.md                    # Setup instructions
-└── README.md                   # This file
+│   ├── youtube-music-revanced-anddea.txt
+│   ├── yuucho-tsucho-yuzu.txt
+│   └── yuucho-ninsho-yuzu.txt
+├── keystore/                   # 署名用キーストア
+├── my-patch-config.json        # パッチオプション・有効化・無効化の設定
+├── arch-config.json            # アーキテクチャ設定
+├── last-tags.json              # 前回リリースタグの記録
+└── SETUP.md                    # セットアップガイド
 ```
 
 ---
 
-## ⚙️ Configuration Guide
+## ⚙️ 設定ガイド
 
-### 1. Target Apps (`my-patch-config.json`)
+### 1. ビルド対象の定義（`my-patch-config.json`）
 
-Define which app/source combinations to build:
+`patch_list` に app × source の組み合わせを記述します。
 
 ```json
 {
   "patch_list": [
-    { "app_name": "youtube", "source": "morphe" },
-    { "app_name": "youtube", "source": "revanced-anddea" },
-    { "app_name": "youtube-music", "source": "morphe" },
-    { "app_name": "youtube-music", "source": "revanced-anddea" }
+    {
+      "app_name": "youtube",
+      "source": "revanced-anddea",
+      "options": [
+        { "patch": "Custom branding name for YouTube", "key": "appName", "value": "RVA" },
+        { "patch": "GmsCore support", "key": "packageNameYouTube", "value": "bill.youtube" }
+      ],
+      "disable": [],
+      "force_enable": []
+    }
   ]
 }
 ```
 
-### 2. Architecture (`arch-config.json`)
+**フィールド説明:**
 
-Specify target architectures:
+| フィールド | 説明 |
+| :--- | :--- |
+| `app_name` | アプリ名（`youtube`、`youtube-music`、`instagram` 等） |
+| `source` | パッチソース名（`sources/` 以下のファイル名と対応） |
+| `options` | パッチオプションのリスト。`patch`・`key`・`value` を指定 |
+| `disable` | 強制無効化するパッチ名のリスト |
+| `force_enable` | デフォルト無効のパッチを強制有効化するリスト |
+
+> **`force_enable` について**: `patches-list.json` 上で `use: false`（デフォルト無効）になっているパッチを有効化したい場合に使います。`patches/` の `.txt` ファイルの `+` 行は `patches-list.json` が存在する場合は参照されないため、このフィールドで指定してください。
+
+### 2. アーキテクチャ設定（`arch-config.json`）
 
 ```json
-{
-  "youtube": { "arch": ["arm64-v8a"] },
-  "youtube-music": { "arch": ["arm64-v8a"] }
-}
+[
+  { "app_name": "youtube",       "source": "morphe",          "arches": ["arm64-v8a"] },
+  { "app_name": "youtube-music", "source": "revanced-anddea", "arches": ["arm64-v8a"] }
+]
 ```
 
-### 3. Patch Filters
+### 3. パッチフィルター（`patches/<app>-<source>.txt`）
 
-Located in `patches/`. Use `-` to exclude patches and `+` to force include:
+`patches-list.json` が存在しないソースや、フォールバック時に参照されます。
 
-**Example: `patches/youtube-revanced-anddea.txt`**
 ```text
-# YouTube × Anddea patch rules
+# - で始まる行 = 無効化
+# + で始まる行 = 強制有効化（patches-list.json がない場合のみ有効）
+
 - Custom branding name for YouTube
-- Custom branding icon for YouTube
++ Return YouTube Dislike
 ```
 
-### 4. APK Sources
+> `patches-list.json` があるソース（morphe、revanced-anddea 等）では動的選択が優先されます。無効化は `my-patch-config.json` の `disable`、強制有効化は `force_enable` で設定してください。
 
-Located in `apps/apkmirror/`. Example for YouTube:
+### 4. APK ダウンロード設定（`apps/<platform>/<app>.json`）
+
+各プラットフォームからのダウンロード設定です。APKMirror の例:
 
 ```json
 {
@@ -176,114 +215,78 @@ Located in `apps/apkmirror/`. Example for YouTube:
 }
 ```
 
+`version` を空にすると、パッチと互換性のある最新バージョンが自動選択されます。
+
+### 5. パッチソース定義（`sources/<source>.json`）
+
+ツールのダウンロード元（GitHub リリース）を定義します。
+
+```json
+[
+  { "name": "revanced-anddea" },
+  { "user": "MorpheApp", "repo": "morphe-cli",       "tag": "latest" },
+  { "user": "anddea",    "repo": "revanced-patches",  "tag": "latest" }
+]
+```
+
 ---
 
-## 🚀 Getting Started
+## 🚀 セットアップ
 
-### Prerequisites
+詳細は [SETUP.md](./SETUP.md) を参照してください。
 
-* GitHub repository with Actions enabled
-* GitHub CLI (`gh`) installed
-* Python 3.11+
-
-### Setup Instructions
-
-See [SETUP.md](./SETUP.md) for detailed setup instructions, including:
-
-1. Repository Variables initialization
-2. GitHub Actions configuration
-3. Manual testing procedures
-4. PAT (Personal Access Token) setup
-5. Troubleshooting guide
-
-**Quick setup:**
 ```bash
-# Initialize Variables
-gh variable set LAST_MORPHE_TAG --body "v1.13.2"
-gh variable set LAST_ANDDEA_TAG --body "v5.4.0-all"
+# Repository Variables を初期化
+morphe_tag=$(gh api repos/MorpheApp/morphe-patches/releases/latest --jq '.tag_name')
+gh variable set LAST_MORPHE_TAG --body "$morphe_tag"
 
-# Test build workflow
+anddea_tag=$(gh api repos/anddea/revanced-patches/releases/latest --jq '.tag_name')
+gh variable set LAST_ANDDEA_TAG --body "$anddea_tag"
+
+# 手動でビルドを実行
 gh workflow run build.yml
 
-# Test upstream check
+# アップストリームチェックを手動実行
 gh workflow run check-upstream.yml
 ```
 
 ---
 
-## 📚 Documentation
+## 📥 インストール方法
 
-* **[IMPLEMENTATION.md](./IMPLEMENTATION.md)** - Detailed implementation documentation
-* **[SETUP.md](./SETUP.md)** - Complete setup and configuration guide
-* **[Design Document](./morphe-autobuild-設計書_v2.docx)** - Original design specification (Japanese)
-
----
-
-## 🔄 Release Tagging
-
-Releases are tagged with JST timestamps in the format: `YYYY-MM-DD_HH-MM-JST`
-
-**Example:** `2026-04-21_15-30-JST`
-
-Each release includes:
-- 4 APK files (YouTube/YTMusic × Morphe/Anddea)
-- README.md with installation instructions
-- Detailed release notes with version information
+1. 最新リリースから目的の APK をダウンロード
+2. Android の「提供元不明のアプリ」を許可
+3. 既存の YouTube / YouTube Music をアンインストール
+4. APK をインストール
+5. 必要に応じて [MicroG-RE](https://github.com/ReVanced/GmsCore) をインストール（Google アカウント連携に必要）
 
 ---
 
-## 🔗 Patch Sources
+## 🔗 パッチソース一覧
 
-* **Official Morphe**: https://github.com/MorpheApp/morphe-patches
-* **Anddea**: https://github.com/anddea/revanced-patches
-
----
-
-## 📥 Installation Instructions
-
-1. Download the desired APK from the latest release
-2. Enable "Unknown sources" on your Android device
-3. Uninstall the existing YouTube/YouTube Music app
-4. Install the downloaded APK
-5. (Optional) Install MicroG-RE for full functionality
+| ソース名 | リポジトリ |
+| :--- | :--- |
+| Morphe | https://github.com/MorpheApp/morphe-patches |
+| Anddea | https://github.com/anddea/revanced-patches |
+| Piko | https://github.com/crimera/piko |
+| hoo-dles | https://github.com/hoo-dles/morphe-patches |
+| Tosox | https://github.com/Tosox/revanced-patches |
+| YuzuMikan404 | https://github.com/YuzuMikan404/linegms-fork-second- |
+| RookieEnough | https://github.com/RookieEnough/De-ReVanced |
 
 ---
 
-## ⚠️ Disclaimer
+## ⚠️ 免責事項
 
-* These APKs are built automatically using official Morphe and Anddea tools
-* **Not officially affiliated** with Morphe or Anddea teams
-* Use at your own risk
-* MicroG-RE may be required for full functionality
-* Always backup your data before installing modified APKs
-
----
-
-## 🤝 Contributing
-
-Contributions are welcome! To contribute:
-
-1. Fork the repository
-2. Create a feature branch
-3. Test your changes locally
-4. Submit a pull request
-
----
-
-## 📞 Support
-
-For issues or questions:
-
-1. Check [SETUP.md](./SETUP.md) troubleshooting section
-2. Review [IMPLEMENTATION.md](./IMPLEMENTATION.md) for technical details
-3. Open an issue on GitHub
+- Morphe・各パッチ作者の公式ツールを使用した自動ビルドです
+- Morphe・Anddea・その他パッチ作者との公式な提携関係はありません
+- 自己責任でご利用ください
+- Google アカウント連携には MicroG-RE が必要な場合があります
 
 ---
 
 <div align="center">
 
-**If you found this project helpful, please consider giving it a ⭐ Star.**
-
-Made with 💜 by the Morphe AutoBuilds Community
+**役に立ったと思ったら ⭐ Star をお願いします**
 
 </div>
