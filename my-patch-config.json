@@ -371,6 +371,11 @@
       ],
       "disable": [
         "AddResourcesPatch"
+      ],
+      "force_enable": [
+        "Hide overlay filter",
+        "Hide player overlay filter",
+        "Disable music video in album"
       ]
     },
     {
