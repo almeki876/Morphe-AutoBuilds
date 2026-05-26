@@ -7,14 +7,22 @@
 + Bitrate default value
 + Bypass image region restrictions
 + Certificate spoof
++ Change installer package name
 + Change share sheet
 + Change start page
++ Change version code
++ Custom branding icon for YouTube Music
++ Custom branding name for YouTube Music
++ Custom header for YouTube Music
 + Dark theme
 + Disable Cairo splash animation
 + Disable QUIC protocol
 + Disable dislike redirection
++ Disable edge-to-edge display
 + Disable forced auto audio tracks
 + Disable forced auto captions
++ Disable music video in album
++ Enable debug logging
 + Enable landscape mode
 + Flyout menu components
 + GmsCore support
@@ -22,7 +30,10 @@
 + Hide action bar components
 + Hide ads
 + Hide layout components
++ Hide overlay filter
++ Hide player overlay filter
 + Navigation bar components
++ Override certificate pinning
 + Player components
 + Remove background playback restrictions
 + Remove viewer discretion dialog
@@ -32,15 +43,10 @@
 + Sanitize sharing links
 + Settings for YouTube Music
 + SponsorBlock
++ Spoof Wi-Fi connection
 + Spoof app version for lyrics
++ Spoof signature
 + Translations for YouTube Music
 + Video playback
 + Visual preferences icons for YouTube Music
 + Watch history
-+ Custom branding icon for YouTube Music
-+ Custom branding name for YouTube Music
-+ Custom header for YouTube Music
-+ Disable music video in album
-+ Hide overlay filter
-+ Hide player overlay filter
-+ Change version code

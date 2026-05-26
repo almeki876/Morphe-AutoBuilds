@@ -176,16 +176,25 @@ def get_supported_version(package_name: str, cli: str, patches: str) -> Optional
     # Morphe CLI and ReVanced CLI have different list-versions syntax
     cli_name = Path(cli).name.lower()
     is_morphe_cli = 'morphe' in cli_name
-    is_revanced_v6_or_newer = 'revanced-cli-6' in cli_name or 'revanced-cli-7' in cli_name or 'revanced-cli-8' in cli_name
+    is_revanced_v5_or_newer = ('revanced-cli-5' in cli_name or 'revanced-cli-6' in cli_name
+                               or 'revanced-cli-7' in cli_name or 'revanced-cli-8' in cli_name)
 
     if is_morphe_cli:
+        # Morphe v1.9.0+ renamed --patches to -p (breaking change).
+        # Detect version from filename: morphe-cli-1.9.x-... -> use -p, else --patches
+        import re as _re
+        _ver_m = _re.search(r'morphe-cli-(\d+)\.(\d+)\.', cli_name)
+        if _ver_m and (int(_ver_m.group(1)), int(_ver_m.group(2))) >= (1, 9):
+            morphe_patches_flag = '-p'
+        else:
+            morphe_patches_flag = '--patches'
         cmd = [
             'java', '-jar', cli,
             'list-versions',
-            '--patches', patches,
+            morphe_patches_flag, patches,
             '-f', package_name,
         ]
-    elif is_revanced_v6_or_newer:
+    elif is_revanced_v5_or_newer:
         # ReVanced CLI v5+: list-versions <bundle> [-f <package>]
         cmd = [
             'java', '-jar', cli,

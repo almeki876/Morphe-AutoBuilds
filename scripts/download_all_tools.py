@@ -9,6 +9,13 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s %(message)s', datefm
 
 from src import utils
 
+
+# patches-list.json のソース別取得URL
+PATCHES_LIST_URLS: dict[str, str] = {
+    "revanced-anddea": "https://raw.githubusercontent.com/anddea/revanced-patches/refs/heads/dev/patches-list.json",
+    "morphe": None,  # リリースアセットから取得
+}
+
 SOURCES_DIR = pathlib.Path("sources")
 TOOLS_DIR   = pathlib.Path("tools")
 
@@ -82,6 +89,19 @@ for source_path in sorted(SOURCES_DIR.glob("*.json")):
             ok = download_asset(asset["browser_download_url"], dest_file)
             if not ok:
                 failures.append(f"{name}: {aname}")
+
+
+    # patches-list.json を別途取得（リリースアセットにない場合はrawから）
+    patches_list_url = PATCHES_LIST_URLS.get(name)
+    if patches_list_url:
+        dest_file = dest_dir / "patches-list.json"
+        if dest_file.exists() and dest_file.stat().st_size > 0:
+            logging.info(f"  ⏭️  already exists: patches-list.json")
+        else:
+            logging.info(f"  ⬇️  patches-list.json (from raw)")
+            ok = download_asset(patches_list_url, dest_file)
+            if not ok:
+                failures.append(f"{name}: patches-list.json")
 
 if failures:
     logging.warning(f"\n⚠️  {len(failures)} download(s) failed:")

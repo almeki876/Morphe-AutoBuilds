@@ -7,22 +7,25 @@
 + Bypass certificate checks
 + Change header
 + Change miniplayer color
++ Change package name
 + Change start page
 + Check watch history domain name resolution
 + Custom branding
 + Disable DRC audio
++ Disable Play Store updates
 + Disable QUIC protocol
 + Enable debugging
 + Enable exclusive audio playback
 + Enable forced miniplayer
 + Force original audio
 + GmsCore support
-+ Hide 'Get Music Premium'
++ Hide ads
 + Hide buttons
 + Hide category bar
 + Hide music video ads
 + Miniplayer previous and next buttons
 + Navigation bar
++ Override certificate pinning
 + Permanent repeat
 + Remove background playback restrictions
 + Sanitize sharing links

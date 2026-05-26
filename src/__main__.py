@@ -96,6 +96,7 @@ class PatchConfig:
     app_name: str
     source: str
     options: list[PatchOption] = field(default_factory=list)
+    disable: list[str] = field(default_factory=list)
 
     @classmethod
     def from_dict(cls, d: dict) -> "PatchConfig":
@@ -109,7 +110,8 @@ class PatchConfig:
             for o in raw_options
             if "patch" in o and "key" in o and "value" in o
         ]
-        return cls(app_name=d["app_name"], source=d["source"], options=options)
+        disable = d.get("disable") or []
+        return cls(app_name=d["app_name"], source=d["source"], options=options, disable=disable)
 
 
 def _load_patch_config(app_name: str, source: str) -> PatchConfig:
@@ -161,39 +163,121 @@ def _cli_version(cli: Path) -> str:
 # Patch flag helpers
 # ---------------------------------------------------------------------------
 
-def _parse_patch_flags(
-    patches_txt: Path, cli_ver: str
+def _build_patch_flags(
+    app_name: str,
+    source: str,
+    cli_ver: str,
+    patch_config: "PatchConfig",
+    tools_dir: Path,
 ) -> tuple[list[str], list[str]]:
     """
-    Read a patches/<app>-<source>.txt file and return
-    (enable_flags, disable_flags) ready to be spliced into a CLI command.
+    パッチバンドルの patches-list.json から use=true のパッチを自動収集し、
+    (enable_flags, disable_flags) を返す。
 
-    For Morphe CLI (v1.8.1+):
-      enable  → -e "Name"   (--enable)
-      disable → -d "Name"   (--disable)
+    patches-list.json が存在しない場合は patches/<app>-<source>.txt にフォールバック。
 
+    For Morphe CLI / ReVanced v5+:
+      enable  → -e "Name"
+      disable → -d "Name"
     For ReVanced v4.x:
-      enable  → -i "Name"   (--include)
-      disable → -e "Name"   (--exclude)
-
-    For ReVanced v5+:
-      enable  → -e "Name"   (--enable)
-      disable → -d "Name"   (--disable)
+      enable  → -i "Name"
+      disable → -e "Name"
     """
-    if not patches_txt.exists():
-        return [], []
-
     if cli_ver in ("v5plus", "morphe"):
         enable_flag  = "-e"
         disable_flag = "-d"
     else:
-        # legacy (v3) / v4: -i = include/enable, -e = exclude/disable
         enable_flag  = "-i"
         disable_flag = "-e"
 
-    enables:  list[str] = []
-    disables: list[str] = []
+    # パッチバンドルのpkgName取得
+    PKG_MAP = {
+        ("youtube",       "morphe"):          "com.google.android.youtube",
+        ("youtube-music", "morphe"):          "com.google.android.apps.youtube.music",
+        ("youtube",       "revanced-anddea"): "com.google.android.youtube",
+        ("youtube-music", "revanced-anddea"): "com.google.android.apps.youtube.music",
+    }
+    pkg_name = PKG_MAP.get((app_name, source))
 
+    # tools/<source>/patches-list.json を探す
+    patches_list_path = tools_dir / source / "patches-list.json"
+
+    if patches_list_path.exists() and pkg_name:
+        try:
+            raw = json.loads(patches_list_path.read_text(encoding="utf-8"))
+            # Morphe: {"version":..., "patches":[...]}
+            # Anddea: {"version":..., "patches":[...]}
+            patch_list = raw["patches"] if isinstance(raw, dict) else raw
+
+            # options が設定されているパッチ名セット（use=false でも有効化する）
+            config_opts_patches = {o.patch for o in patch_config.options}
+            disable_set = {d.lower() for d in patch_config.disable}
+
+            enables: list[str] = []
+            for patch in patch_list:
+                name = patch.get("name", "")
+                use  = patch.get("use", patch.get("default", True))
+                # compatiblePackages チェック
+                compat = patch.get("compatiblePackages") or []
+                if isinstance(compat, dict):
+                    pkg_names = list(compat.keys())
+                else:
+                    pkg_names = [c.get("packageName", c.get("name", "")) for c in compat]
+                if compat and pkg_name not in pkg_names:
+                    continue
+                # use=false でも options が config に設定されていれば有効化
+                if not use and name not in config_opts_patches:
+                    continue
+                if name.lower() in disable_set:
+                    continue
+                enables.extend([enable_flag, name])
+
+            # disable はバンドル内に実在する use=true パッチのみ意味を持つ
+            # use=false パッチは最初から除外されるので disable 不要
+            disables: list[str] = []
+            for d in patch_config.disable:
+                disables.extend([disable_flag, d])
+
+            logging.info(
+                "📋 Dynamic patch selection from patches-list.json: %d enable(s), %d disable(s)",
+                len(enables) // 2, len(disables) // 2,
+            )
+            return enables, disables
+
+        except Exception as e:
+            logging.warning("⚠️  Failed to parse patches-list.json: %s — falling back to txt", e)
+
+    # フォールバック: patches/<app>-<source>.txt
+    patches_txt = Path("patches") / f"{app_name}-{source}.txt"
+    if not patches_txt.exists():
+        logging.warning("⚠️  No patches-list.json and no %s — no patches selected", patches_txt)
+        return [], []
+
+    enables_fb:  list[str] = []
+    disables_fb: list[str] = []
+    for raw_line in patches_txt.read_text(encoding="utf-8").splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#"):
+            continue
+        if line.startswith("+"):
+            enables_fb.extend([enable_flag, line[1:].strip()])
+        elif line.startswith("-"):
+            disables_fb.extend([disable_flag, line[1:].strip()])
+
+    logging.info(
+        "📋 Patch selection from %s (fallback): %d enable(s), %d disable(s)",
+        patches_txt.name, len(enables_fb) // 2, len(disables_fb) // 2,
+    )
+    return enables_fb, disables_fb
+
+
+# 後方互換エイリアス（直接呼び出し箇所のシグネチャ変更前に残す）
+def _parse_patch_flags(patches_txt: Path, cli_ver: str) -> tuple[list[str], list[str]]:
+    if not patches_txt.exists():
+        return [], []
+    enable_flag  = "-e" if cli_ver in ("v5plus", "morphe") else "-i"
+    disable_flag = "-d" if cli_ver in ("v5plus", "morphe") else "-e"
+    enables, disables = [], []
     for raw in patches_txt.read_text(encoding="utf-8").splitlines():
         line = raw.strip()
         if not line or line.startswith("#"):
@@ -202,7 +286,6 @@ def _parse_patch_flags(
             enables.extend([enable_flag, line[1:].strip()])
         elif line.startswith("-"):
             disables.extend([disable_flag, line[1:].strip()])
-
     return enables, disables
 
 
@@ -361,72 +444,41 @@ def _patch_morphe(
     # (Enhancify uses STRIP_FAST for SerialGC, STRIP_SAFE for G1GC/ParallelGC).
 
     if is_v19_plus:
-        # v1.9.0-dev.2+: new nested ArgGroup syntax.
-        # Structure: -p <bundle> [options_and_enables...] [disables...] <apk>
-        # where options_and_enables = (-O k=v)* (-e name | --ei idx)
-        # and disables = (-d name)*
+        # v1.9.0-dev.2+: use --options-file (JSON) for options.
         #
-        # If we have enables, attach option_flags before the first -e.
-        # If we have only disables + options (no enables), write options via
-        # --options-file to avoid the "missing -e" error.
+        # --options=key=val with -e PatchName works in picocli's ArgGroup only
+        # when ALL options for that patch appear between consecutive -e flags.
+        # The --options-file approach is the official method: morphe-cli reads
+        # it per patch name, so options are always correctly attributed.
+        #
+        # JSON format (PatchBundle array, same as `options-create` output):
+        # [{"meta": {"source": "bundle.mpp"},
+        #   "patches": {"PatchName": {"enabled": true, "options": {"key": value}}}}]
 
-        patch_bundle_flag = ["-p", str(bundle)]
+        import tempfile as _tempfile, json as _json
 
-        if enables:
-            # enables is like ["-e", "PatchA", "-e", "PatchB"]
-            # Attach ALL option_flags before the enables block.
-            # This is valid because options in v1.9.0 are per-enable-selector.
-            # We pair all options with the first -e occurrence.
-            # Actually per the ArgGroup, -O is inside the same Selection as -e,
-            # so we interleave: -O k=v ... -e Name for the first enable only.
-            first_enable_idx = enables.index("-e") if "-e" in enables else None
-            if first_enable_idx is not None and option_flags:
-                # Insert option_flags before the first -e
-                enables_with_opts = list(enables)
-                for flag in reversed(option_flags):
-                    enables_with_opts.insert(first_enable_idx, flag)
-            else:
-                enables_with_opts = list(enables)
+        options_file_args: list[str] = []
+        tmp_options_path: str | None = None
 
-            cmd = [
-                "java", *java_args,
-                "-jar", str(cli),
-                "patch",
-                "--force",
-                "--continue-on-error",
-                "--purge",
-                *patch_bundle_flag,
-                f"--out={output_apk}",
-                "--bytecode-mode=STRIP_SAFE",
-                *exclusive,
-                *enables_with_opts,
-                *disables,
-                str(input_apk),
-            ]
-        else:
-            # No enables. Use --options-file to pass options without needing -e.
-            import tempfile as _tempfile, json as _json
+        if patch_options:
+            patches_dict: dict[str, dict] = {}
+            for opt in patch_options:
+                if opt.value is None:
+                    continue
+                pname = opt.patch
+                if pname not in patches_dict:
+                    patches_dict[pname] = {"enabled": True, "options": {}}
+                v = opt.value
+                if isinstance(v, bool):
+                    patches_dict[pname]["options"][opt.key] = v
+                elif isinstance(v, list):
+                    patches_dict[pname]["options"][opt.key] = v
+                elif isinstance(v, int) or isinstance(v, float):
+                    patches_dict[pname]["options"][opt.key] = v
+                else:
+                    patches_dict[pname]["options"][opt.key] = str(v)
 
-            options_file_arg: list[str] = []
-
-            if option_flags and patch_options:
-                # Build options-file JSON from PatchOption objects.
-                # Format: [{"meta": {"source": "..."}, "patches": {"PatchName": {"enabled": true, "options": {...}}}}]
-                patches_dict: dict[str, dict] = {}
-                for opt in patch_options:
-                    pname = opt.patch
-                    if pname not in patches_dict:
-                        patches_dict[pname] = {"enabled": True, "options": {}}
-                    v = opt.value
-                    if isinstance(v, bool):
-                        patches_dict[pname]["options"][opt.key] = v
-                    elif isinstance(v, (int, float)):
-                        patches_dict[pname]["options"][opt.key] = v
-                    elif isinstance(v, list):
-                        patches_dict[pname]["options"][opt.key] = v
-                    else:
-                        patches_dict[pname]["options"][opt.key] = str(v)
-
+            if patches_dict:
                 options_json = [{"meta": {"source": bundle.name}, "patches": patches_dict}]
                 tmp = _tempfile.NamedTemporaryFile(
                     mode="w", suffix=".json", delete=False, encoding="utf-8"
@@ -434,33 +486,27 @@ def _patch_morphe(
                 _json.dump(options_json, tmp, ensure_ascii=False)
                 tmp.flush()
                 tmp.close()
-                options_file_arg = ["--options-file", tmp.name]
-                logging.info(
-                    "📄 morphe-cli v1.9.0+: writing options to temp file %s (patches: %s)",
-                    tmp.name,
-                    list(patches_dict.keys()),
-                )
-            elif option_flags:
-                logging.warning(
-                    "⚠️  morphe-cli v1.9.0+: --options require -e in the same -p block. "
-                    "Options will be skipped: %s",
-                    option_flags,
-                )
+                tmp_options_path = tmp.name
+                options_file_args = ["--options-file", tmp_options_path]
+                logging.info("📄 options-file: %s (%d patches)", tmp_options_path, len(patches_dict))
 
-            cmd = [
-                "java", *java_args,
-                "-jar", str(cli),
-                "patch",
-                "--force",
-                "--continue-on-error",
-                "--purge",
-                *patch_bundle_flag,
-                f"--out={output_apk}",
-                "--bytecode-mode=STRIP_SAFE",
-                *options_file_arg,
-                *disables,
-                str(input_apk),
-            ]
+        cmd = [
+            "java", *java_args,
+            "-jar", str(cli),
+            "patch",
+            "--force",
+            "--continue-on-error",
+            "--purge",
+            "-p", str(bundle),
+            f"--out={output_apk}",
+            "--bytecode-mode=STRIP_SAFE",
+            *exclusive,
+            *options_file_args,
+            *enables,
+            *disables,
+            str(input_apk),
+        ]
+
     else:
         # v1.8.x legacy syntax
         cmd = [
@@ -743,14 +789,13 @@ def run_build(app_name: str, source: str, arch: str = "universal") -> str:
     logging.info("Processing APK for '%s' architecture…", arch)
     _strip_libs(input_apk, arch)
 
-    # ── 7. Parse patch selection ─────────────────────────────────────────────
-    patches_txt = Path("patches") / f"{app_name}-{source}.txt"
-    enables, disables = _parse_patch_flags(patches_txt, cli_ver)
-    logging.info(
-        "📋 Patch selection from %s: %d enable(s), %d disable(s)",
-        patches_txt.name,
-        len(enables) // 2,
-        len(disables) // 2,
+    # ── 7. Build patch selection (dynamic from patches-list.json) ───────────
+    enables, disables = _build_patch_flags(
+        app_name=app_name,
+        source=source,
+        cli_ver=cli_ver,
+        patch_config=patch_config,
+        tools_dir=Path("tools"),
     )
 
     # ── 7b. Build option flags ───────────────────────────────────────────────
@@ -841,6 +886,9 @@ def main() -> None:
             print(f"✅ Built {arch}: {Path(apk_path).name}")
         except SystemExit:
             raise  # propagate fatal errors immediately
+        except Exception as exc:
+            logging.error("❌ Build failed for '%s' [%s]: %s", app_name, arch, exc)
+            failed.append(arch)
 
     print(f"\n🎯 {len(built)} / {len(arches)} APK(s) built for '{app_name}':")
     for apk in built:

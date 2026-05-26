@@ -4,11 +4,10 @@ from pathlib import Path
 from src import (
     utils,
     apkpure,
-    session,
     uptodown,
     aptoide,
     apkmirror,
-    github
+    github,
 )
 
 def download_resource(url: str, name: str = None, retries: int = 3) -> Path:

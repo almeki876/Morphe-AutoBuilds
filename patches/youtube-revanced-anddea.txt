@@ -5,19 +5,22 @@
 - Custom branding name for YouTube
 - Custom branding icon for YouTube
 
-+ Change version code
 + Alternative thumbnails
 + Ambient mode control
 + Bypass URL redirects
 + Bypass image region restrictions
 + Change form factor
++ Change installer package name
 + Change player flyout menu toggles
 + Change share sheet
 + Change start page
++ Change version code
 + Custom Shorts action buttons
 + Custom double tap length
++ Custom header for YouTube
 + Description components
 + Disable QUIC protocol
++ Disable edge-to-edge display
 + Disable forced auto audio tracks
 + Disable forced auto captions
 + Disable haptic feedback
@@ -31,6 +34,7 @@
 + Force player buttons background
 + Fullscreen components
 + GmsCore support
++ Hide Shorts dimming
 + Hide accessibility controls dialog
 + Hide action buttons
 + Hide ads
@@ -40,12 +44,15 @@
 + Hide layout components
 + Hide player buttons
 + Hide player flyout menu
++ Hide shortcuts
 + Hook YouTube Music actions
 + Hook download actions
++ MaterialYou
 + Miniplayer
 + Navigation bar components
 + Open links externally
 + Overlay buttons
++ Override certificate pinning
 + Player components
 + Reload video
 + Remove background playback restrictions
@@ -59,13 +66,14 @@
 + Shorts components
 + Snack bar components
 + SponsorBlock
++ Spoof Wi-Fi connection
 + Spoof app version
++ Spoof signature
 + Spoof watch history
 + Swipe controls
++ Theme
 + Toolbar components
 + Translations for YouTube
 + Video playback
 + Visual preferences icons for YouTube
 + Voice Over Translation
-+ Custom header for YouTube
-+ Theme
