@@ -509,6 +509,41 @@ def _patch_morphe(
 
     else:
         # v1.8.x legacy syntax
+        # --options=key=value must appear immediately after the -e PatchName it belongs to.
+        # Build a per-patch option lookup so we can interleave correctly.
+        patch_opts_map: dict[str, list[str]] = {}
+        if patch_options:
+            for opt in patch_options:
+                if opt.value is None:
+                    continue
+                v = opt.value
+                if isinstance(v, list):
+                    flags = [f"--options={opt.key}={item}" for item in v]
+                elif isinstance(v, bool):
+                    flags = [f"--options={opt.key}={'true' if v else 'false'}"]
+                else:
+                    flags = [f"--options={opt.key}={v}"]
+                patch_opts_map.setdefault(opt.patch, []).extend(flags)
+
+        # Rebuild enables list interleaved with per-patch options.
+        # enables is a flat list like ["-e", "Patch A", "-e", "Patch B", ...]
+        interleaved_enables: list[str] = []
+        i = 0
+        while i < len(enables):
+            flag = enables[i]
+            interleaved_enables.append(flag)
+            if flag == "-e" and i + 1 < len(enables):
+                patch_name = enables[i + 1]
+                interleaved_enables.append(patch_name)
+                interleaved_enables.extend(patch_opts_map.pop(patch_name, []))
+                i += 2
+            else:
+                i += 1
+        # Any options whose patch name didn't match an -e (shouldn't happen, but safe fallback)
+        leftover_opts: list[str] = []
+        for flags in patch_opts_map.values():
+            leftover_opts.extend(flags)
+
         cmd = [
             "java", *java_args,
             "-jar", str(cli),
@@ -521,8 +556,8 @@ def _patch_morphe(
             "--bytecode-mode=STRIP_SAFE",
             *exclusive,
             *disables,
-            *enables,
-            *option_flags,
+            *interleaved_enables,
+            *leftover_opts,
             str(input_apk),
         ]
     logging.info("Running: %s", " ".join(cmd))
