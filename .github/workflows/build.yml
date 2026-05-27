@@ -70,10 +70,6 @@ on:
         description: 'Whether Dropped-Patches was updated'
         required: false
         default: 'false'
-      reuse_apks_json:
-        description: 'JSON map of source -> APK asset URL to reuse (no rebuild needed)'
-        required: false
-        default: '{}'
 
 jobs:
   download-tools:
@@ -144,6 +140,10 @@ jobs:
   prepare-matrix:
     name: Prepare Build Matrix
     runs-on: ubuntu-latest
+    # download-tools の後に実行することで、同一リポジトリへの並列 checkout を防ぐ。
+    # 並列 checkout は GitHub の secondary rate limit を引き起こし
+    # "Your account is suspended" エラーの原因になる。
+    needs: [download-tools]
     outputs:
       matrix: ${{ steps.read-matrix.outputs.matrix }}
     
@@ -233,34 +233,20 @@ jobs:
         with:
           path: ./all-apks
 
-      - name: Download Reused APKs (sources not rebuilt this run)
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          mkdir -p ./release-apks
-          # reuse_apks_json は base64 エンコード済みの場合と生JSON両方に対応
-          raw_input="${{ github.event.inputs.reuse_apks_json }}"
-          if [ -n "$raw_input" ] && [ "$raw_input" != "{}" ]; then
-            decoded=$(echo "$raw_input" | base64 -d 2>/dev/null || echo "$raw_input")
-            export REUSE_JSON="$decoded"
-          else
-            export REUSE_JSON="{}"
-          fi
-          python3 scripts/download_reused_apks.py
 
       - name: Collect All APKs
         run: |
           mkdir -p ./release-apks
           echo "Collecting built APKs..."
           [ -d ./all-apks ] && find ./all-apks -name "*.apk" -exec cp {} ./release-apks/ \; || true
-          echo "APKs in release-apks (built + reused):"
+          echo "APKs in release-apks:"
           ls -la ./release-apks/ 2>/dev/null || echo "(none)"
 
       - name: Check if Any APKs Were Built
         id: check-apks
         run: |
           total=$(find ./release-apks -name "*.apk" 2>/dev/null | wc -l)
-          echo "Total APKs (built + reused): $total"
+          echo "Total APKs built: $total"
           if [ "$total" -eq 0 ]; then
             echo "No APKs available -- skipping release"
             echo "skip_release=true" >> $GITHUB_OUTPUT
@@ -282,7 +268,6 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # --- Resolve all source tags (never show "latest" as-is) ---
           resolve_tag() {
             local repo="$1" fallback="$2"
             gh api "repos/${repo}/releases?per_page=1" --jq '.[0].tag_name' 2>/dev/null || echo "$fallback"
@@ -308,116 +293,29 @@ jobs:
 
           jst_time=$(TZ=Asia/Tokyo date +'%Y-%m-%d %H:%M JST')
 
-          # Helper: map filename -> friendly app name
-          get_app_name() {
-            local f="$1"
-            case "$f" in
-              *youtube-music*)   echo "YouTube Music" ;;
-              *youtube*)         echo "YouTube" ;;
-              *instagram*)       echo "Instagram" ;;
-              *prime-video*)     echo "Prime Video" ;;
-              *duolingo*)        echo "Duolingo" ;;
-              *ibs_paint*)       echo "ibis Paint X" ;;
-              *icon-packer*)     echo "Icon Packer" ;;
-              *nova*)            echo "Nova Launcher" ;;
-              *proton-vpn*)      echo "Proton VPN" ;;
-              *proton-mail*)     echo "Proton Mail" ;;
-              *smart_launcher*)  echo "Smart Launcher" ;;
-              *soundcloud*)      echo "SoundCloud" ;;
-              *wps-office*)      echo "WPS Office" ;;
-              *mega*)            echo "MEGA" ;;
-              *yuucho-tsucho*)   echo "ゆうちょ通帳アプリ" ;;
-              *yuucho-ninsho*)   echo "ゆうちょ認証アプリ" ;;
-              *disney-plus*)     echo "Disney+" ;;
-              *crunchyroll*)     echo "Crunchyroll" ;;
-              *adguard*)         echo "AdGuard" ;;
-              *tasker*)          echo "Tasker" ;;
-              *photomath*)       echo "Photomath" ;;
-              *pixiv*)           echo "pixiv" ;;
-              *)                 echo "$(basename "$f" .apk | sed 's/-arm64.*//' | sed 's/-universal.*//')" ;;
-            esac
-          }
-
-          # Helper: map filename -> patch source label and version
-          get_patch_info() {
-            local f="$1"
-            case "$f" in
-              *-revanced-anddea-*)   echo "Anddea|$anddea_tag" ;;
-              *-piko-patches-*|*-piko-v*)  echo "Piko (crimera)|$piko_tag" ;;
-              *-hoo-*)              echo "Hoo-dles|$hoo_tag" ;;
-              *-rookie-*)           echo "RookieEnough|$rookie_tag" ;;
-              *-yuzu-*)             echo "YuzuMikan404|$yuzu_tag" ;;
-              *-tosox-*)             echo "Tosox|$tosox_tag" ;;
-              *-dropped-*)          echo "Dropped-Patches|$dropped_tag" ;;
-              *-morphe-*)           echo "Official Morphe|$morphe_tag" ;;
-              *)                    echo "Unknown|unknown" ;;
-            esac
-          }
-
           {
-            echo "## Morphe AutoBuilds - $jst_time"
+            echo "$jst_time"
             echo ""
-            echo "## APK List"
-            echo ""
-            echo "| Filename | App | APK Version | Patch Source | Patch Version |"
-            echo "| --- | --- | --- | --- | --- |"
-
-            for apk in ./release-apks/*.apk; do
-              [ -f "$apk" ] || continue
-              filename=$(basename "$apk")
-              app=$(get_app_name "$filename")
-              # Extract everything after the last -v before .apk (greedy match on the prefix)
-              apk_version=$(echo "$filename" | sed 's/.*-v\(.*\)\.apk$/\1/')
-              # If unchanged (no -v found) or 'latest', show N/A
-              [ "$apk_version" = "$filename" ] && apk_version=""
-              [ "$apk_version" = "latest" ] && apk_version=""
-              patch_info=$(get_patch_info "$filename")
-              source_label="${patch_info%%|*}"
-              patch_ver="${patch_info##*|}"
-              echo "| $filename | $app | ${apk_version:-N/A} | $source_label | $patch_ver |"
-            done
-
-            echo ""
-            echo "## Patch Versions"
-            echo ""
-            echo "| Patch Source | Version | Status |"
+            echo "| Source | Version | Updated |"
             echo "| --- | --- | --- |"
 
-            emit_patch_row() {
+            emit_row() {
               local label="$1" tag="$2" updated="$3"
               if [ "$updated" = "true" ]; then
-                echo "| $label | $tag | 🆕 Updated |"
+                echo "| $label | $tag | 🆕 |"
               else
-                echo "| $label | $tag | ✅ No changes (reused last build) |"
+                echo "| $label | $tag | - |"
               fi
             }
 
-            emit_patch_row "Official Morphe"  "$morphe_tag"  "$morphe_updated"
-            emit_patch_row "Anddea"            "$anddea_tag"  "$anddea_updated"
-            emit_patch_row "Piko (crimera)"    "$piko_tag"    "$piko_updated"
-            emit_patch_row "Hoo-dles"          "$hoo_tag"     "$hoo_updated"
-            emit_patch_row "RookieEnough"      "$rookie_tag"  "$rookie_updated"
-            emit_patch_row "Tosox"             "$tosox_tag"   "$tosox_updated"
-            emit_patch_row "YuzuMikan404"      "$yuzu_tag"    "$yuzu_updated"
-            emit_patch_row "Dropped-Patches"   "$dropped_tag" "$dropped_updated"
-
-            echo ""
-            echo "## Patch Sources"
-            echo ""
-            echo "- **Official Morphe**: https://github.com/MorpheApp/morphe-patches/releases/tag/$morphe_tag"
-            echo "- **Anddea**: https://github.com/anddea/revanced-patches/releases/tag/$anddea_tag"
-            echo "- **Piko (crimera)**: https://github.com/crimera/piko/releases/tag/$piko_tag"
-            echo "- **Hoo-dles**: https://github.com/hoo-dles/morphe-patches/releases/tag/$hoo_tag"
-            echo "- **RookieEnough**: https://github.com/RookieEnough/De-ReVanced/releases/tag/$rookie_tag"
-            echo "- **Tosox**: https://github.com/Tosox/revanced-patches/releases/tag/$tosox_tag"
-            echo "- **YuzuMikan404**: https://github.com/YuzuMikan404/linegms-fork-second-/releases/tag/$yuzu_tag"
-            echo "- **Dropped-Patches**: https://github.com/indrastorms/Dropped-Patches/releases/tag/$dropped_tag"
-            echo ""
-            echo "## Notes"
-            echo ""
-            echo "- All APKs are arm64-v8a architecture only"
-            echo "- Uninstall existing app before installation"
-            echo "- These APKs are auto-built. Use at your own risk."
+            emit_row "Morphe"          "$morphe_tag"  "$morphe_updated"
+            emit_row "Anddea"          "$anddea_tag"  "$anddea_updated"
+            emit_row "Piko"            "$piko_tag"    "$piko_updated"
+            emit_row "Hoo-dles"        "$hoo_tag"     "$hoo_updated"
+            emit_row "RookieEnough"    "$rookie_tag"  "$rookie_updated"
+            emit_row "Tosox"           "$tosox_tag"   "$tosox_updated"
+            emit_row "YuzuMikan404"    "$yuzu_tag"    "$yuzu_updated"
+            emit_row "Dropped-Patches" "$dropped_tag" "$dropped_updated"
           } > release_notes.md
 
           echo "Release notes generated"
