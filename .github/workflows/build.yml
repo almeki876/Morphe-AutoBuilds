@@ -296,26 +296,26 @@ jobs:
           {
             echo "$jst_time"
             echo ""
-            echo "| Source | Version | Updated |"
+            echo "| Source | Version | |"
             echo "| --- | --- | --- |"
 
             emit_row() {
-              local label="$1" tag="$2" updated="$3"
+              local label="$1" url="$2" tag="$3" updated="$4"
               if [ "$updated" = "true" ]; then
-                echo "| $label | $tag | 🆕 |"
+                echo "| [$label]($url) | [$tag]($url/releases/tag/$tag) | NEW |"
               else
-                echo "| $label | $tag | - |"
+                echo "| [$label]($url) | [$tag]($url/releases/tag/$tag) | |"
               fi
             }
 
-            emit_row "Morphe"          "$morphe_tag"  "$morphe_updated"
-            emit_row "Anddea"          "$anddea_tag"  "$anddea_updated"
-            emit_row "Piko"            "$piko_tag"    "$piko_updated"
-            emit_row "Hoo-dles"        "$hoo_tag"     "$hoo_updated"
-            emit_row "RookieEnough"    "$rookie_tag"  "$rookie_updated"
-            emit_row "Tosox"           "$tosox_tag"   "$tosox_updated"
-            emit_row "YuzuMikan404"    "$yuzu_tag"    "$yuzu_updated"
-            emit_row "Dropped-Patches" "$dropped_tag" "$dropped_updated"
+            emit_row "Morphe"          "https://github.com/MorpheApp/morphe-patches"         "$morphe_tag"  "$morphe_updated"
+            emit_row "Anddea"          "https://github.com/anddea/revanced-patches"           "$anddea_tag"  "$anddea_updated"
+            emit_row "Piko"            "https://github.com/crimera/piko"                      "$piko_tag"    "$piko_updated"
+            emit_row "Hoo-dles"        "https://github.com/hoo-dles/morphe-patches"           "$hoo_tag"     "$hoo_updated"
+            emit_row "RookieEnough"    "https://github.com/RookieEnough/De-ReVanced"          "$rookie_tag"  "$rookie_updated"
+            emit_row "Tosox"           "https://github.com/Tosox/revanced-patches"            "$tosox_tag"   "$tosox_updated"
+            emit_row "YuzuMikan404"    "https://github.com/YuzuMikan404/linegms-fork-second-" "$yuzu_tag"    "$yuzu_updated"
+            emit_row "Dropped-Patches" "https://github.com/indrastorms/Dropped-Patches"       "$dropped_tag" "$dropped_updated"
           } > release_notes.md
 
           echo "Release notes generated"
