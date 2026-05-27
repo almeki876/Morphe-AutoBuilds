@@ -100,65 +100,6 @@ jobs:
           pip install requests beautifulsoup4 PyGithub curl-cffi --quiet
           python3 scripts/check_apk_versions.py
 
-      - name: Collect Reusable APK URLs from Last Release
-        id: reuse
-        if: steps.compare.outputs.any_updated == 'true' || steps.apkver.outputs.any_apk_updated == 'true'
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          UPD_MORPHE:   ${{ steps.compare.outputs.morphe_updated }}
-          UPD_ANDDEA:   ${{ steps.compare.outputs.anddea_updated }}
-          UPD_PIKO:     ${{ steps.compare.outputs.piko_updated }}
-          UPD_HOO:      ${{ steps.compare.outputs.hoo_updated }}
-          UPD_ROOKIE:   ${{ steps.compare.outputs.rookie_updated }}
-          UPD_TOSOX:    ${{ steps.compare.outputs.tosox_updated }}
-          UPD_YUZU:     ${{ steps.compare.outputs.yuzu_updated }}
-          UPD_DROPPED:  ${{ steps.compare.outputs.dropped_updated }}
-        run: |
-          assets_json=$(gh api "repos/${{ github.repository }}/releases?per_page=1" \
-            --jq '.[0].assets // []' 2>/dev/null || echo "[]")
-
-          reuse_map="{}"
-
-          maybe_reuse() {
-            local src="$1" updated="$2" pattern="$3"
-            if [ "$updated" = "false" ]; then
-              url=$(echo "$assets_json" | jq -r \
-                --arg pat "$pattern" \
-                '.[] | select(.name | test($pat; "i")) | .browser_download_url' \
-                2>/dev/null | head -1)
-              if [ -n "$url" ]; then
-                reuse_map=$(echo "$reuse_map" | jq -c --arg k "$src" --arg v "$url" '.[$k]=$v')
-                echo "  Reuse $src: $url"
-              fi
-            fi
-          }
-
-          maybe_reuse_each() {
-            local src="$1" updated="$2" pattern="$3"
-            if [ "$updated" = "false" ]; then
-              while IFS= read -r line; do
-                name=$(echo "$line" | jq -r '.name')
-                url=$(echo "$line" | jq -r '.browser_download_url')
-                key="${src}__${name%.apk}"
-                reuse_map=$(echo "$reuse_map" | jq -c --arg k "$key" --arg v "$url" '.[$k]=$v')
-                echo "  Reuse $key: $url"
-              done < <(echo "$assets_json" | jq -c \
-                --arg pat "$pattern" \
-                '.[] | select(.name | test($pat; "i"))' 2>/dev/null)
-            fi
-          }
-
-          maybe_reuse_each morphe  "$UPD_MORPHE"   "-morphe-v"
-          maybe_reuse_each anddea  "$UPD_ANDDEA"   "revanced-anddea"
-          maybe_reuse piko         "$UPD_PIKO"     "-piko"
-          maybe_reuse_each hoo     "$UPD_HOO"      "-hoo-"
-          maybe_reuse_each rookie  "$UPD_ROOKIE"   "-rookie-"
-          maybe_reuse tosox        "$UPD_TOSOX"    "-tosox"
-          maybe_reuse_each yuzu    "$UPD_YUZU"     "yuucho"
-          maybe_reuse dropped      "$UPD_DROPPED"  "-dropped"
-
-          # base64エンコードしてGITHUB_OUTPUTに書き出す（JSON内の特殊文字でActions parserが壊れるのを防ぐ）
-          echo "reuse_map=$(echo "$reuse_map" | base64 -w0)" >> $GITHUB_OUTPUT
 
       - name: Trigger Build if Updates Found
         if: steps.compare.outputs.any_updated == 'true' || steps.apkver.outputs.any_apk_updated == 'true'
@@ -209,7 +150,6 @@ jobs:
             -f tosox_updated="$tosox_upd" \
             -f yuzu_updated="$yuzu_upd" \
             -f dropped_updated="$dropped_upd" \
-            -f reuse_apks_json="${{ steps.reuse.outputs.reuse_map }}"
 
           echo "Build workflow triggered"
 
