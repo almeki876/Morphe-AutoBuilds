@@ -106,6 +106,14 @@ jobs:
         continue-on-error: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SOURCE_TAG_MORPHE:          ${{ steps.fetch.outputs.morphe_tag }}
+          SOURCE_TAG_REVANCED_ANDDEA: ${{ steps.fetch.outputs.anddea_tag }}
+          SOURCE_TAG_PIKO_PATCHES:    ${{ steps.fetch.outputs.piko_tag }}
+          SOURCE_TAG_HOO:             ${{ steps.fetch.outputs.hoo_tag }}
+          SOURCE_TAG_ROOKIE:          ${{ steps.fetch.outputs.rookie_tag }}
+          SOURCE_TAG_TOSOX:           ${{ steps.fetch.outputs.tosox_tag }}
+          SOURCE_TAG_YUZU:            ${{ steps.fetch.outputs.yuzu_tag }}
+          SOURCE_TAG_DROPPED:         ${{ steps.fetch.outputs.dropped_tag }}
         run: |
           python3 scripts/detect_version_pinned.py
 
