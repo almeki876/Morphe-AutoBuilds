@@ -316,8 +316,11 @@ def _detect_github_release_once(user: str, repo: str, tag: str) -> dict:
     repo_obj = gh.get_repo(f"{user}/{repo}")
 
     if tag in ["latest", "latest-tag"]:
-        # get_latest_release() returns the latest stable (non-prerelease) release
-        release = repo_obj.get_latest_release()
+        # prerelease 含む全リリースから最新を取得する
+        releases = list(repo_obj.get_releases())
+        if not releases:
+            raise ValueError(f"No releases found for {user}/{repo}")
+        release = max(releases, key=lambda x: x.created_at)
         logging.info(f"Fetched latest release: {release.tag_name}")
         return release.raw_data
 
