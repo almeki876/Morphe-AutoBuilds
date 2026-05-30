@@ -56,10 +56,18 @@ for source_path in sorted(SOURCES_DIR.glob("*.json")):
 
     logging.info(f"\n📦 Downloading tools for source: {name}")
 
+    # SOURCE_TAG_<SOURCE_NAME> 環境変数が渡されていればそのタグを優先する
+    # （check-upstream.yml から最新タグが渡される）
+    import os as _os
+    env_tag_key = f"SOURCE_TAG_{source_name.upper().replace('-', '_')}"
+    env_tag = _os.environ.get(env_tag_key, "").strip()
+
     for repo_info in repos_info[1:]:
         user = repo_info["user"]
         repo = repo_info["repo"]
-        tag  = repo_info["tag"]
+        # パッチバンドルのリポジトリ（CLIではなくpatches/piko等）にのみタグを適用
+        is_patches_repo = "patches" in repo.lower() or repo.lower() in ["piko", "de-revanced", "dropped-patches", "linegms-fork-second-"]
+        tag = env_tag if (env_tag and is_patches_repo) else repo_info["tag"]
 
         # リトライ付きでリリース情報を取得
         try:
