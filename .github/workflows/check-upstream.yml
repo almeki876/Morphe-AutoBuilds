@@ -5,7 +5,8 @@ env:
 
 on:
   schedule:
-    - cron: '0 6 * * *'
+    - cron: '0 21 * * *'  # JST 06:00
+    - cron: '0 9 * * *'   # JST 18:00
   workflow_dispatch:
 
 jobs:
@@ -91,13 +92,30 @@ jobs:
 
           echo "any_updated=$any_updated" >> $GITHUB_OUTPUT
 
-      - name: Check APK Versions
-        id: apkver
+      - name: Download CLI for Version Detection
+        id: dl-cli
         continue-on-error: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           pip install requests beautifulsoup4 PyGithub curl-cffi --quiet
+          python3 scripts/download_all_tools.py
+
+      - name: Detect Version-Pinned Apps
+        id: pinned
+        continue-on-error: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          python3 scripts/detect_version_pinned.py
+
+      - name: Check APK Versions
+        id: apkver
+        continue-on-error: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION_PINNED_APPS: ${{ steps.pinned.outputs.version_pinned_apps }}
+        run: |
           python3 scripts/check_apk_versions.py
 
 
@@ -118,20 +136,25 @@ jobs:
           yuzu_upd="${{ steps.compare.outputs.yuzu_updated }}"
           dropped_upd="${{ steps.compare.outputs.dropped_updated }}"
 
+          # APK更新で影響を受けるソースを特定（*_upd フラグは汚染しない）
+          morphe_force=false; anddea_force=false; piko_force=false; hoo_force=false
+          rookie_force=false; tosox_force=false; yuzu_force=false; dropped_force=false
+
           if [ -n "$APK_UPDATED_APPS" ] && [ "$APK_UPDATED_APPS" != "[]" ]; then
             while IFS= read -r line; do
               eval "export $line"
             done < <(python3 scripts/force_sources_from_apps.py)
           fi
 
-          [ "${FORCE_MORPHE:-false}" = "true" ]          && morphe_upd=true
-          [ "${FORCE_REVANCED_ANDDEA:-false}" = "true" ] && anddea_upd=true
-          [ "${FORCE_PIKO:-false}" = "true" ]            && piko_upd=true
-          [ "${FORCE_HOO:-false}" = "true" ]             && hoo_upd=true
-          [ "${FORCE_ROOKIE:-false}" = "true" ]          && rookie_upd=true
-          [ "${FORCE_TOSOX:-false}" = "true" ]           && tosox_upd=true
-          [ "${FORCE_YUZU:-false}" = "true" ]            && yuzu_upd=true
-          [ "${FORCE_DROPPED:-false}" = "true" ]         && dropped_upd=true
+          # FORCE_* は *_force に入れる（NEWバッジ用の *_upd は変えない）
+          [ "${FORCE_MORPHE:-false}" = "true" ]          && morphe_force=true
+          [ "${FORCE_REVANCED_ANDDEA:-false}" = "true" ] && anddea_force=true
+          [ "${FORCE_PIKO:-false}" = "true" ]            && piko_force=true
+          [ "${FORCE_HOO:-false}" = "true" ]             && hoo_force=true
+          [ "${FORCE_ROOKIE:-false}" = "true" ]          && rookie_force=true
+          [ "${FORCE_TOSOX:-false}" = "true" ]           && tosox_force=true
+          [ "${FORCE_YUZU:-false}" = "true" ]            && yuzu_force=true
+          [ "${FORCE_DROPPED:-false}" = "true" ]         && dropped_force=true
 
           gh workflow run build.yml \
             -f morphe_tag="${{ steps.fetch.outputs.morphe_tag }}" \
@@ -150,6 +173,14 @@ jobs:
             -f tosox_updated="$tosox_upd" \
             -f yuzu_updated="$yuzu_upd" \
             -f dropped_updated="$dropped_upd" \
+            -f morphe_force_build="$morphe_force" \
+            -f anddea_force_build="$anddea_force" \
+            -f piko_force_build="$piko_force" \
+            -f hoo_force_build="$hoo_force" \
+            -f rookie_force_build="$rookie_force" \
+            -f tosox_force_build="$tosox_force" \
+            -f yuzu_force_build="$yuzu_force" \
+            -f dropped_force_build="$dropped_force" \
 
           echo "Build workflow triggered"
 

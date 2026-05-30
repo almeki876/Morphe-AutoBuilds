@@ -70,6 +70,38 @@ on:
         description: 'Whether Dropped-Patches was updated'
         required: false
         default: 'false'
+      morphe_force_build:
+        description: 'Force build Morphe due to APK update (no NEW badge)'
+        required: false
+        default: 'false'
+      anddea_force_build:
+        description: 'Force build Anddea due to APK update (no NEW badge)'
+        required: false
+        default: 'false'
+      piko_force_build:
+        description: 'Force build Piko due to APK update (no NEW badge)'
+        required: false
+        default: 'false'
+      hoo_force_build:
+        description: 'Force build Hoo-dles due to APK update (no NEW badge)'
+        required: false
+        default: 'false'
+      rookie_force_build:
+        description: 'Force build RookieEnough due to APK update (no NEW badge)'
+        required: false
+        default: 'false'
+      tosox_force_build:
+        description: 'Force build Tosox due to APK update (no NEW badge)'
+        required: false
+        default: 'false'
+      yuzu_force_build:
+        description: 'Force build YuzuMikan404 due to APK update (no NEW badge)'
+        required: false
+        default: 'false'
+      dropped_force_build:
+        description: 'Force build Dropped-Patches due to APK update (no NEW badge)'
+        required: false
+        default: 'false'
 
 jobs:
   download-tools:
@@ -162,6 +194,14 @@ jobs:
           UPD_TOSOX:    ${{ github.event.inputs.tosox_updated }}
           UPD_YUZU:     ${{ github.event.inputs.yuzu_updated }}
           UPD_DROPPED:  ${{ github.event.inputs.dropped_updated }}
+          FORCE_MORPHE:  ${{ github.event.inputs.morphe_force_build }}
+          FORCE_ANDDEA:  ${{ github.event.inputs.anddea_force_build }}
+          FORCE_PIKO:    ${{ github.event.inputs.piko_force_build }}
+          FORCE_HOO:     ${{ github.event.inputs.hoo_force_build }}
+          FORCE_ROOKIE:  ${{ github.event.inputs.rookie_force_build }}
+          FORCE_TOSOX:   ${{ github.event.inputs.tosox_force_build }}
+          FORCE_YUZU:    ${{ github.event.inputs.yuzu_force_build }}
+          FORCE_DROPPED: ${{ github.event.inputs.dropped_force_build }}
         run: |
           # env: + run: is valid; env: + uses: is not (Actions parser error).
           python3 scripts/prepare_matrix.py

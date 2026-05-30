@@ -27,41 +27,67 @@
 
 アップストリームが新バージョンをリリースすると自動的にビルドされます。タグは JST タイムスタンプ形式（例: `2026-04-21_15-30-JST`）です。
 
-| アプリ | Morphe | Anddea |
-| :--- | :--- | :--- |
-| **YouTube** | [Download](https://github.com/matchadaisuke/Morphe-AutoBuilds/releases/latest) | [Download](https://github.com/matchadaisuke/Morphe-AutoBuilds/releases/latest) |
-| **YouTube Music** | [Download](https://github.com/matchadaisuke/Morphe-AutoBuilds/releases/latest) | [Download](https://github.com/matchadaisuke/Morphe-AutoBuilds/releases/latest) |
+[**→ 最新リリースを見る**](https://github.com/matchadaisuke/Morphe-AutoBuilds/releases/latest)
 
-その他のアプリ（Instagram、AdGuard、Nova Launcher 等）も同一リリースに含まれています。
+| アプリ | パッチソース |
+| :--- | :--- |
+| **YouTube** | Morphe, Anddea |
+| **YouTube Music** | Morphe, Anddea |
+| **Instagram** | Piko |
+| **AdGuard** | hoo-dles |
+| **Prime Video** | hoo-dles |
+| **Duolingo** | hoo-dles |
+| **IBS Paint** | hoo-dles |
+| **Icon Packer** | hoo-dles |
+| **Nova Launcher** | hoo-dles |
+| **Proton VPN** | hoo-dles |
+| **Smart Launcher** | hoo-dles |
+| **SoundCloud** | hoo-dles |
+| **WPS Office** | hoo-dles |
+| **Crunchyroll** | hoo-dles |
+| **MEGA** | Tosox |
+| **Proton Mail** | RookieEnough |
+| **Disney+** | RookieEnough |
+| **Photomath** | RookieEnough |
+| **Pixiv** | RookieEnough |
+| **ゆうちょ通帳アプリ** | YuzuMikan404 |
+| **ゆうちょ認証アプリ** | YuzuMikan404 |
 
 ---
 
 ## 📱 ビルド対象
 
-### YouTube / YouTube Music
-
-| アプリ | パッチソース | アーキテクチャ | CLI |
-| :--- | :--- | :--- | :--- |
-| YouTube | Morphe | arm64-v8a | morphe-cli |
-| YouTube | Anddea (revanced-anddea) | arm64-v8a | morphe-cli |
-| YouTube Music | Morphe | arm64-v8a | morphe-cli |
-| YouTube Music | Anddea (revanced-anddea) | arm64-v8a | morphe-cli |
-
-### その他のアプリ
-
 | アプリ | パッチソース | CLI |
 | :--- | :--- | :--- |
+| YouTube | Morphe | morphe-cli |
+| YouTube | Anddea (revanced-anddea) | morphe-cli |
+| YouTube Music | Morphe | morphe-cli |
+| YouTube Music | Anddea (revanced-anddea) | morphe-cli |
 | Instagram | Piko (crimera) | morphe-cli |
-| AdGuard、Prime Video、Duolingo、IBS Paint、Icon Packer、Nova Launcher、Proton VPN、Smart Launcher、SoundCloud、WPS Office | hoo-dles | morphe-cli |
+| AdGuard | hoo-dles | morphe-cli |
+| Prime Video | hoo-dles | morphe-cli |
+| Duolingo | hoo-dles | morphe-cli |
+| IBS Paint | hoo-dles | morphe-cli |
+| Icon Packer | hoo-dles | morphe-cli |
+| Nova Launcher | hoo-dles | morphe-cli |
+| Proton VPN | hoo-dles | morphe-cli |
+| Smart Launcher | hoo-dles | morphe-cli |
+| SoundCloud | hoo-dles | morphe-cli |
+| WPS Office | hoo-dles | morphe-cli |
+| Crunchyroll | hoo-dles | morphe-cli |
 | MEGA | Tosox | revanced-cli v4.4.0 |
-| Proton Mail、Disney+、Photomath、Pixiv | RookieEnough (De-ReVanced) | morphe-cli |
-| ゆうちょ通帳アプリ、ゆうちょ認証アプリ | YuzuMikan404 | revanced-cli v5.0.1 |
+| Proton Mail | RookieEnough (De-ReVanced) | morphe-cli |
+| Disney+ | RookieEnough (De-ReVanced) | morphe-cli |
+| Photomath | RookieEnough (De-ReVanced) | morphe-cli |
+| Pixiv | RookieEnough (De-ReVanced) | morphe-cli |
+| ゆうちょ通帳アプリ | YuzuMikan404 | revanced-cli v5.0.1 |
+| ゆうちょ認証アプリ | YuzuMikan404 | revanced-cli v5.0.1 |
 
 ---
 
 ## ✨ 主な機能
 
-- **アップストリーム自動検知**: Morphe・Anddea の新リリースを毎日監視し、更新があれば自動でビルドをトリガー
+- **アップストリーム自動検知**: 全パッチソースの新リリースを毎日 JST 06:00 / 18:00 の2回監視し、更新があれば自動でビルドをトリガー
 - **統合リリース**: 全 APK を JST タイムスタンプタグでまとめてリリース
 - **複数 CLi 対応**: morphe-cli (v1.8.x / v1.9.x+) と revanced-cli (v4・v5+) を自動判別して適切な引数を構築
 - **動的パッチ選択**: `patches-list.json` から対象アプリ・バージョンに互換性のあるパッチを自動選択
@@ -76,7 +102,7 @@
 ### ワークフロー
 
 ```
-check-upstream.yml（毎日 6:00 UTC）
+check-upstream.yml（毎日 JST 06:00 / 18:00）
   └─ Morphe・Anddea の最新タグを取得
   └─ Repository Variables と比較
   └─ 差分があれば build.yml をトリガー

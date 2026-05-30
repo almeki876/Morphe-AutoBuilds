@@ -15,10 +15,21 @@ if os.path.exists("last-tags.json"):
 with open("my-patch-config.json") as f:
     patch_list = json.load(f)["patch_list"]
 
+# detect_version_pinned.py が検出した「推奨バージョン固定アプリ」はスキップ
+# （パッチ側がバージョンを指定するため、APK本体の更新は再ビルドに不要）
+version_pinned_raw = os.environ.get("VERSION_PINNED_APPS", "[]")
+try:
+    VERSION_PINNED = set(json.loads(version_pinned_raw))
+except Exception:
+    VERSION_PINNED = set()
+
+if VERSION_PINNED:
+    logging.warning("APK監視スキップ対象（推奨バージョン固定）: %s", sorted(VERSION_PINNED))
+
 seen = set()
 apps = []
 for item in patch_list:
-    if item["app_name"] not in seen:
+    if item["app_name"] not in seen and item["app_name"] not in VERSION_PINNED:
         seen.add(item["app_name"])
         apps.append(item["app_name"])
 
