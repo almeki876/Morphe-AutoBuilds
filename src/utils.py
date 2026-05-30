@@ -180,14 +180,8 @@ def get_supported_version(package_name: str, cli: str, patches: str) -> Optional
                                or 'revanced-cli-7' in cli_name or 'revanced-cli-8' in cli_name)
 
     if is_morphe_cli:
-        # Morphe v1.9.0+ renamed --patches to -p (breaking change).
-        # Detect version from filename: morphe-cli-1.9.x-... -> use -p, else --patches
-        import re as _re
-        _ver_m = _re.search(r'morphe-cli-(\d+)\.(\d+)\.', cli_name)
-        if _ver_m and (int(_ver_m.group(1)), int(_ver_m.group(2))) >= (1, 9):
-            morphe_patches_flag = '-p'
-        else:
-            morphe_patches_flag = '--patches'
+        # morphe-cli は --patches フラグを使う（-p は存在しない）
+        morphe_patches_flag = '--patches'
         cmd = [
             'java', '-jar', cli,
             'list-versions',
