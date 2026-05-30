@@ -333,29 +333,48 @@ jobs:
 
           jst_time=$(TZ=Asia/Tokyo date +'%Y-%m-%d %H:%M JST')
 
+          morphe_force="${{ github.event.inputs.morphe_force_build }}"
+          anddea_force="${{ github.event.inputs.anddea_force_build }}"
+          piko_force="${{ github.event.inputs.piko_force_build }}"
+          hoo_force="${{ github.event.inputs.hoo_force_build }}"
+          rookie_force="${{ github.event.inputs.rookie_force_build }}"
+          tosox_force="${{ github.event.inputs.tosox_force_build }}"
+          yuzu_force="${{ github.event.inputs.yuzu_force_build }}"
+          dropped_force="${{ github.event.inputs.dropped_force_build }}"
+
           {
             echo "$jst_time"
             echo ""
-            echo "| Source | Version | |"
-            echo "| --- | --- | --- |"
+            echo "| Source | Version | Apps | Status |"
+            echo "| --- | --- | --- | --- |"
 
+            # emit_row label url tag updated force apps
+            # アセットにないソース（updated=false かつ force=false）は行を出力しない
             emit_row() {
-              local label="$1" url="$2" tag="$3" updated="$4"
-              if [ "$updated" = "true" ]; then
-                echo "| [$label]($url) | [$tag]($url/releases/tag/$tag) | NEW |"
-              else
-                echo "| [$label]($url) | [$tag]($url/releases/tag/$tag) | |"
+              local label="$1" url="$2" tag="$3" updated="$4" force="$5" apps="$6"
+              # どちらもfalseならスキップ
+              if [ "$updated" != "true" ] && [ "$force" != "true" ]; then
+                return
               fi
+              local status=""
+              if [ "$updated" = "true" ] && [ "$force" = "true" ]; then
+                status="🔄 Patches & APK"
+              elif [ "$updated" = "true" ]; then
+                status="🔄 Patches"
+              else
+                status="🔄 APK"
+              fi
+              echo "| [$label]($url) | [$tag]($url/releases/tag/$tag) | $apps | $status |"
             }
 
-            emit_row "Morphe"          "https://github.com/MorpheApp/morphe-patches"         "$morphe_tag"  "$morphe_updated"
-            emit_row "Anddea"          "https://github.com/anddea/revanced-patches"           "$anddea_tag"  "$anddea_updated"
-            emit_row "Piko"            "https://github.com/crimera/piko"                      "$piko_tag"    "$piko_updated"
-            emit_row "Hoo-dles"        "https://github.com/hoo-dles/morphe-patches"           "$hoo_tag"     "$hoo_updated"
-            emit_row "RookieEnough"    "https://github.com/RookieEnough/De-ReVanced"          "$rookie_tag"  "$rookie_updated"
-            emit_row "Tosox"           "https://github.com/Tosox/revanced-patches"            "$tosox_tag"   "$tosox_updated"
-            emit_row "YuzuMikan404"    "https://github.com/YuzuMikan404/linegms-fork-second-" "$yuzu_tag"    "$yuzu_updated"
-            emit_row "Dropped-Patches" "https://github.com/indrastorms/Dropped-Patches"       "$dropped_tag" "$dropped_updated"
+            emit_row "Morphe"          "https://github.com/MorpheApp/morphe-patches"         "$morphe_tag"  "$morphe_updated"  "$morphe_force"  "YouTube, YouTube Music"
+            emit_row "Anddea"          "https://github.com/anddea/revanced-patches"           "$anddea_tag"  "$anddea_updated"  "$anddea_force"  "YouTube, YouTube Music"
+            emit_row "Piko"            "https://github.com/crimera/piko"                      "$piko_tag"    "$piko_updated"    "$piko_force"    "Instagram"
+            emit_row "Hoo-dles"        "https://github.com/hoo-dles/morphe-patches"           "$hoo_tag"     "$hoo_updated"     "$hoo_force"     "AdGuard, Prime Video, Duolingo, IBS Paint, Icon Packer, Nova, Proton VPN, Smart Launcher, SoundCloud, WPS Office, Crunchyroll"
+            emit_row "RookieEnough"    "https://github.com/RookieEnough/De-ReVanced"          "$rookie_tag"  "$rookie_updated"  "$rookie_force"  "Proton Mail, Disney+, Photomath, Pixiv"
+            emit_row "Tosox"           "https://github.com/Tosox/revanced-patches"            "$tosox_tag"   "$tosox_updated"   "$tosox_force"   "MEGA"
+            emit_row "YuzuMikan404"    "https://github.com/YuzuMikan404/linegms-fork-second-" "$yuzu_tag"    "$yuzu_updated"    "$yuzu_force"    "ゆうちょ通帳, ゆうちょ認証"
+            emit_row "Dropped-Patches" "https://github.com/indrastorms/Dropped-Patches"       "$dropped_tag" "$dropped_updated" "$dropped_force" ""
           } > release_notes.md
 
           echo "Release notes generated"
