@@ -119,30 +119,6 @@ jobs:
         with:
           python-version: 3.11
       
-      - name: Download Morphe Tools
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          mkdir -p tools
-          
-          echo "Downloading Morphe CLI..."
-          curl -L "https://github.com/MorpheApp/morphe-cli/releases/latest/download/morphe-cli.jar" \
-            -o tools/morphe-cli.jar 2>/dev/null || echo "Morphe CLI download may have failed"
-          
-          echo "Downloading Morphe Patches..."
-          curl -L "https://github.com/MorpheApp/morphe-patches/releases/latest/download/morphe-patches.mpp" \
-            -o tools/morphe-patches.mpp 2>/dev/null || echo "Morphe Patches download may have failed"
-      
-      - name: Download ReVanced Tools (for Anddea)
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          mkdir -p tools
-          
-          echo "Downloading Anddea Patches..."
-          curl -L "https://github.com/anddea/revanced-patches/releases/latest/download/patches.jar" \
-            -o tools/anddea-patches.jar 2>/dev/null || echo "Anddea Patches download may have failed"
-      
       - name: Download All Source Tools
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -154,6 +130,14 @@ jobs:
           UPD_TOSOX:    ${{ github.event.inputs.tosox_updated }}
           UPD_YUZU:     ${{ github.event.inputs.yuzu_updated }}
           UPD_DROPPED:  ${{ github.event.inputs.dropped_updated }}
+          SOURCE_TAG_MORPHE:   ${{ github.event.inputs.morphe_tag }}
+          SOURCE_TAG_ANDDEA:   ${{ github.event.inputs.anddea_tag }}
+          SOURCE_TAG_PIKO:     ${{ github.event.inputs.piko_tag }}
+          SOURCE_TAG_HOO:      ${{ github.event.inputs.hoo_tag }}
+          SOURCE_TAG_ROOKIE:   ${{ github.event.inputs.rookie_tag }}
+          SOURCE_TAG_TOSOX:    ${{ github.event.inputs.tosox_tag }}
+          SOURCE_TAG_YUZU:     ${{ github.event.inputs.yuzu_tag }}
+          SOURCE_TAG_DROPPED:  ${{ github.event.inputs.dropped_tag }}
         run: |
           pip install -r requirements.txt -q
           python3 scripts/download_all_tools.py
