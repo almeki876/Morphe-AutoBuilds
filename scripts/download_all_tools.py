@@ -65,9 +65,10 @@ for source_path in sorted(SOURCES_DIR.glob("*.json")):
     for repo_info in repos_info[1:]:
         user = repo_info["user"]
         repo = repo_info["repo"]
-        # パッチバンドルのリポジトリ（CLIではなくpatches/piko等）にのみタグを適用
-        is_patches_repo = "patches" in repo.lower() or repo.lower() in ["piko", "de-revanced", "dropped-patches", "linegms-fork-second-"]
-        tag = env_tag if (env_tag and is_patches_repo) else repo_info["tag"]
+        # CLIリポジトリ（repo名に"cli"を含む）は常にlatestを使う
+        # パッチバンドルにのみ SOURCE_TAG_* を適用する
+        is_cli_repo = "cli" in repo.lower()
+        tag = repo_info["tag"] if is_cli_repo else (env_tag if env_tag else repo_info["tag"])
 
         # リトライ付きでリリース情報を取得
         try:
