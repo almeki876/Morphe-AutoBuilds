@@ -26,8 +26,13 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          # プレリリースを含む全リリースから最新1件を取得する
+          # releases?per_page=1 は GitHub の "latest stable" 相当でプレリリースを返さない。
+          # releases?per_page=100 で全件取得し、published_at でソートして先頭を使う。
           fetch_tag() {
-            gh api "repos/${1}/releases?per_page=1" --jq '.[0].tag_name' 2>/dev/null || echo ""
+            gh api "repos/${1}/releases?per_page=100" \
+              --jq 'sort_by(.published_at) | reverse | .[0].tag_name' \
+              2>/dev/null || echo ""
           }
 
           morphe_tag=$(fetch_tag  "MorpheApp/morphe-patches")
