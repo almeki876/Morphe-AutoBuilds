@@ -57,10 +57,12 @@ for source_path in sorted(SOURCES_DIR.glob("*.json")):
     logging.info(f"\n📦 Downloading tools for source: {name}")
 
     # SOURCE_TAG_<SOURCE_NAME> 環境変数が渡されていればそのタグを優先する
-    # （check-upstream.yml から最新タグが渡される）
+    # （build.yml の download-tools ジョブが resolve-tags で確定させた具体的なタグを渡す）
+    # "latest" や空文字が渡された場合は detect_github_release 側で解決される。
     import os as _os
     env_tag_key = f"SOURCE_TAG_{source_name.upper().replace('-', '_')}"
     env_tag = _os.environ.get(env_tag_key, "").strip()
+    logging.info(f"  SOURCE_TAG env ({env_tag_key}): {env_tag or '(not set, will use sources json)'}")
 
     for repo_info in repos_info[1:]:
         user = repo_info["user"]
@@ -90,8 +92,12 @@ for source_path in sorted(SOURCES_DIR.glob("*.json")):
                 continue
 
             dest_file = dest_dir / aname
+            # キャッシュミス時にのみこのスクリプトが実行される。
+            # tools/ ディレクトリはキャッシュから復元されていないため、
+            # 既存ファイルチェックは不要（ほぼ常に空）。
+            # ただし万一残骸ファイルがあっても上書きして正しいバージョンを保証する。
             if dest_file.exists() and dest_file.stat().st_size > 0:
-                logging.info(f"  ⏭️  already exists: {aname}")
+                logging.info(f"  ⏭️  already exists (unexpected on cache miss): {aname}")
                 continue
 
             logging.info(f"  ⬇️  {aname}")
