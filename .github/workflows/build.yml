@@ -108,18 +108,103 @@ jobs:
     name: Download Build Tools
     runs-on: ubuntu-latest
     outputs:
-      cache-key: ${{ steps.cache-key.outputs.cache-key }}
-    
+      cache-key: ${{ steps.resolve-tags.outputs.cache-key }}
+      morphe_resolved:  ${{ steps.resolve-tags.outputs.morphe_resolved }}
+      anddea_resolved:  ${{ steps.resolve-tags.outputs.anddea_resolved }}
+      piko_resolved:    ${{ steps.resolve-tags.outputs.piko_resolved }}
+      hoo_resolved:     ${{ steps.resolve-tags.outputs.hoo_resolved }}
+      rookie_resolved:  ${{ steps.resolve-tags.outputs.rookie_resolved }}
+      tosox_resolved:   ${{ steps.resolve-tags.outputs.tosox_resolved }}
+      yuzu_resolved:    ${{ steps.resolve-tags.outputs.yuzu_resolved }}
+      dropped_resolved: ${{ steps.resolve-tags.outputs.dropped_resolved }}
+
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
-      
+
+      # ---------------------------------------------------------------
+      # 1. 各ソースの実際のパッチバージョンを確定させる
+      #    "latest" が渡された場合はプレリリースを含む最新1件を解決する。
+      #    解決済みのタグをキャッシュキーに組み込むことで、
+      #    パッチが更新されるたびに必ずキャッシュミスが発生し
+      #    古いパッチが再利用されることを防ぐ。
+      # ---------------------------------------------------------------
+      - name: Resolve Patch Tags and Compute Cache Key
+        id: resolve-tags
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # プレリリースを含む全リリースから最新1件のタグを返す
+          resolve_tag() {
+            local repo="$1" hint="$2"
+            if [ -n "$hint" ] && [ "$hint" != "latest" ]; then
+              echo "$hint"
+              return
+            fi
+            gh api "repos/${repo}/releases?per_page=100" \
+              --jq 'sort_by(.published_at) | reverse | .[0].tag_name' \
+              2>/dev/null || echo "unknown"
+          }
+
+          morphe_resolved=$(resolve_tag  "MorpheApp/morphe-patches"          "${{ github.event.inputs.morphe_tag }}")
+          anddea_resolved=$(resolve_tag  "anddea/revanced-patches"            "${{ github.event.inputs.anddea_tag }}")
+          piko_resolved=$(resolve_tag    "crimera/piko"                       "${{ github.event.inputs.piko_tag }}")
+          hoo_resolved=$(resolve_tag     "hoo-dles/morphe-patches"            "${{ github.event.inputs.hoo_tag }}")
+          rookie_resolved=$(resolve_tag  "RookieEnough/De-ReVanced"           "${{ github.event.inputs.rookie_tag }}")
+          tosox_resolved=$(resolve_tag   "Tosox/revanced-patches"             "${{ github.event.inputs.tosox_tag }}")
+          yuzu_resolved=$(resolve_tag    "YuzuMikan404/linegms-fork-second-"  "${{ github.event.inputs.yuzu_tag }}")
+          dropped_resolved=$(resolve_tag "indrastorms/Dropped-Patches"        "${{ github.event.inputs.dropped_tag }}")
+
+          echo "morphe_resolved=$morphe_resolved"   >> $GITHUB_OUTPUT
+          echo "anddea_resolved=$anddea_resolved"   >> $GITHUB_OUTPUT
+          echo "piko_resolved=$piko_resolved"       >> $GITHUB_OUTPUT
+          echo "hoo_resolved=$hoo_resolved"         >> $GITHUB_OUTPUT
+          echo "rookie_resolved=$rookie_resolved"   >> $GITHUB_OUTPUT
+          echo "tosox_resolved=$tosox_resolved"     >> $GITHUB_OUTPUT
+          echo "yuzu_resolved=$yuzu_resolved"       >> $GITHUB_OUTPUT
+          echo "dropped_resolved=$dropped_resolved" >> $GITHUB_OUTPUT
+
+          # キャッシュキー = ファイルハッシュ + 全パッチバージョンの結合
+          # パッチが1つでも変わればキャッシュミスになる
+          version_string="${morphe_resolved}__${anddea_resolved}__${piko_resolved}__${hoo_resolved}__${rookie_resolved}__${tosox_resolved}__${yuzu_resolved}__${dropped_resolved}"
+          file_hash="${{ hashFiles('my-patch-config.json', 'arch-config.json', 'sources/**') }}"
+          cache_key="build-tools-${file_hash}-${version_string}"
+          echo "cache-key=${cache_key}" >> $GITHUB_OUTPUT
+
+          echo "Resolved tags:"
+          echo "  morphe:  $morphe_resolved"
+          echo "  anddea:  $anddea_resolved"
+          echo "  piko:    $piko_resolved"
+          echo "  hoo:     $hoo_resolved"
+          echo "  rookie:  $rookie_resolved"
+          echo "  tosox:   $tosox_resolved"
+          echo "  yuzu:    $yuzu_resolved"
+          echo "  dropped: $dropped_resolved"
+          echo "Cache key: ${cache_key}"
+
+      # ---------------------------------------------------------------
+      # 2. キャッシュを先に確認する（ヒットすればダウンロードをスキップ）
+      # ---------------------------------------------------------------
+      - name: Restore Cached Tools
+        id: cache-restore
+        uses: actions/cache@v4
+        with:
+          path: tools/
+          key: ${{ steps.resolve-tags.outputs.cache-key }}
+
+      # ---------------------------------------------------------------
+      # 3. キャッシュミス時のみダウンロードする
+      #    解決済みタグを SOURCE_TAG_* として渡すことで
+      #    download_all_tools.py が正しいバージョンを取得する
+      # ---------------------------------------------------------------
       - name: Setup Python
+        if: steps.cache-restore.outputs.cache-hit != 'true'
         uses: actions/setup-python@v5
         with:
           python-version: 3.11
-      
+
       - name: Download All Source Tools
+        if: steps.cache-restore.outputs.cache-hit != 'true'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           UPD_MORPHE:   ${{ github.event.inputs.morphe_updated }}
@@ -130,28 +215,30 @@ jobs:
           UPD_TOSOX:    ${{ github.event.inputs.tosox_updated }}
           UPD_YUZU:     ${{ github.event.inputs.yuzu_updated }}
           UPD_DROPPED:  ${{ github.event.inputs.dropped_updated }}
-          SOURCE_TAG_MORPHE:   ${{ github.event.inputs.morphe_tag }}
-          SOURCE_TAG_ANDDEA:   ${{ github.event.inputs.anddea_tag }}
-          SOURCE_TAG_PIKO:     ${{ github.event.inputs.piko_tag }}
-          SOURCE_TAG_HOO:      ${{ github.event.inputs.hoo_tag }}
-          SOURCE_TAG_ROOKIE:   ${{ github.event.inputs.rookie_tag }}
-          SOURCE_TAG_TOSOX:    ${{ github.event.inputs.tosox_tag }}
-          SOURCE_TAG_YUZU:     ${{ github.event.inputs.yuzu_tag }}
-          SOURCE_TAG_DROPPED:  ${{ github.event.inputs.dropped_tag }}
+          # 解決済みの具体的なタグを渡す（"latest" は渡さない）
+          SOURCE_TAG_MORPHE:          ${{ steps.resolve-tags.outputs.morphe_resolved }}
+          SOURCE_TAG_ANDDEA:          ${{ steps.resolve-tags.outputs.anddea_resolved }}
+          SOURCE_TAG_REVANCED_ANDDEA: ${{ steps.resolve-tags.outputs.anddea_resolved }}
+          SOURCE_TAG_PIKO:            ${{ steps.resolve-tags.outputs.piko_resolved }}
+          SOURCE_TAG_HOO:             ${{ steps.resolve-tags.outputs.hoo_resolved }}
+          SOURCE_TAG_ROOKIE:          ${{ steps.resolve-tags.outputs.rookie_resolved }}
+          SOURCE_TAG_TOSOX:           ${{ steps.resolve-tags.outputs.tosox_resolved }}
+          SOURCE_TAG_YUZU:            ${{ steps.resolve-tags.outputs.yuzu_resolved }}
+          SOURCE_TAG_DROPPED:         ${{ steps.resolve-tags.outputs.dropped_resolved }}
         run: |
           pip install -r requirements.txt -q
           python3 scripts/download_all_tools.py
 
-      - name: Cache Tools
-        uses: actions/cache@v4
-        id: cache-tools
+      # ---------------------------------------------------------------
+      # 4. ダウンロード済みの tools/ をキャッシュに保存する
+      #    キャッシュミス時のみ保存が走る（actions/cache の仕様）
+      # ---------------------------------------------------------------
+      - name: Save Cached Tools
+        if: steps.cache-restore.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
         with:
           path: tools/
-          key: build-tools-${{ hashFiles('my-patch-config.json', 'arch-config.json', 'sources/**') }}
-      
-      - name: Generate Cache Key
-        id: cache-key
-        run: echo "cache-key=${{ steps.cache-tools.outputs.cache-key || 'no-cache' }}" >> $GITHUB_OUTPUT
+          key: ${{ steps.resolve-tags.outputs.cache-key }}
 
   prepare-matrix:
     name: Prepare Build Matrix
@@ -162,11 +249,11 @@ jobs:
     needs: [download-tools]
     outputs:
       matrix: ${{ steps.read-matrix.outputs.matrix }}
-    
+
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
-      
+
       - name: Read Patch Config and Filter by Updated Sources
         id: read-matrix
         env:
@@ -198,26 +285,27 @@ jobs:
       fail-fast: false
       matrix:
         include: ${{ fromJson(needs.prepare-matrix.outputs.matrix) }}
-    
+
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
-      
+
       - name: Restore Cached Tools
-        uses: actions/cache@v4
+        uses: actions/cache/restore@v4
         with:
           path: tools/
-          key: build-tools-${{ hashFiles('my-patch-config.json', 'arch-config.json', 'sources/**') }}
-      
+          key: ${{ needs.download-tools.outputs.cache-key }}
+          fail-on-cache-miss: true
+
       - name: Install Python
         uses: actions/setup-python@v5
         with:
           python-version: 3.11
-      
+
       - name: Install Dependencies
         run: |
           pip install -r requirements.txt
-      
+
       - name: Build APK
         env:
           APP_NAME: ${{ matrix.app_name }}
@@ -227,7 +315,7 @@ jobs:
           echo "Building ${{ matrix.app_name }} with ${{ matrix.source }}..."
           sleep $((RANDOM % 10))
           python3 -m src
-      
+
       - name: Upload APK Artifact
         if: success()
         uses: actions/upload-artifact@v4
@@ -242,16 +330,16 @@ jobs:
     if: always() && !cancelled()
     permissions:
       contents: write
-    
+
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
-      
+
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: 3.11
-      
+
       - name: Download All APK Artifacts
         uses: actions/download-artifact@v4
         with:
@@ -289,22 +377,16 @@ jobs:
       - name: Generate Release Notes
         if: steps.check-apks.outputs.skip_release == 'false'
         id: notes
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          resolve_tag() {
-            local repo="$1" fallback="$2"
-            gh api "repos/${repo}/releases?per_page=1" --jq '.[0].tag_name' 2>/dev/null || echo "$fallback"
-          }
-
-          morphe_tag=$(resolve_tag "MorpheApp/morphe-patches"         "${{ github.event.inputs.morphe_tag }}")
-          anddea_tag=$(resolve_tag "anddea/revanced-patches"           "${{ github.event.inputs.anddea_tag }}")
-          piko_tag=$(resolve_tag   "crimera/piko"                      "${{ github.event.inputs.piko_tag }}")
-          hoo_tag=$(resolve_tag    "hoo-dles/morphe-patches"           "${{ github.event.inputs.hoo_tag }}")
-          rookie_tag=$(resolve_tag "RookieEnough/De-ReVanced"          "${{ github.event.inputs.rookie_tag }}")
-          tosox_tag=$(resolve_tag  "Tosox/revanced-patches"            "${{ github.event.inputs.tosox_tag }}")
-          yuzu_tag=$(resolve_tag   "YuzuMikan404/linegms-fork-second-" "${{ github.event.inputs.yuzu_tag }}")
-          dropped_tag=$(resolve_tag "indrastorms/Dropped-Patches"      "${{ github.event.inputs.dropped_tag }}")
+          # download-tools で解決済みのタグをそのまま使う（再解決しない）
+          morphe_tag="${{ needs.download-tools.outputs.morphe_resolved }}"
+          anddea_tag="${{ needs.download-tools.outputs.anddea_resolved }}"
+          piko_tag="${{ needs.download-tools.outputs.piko_resolved }}"
+          hoo_tag="${{ needs.download-tools.outputs.hoo_resolved }}"
+          rookie_tag="${{ needs.download-tools.outputs.rookie_resolved }}"
+          tosox_tag="${{ needs.download-tools.outputs.tosox_resolved }}"
+          yuzu_tag="${{ needs.download-tools.outputs.yuzu_resolved }}"
+          dropped_tag="${{ needs.download-tools.outputs.dropped_resolved }}"
 
           morphe_updated="${{ github.event.inputs.morphe_updated }}"
           anddea_updated="${{ github.event.inputs.anddea_updated }}"
@@ -362,16 +444,16 @@ jobs:
           } > release_notes.md
 
           echo "Release notes generated"
-      
+
       - name: Create Release
         if: steps.check-apks.outputs.skip_release == 'false'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           release_tag="${{ steps.tag.outputs.release_tag }}"
-          
+
           echo "Creating release: $release_tag"
-          
+
           # Delete existing release/tag with the same name if it exists, then recreate
           gh release delete "$release_tag" --yes 2>/dev/null || true
           git push --delete origin "refs/tags/$release_tag" 2>/dev/null || true
@@ -380,17 +462,17 @@ jobs:
             --title "Morphe AutoBuilds $release_tag" \
             --notes-file release_notes.md \
             ./release-apks/*.apk
-          
+
           echo "Release created successfully!"
           echo "Release URL: https://github.com/${{ github.repository }}/releases/tag/$release_tag"
-      
+
       - name: Display Release Summary
         if: steps.check-apks.outputs.skip_release == 'false'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           release_tag="${{ steps.tag.outputs.release_tag }}"
-          
+
           echo "Release Summary:"
           echo "  Tag: $release_tag"
           echo "  APKs:"
