@@ -275,7 +275,11 @@ def get_download_link(version: str, app_name: str, config: dict, arch: str = Non
     
     # --- STANDARD DOWNLOAD FLOW ---
     try:
-        response = session.get(download_page_url)
+        headers_variant = {
+            "Referer": base_url + "/",
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        }
+        response = session.get(download_page_url, headers=headers_variant)
         response.raise_for_status()
         content_size = len(response.content)
         logging.info(f"URL:{response.url} [{content_size}/{content_size}] -> Variant Page")
@@ -284,7 +288,11 @@ def get_download_link(version: str, app_name: str, config: dict, arch: str = Non
         sub_url = soup.find('a', class_='downloadButton')
         if sub_url:
             final_download_page_url = base_url + sub_url['href']
-            response = session.get(final_download_page_url)
+            headers_dl_page = {
+                "Referer": download_page_url,
+                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+            }
+            response = session.get(final_download_page_url, headers=headers_dl_page)
             response.raise_for_status()
             content_size = len(response.content)
             logging.info(f"URL:{response.url} [{content_size}/{content_size}] -> Download Page")
@@ -292,7 +300,11 @@ def get_download_link(version: str, app_name: str, config: dict, arch: str = Non
 
             button = soup.find('a', id='download-link')
             if button:
-                return base_url + button['href']
+                href = button['href']
+                # href が絶対URLの場合はそのまま、相対パスの場合は base_url を付与
+                if href.startswith('http'):
+                    return href
+                return base_url + href
     except Exception as e:
         logging.error(f"Error in download flow: {e}")
     
