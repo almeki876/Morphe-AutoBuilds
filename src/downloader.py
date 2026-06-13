@@ -11,11 +11,17 @@ from src import (
     github,
 )
 
-def download_resource(url: str, name: str = None, retries: int = 3) -> Path:
+def download_resource(url: str, name: str = None, retries: int = 3, referer: str = None) -> Path:
     last_err = None
+    headers = {}
+    if referer:
+        headers["Referer"] = referer
+    # APKMirrorのr2.cloudflarestorage URLはRefererが必須
+    if not referer and "apkmirror.com" in url:
+        headers["Referer"] = "https://www.apkmirror.com/"
     for attempt in range(1, retries + 1):
         try:
-            res = session.get(url, stream=True)
+            res = session.get(url, stream=True, headers=headers if headers else None)
             res.raise_for_status()
             break
         except Exception as e:
@@ -229,7 +235,9 @@ def download_platform(app_name: str, platform: str, cli: str, patches: str, arch
             logging.error(f"❌ {platform}: no download link found for {app_name} v{version}")
             return None, None
 
-        filepath = download_resource(download_link)
+        # APKMirrorはRefererが必要（ないと403）
+        referer = "https://www.apkmirror.com/" if platform == "apkmirror" else None
+        filepath = download_resource(download_link, referer=referer)
         logging.info(f"✅ {platform}: downloaded {app_name} v{version} -> {filepath.name}")
         return filepath, version
 
