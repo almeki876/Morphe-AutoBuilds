@@ -5,7 +5,6 @@ env:
 
 on:
   schedule:
-    - cron: '0 21 * * *'  # JST 06:00
     - cron: '0 9 * * *'   # JST 18:00
   workflow_dispatch:
 
