@@ -1,15 +1,15 @@
 {
-  "morphe": "v1.32.0-dev.7",
+  "morphe": "v1.32.0",
   "anddea": "v4.1.0",
   "piko": "v3.7.0-dev.3",
-  "hoo": "v1.36.1",
+  "hoo": "v1.37.0-dev.1",
   "rookie": "v1.0.4",
   "tosox": "v1.7.1",
   "yuzu": "v1.0",
   "dropped": "v1.5.1",
   "apk_youtube": "21.24.368",
   "apk_youtube-music": "9.24.20",
-  "apk_instagram": "434.0.0.44.74",
+  "apk_instagram": "435.0.0.37.76",
   "apk_adguard": "4.14.68",
   "apk_prime-video": "3.0.451",
   "apk_duolingo": "6.84.4",
@@ -27,5 +27,5 @@
   "apk_disney-plus": "26.9.2",
   "apk_crunchyroll": "3.99.3",
   "apk_photomath": "8.47.1",
-  "apk_pixiv": "6.185.0"
+  "apk_pixiv": "6.186.0"
 }
