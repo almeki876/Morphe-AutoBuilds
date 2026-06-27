@@ -1,14 +1,14 @@
 {
   "morphe": "v1.33.0-dev.2",
-  "anddea": "v4.1.0",
-  "piko": "v3.7.0-dev.7",
-  "hoo": "v1.37.0",
+  "anddea": "v4.2.0-dev.1",
+  "piko": "v3.7.0-dev.9",
+  "hoo": "v1.38.0-dev.1",
   "rookie": "v1.0.4",
   "tosox": "v1.7.1",
-  "yuzu": "v1.0",
+  "yuzu": "{\"message\":\"Not Found\",\"documentation_url\":\"https://docs.github.com/rest/releases/releases#list-releases\",\"status\":\"404\"}",
   "dropped": "v1.5.1",
   "apk_youtube": "21.26.360",
-  "apk_youtube-music": "9.24.20",
+  "apk_youtube-music": "9.25.20",
   "apk_instagram": "435.0.0.37.76",
   "apk_adguard": "4.14.68",
   "apk_prime-video": "3.0.451",
@@ -25,7 +25,7 @@
   "apk_yuucho-tsucho": "1.0",
   "apk_yuucho-ninsho": "18.0.0",
   "apk_disney-plus": "26.10.0",
-  "apk_crunchyroll": "3.99.3",
+  "apk_crunchyroll": "3.64.1",
   "apk_photomath": "8.47.1",
   "apk_pixiv": "6.186.0"
 }
