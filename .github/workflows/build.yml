@@ -152,7 +152,7 @@ jobs:
           hoo_resolved=$(resolve_tag     "hoo-dles/morphe-patches"            "${{ github.event.inputs.hoo_tag }}")
           rookie_resolved=$(resolve_tag  "RookieEnough/De-ReVanced"           "${{ github.event.inputs.rookie_tag }}")
           tosox_resolved=$(resolve_tag   "Tosox/revanced-patches"             "${{ github.event.inputs.tosox_tag }}")
-          yuzu_resolved=$(resolve_tag    "YuzuMikan404/linegms-fork-second-"  "${{ github.event.inputs.yuzu_tag }}")
+          yuzu_resolved="patche"  # 固定リリースタグ (matchadaisuke/morphe-patches)
           dropped_resolved=$(resolve_tag "indrastorms/Dropped-Patches"        "${{ github.event.inputs.dropped_tag }}")
 
           echo "morphe_resolved=$morphe_resolved"   >> $GITHUB_OUTPUT
@@ -224,6 +224,7 @@ jobs:
           SOURCE_TAG_ROOKIE:          ${{ steps.resolve-tags.outputs.rookie_resolved }}
           SOURCE_TAG_TOSOX:           ${{ steps.resolve-tags.outputs.tosox_resolved }}
           SOURCE_TAG_YUZU:            ${{ steps.resolve-tags.outputs.yuzu_resolved }}
+          PAT:                        ${{ secrets.PAT }}
           SOURCE_TAG_DROPPED:         ${{ steps.resolve-tags.outputs.dropped_resolved }}
         run: |
           pip install -r requirements.txt -q

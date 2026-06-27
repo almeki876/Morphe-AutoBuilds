@@ -3,7 +3,7 @@
 tools/<source_name>/ 以下に配置する。
 各ビルドジョブはこのディレクトリをキャッシュから取得して使う。
 """
-import json, logging, pathlib, subprocess, sys, time
+import json, logging, os, pathlib, subprocess, sys, time
 sys.path.insert(0, str(pathlib.Path(__file__).parent.parent))
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
 
@@ -19,13 +19,14 @@ PATCHES_LIST_URLS: dict[str, str] = {
 SOURCES_DIR = pathlib.Path("sources")
 TOOLS_DIR   = pathlib.Path("tools")
 
-def download_asset(url: str, dest: pathlib.Path, retries: int = 3) -> bool:
+def download_asset(url: str, dest: pathlib.Path, retries: int = 3, token: str = "") -> bool:
     for attempt in range(1, retries + 1):
         try:
-            result = subprocess.run(
-                ["curl", "-fsSL", "--retry", "3", "--retry-delay", "5", url, "-o", str(dest)],
-                capture_output=True, text=True
-            )
+            cmd = ["curl", "-fsSL", "--retry", "3", "--retry-delay", "5"]
+            if token:
+                cmd += ["-H", f"Authorization: token {token}"]
+            cmd += [url, "-o", str(dest)]
+            result = subprocess.run(cmd, capture_output=True, text=True)
             if result.returncode == 0 and dest.exists() and dest.stat().st_size > 0:
                 logging.info(f"  ✅ {dest.name} ({dest.stat().st_size:,} bytes)")
                 return True
@@ -38,6 +39,22 @@ def download_asset(url: str, dest: pathlib.Path, retries: int = 3) -> bool:
     return False
 
 failures = []
+
+# ── yuzu: patches-1.0.rvp を固定URLから直接ダウンロード ─────────────────────
+# PAT シークレット (secrets.PAT) を PAT 環境変数として受け取り、
+# プライベートリリースへのアクセスに使用する。
+_yuzu_pat = os.environ.get("PAT", "").strip()
+_yuzu_patches_url = (
+    "https://github.com/matchadaisuke/morphe-patches/releases/download/patche/patches-1.0.rvp"
+)
+_yuzu_dest_dir = TOOLS_DIR / "yuzu"
+_yuzu_dest_dir.mkdir(parents=True, exist_ok=True)
+_yuzu_dest_file = _yuzu_dest_dir / "patches-1.0.rvp"
+
+logging.info("\n📦 Downloading yuzu patches from fixed URL")
+logging.info(f"  ⬇️  patches-1.0.rvp")
+if not download_asset(_yuzu_patches_url, _yuzu_dest_file, token=_yuzu_pat):
+    failures.append("yuzu: patches-1.0.rvp")
 
 for source_path in sorted(SOURCES_DIR.glob("*.json")):
     source_name = source_path.stem
@@ -59,9 +76,8 @@ for source_path in sorted(SOURCES_DIR.glob("*.json")):
     # SOURCE_TAG_<SOURCE_NAME> 環境変数が渡されていればそのタグを優先する
     # （build.yml の download-tools ジョブが resolve-tags で確定させた具体的なタグを渡す）
     # "latest" や空文字が渡された場合は detect_github_release 側で解決される。
-    import os as _os
     env_tag_key = f"SOURCE_TAG_{source_name.upper().replace('-', '_')}"
-    env_tag = _os.environ.get(env_tag_key, "").strip()
+    env_tag = os.environ.get(env_tag_key, "").strip()
     logging.info(f"  SOURCE_TAG env ({env_tag_key}): {env_tag or '(not set, will use sources json)'}")
 
     for repo_info in repos_info[1:]:
