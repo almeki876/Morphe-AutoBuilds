@@ -38,22 +38,47 @@ def download_asset(url: str, dest: pathlib.Path, retries: int = 3, token: str = 
     logging.error(f"  ❌ failed after {retries} attempts: {url}")
     return False
 
+def download_asset_gh(repo: str, tag: str, filename: str, dest: pathlib.Path, token: str, retries: int = 3) -> bool:
+    """gh CLI を使ってプライベートリリースアセットをダウンロードする。"""
+    for attempt in range(1, retries + 1):
+        try:
+            env = {**os.environ, "GH_TOKEN": token}
+            cmd = [
+                "gh", "release", "download", tag,
+                "--repo", repo,
+                "--pattern", filename,
+                "--dir", str(dest.parent),
+                "--clobber",
+            ]
+            result = subprocess.run(cmd, capture_output=True, text=True, env=env)
+            if result.returncode == 0 and dest.exists() and dest.stat().st_size > 0:
+                logging.info(f"  ✅ {dest.name} ({dest.stat().st_size:,} bytes)")
+                return True
+            logging.warning(f"  ⚠️  attempt {attempt}: gh exit={result.returncode} stderr={result.stderr.strip()}")
+        except Exception as e:
+            logging.warning(f"  ⚠️  attempt {attempt}: {e}")
+        if attempt < retries:
+            time.sleep(10 * attempt)
+    logging.error(f"  ❌ failed after {retries} attempts: {repo}@{tag}/{filename}")
+    return False
+
 failures = []
 
 # ── yuzu: patches-1.0.rvp を固定URLから直接ダウンロード ─────────────────────
 # PAT シークレット (secrets.PAT) を PAT 環境変数として受け取り、
 # プライベートリリースへのアクセスに使用する。
+# gh CLI を使うことで private リポジトリのリリースアセットを確実に取得する。
 _yuzu_pat = os.environ.get("PAT", "").strip()
-_yuzu_patches_url = (
-    "https://github.com/matchadaisuke/morphe-patches/releases/download/patche/patches-1.0.rvp"
-)
+_yuzu_repo = "matchadaisuke/morphe-patches"
+_yuzu_tag  = "patche"
+_yuzu_file = "patches-1.0.rvp"
 _yuzu_dest_dir = TOOLS_DIR / "yuzu"
 _yuzu_dest_dir.mkdir(parents=True, exist_ok=True)
-_yuzu_dest_file = _yuzu_dest_dir / "patches-1.0.rvp"
+_yuzu_dest_file = _yuzu_dest_dir / _yuzu_file
 
 logging.info("\n📦 Downloading yuzu patches from fixed URL")
-logging.info(f"  ⬇️  patches-1.0.rvp")
-if not download_asset(_yuzu_patches_url, _yuzu_dest_file, token=_yuzu_pat):
+logging.info(f"  ⬇️  {_yuzu_file}")
+if not download_asset_gh(_yuzu_repo, _yuzu_tag, _yuzu_file, _yuzu_dest_file, token=_yuzu_pat):
     failures.append("yuzu: patches-1.0.rvp")
 
 for source_path in sorted(SOURCES_DIR.glob("*.json")):
