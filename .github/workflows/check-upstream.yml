@@ -40,10 +40,9 @@ jobs:
           hoo_tag=$(fetch_tag     "hoo-dles/morphe-patches")
           rookie_tag=$(fetch_tag  "RookieEnough/De-ReVanced")
           tosox_tag=$(fetch_tag   "Tosox/revanced-patches")
-          yuzu_tag=$(fetch_tag    "YuzuMikan404/linegms-fork-second-")
           dropped_tag=$(fetch_tag "indrastorms/Dropped-Patches")
 
-          for var in morphe anddea piko hoo rookie tosox yuzu dropped; do
+          for var in morphe anddea piko hoo rookie tosox dropped; do
             eval "tag=\${${var}_tag}"
             [ -z "$tag" ] && echo "WARNING: Could not fetch tag for: $var" || echo "OK: $var: $tag"
             echo "${var}_tag=${tag}" >> $GITHUB_OUTPUT
@@ -58,7 +57,6 @@ jobs:
           FETCH_HOO:     ${{ steps.fetch.outputs.hoo_tag }}
           FETCH_ROOKIE:  ${{ steps.fetch.outputs.rookie_tag }}
           FETCH_TOSOX:   ${{ steps.fetch.outputs.tosox_tag }}
-          FETCH_YUZU:    ${{ steps.fetch.outputs.yuzu_tag }}
           FETCH_DROPPED: ${{ steps.fetch.outputs.dropped_tag }}
         run: |
           load_last() {
@@ -91,7 +89,6 @@ jobs:
           check_src hoo     "$FETCH_HOO"
           check_src rookie  "$FETCH_ROOKIE"
           check_src tosox   "$FETCH_TOSOX"
-          check_src yuzu    "$FETCH_YUZU"
           check_src dropped "$FETCH_DROPPED"
 
           echo "any_updated=$any_updated" >> $GITHUB_OUTPUT
@@ -108,7 +105,6 @@ jobs:
           SOURCE_TAG_HOO:             ${{ steps.fetch.outputs.hoo_tag }}
           SOURCE_TAG_ROOKIE:          ${{ steps.fetch.outputs.rookie_tag }}
           SOURCE_TAG_TOSOX:           ${{ steps.fetch.outputs.tosox_tag }}
-          SOURCE_TAG_YUZU:            ${{ steps.fetch.outputs.yuzu_tag }}
           SOURCE_TAG_DROPPED:         ${{ steps.fetch.outputs.dropped_tag }}
         run: |
           pip install requests beautifulsoup4 PyGithub curl-cffi --quiet
@@ -125,7 +121,6 @@ jobs:
           SOURCE_TAG_HOO:             ${{ steps.fetch.outputs.hoo_tag }}
           SOURCE_TAG_ROOKIE:          ${{ steps.fetch.outputs.rookie_tag }}
           SOURCE_TAG_TOSOX:           ${{ steps.fetch.outputs.tosox_tag }}
-          SOURCE_TAG_YUZU:            ${{ steps.fetch.outputs.yuzu_tag }}
           SOURCE_TAG_DROPPED:         ${{ steps.fetch.outputs.dropped_tag }}
         run: |
           python3 scripts/detect_version_pinned.py
@@ -154,12 +149,11 @@ jobs:
           hoo_upd="${{ steps.compare.outputs.hoo_updated }}"
           rookie_upd="${{ steps.compare.outputs.rookie_updated }}"
           tosox_upd="${{ steps.compare.outputs.tosox_updated }}"
-          yuzu_upd="${{ steps.compare.outputs.yuzu_updated }}"
           dropped_upd="${{ steps.compare.outputs.dropped_updated }}"
 
           # APK更新で影響を受けるソースを特定（*_upd フラグは汚染しない）
           morphe_force=false; anddea_force=false; piko_force=false; hoo_force=false
-          rookie_force=false; tosox_force=false; yuzu_force=false; dropped_force=false
+          rookie_force=false; tosox_force=false; dropped_force=false
 
           if [ -n "$APK_UPDATED_APPS" ] && [ "$APK_UPDATED_APPS" != "[]" ]; then
             while IFS= read -r line; do
@@ -174,7 +168,6 @@ jobs:
           [ "${FORCE_HOO:-false}" = "true" ]             && hoo_force=true
           [ "${FORCE_ROOKIE:-false}" = "true" ]          && rookie_force=true
           [ "${FORCE_TOSOX:-false}" = "true" ]           && tosox_force=true
-          [ "${FORCE_YUZU:-false}" = "true" ]            && yuzu_force=true
           [ "${FORCE_DROPPED:-false}" = "true" ]         && dropped_force=true
 
           gh workflow run build.yml \
@@ -184,7 +177,6 @@ jobs:
             -f hoo_tag="${{ steps.fetch.outputs.hoo_tag }}" \
             -f rookie_tag="${{ steps.fetch.outputs.rookie_tag }}" \
             -f tosox_tag="${{ steps.fetch.outputs.tosox_tag }}" \
-            -f yuzu_tag="${{ steps.fetch.outputs.yuzu_tag }}" \
             -f dropped_tag="${{ steps.fetch.outputs.dropped_tag }}" \
             -f morphe_updated="$morphe_upd" \
             -f anddea_updated="$anddea_upd" \
@@ -192,7 +184,6 @@ jobs:
             -f hoo_updated="$hoo_upd" \
             -f rookie_updated="$rookie_upd" \
             -f tosox_updated="$tosox_upd" \
-            -f yuzu_updated="$yuzu_upd" \
             -f dropped_updated="$dropped_upd" \
             -f morphe_force_build="$morphe_force" \
             -f anddea_force_build="$anddea_force" \
@@ -200,7 +191,6 @@ jobs:
             -f hoo_force_build="$hoo_force" \
             -f rookie_force_build="$rookie_force" \
             -f tosox_force_build="$tosox_force" \
-            -f yuzu_force_build="$yuzu_force" \
             -f dropped_force_build="$dropped_force" \
 
           echo "Build workflow triggered"
@@ -214,7 +204,6 @@ jobs:
           UPD_HOO:      ${{ steps.compare.outputs.hoo_updated }}
           UPD_ROOKIE:   ${{ steps.compare.outputs.rookie_updated }}
           UPD_TOSOX:    ${{ steps.compare.outputs.tosox_updated }}
-          UPD_YUZU:     ${{ steps.compare.outputs.yuzu_updated }}
           UPD_DROPPED:  ${{ steps.compare.outputs.dropped_updated }}
           TAG_MORPHE:   ${{ steps.fetch.outputs.morphe_tag }}
           TAG_ANDDEA:   ${{ steps.fetch.outputs.anddea_tag }}
@@ -222,7 +211,6 @@ jobs:
           TAG_HOO:      ${{ steps.fetch.outputs.hoo_tag }}
           TAG_ROOKIE:   ${{ steps.fetch.outputs.rookie_tag }}
           TAG_TOSOX:    ${{ steps.fetch.outputs.tosox_tag }}
-          TAG_YUZU:     ${{ steps.fetch.outputs.yuzu_tag }}
           TAG_DROPPED:  ${{ steps.fetch.outputs.dropped_tag }}
         run: |
           echo "Updating last-tags.json..."
@@ -241,7 +229,6 @@ jobs:
           update_if_changed hoo     "$UPD_HOO"      "$TAG_HOO"
           update_if_changed rookie  "$UPD_ROOKIE"   "$TAG_ROOKIE"
           update_if_changed tosox   "$UPD_TOSOX"    "$TAG_TOSOX"
-          update_if_changed yuzu    "$UPD_YUZU"     "$TAG_YUZU"
           update_if_changed dropped "$UPD_DROPPED"  "$TAG_DROPPED"
 
           echo "$current" > last-tags.json
