@@ -1,5 +1,5 @@
 {
-  "morphe": "v1.33.0-dev.8",
+  "morphe": "v1.33.0-dev.9",
   "anddea": "v4.2.0-dev.1",
   "piko": "v3.8.0-dev.2",
   "hoo": "v1.38.1",
@@ -12,7 +12,7 @@
   "apk_instagram": "436.0.0.41.73",
   "apk_adguard": "4.14.68",
   "apk_prime-video": "3.0.451",
-  "apk_duolingo": "6.85.7",
+  "apk_duolingo": "6.86.4",
   "apk_ibs_paint": "14.0.4",
   "apk_icon-packer": "1.21.0-release",
   "apk_nova": "8.8.0",
@@ -27,5 +27,5 @@
   "apk_disney-plus": "26.10.0",
   "apk_crunchyroll": "3.64.1",
   "apk_photomath": "8.47.1",
-  "apk_pixiv": "6.186.0"
+  "apk_pixiv": "6.187.0"
 }
