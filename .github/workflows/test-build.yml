@@ -1,4 +1,4 @@
-name: Test Build All APKs
+name: Trigger Test Build All (Release)
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
@@ -7,191 +7,67 @@ on:
   workflow_dispatch:
 
 jobs:
-  download-tools:
-    name: Download Build Tools
+  trigger-build:
+    name: Trigger Full Build and Release Workflow
     runs-on: ubuntu-latest
-    outputs:
-      cache-key: ${{ steps.resolve-tags.outputs.cache-key }}
-      morphe_resolved:  ${{ steps.resolve-tags.outputs.morphe_resolved }}
-      anddea_resolved:  ${{ steps.resolve-tags.outputs.anddea_resolved }}
-      piko_resolved:    ${{ steps.resolve-tags.outputs.piko_resolved }}
-      hoo_resolved:     ${{ steps.resolve-tags.outputs.hoo_resolved }}
-      rookie_resolved:  ${{ steps.resolve-tags.outputs.rookie_resolved }}
-      tosox_resolved:   ${{ steps.resolve-tags.outputs.tosox_resolved }}
-      yuzu_resolved:    ${{ steps.resolve-tags.outputs.yuzu_resolved }}
-      dropped_resolved: ${{ steps.resolve-tags.outputs.dropped_resolved }}
+    permissions:
+      actions: write
 
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Resolve Patch Tags and Compute Cache Key
-        id: resolve-tags
+      - name: Fetch Latest Tags and Trigger Build
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          resolve_tag() {
-            local repo="$1"
-            gh api "repos/${repo}/releases?per_page=100" \
+          fetch_tag() {
+            gh api "repos/${1}/releases?per_page=100" \
               --jq 'sort_by(.published_at) | reverse | .[0].tag_name' \
-              2>/dev/null || echo "unknown"
+              2>/dev/null || echo ""
           }
 
-          morphe_resolved=$(resolve_tag  "MorpheApp/morphe-patches")
-          anddea_resolved=$(resolve_tag  "anddea/revanced-patches")
-          piko_resolved=$(resolve_tag    "crimera/piko")
-          hoo_resolved=$(resolve_tag     "hoo-dles/morphe-patches")
-          rookie_resolved=$(resolve_tag  "RookieEnough/De-ReVanced")
-          tosox_resolved=$(resolve_tag   "Tosox/revanced-patches")
-          yuzu_resolved="patche"
-          dropped_resolved=$(resolve_tag "indrastorms/Dropped-Patches")
+          echo "Fetching latest tags..."
+          morphe_tag=$(fetch_tag  "MorpheApp/morphe-patches")
+          anddea_tag=$(fetch_tag  "anddea/revanced-patches")
+          piko_tag=$(fetch_tag    "crimera/piko")
+          hoo_tag=$(fetch_tag     "hoo-dles/morphe-patches")
+          rookie_tag=$(fetch_tag  "RookieEnough/De-ReVanced")
+          tosox_tag=$(fetch_tag   "Tosox/revanced-patches")
+          dropped_tag=$(fetch_tag "indrastorms/Dropped-Patches")
 
-          echo "morphe_resolved=$morphe_resolved"   >> $GITHUB_OUTPUT
-          echo "anddea_resolved=$anddea_resolved"   >> $GITHUB_OUTPUT
-          echo "piko_resolved=$piko_resolved"       >> $GITHUB_OUTPUT
-          echo "hoo_resolved=$hoo_resolved"         >> $GITHUB_OUTPUT
-          echo "rookie_resolved=$rookie_resolved"   >> $GITHUB_OUTPUT
-          echo "tosox_resolved=$tosox_resolved"     >> $GITHUB_OUTPUT
-          echo "yuzu_resolved=$yuzu_resolved"       >> $GITHUB_OUTPUT
-          echo "dropped_resolved=$dropped_resolved" >> $GITHUB_OUTPUT
+          echo "Tags fetched:"
+          echo "  morphe:  $morphe_tag"
+          echo "  anddea:  $anddea_tag"
+          echo "  piko:    $piko_tag"
+          echo "  hoo:     $hoo_tag"
+          echo "  rookie:  $rookie_tag"
+          echo "  tosox:   $tosox_tag"
+          echo "  dropped: $dropped_tag"
 
-          version_string="${morphe_resolved}__${anddea_resolved}__${piko_resolved}__${hoo_resolved}__${rookie_resolved}__${tosox_resolved}__${yuzu_resolved}__${dropped_resolved}"
-          file_hash="${{ hashFiles('my-patch-config.json', 'arch-config.json', 'sources/**') }}"
-          cache_key="build-tools-${file_hash}-${version_string}"
-          echo "cache-key=${cache_key}" >> $GITHUB_OUTPUT
+          echo "Triggering build.yml with all flags set to true..."
 
-          echo "Resolved tags:"
-          echo "  morphe:  $morphe_resolved"
-          echo "  anddea:  $anddea_resolved"
-          echo "  piko:    $piko_resolved"
-          echo "  hoo:     $hoo_resolved"
-          echo "  rookie:  $rookie_resolved"
-          echo "  tosox:   $tosox_resolved"
-          echo "  yuzu:    $yuzu_resolved"
-          echo "  dropped: $dropped_resolved"
-          echo "Cache key: ${cache_key}"
+          gh workflow run build.yml \
+            -f morphe_tag="$morphe_tag" \
+            -f anddea_tag="$anddea_tag" \
+            -f piko_tag="$piko_tag" \
+            -f hoo_tag="$hoo_tag" \
+            -f rookie_tag="$rookie_tag" \
+            -f tosox_tag="$tosox_tag" \
+            -f dropped_tag="$dropped_tag" \
+            -f morphe_updated="true" \
+            -f anddea_updated="true" \
+            -f piko_updated="true" \
+            -f hoo_updated="true" \
+            -f rookie_updated="true" \
+            -f tosox_updated="true" \
+            -f dropped_updated="true" \
+            -f morphe_force_build="true" \
+            -f anddea_force_build="true" \
+            -f piko_force_build="true" \
+            -f hoo_force_build="true" \
+            -f rookie_force_build="true" \
+            -f tosox_force_build="true" \
+            -f dropped_force_build="true"
 
-      - name: Restore Cached Tools
-        id: cache-restore
-        uses: actions/cache@v4
-        with:
-          path: tools/
-          key: ${{ steps.resolve-tags.outputs.cache-key }}
-
-      - name: Setup Python
-        if: steps.cache-restore.outputs.cache-hit != 'true'
-        uses: actions/setup-python@v5
-        with:
-          python-version: 3.11
-
-      - name: Download All Source Tools
-        if: steps.cache-restore.outputs.cache-hit != 'true'
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          UPD_MORPHE:   "true"
-          UPD_ANDDEA:   "true"
-          UPD_PIKO:     "true"
-          UPD_HOO:      "true"
-          UPD_ROOKIE:   "true"
-          UPD_TOSOX:    "true"
-          UPD_YUZU:     "true"
-          UPD_DROPPED:  "true"
-          SOURCE_TAG_MORPHE:          ${{ steps.resolve-tags.outputs.morphe_resolved }}
-          SOURCE_TAG_ANDDEA:          ${{ steps.resolve-tags.outputs.anddea_resolved }}
-          SOURCE_TAG_REVANCED_ANDDEA: ${{ steps.resolve-tags.outputs.anddea_resolved }}
-          SOURCE_TAG_PIKO:            ${{ steps.resolve-tags.outputs.piko_resolved }}
-          SOURCE_TAG_HOO:             ${{ steps.resolve-tags.outputs.hoo_resolved }}
-          SOURCE_TAG_ROOKIE:          ${{ steps.resolve-tags.outputs.rookie_resolved }}
-          SOURCE_TAG_TOSOX:           ${{ steps.resolve-tags.outputs.tosox_resolved }}
-          SOURCE_TAG_YUZU:            ${{ steps.resolve-tags.outputs.yuzu_resolved }}
-          PAT:                        ${{ secrets.PAT }}
-          SOURCE_TAG_DROPPED:         ${{ steps.resolve-tags.outputs.dropped_resolved }}
-        run: |
-          pip install -r requirements.txt -q
-          python3 scripts/download_all_tools.py
-
-      - name: Save Cached Tools
-        if: steps.cache-restore.outputs.cache-hit != 'true'
-        uses: actions/cache/save@v4
-        with:
-          path: tools/
-          key: ${{ steps.resolve-tags.outputs.cache-key }}
-
-  prepare-matrix:
-    name: Prepare Build Matrix
-    runs-on: ubuntu-latest
-    needs: [download-tools]
-    outputs:
-      matrix: ${{ steps.read-matrix.outputs.matrix }}
-
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
-
-      - name: Read Patch Config and Filter by Updated Sources
-        id: read-matrix
-        env:
-          UPD_MORPHE:   "true"
-          UPD_ANDDEA:   "true"
-          UPD_PIKO:     "true"
-          UPD_HOO:      "true"
-          UPD_ROOKIE:   "true"
-          UPD_TOSOX:    "true"
-          UPD_YUZU:     "true"
-          UPD_DROPPED:  "true"
-          FORCE_MORPHE:  "true"
-          FORCE_ANDDEA:  "true"
-          FORCE_PIKO:    "true"
-          FORCE_HOO:     "true"
-          FORCE_ROOKIE:  "true"
-          FORCE_TOSOX:   "true"
-          FORCE_YUZU:    "true"
-          FORCE_DROPPED: "true"
-        run: |
-          python3 scripts/prepare_matrix.py
-
-  build-apps:
-    name: Build ${{ matrix.app_name }} with ${{ matrix.source }}
-    needs: [download-tools, prepare-matrix]
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        include: ${{ fromJson(needs.prepare-matrix.outputs.matrix) }}
-
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
-
-      - name: Restore Cached Tools
-        uses: actions/cache/restore@v4
-        with:
-          path: tools/
-          key: ${{ needs.download-tools.outputs.cache-key }}
-          fail-on-cache-miss: true
-
-      - name: Install Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: 3.11
-
-      - name: Install Dependencies
-        run: |
-          pip install -r requirements.txt
-
-      - name: Build APK
-        env:
-          APP_NAME: ${{ matrix.app_name }}
-          SOURCE: ${{ matrix.source }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          echo "Building ${{ matrix.app_name }} with ${{ matrix.source }}..."
-          sleep $((RANDOM % 10))
-          python3 -m src
-
-      - name: Upload APK Artifact
-        if: success()
-        uses: actions/upload-artifact@v4
-        with:
-          name: apk-${{ matrix.app_name }}-${{ matrix.source }}
-          path: "*.apk"
+          echo "Build workflow triggered successfully."
