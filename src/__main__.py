@@ -62,7 +62,7 @@ from pathlib import Path
 from sys import exit
 from typing import Any
 
-from src import downloader, utils
+from src import cli_compat, downloader, utils
 
 
 # ---------------------------------------------------------------------------
@@ -141,24 +141,12 @@ def _cli_version(cli: Path) -> str:
       CLI v4.x  → patcher v17-v19  (old Patch<BytecodeContext> class style)
       CLI v5.x  → patcher v21      (bytecodePatch DSL)
       CLI v6.x+ → patcher v22+     (BREAKING: incompatible with v21 patches)
+
+    Thin wrapper kept for backward compatibility with existing call sites;
+    the actual classification now lives in src/cli_compat.py so it's defined
+    in exactly one place.
     """
-    name = cli.name.lower()
-    if "morphe" in name:
-        return "morphe"
-    m = re.search(r"revanced-cli-(\d+)\.", name)
-    if m:
-        major = int(m.group(1))
-        if major == 4:
-            return "v4"
-        if major >= 6:
-            logging.warning(
-                "⚠️  CLI major version is %d (patcher v22+). "
-                "Patches built against patcher v21 (e.g. YuzuMikan404) will NOT work. "
-                "Pin 'revanced-cli' to 'v5.0.1' in your sources JSON.",
-                major,
-            )
-        return "v5plus"
-    return "legacy"
+    return cli_compat.detect_cli_kind(cli)
 
 
 # ---------------------------------------------------------------------------
@@ -278,24 +266,6 @@ def _build_patch_flags(
         patches_txt.name, len(enables_fb) // 2, len(disables_fb) // 2,
     )
     return enables_fb, disables_fb
-
-
-# 後方互換エイリアス（直接呼び出し箇所のシグネチャ変更前に残す）
-def _parse_patch_flags(patches_txt: Path, cli_ver: str) -> tuple[list[str], list[str]]:
-    if not patches_txt.exists():
-        return [], []
-    enable_flag  = "-e" if cli_ver in ("v5plus", "morphe") else "-i"
-    disable_flag = "-d" if cli_ver in ("v5plus", "morphe") else "-e"
-    enables, disables = [], []
-    for raw in patches_txt.read_text(encoding="utf-8").splitlines():
-        line = raw.strip()
-        if not line or line.startswith("#"):
-            continue
-        if line.startswith("+"):
-            enables.extend([enable_flag, line[1:].strip()])
-        elif line.startswith("-"):
-            disables.extend([disable_flag, line[1:].strip()])
-    return enables, disables
 
 
 def _build_option_flags(options: list[PatchOption], cli_ver: str) -> list[str]:
@@ -435,16 +405,16 @@ def _patch_morphe(
 
     java_args = _build_java_args()
 
-    # Detect CLI version to choose correct argument structure.
-    # v1.9.0+ uses a new nested ArgGroup where -e is required alongside -O.
-    cli_name = cli.name.lower()
-    # Extract version from filename e.g. morphe-cli-1.9.0-dev.3-all.jar
-    import re as _re
-    ver_match = _re.search(r"morphe-cli-(\d+)\.(\d+)\.(\d+)", cli_name)
-    is_v19_plus = False
-    if ver_match:
-        major, minor = int(ver_match.group(1)), int(ver_match.group(2))
-        is_v19_plus = (major, minor) >= (1, 9)
+    # Detect CLI argument structure. v1.9.0+ uses a new nested ArgGroup where
+    # -e is required alongside -O — this is a structural change, not just a
+    # flag rename, so it's still checked via version number (see cli_compat).
+    is_v19_plus = cli_compat.is_nested_arggroup_syntax(cli)
+
+    # "--purge" was renamed to "--disable-purge" in a later morphe-cli release
+    # (purging scratch files is now the default, so the flag was inverted).
+    # Rather than guessing a version cutoff — which breaks again the next
+    # time upstream renames something — ask the CLI itself via --help.
+    purge_flag = ["--purge"] if cli_compat.supports_flag(cli, "patch", "--purge") else []
 
     # --exclusive is only meaningful when patches are explicitly enabled.
     exclusive = ["--exclusive"] if enables else []
@@ -505,7 +475,7 @@ def _patch_morphe(
             "patch",
             "--force",
             "--continue-on-error",
-            "--purge",
+            *purge_flag,
             "-p", str(bundle),
             f"--out={output_apk}",
             "--bytecode-mode=STRIP_SAFE",
@@ -559,7 +529,7 @@ def _patch_morphe(
             "patch",
             "--force",
             "--continue-on-error",
-            "--purge",
+            *purge_flag,
             f"--patches={bundle}",
             f"--out={output_apk}",
             "--bytecode-mode=STRIP_SAFE",

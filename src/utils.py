@@ -173,11 +173,14 @@ def get_highest_version(versions: list[str]) -> str | None:
     return highest_version
 
 def get_supported_version(package_name: str, cli: str, patches: str) -> Optional[str]:
-    # Morphe CLI and ReVanced CLI have different list-versions syntax
-    cli_name = Path(cli).name.lower()
-    is_morphe_cli = 'morphe' in cli_name
-    is_revanced_v5_or_newer = ('revanced-cli-5' in cli_name or 'revanced-cli-6' in cli_name
-                               or 'revanced-cli-7' in cli_name or 'revanced-cli-8' in cli_name)
+    # Morphe CLI and ReVanced CLI have different list-versions syntax.
+    # CLI-kind detection lives in src/cli_compat.py (single source of truth);
+    # imported locally to avoid a circular import (cli_compat itself uses
+    # this module's run_process()).
+    from src import cli_compat
+    kind = cli_compat.detect_cli_kind(Path(cli))
+    is_morphe_cli = kind == cli_compat.MORPHE
+    is_revanced_v5_or_newer = kind == cli_compat.REVANCED_V5PLUS
 
     if is_morphe_cli:
         # morphe-cli は --patches フラグを使う（-p は存在しない）
@@ -353,10 +356,4 @@ def _detect_github_release_once(user: str, repo: str, tag: str) -> dict:
         logging.error(f"Error fetching release {tag} for {user}/{repo}: {e}")
         raise
 
-def detect_source_type(cli_file: Path, patches_file: Path) -> str:
-    """Detect if we're using Morphe or ReVanced based on downloaded files"""
-    if cli_file and "morphe" in cli_file.name.lower() and patches_file and patches_file.suffix == ".mpp":
-        return "morphe"
-    elif cli_file and "revanced" in cli_file.name.lower() and patches_file and patches_file.suffix in [".jar", ".rvp"]:
-        return "revanced"
-    return "unknown"
+
