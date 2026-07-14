@@ -1,6 +1,6 @@
 {
-  "morphe": "v1.35.0-dev.2",
-  "anddea": "v4.2.0-dev.4",
+  "morphe": "v1.35.0-dev.4",
+  "anddea": "v4.2.0-dev.5",
   "piko": "v3.8.0-dev.4",
   "hoo": "v1.39.0-dev.4",
   "rookie": "v1.0.4",
@@ -19,7 +19,7 @@
   "apk_proton-vpn": "5.19.16.0",
   "apk_smart_launcher": "6.6",
   "apk_soundcloud": "2025.09.10",
-  "apk_wps-office": "26.6.4",
+  "apk_wps-office": "26.7.0",
   "apk_mega": "16.9.1(261911139)(53a19bc897)",
   "apk_proton-mail": "7.10.3",
   "apk_yuucho-tsucho": "1.0",
@@ -27,5 +27,5 @@
   "apk_disney-plus": "26.11.1",
   "apk_crunchyroll": "3.64.1",
   "apk_photomath": "8.47.1",
-  "apk_pixiv": "6.188.0"
+  "apk_pixiv": "6.189.0"
 }
