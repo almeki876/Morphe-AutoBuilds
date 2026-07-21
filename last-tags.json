@@ -1,5 +1,5 @@
 {
-  "morphe": "v1.36.0-dev.5",
+  "morphe": "v1.36.0-dev.7",
   "anddea": "v4.2.0-dev.7",
   "piko": "v3.8.0-dev.5",
   "hoo": "v1.40.0-dev.2",
@@ -7,8 +7,8 @@
   "tosox": "v1.7.1",
   "yuzu": "{\"message\":\"Not Found\",\"documentation_url\":\"https://docs.github.com/rest/releases/releases#list-releases\",\"status\":\"404\"}",
   "dropped": "v1.5.1",
-  "apk_youtube": "21.28.206",
-  "apk_youtube-music": "9.26.20",
+  "apk_youtube": "21.28.207",
+  "apk_youtube-music": "9.28.21",
   "apk_instagram": "439.0.0.14.89",
   "apk_adguard": "3.1.0",
   "apk_prime-video": "3.0.451",
