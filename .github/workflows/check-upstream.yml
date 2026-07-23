@@ -93,6 +93,12 @@ jobs:
 
           echo "any_updated=$any_updated" >> $GITHUB_OUTPUT
 
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
       - name: Download CLI for Version Detection
         id: dl-cli
         continue-on-error: true

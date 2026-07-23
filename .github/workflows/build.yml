@@ -311,6 +311,16 @@ jobs:
         with:
           python-version: 3.11
 
+      # ReVanced/Morphe CLI jarはclass file version 65 (Java 21)でビルドされている。
+      # ubuntu-latestランナーのデフォルトJDKに依存すると、GitHub側やCLI側の
+      # 都合でJavaのメジャーバージョンが上がった際に
+      # "UnsupportedClassVersionError" で全ビルドが壊れる。明示的に固定する。
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
       - name: Install Dependencies
         run: |
           pip install -r requirements.txt
