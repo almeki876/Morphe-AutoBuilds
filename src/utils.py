@@ -7,6 +7,35 @@ import subprocess
 from pathlib import Path
 from urllib.parse import urlparse, unquote, parse_qs
 
+def cf_aware_get(url: str, **kwargs):
+    """GET via the shared session, with a one-shot Cloudflare Turnstile bypass
+    if the source serves a CF challenge instead of the real page.
+
+    Used by apkmirror/apkpure/uptodown, which are all fronted by Cloudflare
+    and intermittently serve a "Just a moment..." challenge page (HTTP 403)
+    to datacenter IPs like GitHub Actions runners. Falls back to the plain
+    (challenged) response if the nodriver dependency isn't installed or the
+    bypass itself fails — never raises on its own.
+    """
+    from src import session as _session
+    response = _session.get(url, **kwargs)
+    try:
+        from src.cf_bypass import is_cf_challenge, solve_cloudflare
+        if is_cf_challenge(response):
+            logging.info(f"Cloudflare challenge on {url} — launching bypass…")
+            cookies = solve_cloudflare(url)
+            if cookies:
+                domain = "." + ".".join(urlparse(url).hostname.split(".")[-2:])
+                for name, value in cookies.items():
+                    _session.cookies.set(name, value, domain=domain)
+                response = _session.get(url, **kwargs)
+    except ImportError:
+        pass  # nodriver not installed; skip bypass
+    except Exception as e:
+        logging.debug(f"Cloudflare bypass attempt failed for {url}: {e}")
+    return response
+
+
 def _parseparam(s):
     while s[:1] == ";":
         s = s[1:]

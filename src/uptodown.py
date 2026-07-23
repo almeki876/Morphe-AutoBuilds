@@ -1,5 +1,5 @@
 import logging 
-from src import session 
+from src import utils
 from bs4 import BeautifulSoup
 
 def get_latest_version(app_name: str, config: dict) -> str:
@@ -11,7 +11,7 @@ def get_latest_version(app_name: str, config: dict) -> str:
     for uptodown_name in possible_names:
         url = f"https://{uptodown_name}.en.uptodown.com/android/versions"
         try:
-            response = session.get(url)
+            response = utils.cf_aware_get(url)
             if response.status_code == 200:
                 content_size = len(response.content)
                 logging.info(f"✓ Found: {response.url}")
@@ -48,7 +48,7 @@ def get_download_link(version: str, app_name: str, config: dict) -> str:
     for uptodown_name in possible_names:
         base_url = f"https://{uptodown_name}.en.uptodown.com/android"
         try:
-            response = session.get(f"{base_url}/versions")
+            response = utils.cf_aware_get(f"{base_url}/versions")
             if response.status_code != 200:
                 continue
                 
@@ -57,7 +57,7 @@ def get_download_link(version: str, app_name: str, config: dict) -> str:
 
             page = 1
             while True:
-                response = session.get(f"{base_url}/apps/{data_code}/versions/{page}")
+                response = utils.cf_aware_get(f"{base_url}/apps/{data_code}/versions/{page}")
                 response.raise_for_status()
                 version_data = response.json().get('data', [])
                 
@@ -68,7 +68,7 @@ def get_download_link(version: str, app_name: str, config: dict) -> str:
                     if entry["version"] == version:
                         version_url_parts = entry["versionURL"]
                         version_url = f"{version_url_parts['url']}/{version_url_parts['extraURL']}/{version_url_parts['versionID']}"
-                        version_page = session.get(version_url)
+                        version_page = utils.cf_aware_get(version_url)
                         version_page.raise_for_status()
                         soup = BeautifulSoup(version_page.content, "html.parser")
                         
@@ -79,7 +79,7 @@ def get_download_link(version: str, app_name: str, config: dict) -> str:
                         onclick = button.get('onclick', '')
                         if onclick and "download-link-deeplink" in onclick:
                             version_url += '-x'
-                            version_page = session.get(version_url)
+                            version_page = utils.cf_aware_get(version_url)
                             version_page.raise_for_status()
                             soup = BeautifulSoup(version_page.content, "html.parser")
                             button = soup.find('button', id='detail-download-button')

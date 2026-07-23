@@ -3,7 +3,7 @@ import json
 import logging
 from bs4 import BeautifulSoup
 from urllib.parse import quote
-from src import session
+from src import utils
 
 base_url = "https://www.apkmirror.com"
 
@@ -13,7 +13,7 @@ def get_build_number_for_version(version: str, config: dict) -> tuple[str | None
     Returns the LOWEST build number found, since patches are typically made for initial builds."""
     try:
         main_url = f"{base_url}/apk/{config['org']}/{config['name']}/"
-        response = session.get(main_url)
+        response = utils.cf_aware_get(main_url)
         if response.status_code == 200:
             soup = BeautifulSoup(response.content, "html.parser")
             # Collect all build numbers for this version
@@ -118,7 +118,7 @@ def get_download_link(version: str, app_name: str, config: dict, arch: str = Non
             logging.info(f"Checking potential release URL: {url}")
             
             try:
-                response = session.get(url)
+                response = utils.cf_aware_get(url)
                 if response.status_code == 200:
                     soup = BeautifulSoup(response.content, "html.parser")
                     page_text = soup.get_text()
@@ -279,7 +279,7 @@ def get_download_link(version: str, app_name: str, config: dict, arch: str = Non
             "Referer": base_url + "/",
             "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
         }
-        response = session.get(download_page_url, headers=headers_variant)
+        response = utils.cf_aware_get(download_page_url, headers=headers_variant)
         response.raise_for_status()
         content_size = len(response.content)
         logging.info(f"URL:{response.url} [{content_size}/{content_size}] -> Variant Page")
@@ -292,7 +292,7 @@ def get_download_link(version: str, app_name: str, config: dict, arch: str = Non
                 "Referer": download_page_url,
                 "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
             }
-            response = session.get(final_download_page_url, headers=headers_dl_page)
+            response = utils.cf_aware_get(final_download_page_url, headers=headers_dl_page)
             response.raise_for_status()
             content_size = len(response.content)
             logging.info(f"URL:{response.url} [{content_size}/{content_size}] -> Download Page")
@@ -323,7 +323,7 @@ def get_latest_version(app_name: str, config: dict) -> str:
     # First try: get from main app page
     try:
         main_url = f"{base_url}/apk/{config['org']}/{config['name']}/"
-        response = session.get(main_url)
+        response = utils.cf_aware_get(main_url)
         if response.status_code == 200:
             soup = BeautifulSoup(response.content, "html.parser")
             # Try to find version in the page
@@ -339,7 +339,7 @@ def get_latest_version(app_name: str, config: dict) -> str:
     # Original method (keep exactly as you had it)
     url = f"{base_url}/uploads/?appcategory={config['name']}"
     
-    response = session.get(url)
+    response = utils.cf_aware_get(url)
     response.raise_for_status()
     content_size = len(response.content)
     logging.info(f"URL:{response.url} [{content_size}/{content_size}] -> \"-\" [1]")

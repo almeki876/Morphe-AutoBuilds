@@ -1,3 +1,4 @@
 PyGithub
 beautifulsoup4
 curl-cffi
+nodriver

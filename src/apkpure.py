@@ -1,6 +1,6 @@
 import logging
 
-from src import session
+from src import utils
 from bs4 import BeautifulSoup
 
 # Define a standard browser User-Agent to avoid 403 Forbidden errors
@@ -27,7 +27,7 @@ def _resolve_apkpure_slug(app_name: str, config: dict) -> str | None:
 
     search_url = f"https://apkpure.net/search?q={package}"
     try:
-        resp = session.get(search_url, headers=HEADERS, timeout=TIMEOUT)
+        resp = utils.cf_aware_get(search_url, headers=HEADERS, timeout=TIMEOUT)
         if resp.status_code != 200:
             logging.debug(f"APKPure slug search returned {resp.status_code} for {app_name}")
             return None
@@ -50,7 +50,7 @@ def get_latest_version(app_name: str, config: str) -> str:
     url = f"https://apkpure.net/{config['name']}/{config['package']}/versions"
 
     try:
-        response = session.get(url, headers=HEADERS, timeout=TIMEOUT)
+        response = utils.cf_aware_get(url, headers=HEADERS, timeout=TIMEOUT)
 
         # 410 Gone: スラッグが変更された可能性があるためパッケージIDで再検索
         if response.status_code == 410:
@@ -61,7 +61,7 @@ def get_latest_version(app_name: str, config: str) -> str:
             new_slug = _resolve_apkpure_slug(app_name, config)
             if new_slug:
                 url = f"https://apkpure.net/{new_slug}/{config['package']}/versions"
-                response = session.get(url, headers=HEADERS, timeout=TIMEOUT)
+                response = utils.cf_aware_get(url, headers=HEADERS, timeout=TIMEOUT)
             else:
                 logging.warning(f"Could not resolve new APKPure slug for {app_name}. "
                                 "Update apps/apkpure/{app_name}.json with the correct name.")
@@ -88,7 +88,7 @@ def get_download_link(version: str, app_name: str, config: str) -> str:
     url = f"https://apkpure.net/{config['name']}/{config['package']}/download/{version}"
 
     try:
-        response = session.get(url, headers=HEADERS, timeout=TIMEOUT)
+        response = utils.cf_aware_get(url, headers=HEADERS, timeout=TIMEOUT)
         response.raise_for_status()
 
         content_size = len(response.content)
