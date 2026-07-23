@@ -29,8 +29,17 @@ def cf_aware_get(url: str, **kwargs):
                 for name, value in cookies.items():
                     _session.cookies.set(name, value, domain=domain)
                 response = _session.get(url, **kwargs)
+                if response.status_code == 403:
+                    logging.warning(
+                        f"Cloudflare bypass got cookies but retry still 403 for {url} "
+                        "— likely an IP/fingerprint-level block rather than a solvable challenge."
+                    )
+                else:
+                    logging.info(f"Cloudflare bypass succeeded for {url} (status {response.status_code})")
+            else:
+                logging.warning(f"Cloudflare bypass could not obtain cookies for {url}")
     except ImportError:
-        pass  # nodriver not installed; skip bypass
+        logging.debug("nodriver not installed; skipping Cloudflare bypass")
     except Exception as e:
         logging.debug(f"Cloudflare bypass attempt failed for {url}: {e}")
     return response

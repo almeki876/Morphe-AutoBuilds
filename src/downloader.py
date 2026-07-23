@@ -181,7 +181,18 @@ def download_platform(app_name: str, platform: str, cli: str, patches: str, arch
 
     try:
         with config_path.open() as json_file:
-            config = json.load(json_file)
+            try:
+                config = json.load(json_file)
+            except json.JSONDecodeError as e:
+                # 設定ファイル自体が壊れている場合は「ネットワークエラー」に
+                # 見えないよう、ここで明確に区別してログを出す。
+                # (以前 apps/uptodown/instagram.json のカンマ抜けが
+                #  "unexpected error" として握りつぶされ、Cloudflareの問題と
+                #  誤認された実績があるため。)
+                logging.error(
+                    f"❌ {platform}: config file is malformed JSON: {config_path} — {e}"
+                )
+                return None, None
         
         if arch:
             config['arch'] = arch
@@ -253,6 +264,20 @@ def download_platform(app_name: str, platform: str, cli: str, patches: str, arch
         if not version:
             logging.error(f"❌ {platform}: could not resolve any version for {app_name}")
             return None, None
+
+        # CLIのパッチ互換バージョン一覧には、APKMirrorのURLスラッグ形式
+        # （末尾"-release"付き、例: "1.21.0-release"）がそのまま入っていることがある。
+        # これはAPKMirror固有の表記で、APKPure/Uptodownのバージョン一覧には
+        # 存在しないため、そのまま渡すと必ず「バージョンが見つからない」で
+        # 失敗する（icon-packerで実際に発生した不具合）。APKMirror以外では
+        # 素の番号に正規化してから検索する。
+        if platform != "apkmirror" and isinstance(version, str) and version.lower().endswith("-release"):
+            normalized_version = version[: -len("-release")]
+            logging.info(
+                f"🔧 {platform}: normalizing APKMirror-style version '{version}' "
+                f"-> '{normalized_version}' for {app_name}"
+            )
+            version = normalized_version
 
         logging.info(f"🔍 {platform}: resolved version {version} for {app_name}")
 
