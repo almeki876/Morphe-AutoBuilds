@@ -84,26 +84,57 @@ def download_required(source: str) -> tuple[list[Path], str]:
 
     # キャッシュなし → 従来通りGitHub APIから取得
     logging.info(f"⬇️  Downloading tools for {name} from GitHub API")
-    for repo_info in repos_info[1:]:
+    for repo_idx, repo_info in enumerate(repos_info[1:]):
         user = repo_info['user']
         repo = repo_info['repo']
         tag = repo_info['tag']
 
-        release = utils.detect_github_release(user, repo, tag)
-        
-        if repo == "morphe-patches" or repo == "morphe-cli":
-            for asset in release["assets"]:
-                if asset["name"].endswith(".asc"):
+        try:
+            release = utils.detect_github_release(user, repo, tag)
+        except Exception as e:
+            logging.error(f"❌ Could not fetch release for {user}/{repo}@{tag}: {e}")
+            continue
+
+        assets = release.get("assets", [])
+
+        # sources/*.json の規約: 1番目のリポジトリエントリ=CLI/マネージャー、
+        # それ以降=パッチバンドル。以前は repo名が文字列 "morphe-cli" /
+        # "morphe-patches" と一致するかで判定していたが、上流のリポジトリ改名
+        # （例: morphe-cli → morphe-desktop）でこの判定が崩れて何もダウンロード
+        # されなくなっていた。位置ベースの判定にして改名に強くする。
+        is_cli_repo = repo_idx == 0
+        matched_any = False
+
+        if is_cli_repo:
+            for asset in assets:
+                aname = asset["name"]
+                if aname.endswith((".asc", ".sig", ".sha256", ".sha512", ".md5")):
                     continue
-                if asset["name"].endswith(".mpp") or ("morphe-cli" in asset["name"] and asset["name"].endswith(".jar")):
+                # 拡張子だけで判定（CLIのファイル名は上流が自由に変更できる）。
+                # .mpp はMorphe系パッチ形式、.jar はCLI本体（sources/javadocは除く）。
+                if aname.endswith(".mpp") or (
+                    aname.endswith(".jar")
+                    and "sources" not in aname.lower()
+                    and "javadoc" not in aname.lower()
+                ):
+                    matched_any = True
                     filepath = download_resource(asset["browser_download_url"])
                     downloaded_files.append(filepath)
         else:
-            for asset in release["assets"]:
+            for asset in assets:
                 if asset["name"].endswith(".asc"):
                     continue
+                matched_any = True
                 filepath = download_resource(asset["browser_download_url"])
                 downloaded_files.append(filepath)
+
+        if not matched_any:
+            role = "CLI" if is_cli_repo else "patches"
+            available = [a["name"] for a in assets] or ["(no assets in release)"]
+            logging.error(
+                f"❌ No {role} asset matched for {user}/{repo}@{tag}. "
+                f"Available assets: {available}"
+            )
 
     return downloaded_files, name
 

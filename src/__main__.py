@@ -730,7 +730,10 @@ def run_build(app_name: str, source: str, arch: str = "universal") -> str:
         logging.info("   • %s  (%d bytes)", f.name, f.stat().st_size)
 
     # ── 2. Detect patching system ────────────────────────────────────────────
-    is_morphe = any("morphe-cli" in f.name.lower() for f in download_files)
+    # "morphe-cli" という文字列に依存すると上流のリポジトリ改名
+    # （例: MorpheApp/morphe-cli → morphe-desktop）で誤判定するため、
+    # .mpp拡張子の有無 → source名 の順でフォールバックする。
+    is_morphe = any("morphe" in f.name.lower() and f.suffix == ".jar" for f in download_files)
     if not is_morphe:
         is_morphe = any(f.suffix == ".mpp" for f in download_files)
     if not is_morphe:
@@ -757,13 +760,34 @@ def run_build(app_name: str, source: str, arch: str = "universal") -> str:
             or utils.find_file(download_files, contains="patches", suffix=".jar")
         )
 
+    # 最終フォールバック: 上記の名前ベースの判定がすべて外れても、
+    # ダウンロード済みファイルの中に.jarが1つしかなければそれをCLIとみなす。
+    # （上流の命名規則が完全に変わった場合の保険。誤検出を避けるため
+    #  候補が複数ある場合は使わない。）
     if not cli:
-        logging.error("❌ FATAL: CLI jar not found for source '%s'. Files: %s",
-                      source, [f.name for f in download_files])
+        jar_candidates = [f for f in download_files if f.suffix == ".jar"]
+        if len(jar_candidates) == 1:
+            cli = jar_candidates[0]
+            logging.warning(
+                "⚠️  CLI jar not matched by name, but exactly one .jar was "
+                "downloaded — using it as a fallback: %s", cli.name,
+            )
+
+    if not cli:
+        logging.error(
+            "❌ FATAL: CLI jar not found for source '%s' (is_morphe=%s). "
+            "Downloaded files: %s. This usually means the upstream CLI "
+            "repository renamed its release asset — check sources/%s.json "
+            "and scripts/download_all_tools.py.",
+            source, is_morphe, [f.name for f in download_files], source,
+        )
         exit(1)
     if not bundle:
-        logging.error("❌ FATAL: Patch bundle not found for source '%s'. Files: %s",
-                      source, [f.name for f in download_files])
+        logging.error(
+            "❌ FATAL: Patch bundle not found for source '%s' (is_morphe=%s). "
+            "Downloaded files: %s.",
+            source, is_morphe, [f.name for f in download_files],
+        )
         exit(1)
 
     logging.info("✅ CLI:    %s", cli.name)

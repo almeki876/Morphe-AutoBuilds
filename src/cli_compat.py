@@ -70,7 +70,7 @@ def is_nested_arggroup_syntax(cli: Path) -> bool:
     this genuinely can't be probed with --help alone, so version numbers are
     the correct tool here).
     """
-    m = re.search(r"morphe-cli-(\d+)\.(\d+)\.(\d+)", cli.name.lower())
+    m = re.search(r"morphe(?:-[a-z]+)*-(\d+)\.(\d+)\.(\d+)", cli.name.lower())
     if not m:
         return False
     major, minor = int(m.group(1)), int(m.group(2))

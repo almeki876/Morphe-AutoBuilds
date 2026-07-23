@@ -3,6 +3,14 @@ name: Build and Release APKs
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
+# 同時に複数回このワークフローが走ると、download-tools ジョブが同じ
+# キャッシュキーを取り合って "Unable to reserve cache" 警告が出る
+# （実害は小さいが、無駄な再ダウンロードや紛らわしいログの原因になる）。
+# 新しい実行が来たら前の実行をキャンセルして直列化する。
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: true
+
 on:
   workflow_dispatch:
     inputs:

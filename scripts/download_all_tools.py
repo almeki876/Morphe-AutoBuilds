@@ -105,12 +105,15 @@ for source_path in sorted(SOURCES_DIR.glob("*.json")):
     env_tag = os.environ.get(env_tag_key, "").strip()
     logging.info(f"  SOURCE_TAG env ({env_tag_key}): {env_tag or '(not set, will use sources json)'}")
 
-    for repo_info in repos_info[1:]:
+    for repo_idx, repo_info in enumerate(repos_info[1:]):
         user = repo_info["user"]
         repo = repo_info["repo"]
-        # CLIリポジトリ（repo名に"cli"を含む）は常にlatestを使う
-        # パッチバンドルにのみ SOURCE_TAG_* を適用する
-        is_cli_repo = "cli" in repo.lower()
+        # 構造上、sources/*.json の1番目のリポジトリエントリは常にCLI/マネージャー、
+        # それ以降はパッチバンドルという規約になっている（全ファイルで一貫）。
+        # 以前は repo名に"cli"が含まれるかどうかで判定していたが、
+        # 上流リポジトリが改名される（例: MorpheApp/morphe-cli → morphe-desktop）
+        # とこの文字列判定が壊れるため、位置（配列インデックス）で判定する。
+        is_cli_repo = repo_idx == 0
         tag = repo_info["tag"] if is_cli_repo else (env_tag if env_tag else repo_info["tag"])
 
         # リトライ付きでリリース情報を取得
@@ -121,17 +124,29 @@ for source_path in sorted(SOURCES_DIR.glob("*.json")):
             failures.append(f"{name}: {user}/{repo}")
             continue
 
-        for asset in release.get("assets", []):
+        all_assets = release.get("assets", [])
+        matched_any = False
+
+        for asset in all_assets:
             aname = asset["name"]
-            if aname.endswith(".asc"):
-                continue
-            # CLI/patchesファイルのみ対象
-            is_cli     = aname.endswith(".jar") and ("cli" in aname.lower())
-            is_patches = aname.endswith((".mpp", ".rvp")) or \
-                         (aname.endswith(".jar") and "patch" in aname.lower())
-            if not (is_cli or is_patches):
+            if aname.endswith((".asc", ".sig", ".sha256", ".sha512", ".md5")):
                 continue
 
+            if is_cli_repo:
+                # CLIリポジトリの.jarは何と呼ばれていても対象にする(名称は上流が
+                # 自由に変更できる)。ソース/Javadoc jarだけは除外する。
+                is_wanted = aname.endswith(".jar") and not (
+                    "sources" in aname.lower() or "javadoc" in aname.lower()
+                )
+            else:
+                # パッチバンドル: .mpp/.rvp、または"patch"を含む.jar
+                is_wanted = aname.endswith((".mpp", ".rvp")) or (
+                    aname.endswith(".jar") and "patch" in aname.lower()
+                )
+            if not is_wanted:
+                continue
+
+            matched_any = True
             dest_file = dest_dir / aname
             # キャッシュミス時にのみこのスクリプトが実行される。
             # tools/ ディレクトリはキャッシュから復元されていないため、
@@ -145,6 +160,18 @@ for source_path in sorted(SOURCES_DIR.glob("*.json")):
             ok = download_asset(asset["browser_download_url"], dest_file)
             if not ok:
                 failures.append(f"{name}: {aname}")
+
+        # どのアセットにもマッチしなかった場合、ここで即座に検知してログに残す。
+        # これがないと「CLI jar not found」というビルド時のFATALでしか
+        # 気付けず、原因（上流のリネームやアセット命名変更）が分からなくなる。
+        if not matched_any:
+            role = "CLI" if is_cli_repo else "patches"
+            available = [a["name"] for a in all_assets] or ["(no assets in release)"]
+            logging.error(
+                f"  ❌ No {role} asset matched for {user}/{repo}@{tag}. "
+                f"Available assets: {available}"
+            )
+            failures.append(f"{name}: no {role} asset found in {user}/{repo}@{tag}")
 
 
     # patches-list.json を別途取得（リリースアセットにない場合はrawから）

@@ -39,8 +39,9 @@ def find_cli_and_bundle(tool_name: str):
 
     files = list(source_dir.iterdir())
 
-    # is_morphe 判定（__main__.py と同じロジック）
-    is_morphe = any("morphe-cli" in f.name.lower() for f in files)
+    # is_morphe 判定（__main__.py と同じロジック。"morphe-cli"文字列に依存すると
+    # 上流のリポジトリ改名で誤判定するため、拡張子ベースで判定する）
+    is_morphe = any("morphe" in f.name.lower() and f.suffix == ".jar" for f in files)
     if not is_morphe:
         is_morphe = any(f.suffix == ".mpp" for f in files)
 
