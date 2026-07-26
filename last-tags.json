@@ -1,5 +1,5 @@
 {
-  "morphe": "v1.37.0-dev.1",
+  "morphe": "v1.37.0",
   "anddea": "v4.2.0-dev.8",
   "piko": "v3.8.0",
   "hoo": "v1.40.0-dev.4",
@@ -9,7 +9,7 @@
   "dropped": "v1.5.1",
   "apk_youtube": "21.30.206",
   "apk_youtube-music": "9.28.21",
-  "apk_instagram": "440.0.0.19.86",
+  "apk_instagram": "441.0.0.0.20",
   "apk_adguard": "3.1.0",
   "apk_prime-video": "3.0.451",
   "apk_duolingo": "6.89.4",
