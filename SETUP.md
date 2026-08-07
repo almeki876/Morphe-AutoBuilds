@@ -92,27 +92,34 @@ gh run list --workflow=check-upstream.yml --limit=1
 - 差分がなければ「No updates found」とログに出力
 - 差分があれば build.yml が自動トリガー
 
-### ステップ 6: PAT（Personal Access Token）設定（オプション）
+### ステップ 6: PAT（Personal Access Token）設定（必須）
 
-Variables の更新に PAT が必要な場合：
+yuzu パッチは別のプライベートリポジトリ
+`matchadaisuke/morphe-patches` から取得するため、標準の
+`GITHUB_TOKEN` ではアクセスできません。このリポジトリを読み取れる PAT が必要です。
 
 1. GitHub で PAT を生成：
-   - Settings → Developer settings → Personal access tokens → Tokens (classic)
-   - 「Generate new token (classic)」をクリック
-   - スコープ: `repo` を選択
+   - Settings → Developer settings → Personal access tokens → Fine-grained tokens
+   - Repository access は `matchadaisuke/morphe-patches` のみに限定
+   - Repository permissions の `Contents` を `Read-only` に設定
+   - 有効期限を設定し、期限前にローテーション
    - 「Generate token」をクリック
    - トークンをコピー
 
 2. リポジトリの Secrets に登録：
    ```bash
-   gh secret set PAT_TOKEN --body "YOUR_PAT_HERE"
+   gh secret set PAT --body "YOUR_PAT_HERE"
    ```
 
 3. ワークフローファイルで使用：
    ```yaml
    env:
-     GH_TOKEN: ${{ secrets.PAT_TOKEN }}
+     PAT: ${{ secrets.PAT }}
    ```
+
+PAT を更新した後は `Build and Release APKs` を再実行し、`Download Build
+Tools` の yuzu 取得が成功することを確認してください。401 `Bad credentials`
+はトークンの失効・削除・入力不備を示すため、同じトークンの再試行では復旧しません。
 
 ### ステップ 7: 既存ワークフロー削除（オプション）
 
@@ -175,8 +182,9 @@ git push origin main
 
 **対処**:
 1. PAT が `repo` スコープを持っているか確認
-2. `PAT_TOKEN` が Secrets に登録されているか確認
-3. ワークフロー内で `GH_TOKEN: ${{ secrets.PAT_TOKEN }}` を使用しているか確認
+2. `PAT` が Secrets に登録されており、有効期限内か確認
+3. PAT が `matchadaisuke/morphe-patches` を読み取れるか確認
+4. ワークフロー内で `PAT: ${{ secrets.PAT }}` を使用しているか確認
 
 ### 問題: APK ビルドが失敗する
 
