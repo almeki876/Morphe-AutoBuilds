@@ -75,7 +75,7 @@ GitHub CLIから登録する場合は次を実行します。
 gh secret set VIRUSTOTAL_API_KEY
 ```
 
-通常のVirusTotal APIへアップロードしたAPKは、VirusTotalや解析パートナーと共有される場合があります。共有条件を確認したうえで利用してください。
+通常のVirusTotal APIへアップロードしたAPKは、VirusTotalや解析パートナーと共有される場合があります。共有条件を確認したうえで利用してください。元APKと完成APKはいずれも最初にSHA-256で既存結果を照会し、VirusTotalに未知のハッシュだけをアップロードします。
 
 APIキーが未設定、無効、利用上限超過、または解析がタイムアウトした場合、未検査APKを公開しないためリリースジョブは失敗します。
 
@@ -106,8 +106,9 @@ GitHubの「Actions」タブから、最初に「Build and Release APKs」を手
 1. `Download Build Tools`がすべてのCLIとパッチを取得できる
 2. `Prepare Build Matrix`に対象アプリが含まれる
 3. 各`Build <app> with <source>`ジョブがAPKを作成する
-4. `Scan Final APKs with VirusTotal`が全APKの解析を完了する
-5. `Create Integrated Release`がリリースを作成する
+4. `Scan Unmodified Base APKs with VirusTotal`が取得直後の元APKを検査する
+5. `Scan Final Patched APKs with VirusTotal`が完成APKを検査する
+6. `Create Integrated Release`がリリースを作成する
 
 ビルドは同時アクセスによる配布サイトの制限を避けるため、並列数を抑えて実行します。VirusTotal Community APIの待機もあるため、対象数によっては完了まで長時間かかります。
 
@@ -148,11 +149,11 @@ gh workflow run check-upstream.yml
 - パッチソースと解決済みバージョン
 - 成功・失敗したアプリとソースの組み合わせ
 - 元APKの取得元、バージョン、アーキテクチャ
-- VirusTotalの検出数とSHA-256へのリンク
+- 元APKと完成APKそれぞれのVirusTotal検出数、照会方法、SHA-256へのリンク
 
 一部のビルドだけ失敗した場合、タイトルへ`Partial`が付き、成功したAPKのみ公開されることがあります。VirusTotalで検出または検査失敗が発生した場合は、APKが完成していてもリリースされません。
 
-VirusTotalのMarkdownとJSONレポートは、Actions実行の`virustotal-report`アーティファクトへ30日間保存されます。
+VirusTotalの元APK用・完成APK用MarkdownとJSONレポートは、Actions実行の`virustotal-report`アーティファクトへ30日間保存されます。Markdownには検出エンジンの詳細、JSONには返却された全エンジンのカテゴリ、検出名、方式、バージョン、更新日が入ります。各APKの完了ごとにファイルを更新し、同じ内容の検出警告をActionsログにも出します。
 
 ## トラブルシューティング
 
@@ -205,6 +206,7 @@ APKMirrorのreleaseページは読めても最終`download.php`だけが403に�
 - APIキーが有効か、利用上限に達していないか確認する
 - `virustotal-report`とジョブ概要で対象APKの結果を確認する
 - `malicious`または`suspicious`が1件以上ある場合は、原因を確認するまで公開しない
+- 元APKだけで検出される場合は取得元を疑い、完成APKだけで検出される場合はパッチ、APK変換、アーキテクチャ調整、再署名の差分を確認する
 
 ### リリースが作成されない
 

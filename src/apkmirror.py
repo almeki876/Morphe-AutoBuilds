@@ -12,7 +12,7 @@ import os
 import random
 import re
 import time
-from urllib.parse import urlencode, urljoin, urlparse
+from urllib.parse import parse_qs, urlencode, urljoin, urlparse
 
 from bs4 import BeautifulSoup
 
@@ -120,6 +120,31 @@ def _configured_app_url(config: dict) -> str | None:
     if not org or not name:
         return None
     return f"{BASE_URL}/apk/{org}/{name}/"
+
+
+def _configured_uploads_url(config: dict) -> str | None:
+    """Return the app-specific uploads feed, never APKMirror's global feed."""
+    name = str(config.get("name") or "").strip()
+    if not re.fullmatch(r"[a-z0-9][a-z0-9-]*", name):
+        return None
+
+    configured = str(config.get("uploads_url") or "").strip()
+    if configured:
+        parsed = urlparse(urljoin(BASE_URL, configured))
+        if (
+            parsed.scheme == "https"
+            and parsed.hostname == "www.apkmirror.com"
+            and parsed.path.rstrip("/") == "/uploads"
+            and not parsed.fragment
+            and parse_qs(parsed.query).get("appcategory") == [name]
+        ):
+            return parsed.geturl()
+        logging.warning(
+            "Ignoring unsafe APKMirror uploads_url: %s",
+            utils.safe_url_for_log(configured),
+        )
+
+    return f"{BASE_URL}/uploads/?{urlencode({'appcategory': name})}"
 
 
 def _version_slug(version: str) -> str:
@@ -445,21 +470,9 @@ def get_download_link(
 
 def get_latest_version(app_name: str, config: dict) -> str | None:
     sources: list[str] = []
-    uploads_url = str(config.get("uploads_url") or "").strip()
+    uploads_url = _configured_uploads_url(config)
     if uploads_url:
-        parsed_uploads = urlparse(urljoin(BASE_URL, uploads_url))
-        if (
-            parsed_uploads.scheme == "https"
-            and parsed_uploads.hostname == "www.apkmirror.com"
-            and parsed_uploads.path.rstrip("/") == "/uploads"
-        ):
-            sources.append(parsed_uploads.geturl())
-        else:
-            logging.warning(
-                "Ignoring unsafe APKMirror uploads_url for %s: %s",
-                app_name,
-                utils.safe_url_for_log(uploads_url),
-            )
+        sources.append(uploads_url)
     configured_url = _configured_app_url(config)
     if configured_url:
         sources.append(configured_url)
@@ -472,7 +485,7 @@ def get_latest_version(app_name: str, config: dict) -> str | None:
         )
     )
 
-    for url in sources:
+    for url in dict.fromkeys(sources):
         discovered = _discovery_page(url)
         if discovered:
             soup, final_url = discovered

@@ -109,7 +109,11 @@ def render() -> str:
 def main() -> None:
     output = Path(os.environ.get("RELEASE_NOTES_PATH", "release_notes.md"))
     parts = [render()]
-    for name in ("build_status.md", "virustotal_results.md"):
+    for name in (
+        "build_status.md",
+        "virustotal_base_results.md",
+        "virustotal_results.md",
+    ):
         path = Path(name)
         if path.is_file() and path.stat().st_size:
             parts.append(path.read_text(encoding="utf-8"))

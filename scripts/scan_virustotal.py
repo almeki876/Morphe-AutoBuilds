@@ -8,6 +8,7 @@ import os
 import sys
 from dataclasses import asdict
 from pathlib import Path
+from typing import Callable
 
 from scripts.virustotal import (
     ScanResult,
@@ -25,6 +26,11 @@ def parse_args() -> argparse.Namespace:
         "--markdown", type=Path, default=Path("virustotal_results.md")
     )
     parser.add_argument("--json", type=Path, default=Path("virustotal_results.json"))
+    parser.add_argument(
+        "--title",
+        default="VirusTotal scan results",
+        help="Heading used in the Markdown report.",
+    )
     return parser.parse_args()
 
 
@@ -39,7 +45,9 @@ def _client(api_key: str) -> VirusTotalClient:
 
 
 def _scan_all(
-    client: VirusTotalClient, apk_files: list[Path]
+    client: VirusTotalClient,
+    apk_files: list[Path],
+    on_progress: Callable[[list[ScanResult], list[str]], None] | None = None,
 ) -> tuple[list[ScanResult], list[str]]:
     results: list[ScanResult] = []
     failures: list[str] = []
@@ -65,16 +73,42 @@ def _scan_all(
                 f"suspicious={result.suspicious}, verdict={result.verdict}",
                 flush=True,
             )
+            detected = [
+                (engine, details)
+                for engine, details in result.engines.items()
+                if details.get("category") in {"malicious", "suspicious"}
+            ]
+            for engine, details in sorted(detected):
+                print(
+                    f"::warning::{apk.name}: engine={engine}, "
+                    f"category={details.get('category')}, "
+                    f"detection={details.get('result') or 'unspecified'}, "
+                    f"version={details.get('engine_version') or 'unknown'}, "
+                    f"update={details.get('engine_update') or 'unknown'}",
+                    flush=True,
+                )
+            if result.verdict != "clean" and not detected:
+                print(
+                    f"::warning::{apk.name}: VirusTotal reported detections, "
+                    "but engine-level details were not returned by the API.",
+                    flush=True,
+                )
+            if on_progress:
+                on_progress(results, failures)
         except VirusTotalError as error:
             message = f"{apk.name}: {error}"
             failures.append(message)
             print(f"::error::{message}", file=sys.stderr, flush=True)
+            if on_progress:
+                on_progress(results, failures)
             # API-wide failures normally affect every remaining file.
             break
         except (OSError, ValueError) as error:
             message = f"{apk.name}: {error}"
             failures.append(message)
             print(f"::error::{message}", file=sys.stderr, flush=True)
+            if on_progress:
+                on_progress(results, failures)
     return results, failures
 
 
@@ -83,9 +117,14 @@ def _write_reports(
     json_path: Path,
     results: list[ScanResult],
     failures: list[str],
+    title: str,
 ) -> None:
-    markdown_path.write_text(markdown_report(results), encoding="utf-8")
-    json_path.write_text(
+    markdown = markdown_report(results).replace(
+        "## VirusTotal scan results",
+        f"## {title}",
+        1,
+    )
+    json_report = (
         json.dumps(
             {
                 "results": [asdict(result) for result in results],
@@ -94,9 +133,16 @@ def _write_reports(
             ensure_ascii=False,
             indent=2,
         )
-        + "\n",
-        encoding="utf-8",
+        + "\n"
     )
+    for path, content in (
+        (markdown_path, markdown),
+        (json_path, json_report),
+    ):
+        path.parent.mkdir(parents=True, exist_ok=True)
+        temporary = path.with_name(f".{path.name}.part")
+        temporary.write_text(content, encoding="utf-8")
+        temporary.replace(path)
 
 
 def main() -> int:
@@ -110,13 +156,34 @@ def main() -> int:
         )
         return 2
 
-    apk_files = sorted(args.directory.rglob("*.apk"))
+    supported_suffixes = {".apk", ".apkm", ".apks", ".xapk", ".zip"}
+    apk_files = sorted(
+        path
+        for path in args.directory.rglob("*")
+        if path.is_file() and path.suffix.casefold() in supported_suffixes
+    )
     if not apk_files:
         print("::error::No APK files were found for VirusTotal scanning.", file=sys.stderr)
         return 2
 
-    results, failures = _scan_all(_client(api_key), apk_files)
-    _write_reports(args.markdown, args.json, results, failures)
+    def save_progress(
+        current_results: list[ScanResult],
+        current_failures: list[str],
+    ) -> None:
+        _write_reports(
+            args.markdown,
+            args.json,
+            current_results,
+            current_failures,
+            args.title,
+        )
+
+    results, failures = _scan_all(
+        _client(api_key),
+        apk_files,
+        on_progress=save_progress,
+    )
+    _write_reports(args.markdown, args.json, results, failures, args.title)
 
     unsafe = [result for result in results if result.verdict != "clean"]
     if failures:

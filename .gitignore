@@ -25,6 +25,8 @@ all-apks/
 release-apks/
 base-apk-cache-in/
 base-apk-cache-out/
+base-apk-scan-out/
+base-apks/
 build-metadata/
 release_notes.md
 build_status.md
@@ -35,6 +37,8 @@ build-tool-health.log
 health-issue.md
 virustotal_results.json
 virustotal_results.md
+virustotal_base_results.json
+virustotal_base_results.md
 *.apk
 *.apkm
 *.apks

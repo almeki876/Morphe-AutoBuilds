@@ -40,6 +40,8 @@ class ScanResult:
     failure: int
     unsupported: int
     verdict: str
+    method: str
+    engines: dict[str, dict[str, object]]
     permalink: str
 
 
@@ -103,7 +105,11 @@ class VirusTotalClient:
                     multipart.addpart(
                         "file",
                         filename=file_path.name,
-                        content_type="application/vnd.android.package-archive",
+                        content_type=(
+                            "application/vnd.android.package-archive"
+                            if file_path.suffix.casefold() == ".apk"
+                            else "application/octet-stream"
+                        ),
                         local_path=file_path,
                     )
                     kwargs["multipart"] = multipart
@@ -161,11 +167,63 @@ class VirusTotalClient:
             )
         return analysis_id
 
-    def start_analysis(self, path: Path, sha256: str) -> str:
+    @staticmethod
+    def _stats(attributes: dict) -> dict[str, int]:
+        raw_stats = attributes.get("last_analysis_stats")
+        if not isinstance(raw_stats, dict):
+            return {}
+        return {
+            str(key): int(value)
+            for key, value in raw_stats.items()
+            if isinstance(value, (int, float))
+        }
+
+    @staticmethod
+    def _engine_results(
+        attributes: dict,
+        key: str,
+    ) -> dict[str, dict[str, object]]:
+        raw_results = attributes.get(key)
+        if not isinstance(raw_results, dict):
+            return {}
+        results: dict[str, dict[str, object]] = {}
+        for engine, raw in raw_results.items():
+            if not isinstance(raw, dict):
+                continue
+            results[str(engine)] = {
+                str(field): value
+                for field, value in raw.items()
+                if isinstance(value, (str, int, float, bool)) or value is None
+            }
+        return results
+
+    def start_analysis(
+        self,
+        path: Path,
+        sha256: str,
+    ) -> tuple[
+        str | None,
+        dict[str, int],
+        dict[str, dict[str, object]],
+        str,
+    ]:
         report_url = f"{API_BASE}/files/{quote(sha256)}"
         response = self.request("GET", report_url, expected=(200, 404))
 
         if response.status_code == 200:
+            attributes = response.json().get("data", {}).get("attributes", {})
+            stats = self._stats(attributes)
+            if stats:
+                engines = self._engine_results(
+                    attributes,
+                    "last_analysis_results",
+                )
+                print(
+                    f"Using existing VirusTotal result for {path.name} "
+                    f"(SHA-256 {sha256[:12]}...); no upload required.",
+                    flush=True,
+                )
+                return None, stats, engines, "hash lookup"
             print(f"Requesting a fresh analysis for {path.name}...", flush=True)
             response = self.request("POST", f"{report_url}/analyse")
             analysis_id = str(response.json().get("data", {}).get("id") or "")
@@ -173,14 +231,18 @@ class VirusTotalClient:
                 raise VirusTotalError(
                     f"VirusTotal did not return an analysis ID for {path.name}"
                 )
-            return analysis_id
+            return analysis_id, {}, {}, "reanalyzed"
         if response.status_code != 404:
             raise VirusTotalError(
                 f"Could not check {path.name}: {self._error_message(response)}"
             )
-        return self._start_upload(path)
+        return self._start_upload(path), {}, {}, "uploaded"
 
-    def wait_for_analysis(self, analysis_id: str, filename: str) -> dict[str, int]:
+    def wait_for_analysis(
+        self,
+        analysis_id: str,
+        filename: str,
+    ) -> tuple[dict[str, int], dict[str, dict[str, object]]]:
         deadline = time.monotonic() + self.analysis_timeout
         encoded_id = quote(analysis_id, safe="")
         while time.monotonic() < deadline:
@@ -193,11 +255,13 @@ class VirusTotalClient:
                     raise VirusTotalError(
                         f"Completed analysis has no statistics for {filename}"
                     )
-                return {
+                stats = {
                     str(key): int(value)
                     for key, value in raw_stats.items()
                     if isinstance(value, (int, float))
                 }
+                engines = self._engine_results(attributes, "results")
+                return stats, engines
             if status not in {"queued", "in-progress"}:
                 raise VirusTotalError(
                     f"Unexpected VirusTotal analysis status for {filename}: {status!r}"
@@ -214,8 +278,9 @@ class VirusTotalClient:
 
     def scan(self, path: Path) -> ScanResult:
         sha256 = sha256_file(path)
-        analysis_id = self.start_analysis(path, sha256)
-        stats = self.wait_for_analysis(analysis_id, path.name)
+        analysis_id, stats, engines, method = self.start_analysis(path, sha256)
+        if analysis_id:
+            stats, engines = self.wait_for_analysis(analysis_id, path.name)
         malicious = stats.get("malicious", 0)
         suspicious = stats.get("suspicious", 0)
         completed_engines = (
@@ -233,7 +298,7 @@ class VirusTotalClient:
             file=path.name,
             sha256=sha256,
             size=path.stat().st_size,
-            analysis_id=analysis_id,
+            analysis_id=analysis_id or "",
             malicious=malicious,
             suspicious=suspicious,
             harmless=stats.get("harmless", 0),
@@ -243,6 +308,8 @@ class VirusTotalClient:
             failure=stats.get("failure", 0),
             unsupported=stats.get("type-unsupported", 0),
             verdict=verdict,
+            method=method,
+            engines=engines,
             permalink=f"https://www.virustotal.com/gui/file/{sha256}/detection",
         )
 
@@ -261,12 +328,13 @@ def markdown_report(results: list[ScanResult]) -> str:
         "## VirusTotal scan results",
         "",
         (
-            "Every published APK was freshly analysed. The release is blocked when "
+            "Each file was checked by SHA-256 first and uploaded only when VirusTotal "
+            "had no existing result. The release is blocked when "
             "VirusTotal reports one or more `malicious` or `suspicious` detections."
         ),
         "",
-        "| APK | SHA-256 | Malicious | Suspicious | Undetected | Result |",
-        "| --- | --- | ---: | ---: | ---: | --- |",
+        "| APK | SHA-256 | Method | Malicious | Suspicious | Undetected | Result |",
+        "| --- | --- | --- | ---: | ---: | ---: | --- |",
     ]
     for result in results:
         label = "No detections" if result.verdict == "clean" else "Blocked"
@@ -274,7 +342,41 @@ def markdown_report(results: list[ScanResult]) -> str:
         lines.append(
             f"| {escaped_file} | "
             f"[`{result.sha256[:12]}…`]({result.permalink}) | "
+            f"{result.method} | "
             f"{result.malicious} | {result.suspicious} | "
             f"{result.undetected} | {label} |"
         )
+    detected_results = [
+        result
+        for result in results
+        if any(
+            details.get("category") in {"malicious", "suspicious"}
+            for details in result.engines.values()
+        )
+    ]
+    for result in detected_results:
+        escaped_file = result.file.replace("|", r"\|")
+        lines.extend(
+            [
+                "",
+                f"### Detection details: {escaped_file}",
+                "",
+                "| Engine | Category | Detection | Method | Engine version | Update |",
+                "| --- | --- | --- | --- | --- | --- |",
+            ]
+        )
+        for engine, details in sorted(result.engines.items()):
+            category = str(details.get("category") or "")
+            if category not in {"malicious", "suspicious"}:
+                continue
+            values = [
+                engine,
+                category,
+                str(details.get("result") or ""),
+                str(details.get("method") or ""),
+                str(details.get("engine_version") or ""),
+                str(details.get("engine_update") or ""),
+            ]
+            escaped = [value.replace("|", r"\|") for value in values]
+            lines.append("| " + " | ".join(escaped) + " |")
     return "\n".join(lines) + "\n"

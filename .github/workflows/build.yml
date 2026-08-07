@@ -361,6 +361,14 @@ jobs:
           path: base-apk-cache-out/*
           retention-days: 1
 
+      - name: Upload Unmodified Base APK for VirusTotal
+        if: success() && hashFiles('base-apk-scan-out/*') != ''
+        uses: actions/upload-artifact@v7
+        with:
+          name: base-apk-scan-${{ matrix.app_name }}-${{ matrix.source }}
+          path: base-apk-scan-out/*
+          retention-days: 1
+
       - name: Upload APK Artifact
         if: success()
         uses: actions/upload-artifact@v7
@@ -447,6 +455,13 @@ jobs:
           echo "APKs in release-apks:"
           ls -la ./release-apks/ 2>/dev/null || echo "(none)"
 
+      - name: Download Unmodified Base APKs
+        uses: actions/download-artifact@v8
+        with:
+          path: ./base-apks
+          pattern: base-apk-scan-*
+          merge-multiple: true
+
       - name: Check if Any APKs Were Built
         id: check-apks
         env:
@@ -464,7 +479,7 @@ jobs:
 
           python3 -m scripts.release_metadata
 
-      - name: Scan Final APKs with VirusTotal
+      - name: Scan Unmodified Base APKs with VirusTotal
         if: steps.check-apks.outputs.skip_release == 'false'
         env:
           VIRUSTOTAL_API_KEY: ${{ secrets.VIRUSTOTAL_API_KEY }}
@@ -476,23 +491,43 @@ jobs:
         run: |
           pip install -r requirements.txt
           python3 -m scripts.scan_virustotal \
+            --directory ./base-apks \
+            --title "VirusTotal base APK scan results (before patching)" \
+            --markdown ./virustotal_base_results.md \
+            --json ./virustotal_base_results.json
+
+      - name: Scan Final Patched APKs with VirusTotal
+        if: steps.check-apks.outputs.skip_release == 'false'
+        env:
+          VIRUSTOTAL_API_KEY: ${{ secrets.VIRUSTOTAL_API_KEY }}
+          VT_REQUEST_INTERVAL_SECONDS: '16'
+          VT_POLL_INTERVAL_SECONDS: '30'
+          VT_ANALYSIS_TIMEOUT_SECONDS: '2700'
+          VT_MAX_RETRIES: '6'
+        run: |
+          python3 -m scripts.scan_virustotal \
             --directory ./release-apks \
+            --title "VirusTotal patched APK scan results (after patching)" \
             --markdown ./virustotal_results.md \
             --json ./virustotal_results.json
 
       - name: Preserve VirusTotal Report
-        if: always() && hashFiles('virustotal_results.*') != ''
+        if: always() && hashFiles('virustotal*_results.*') != ''
         uses: actions/upload-artifact@v7
         with:
           name: virustotal-report
           path: |
+            virustotal_base_results.md
+            virustotal_base_results.json
             virustotal_results.md
             virustotal_results.json
           retention-days: 30
 
       - name: Add VirusTotal Report to Job Summary
-        if: always() && hashFiles('virustotal_results.md') != ''
-        run: cat virustotal_results.md >> "$GITHUB_STEP_SUMMARY"
+        if: always() && hashFiles('virustotal*_results.md') != ''
+        run: |
+          [ -f virustotal_base_results.md ] && cat virustotal_base_results.md >> "$GITHUB_STEP_SUMMARY"
+          [ -f virustotal_results.md ] && cat virustotal_results.md >> "$GITHUB_STEP_SUMMARY"
 
       - name: Generate Release Tag (JST)
         if: steps.check-apks.outputs.skip_release == 'false'

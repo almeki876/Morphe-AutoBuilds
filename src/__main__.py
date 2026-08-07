@@ -55,6 +55,7 @@ Options are silently ignored for Morphe CLI (which does not support them).
 import json
 import logging
 import re
+import shutil
 import subprocess
 from dataclasses import dataclass, field
 from os import getenv
@@ -712,6 +713,48 @@ def _sign_apk(unsigned: Path, signed: Path, app_name: str) -> None:
 # Main build
 # ---------------------------------------------------------------------------
 
+def _safe_artifact_part(value: str) -> str:
+    return re.sub(r"[^A-Za-z0-9._-]+", "-", value).strip("-") or "unknown"
+
+
+def _stage_unmodified_base_apk(
+    input_apk: Path,
+    app_name: str,
+    source: str,
+    arch: str,
+    version: str,
+) -> Path:
+    """Preserve the exact provider payload for pre-patch malware scanning."""
+    output_dir = Path("base-apk-scan-out")
+    output_dir.mkdir(parents=True, exist_ok=True)
+    suffix = input_apk.suffix.lower() or ".apk"
+    target = output_dir / (
+        f"{_safe_artifact_part(app_name)}-"
+        f"{_safe_artifact_part(source)}-"
+        f"{_safe_artifact_part(arch)}-"
+        f"v{_safe_artifact_part(version)}{suffix}"
+    )
+    temporary = target.with_name(f".{target.name}.part")
+    shutil.copy2(input_apk, temporary)
+    temporary.replace(target)
+    logging.info("Preserved unmodified base APK for VirusTotal: %s", target)
+    return target
+
+
+def _remove_staged_base_apk(app_name: str, source: str, arch: str) -> None:
+    output_dir = Path("base-apk-scan-out")
+    prefix = (
+        f"{_safe_artifact_part(app_name)}-"
+        f"{_safe_artifact_part(source)}-"
+        f"{_safe_artifact_part(arch)}-v"
+    )
+    if not output_dir.is_dir():
+        return
+    for candidate in output_dir.iterdir():
+        if candidate.is_file() and candidate.name.startswith(prefix):
+            candidate.unlink(missing_ok=True)
+
+
 def run_build(app_name: str, source: str, arch: str = "universal") -> str:
     """Download, patch, and sign one APK. Returns the signed APK path."""
 
@@ -831,6 +874,11 @@ def run_build(app_name: str, source: str, arch: str = "universal") -> str:
         logging.error("❌ FATAL: Could not download APK for '%s' from any source.", app_name)
         exit(1)
 
+    # Preserve the provider payload before split merging, architecture stripping,
+    # repair, patching, or signing changes any byte. VirusTotal can then tell a
+    # pre-existing base-APK detection from a patch-output-only detection.
+    _stage_unmodified_base_apk(input_apk, app_name, source, arch, version)
+
     # ── 5. Merge split APKs (if needed) ─────────────────────────────────────
     if input_apk.suffix != ".apk":
         input_apk = _merge_split_apk(input_apk, app_name, version)
@@ -949,6 +997,7 @@ def main() -> None:
         except (SystemExit, Exception) as exc:
             logging.error("❌ Build failed for '%s' [%s]: %s", app_name, arch, exc)
             downloader.remove_apk_origin(app_name, arch)
+            _remove_staged_base_apk(app_name, source, arch)
             failed.append(arch)
             if arch == "arm64-v8a" and "universal" not in build_queue:
                 logging.warning(
