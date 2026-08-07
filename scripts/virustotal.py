@@ -11,10 +11,9 @@ import hashlib
 import time
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
 from urllib.parse import quote
 
-from curl_cffi import requests
+from curl_cffi import CurlMime, requests
 
 
 API_BASE = "https://www.virustotal.com/api/v3"
@@ -84,27 +83,30 @@ class VirusTotalClient:
         url: str,
         *,
         expected: tuple[int, ...] = (200,),
-        file_handle: Any | None = None,
+        file_path: Path | None = None,
     ) -> requests.Response:
         last_error = "unknown error"
         for attempt in range(self.max_retries + 1):
             self._rate_limit()
             response: requests.Response | None = None
-            if file_handle is not None:
-                file_handle.seek(0)
+            multipart: CurlMime | None = None
             try:
-                kwargs: dict[str, Any] = {
+                kwargs = {
                     "headers": self.headers,
                     "timeout": 180,
                 }
-                if file_handle is not None:
-                    kwargs["files"] = {
-                        "file": (
-                            Path(file_handle.name).name,
-                            file_handle,
-                            "application/vnd.android.package-archive",
-                        )
-                    }
+                if file_path is not None:
+                    # curl_cffi intentionally does not implement requests'
+                    # ``files=`` shortcut. Build a native libcurl MIME form
+                    # for every attempt so retries start from a fresh file.
+                    multipart = CurlMime()
+                    multipart.addpart(
+                        "file",
+                        filename=file_path.name,
+                        content_type="application/vnd.android.package-archive",
+                        local_path=file_path,
+                    )
+                    kwargs["multipart"] = multipart
                 response = self.session.request(method, url, **kwargs)
             except requests.RequestsError as error:
                 last_error = f"{type(error).__name__}: {error}"
@@ -114,6 +116,9 @@ class VirusTotalClient:
                     return response
                 last_error = self._error_message(response)
                 retryable = response.status_code in RETRYABLE_STATUS_CODES
+            finally:
+                if multipart is not None:
+                    multipart.close()
 
             if not retryable or attempt >= self.max_retries:
                 raise VirusTotalError(f"{method} {url} failed: {last_error}")
@@ -148,8 +153,7 @@ class VirusTotalClient:
                 raise VirusTotalError("VirusTotal returned an invalid upload URL")
 
         print(f"Uploading {path.name} to VirusTotal...", flush=True)
-        with path.open("rb") as apk:
-            response = self.request("POST", upload_url, file_handle=apk)
+        response = self.request("POST", upload_url, file_path=path)
         analysis_id = str(response.json().get("data", {}).get("id") or "")
         if not analysis_id:
             raise VirusTotalError(

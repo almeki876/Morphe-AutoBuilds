@@ -139,11 +139,6 @@
         },
         {
           "patch": "Settings for YouTube",
-          "key": "insertPosition",
-          "value": "@string/about_key"
-        },
-        {
-          "patch": "Settings for YouTube",
           "key": "rvxSettingsLabel",
           "value": "RVA"
         },

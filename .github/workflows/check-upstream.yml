@@ -1,24 +1,28 @@
 name: Check Upstream for Updates
 
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-
 on:
   schedule:
     - cron: '0 9 * * *'   # JST 18:00
   workflow_dispatch:
+
+concurrency:
+  group: check-upstream
+  cancel-in-progress: true
 
 jobs:
   check-upstream:
     name: Check All Upstream Patch Sources
     runs-on: ubuntu-latest
     permissions:
-      contents: write
+      contents: read
       actions: write
 
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
+
+      - name: Validate Repository Configuration
+        run: python3 scripts/validate_repository.py
 
       - name: Fetch Latest Tags
         id: fetch
@@ -94,7 +98,7 @@ jobs:
           echo "any_updated=$any_updated" >> $GITHUB_OUTPUT
 
       - name: Setup Java
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: 'temurin'
           java-version: '21'
@@ -140,6 +144,9 @@ jobs:
         run: |
           python3 scripts/check_apk_versions.py
 
+      - name: Publish APK Version Health
+        if: always() && hashFiles('apk-version-health.md') != ''
+        run: cat apk-version-health.md >> "$GITHUB_STEP_SUMMARY"
 
       - name: Trigger Build if Updates Found
         if: steps.compare.outputs.any_updated == 'true' || steps.apkver.outputs.any_apk_updated == 'true'
@@ -200,55 +207,6 @@ jobs:
             -f dropped_force_build="$dropped_force" \
 
           echo "Build workflow triggered"
-
-      - name: Update Last Tags File
-        if: steps.compare.outputs.any_updated == 'true' || steps.apkver.outputs.any_apk_updated == 'true'
-        env:
-          UPD_MORPHE:   ${{ steps.compare.outputs.morphe_updated }}
-          UPD_ANDDEA:   ${{ steps.compare.outputs.anddea_updated }}
-          UPD_PIKO:     ${{ steps.compare.outputs.piko_updated }}
-          UPD_HOO:      ${{ steps.compare.outputs.hoo_updated }}
-          UPD_ROOKIE:   ${{ steps.compare.outputs.rookie_updated }}
-          UPD_TOSOX:    ${{ steps.compare.outputs.tosox_updated }}
-          UPD_DROPPED:  ${{ steps.compare.outputs.dropped_updated }}
-          TAG_MORPHE:   ${{ steps.fetch.outputs.morphe_tag }}
-          TAG_ANDDEA:   ${{ steps.fetch.outputs.anddea_tag }}
-          TAG_PIKO:     ${{ steps.fetch.outputs.piko_tag }}
-          TAG_HOO:      ${{ steps.fetch.outputs.hoo_tag }}
-          TAG_ROOKIE:   ${{ steps.fetch.outputs.rookie_tag }}
-          TAG_TOSOX:    ${{ steps.fetch.outputs.tosox_tag }}
-          TAG_DROPPED:  ${{ steps.fetch.outputs.dropped_tag }}
-        run: |
-          echo "Updating last-tags.json..."
-          current=$([ -f "last-tags.json" ] && cat last-tags.json || echo "{}")
-
-          update_if_changed() {
-            local key="$1" updated="$2" tag="$3"
-            if [ "$updated" = "true" ] && [ -n "$tag" ]; then
-              current=$(echo "$current" | jq --arg k "$key" --arg v "$tag" '.[$k]=$v')
-            fi
-          }
-
-          update_if_changed morphe  "$UPD_MORPHE"   "$TAG_MORPHE"
-          update_if_changed anddea  "$UPD_ANDDEA"   "$TAG_ANDDEA"
-          update_if_changed piko    "$UPD_PIKO"     "$TAG_PIKO"
-          update_if_changed hoo     "$UPD_HOO"      "$TAG_HOO"
-          update_if_changed rookie  "$UPD_ROOKIE"   "$TAG_ROOKIE"
-          update_if_changed tosox   "$UPD_TOSOX"    "$TAG_TOSOX"
-          update_if_changed dropped "$UPD_DROPPED"  "$TAG_DROPPED"
-
-          echo "$current" > last-tags.json
-
-          pip install requests beautifulsoup4 PyGithub curl-cffi --quiet 2>/dev/null
-          python3 scripts/save_apk_versions.py
-
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add last-tags.json
-          git commit -m "chore: update last-tags [skip ci]"
-          git push
-
-          echo "last-tags.json updated and pushed"
 
       - name: Log - No Updates Found
         if: steps.compare.outputs.any_updated == 'false' && steps.apkver.outputs.any_apk_updated == 'false'

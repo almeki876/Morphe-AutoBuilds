@@ -5,6 +5,8 @@ import tempfile
 import time
 from pathlib import Path
 from src import apk_cache, provenance, providers, utils
+from src.downloads import normalize_download
+from src.versioning import VersionCandidate, pinned_candidate
 
 
 def remove_apk_origin(app_name: str, arch: str) -> None:
@@ -19,6 +21,8 @@ def download_resource(
     referer: str = None,
     headers: dict | None = None,
 ) -> Path:
+    if not isinstance(url, str) or not url.strip():
+        raise ValueError("download URL must be a non-empty string")
     request_headers = dict(headers or {})
     if referer:
         request_headers["Referer"] = referer
@@ -85,6 +89,8 @@ def download_resource(
             )
             return filepath
         except Exception as error:
+            if isinstance(error, utils.BotProtectionError):
+                raise
             if stream_attempt >= stream_attempts:
                 raise
             wait = utils.retry_after_seconds(None, stream_attempt)
@@ -104,38 +110,6 @@ def download_resource(
 
     raise RuntimeError(f"download failed unexpectedly: {url}")
 
-
-def _synthetic_provider_config(app_name: str, platform: str) -> dict | None:
-    """Build a generic provider config from any configured package ID."""
-    for provider in providers.CONFIG_SOURCE_PRIORITY:
-        candidate = Path("apps") / provider / f"{app_name}.json"
-        if not candidate.exists():
-            continue
-        try:
-            with candidate.open(encoding="utf-8") as config_file:
-                config = json.load(config_file)
-        except (OSError, json.JSONDecodeError) as error:
-            logging.warning(
-                "Could not derive %s fallback from %s: %s",
-                platform,
-                candidate,
-                error,
-            )
-            continue
-        package = config.get("package")
-        if package:
-            logging.info(
-                "🛟 %s: derived fallback config for %s from package %s",
-                platform,
-                app_name,
-                package,
-            )
-            return {
-                "name": app_name.replace("_", "-"),
-                "package": package,
-                "version": "",
-            }
-    return None
 
 def download_required(source: str) -> tuple[list[Path], str]:
     source_path = Path("sources") / f"{source}.json"
@@ -254,33 +228,18 @@ def download_from_bundle(bundle_info: dict) -> tuple[list[Path], str]:
         logging.warning(f"Could not download ReVanced CLI: {e}")
     return downloaded_files, name
 
-def download_platform(app_name: str, platform: str, cli: str, patches: str, arch: str = None) -> tuple[Path | None, str | None]:
-    config_path = Path("apps") / platform / f"{app_name}.json"
-
+def download_platform(
+    app_name: str,
+    platform: str,
+    cli: str,
+    patches: str,
+    arch: str = None,
+    version_candidates: list[VersionCandidate] | None = None,
+) -> tuple[Path | None, str | None]:
     try:
-        if config_path.exists():
-            with config_path.open(encoding="utf-8") as json_file:
-                try:
-                    config = json.load(json_file)
-                except json.JSONDecodeError as e:
-                    logging.error(
-                        f"❌ {platform}: config file is malformed JSON: "
-                        f"{config_path} — {e}"
-                    )
-                    return None, None
-        elif platform in providers.AUTO_CONFIG_PROVIDERS:
-            config = _synthetic_provider_config(app_name, platform)
-            if config is None:
-                logging.info(f"⏭️  {platform}: no config for {app_name}, skipping")
-                return None, None
-        else:
+        config = providers.load_config(app_name, platform)
+        if config is None:
             logging.info(f"⏭️  {platform}: no config for {app_name}, skipping")
-            return None, None
-
-        if not isinstance(config, dict):
-            logging.error(
-                "❌ %s: config must be a JSON object: %s", platform, config_path
-            )
             return None, None
 
         if arch:
@@ -311,18 +270,12 @@ def download_platform(app_name: str, platform: str, cli: str, patches: str, arch
                         if provider != platform
                     ]
                     for fb_platform in fallback_platforms:
-                        fb_config_path = Path("apps") / fb_platform / f"{app_name}.json"
                         try:
-                            if fb_config_path.exists():
-                                with fb_config_path.open(encoding="utf-8") as config_file:
-                                    fb_config = json.load(config_file)
-                            elif fb_platform in providers.AUTO_CONFIG_PROVIDERS:
-                                fb_config = _synthetic_provider_config(
-                                    app_name, fb_platform
-                                )
-                                if fb_config is None:
-                                    continue
-                            else:
+                            fb_config = providers.load_config(
+                                app_name,
+                                fb_platform,
+                            )
+                            if fb_config is None:
                                 continue
                             fb_mod = providers.MODULES.get(fb_platform)
                             if fb_mod and hasattr(fb_mod, "get_latest_version"):
@@ -369,64 +322,58 @@ def download_platform(app_name: str, platform: str, cli: str, patches: str, arch
                 logging.error(f"❌ {platform}: direct_url download failed for {app_name}: {type(e).__name__}: {e}")
                 return None, None
 
-        pinned_version = config.get("version") or None
-        versions: list[str] = [pinned_version] if pinned_version else []
-        if not versions:
+        pinned = pinned_candidate(config)
+        candidates: list[VersionCandidate] = [pinned] if pinned else []
+        if not candidates:
             if platform == "github":
                 # GitHub releases carry the version in the tag — skip CLI invocation
                 try:
                     latest = providers.MODULES["github"].get_latest_version(
                         app_name, config
                     )
-                    versions = [latest] if latest else []
+                    candidates = (
+                        [VersionCandidate(name=str(latest))] if latest else []
+                    )
                 except Exception as e:
                     logging.error(f"❌ github: get_latest_version failed for {app_name}: {e}")
                     return None, None
             else:
-                versions = utils.get_supported_versions(
-                    config["package"], cli, patches
+                candidates = (
+                    list(version_candidates)
+                    if version_candidates is not None
+                    else utils.get_supported_version_candidates(
+                        config["package"], cli, patches
+                    )
                 )
         platform_module = providers.MODULES[platform]
 
-        if not versions:
+        if not candidates:
             logging.warning(f"⚠️  {platform}: CLI/patch version lookup failed for {app_name}, falling back to get_latest_version")
             try:
                 latest = platform_module.get_latest_version(app_name, config)
-                versions = [latest] if latest else []
+                candidates = (
+                    [VersionCandidate(name=str(latest))] if latest else []
+                )
             except Exception as e:
                 logging.error(f"❌ {platform}: get_latest_version failed for {app_name}: {type(e).__name__}: {e}")
                 return None, None
 
-        if not versions:
+        if not candidates:
             logging.error(f"❌ {platform}: could not resolve any version for {app_name}")
             return None, None
 
         candidate_limit = max(1, int(os.getenv("APK_VERSION_CANDIDATES", "5")))
-        attempted: set[str] = set()
-        for raw_version in versions[:candidate_limit]:
-            version = raw_version
-            # Some patch lists use APKMirror's "-release" URL spelling. Other
-            # providers index the same build without that suffix.
-            if (
-                platform != "apkmirror"
-                and isinstance(version, str)
-                and version.lower().endswith("-release")
-            ):
-                version = version[: -len("-release")]
-                logging.info(
-                    "🔧 %s: normalized version '%s' -> '%s' for %s",
-                    platform,
-                    raw_version,
-                    version,
-                    app_name,
-                )
-            if not version or version in attempted:
+        attempted: set[tuple[str, str | None]] = set()
+        for candidate in candidates[:candidate_limit]:
+            candidate_key = (candidate.name, candidate.code)
+            if candidate_key in attempted:
                 continue
-            attempted.add(version)
+            attempted.add(candidate_key)
+            version = candidate.canonical
             logging.info(
                 "🔍 %s: trying compatible version %s for %s",
                 platform,
-                version,
+                candidate.describe(),
                 app_name,
             )
 
@@ -447,14 +394,47 @@ def download_platform(app_name: str, platform: str, cli: str, patches: str, arch
                     return cached, version
 
             try:
-                download_link = platform_module.get_download_link(
-                    version, app_name, config
+                candidate_resolver = getattr(
+                    platform_module, "get_download_link_for_candidate", None
                 )
+                if candidate_resolver:
+                    download_link = candidate_resolver(candidate, app_name, config)
+                else:
+                    download_link = None
+                    alias_errors: list[str] = []
+                    for alias in candidate.aliases(platform):
+                        try:
+                            download_link = platform_module.get_download_link(
+                                alias, app_name, config
+                            )
+                            if download_link:
+                                if alias != version:
+                                    logging.info(
+                                        "🔧 %s: matched %s using alias %s",
+                                        platform,
+                                        candidate.describe(),
+                                        alias,
+                                    )
+                                break
+                        except Exception as alias_error:
+                            alias_errors.append(
+                                f"{alias}: {type(alias_error).__name__}: "
+                                f"{alias_error}"
+                            )
+                    if not download_link and alias_errors:
+                        raise ValueError("; ".join(alias_errors))
                 if not download_link:
                     raise ValueError("provider returned no download link")
 
+                download_spec = normalize_download(download_link)
                 referer = providers.referer(platform, app_name, config)
-                filepath = download_resource(download_link, referer=referer)
+                filepath = download_resource(
+                    download_spec.url,
+                    referer=(
+                        None if "Referer" in download_spec.headers else referer
+                    ),
+                    headers=download_spec.headers,
+                )
                 if not apk_cache.is_valid_apk_archive(filepath):
                     filepath.unlink(missing_ok=True)
                     raise ValueError(
@@ -492,6 +472,13 @@ def download_platform(app_name: str, platform: str, cli: str, patches: str, arch
                     type(error).__name__,
                     error,
                 )
+                if isinstance(error, utils.BotProtectionError):
+                    logging.warning(
+                        "🛑 %s: bot protection detected; skipping remaining "
+                        "version candidates for this provider",
+                        platform,
+                    )
+                    break
 
         logging.error(
             "❌ %s: exhausted %d compatible version candidate(s) for %s",

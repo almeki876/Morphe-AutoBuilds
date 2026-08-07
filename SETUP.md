@@ -35,6 +35,7 @@ Actionsが次の操作を行うため、対象ブランチの保護ルールも�
 - リリース、タグ、ドラフトリリースを作成・更新する
 - `check-upstream.yml`から`build.yml`を起動する
 - `github-actions[bot]`が`last-tags.json`を更新する
+- 定期ヘルスチェックが障害Issueを作成、更新、クローズする
 
 ## 3. 必須Secretsを登録する
 
@@ -128,6 +129,12 @@ gh run watch
 
 更新を検出すると、影響するパッチソースのビルドを起動し、確認済みバージョンを`last-tags.json`へ保存します。
 
+`last-tags.json`は更新検出直後には変更されません。全対象のビルド、VirusTotal検査、リリース作成が成功した場合だけ保存されます。一部失敗時は前回状態を維持するため、次回の定期確認で同じ更新を自動再試行できます。
+
+`Repository and APK Provider Health`は毎日03:17 UTC（日本時間12:17頃）に、設定、パッチツール資産、APK取得元を検査します。障害時は`Automated APK build health check failed` Issueを作成または追記し、復旧すると自動で閉じます。レポートはActionsアーティファクトへ30日間保存されます。
+
+DependabotはGitHub ActionsとPython依存関係を週1回確認し、更新をまとめたPull Requestを作成します。Pull Requestでは`Configuration Check`がJSON設定、Python構文、プロバイダー登録を検査します。
+
 手動確認はActions画面、または次のコマンドから実行できます。
 
 ```bash
@@ -165,6 +172,32 @@ VirusTotalのMarkdownとJSONレポートは、Actions実行の`virustotal-report
 対象バージョンが各配布サイトに存在するか、package IDが正しいかを確認します。ワークフローはAPKMirror、APKPure、Uptodown、Softonic、Aptoide、APKComboの順に試すため、最後に記録された各取得元のエラーを確認してください。
 
 403、429、503はアクセス制限や一時障害の可能性があります。不完全なファイルやHTMLが返った場合は自動的に拒否されます。
+
+ローカルで取得元を実通信確認する場合は、依存関係を導入した環境で次のように実行します。`--download-dir`を省略するとAPK全体は保存せず、先頭バイトとHTTP応答だけを検査します。
+
+```bash
+python scripts/probe_apk_sources.py \
+  --app nova \
+  --version 8.8.6 \
+  --code 88600 \
+  --arch arm64-v8a
+```
+
+実APKまで検査する場合は、Git管理外の一時ディレクトリを指定します。
+
+```bash
+python scripts/probe_apk_sources.py \
+  --app icon-packer \
+  --version 1.21.0-release \
+  --providers apkpure \
+  --download-dir temp/provider-probe
+```
+
+Cloudflareの`cf-mitigated: challenge`や対話型検証画面は、Actions上での自動突破を試みません。そのホストを同一ジョブ内で一時停止し、次の取得元へ切り替えます。
+
+APKMirrorは短時間の連続アクセスにより403または429を返すことがあります。ビルドではジョブ開始を15～45秒分散し、同一ジョブ内のAPKMirrorページ要求を3.5秒以上空けます。診断コマンドを連続実行して制限された場合は、同じURLを即座に繰り返さず時間を空けてください。
+
+APKMirrorのreleaseページは読めても最終`download.php`だけが403になる場合があります。この場合はvariant表から得たversion codeをAPKPureの直接配信へ自動的に引き継ぎます。APKPure個別設定がないアプリも、他プロバイダーにpackage IDがあれば実行時設定を生成します。
 
 ### VirusTotalで停止する
 

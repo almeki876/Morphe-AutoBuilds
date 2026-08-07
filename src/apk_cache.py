@@ -17,7 +17,7 @@ import shutil
 import zipfile
 from pathlib import Path
 
-from github import Github
+from github import Auth, Github
 from github.GithubException import GithubException, UnknownObjectException
 
 CACHE_TAG = os.getenv("BASE_APK_CACHE_TAG", "base-apk-cache-v1")
@@ -77,6 +77,19 @@ def _validate(path: Path, expected_sha256: str | None = None) -> bool:
             return False
         if not zipfile.is_zipfile(path):
             logging.warning("APK cache rejected a non-ZIP input: %s", path)
+            return False
+        with zipfile.ZipFile(path) as archive:
+            names = {
+                name.replace("\\", "/").lstrip("/")
+                for name in archive.namelist()
+            }
+        is_apk = "AndroidManifest.xml" in names
+        is_split_container = any(name.casefold().endswith(".apk") for name in names)
+        if not is_apk and not is_split_container:
+            logging.warning(
+                "APK cache rejected ZIP without AndroidManifest.xml or nested APKs: %s",
+                path,
+            )
             return False
         if expected_sha256 and _sha256(path) != expected_sha256:
             logging.warning("APK cache SHA-256 mismatch: %s", path)
@@ -149,7 +162,9 @@ def restore(package: str, version: str, app_name: str) -> Path | None:
         return None
 
     try:
-        release = find_release(Github(token).get_repo(repository))
+        release = find_release(
+            Github(auth=Auth.Token(token)).get_repo(repository)
+        )
         if release is None:
             _REMOTE_MISSES.add(key)
             logging.info("APK cache release does not exist yet; using providers")

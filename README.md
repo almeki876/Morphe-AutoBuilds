@@ -44,6 +44,8 @@ APKファイル名には、アプリ名、対象アーキテクチャ、元APK�
 
 このリポジトリは毎日18:00頃（JST）に、登録されたパッチソースと監視対象APKの更新を確認します。GitHub Actionsのスケジュール実行は混雑状況により遅れる場合があります。
 
+別の定期ヘルスチェックが、設定全体、パッチツールのリリース資産、各APKの代替取得元を毎日検査します。全取得元が使えないアプリやツール取得障害が見つかると、診断レポートを保存してIssueを自動作成または更新し、復旧後はIssueを自動で閉じます。
+
 更新が見つかると、次の処理が実行されます。
 
 1. 使用するパッチツールとパッチバンドルのバージョンを確定する
@@ -68,6 +70,10 @@ APKファイル名には、アプリ名、対象アーキテクチャ、元APK�
 6. APKCombo
 
 サイト別の設定がなくても、既存設定のpackage IDを利用して検索できる取得元があります。通信エラー、レート制限、不完全なダウンロード、HTMLの誤取得、壊れたAPKを検出した場合は、その取得元を失敗として次へ進みます。
+
+パッチツールが`88600 (8.8.6)`のようにversion codeとversion nameを返す場合は、両方を保持し、取得元のAPIや画面に合う識別子を使います。APKPureは通常のWeb画面がCloudflare検証で利用できない場合、`d.apkpure.net`のAPK直接配信エンドポイントを先に試します。対話操作が必要なボット検証を検出した場合は、同じ画面を繰り返し要求せず次の取得元へ進みます。
+
+APKMirrorでは、アプリトップに表示されない少し古い互換版も、設定済みpublisher/app slugからrelease URLを直接検証して探します。最新版の監視には対象アプリのUploads一覧だけを使い、ページ内に混在する別アプリや広告の版番号を採用しません。APKMirrorのvariant表でversion codeを取得できた場合は同じビルド中のAPKPureフォールバックへ引き継ぐため、APKMirrorの最終ダウンロードだけが403になっても同一バージョンを取得できます。
 
 AdGuardは、公式の[AdguardTeam/AdguardForAndroid](https://github.com/AdguardTeam/AdguardForAndroid)にある最新の安定版GitHub Releaseからのみ取得します。通常版APKをバージョン込みのファイル名で特定し、Android TV版、プレリリース、第三者配布APK、取得元を確認できないキャッシュを選びません。公式GitHubから取得できない場合は、別サイトのAPKで続行せずビルドを停止します。
 
@@ -115,6 +121,9 @@ Androidの設定によっては、ブラウザやファイル管理アプリに�
 | `arch-config.json` | アプリごとのアーキテクチャ指定 |
 | `apps/` | 元APKのpackage IDと取得元設定 |
 | `sources/` | パッチツールとパッチバンドルの取得設定 |
+| `scripts/probe_apk_sources.py` | 指定版を各取得元で実通信確認する診断コマンド |
+| `scripts/validate_repository.py` | JSON、package ID、source、architectureの整合性検査 |
+| `scripts/provider_health.py` | 全対象アプリの取得元を実通信で定期検査 |
 | `.github/workflows/` | 更新確認、ビルド、検査、リリースの自動処理 |
 
 ## 免責事項

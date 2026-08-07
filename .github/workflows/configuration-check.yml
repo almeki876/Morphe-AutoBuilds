@@ -1,0 +1,47 @@
+name: Configuration Check
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - master
+
+permissions:
+  contents: read
+
+concurrency:
+  group: configuration-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: Validate repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v7
+
+      - name: Setup Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.11'
+          cache: pip
+
+      - name: Install Dependencies
+        run: pip install -r requirements.txt
+
+      - name: Validate Configuration
+        run: python3 scripts/validate_repository.py
+
+      - name: Compile Python Sources
+        run: python3 -m compileall -q src scripts
+
+      - name: Import Provider Registry
+        run: >-
+          python3 -c
+          "from src import providers;
+          errors = providers.validate_all_configs();
+          assert not errors, errors"

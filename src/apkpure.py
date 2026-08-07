@@ -1,16 +1,20 @@
 import logging
+import re
+from urllib.parse import urlencode
 
 from src import utils
+from src.versioning import VersionCandidate, discovered_version_code
 from bs4 import BeautifulSoup
 
-BASE_URL = "https://apkpure.com"
+SITE_BASE_URL = "https://apkpure.com"
+DOWNLOAD_BASE_URL = "https://d.apkpure.net/b/APK"
 
 # curl-cffi supplies a User-Agent matching its TLS browser impersonation.
 # Overriding it with an old Chrome version creates a detectable mismatch and
 # can itself trigger APKPure's anti-bot 403 response.
 HEADERS = {
     'Accept-Language': 'en-US,en;q=0.9',
-    'Referer': f'{BASE_URL}/'
+    'Referer': f'{SITE_BASE_URL}/'
 }
 
 # APKPureのリクエストタイムアウト（秒）
@@ -28,7 +32,7 @@ def _resolve_apkpure_slug(app_name: str, config: dict) -> str | None:
     if not package:
         return None
 
-    search_url = f"{BASE_URL}/search?q={package}"
+    search_url = f"{SITE_BASE_URL}/search?q={package}"
     try:
         resp = utils.cf_aware_get(search_url, headers=HEADERS, timeout=TIMEOUT)
         if resp.status_code != 200:
@@ -49,8 +53,53 @@ def _resolve_apkpure_slug(app_name: str, config: dict) -> str | None:
     return None
 
 
-def get_latest_version(app_name: str, config: str) -> str:
-    url = f"{BASE_URL}/{config['name']}/{config['package']}/versions"
+def _direct_endpoint(package: str, **query: str) -> str:
+    return f"{DOWNLOAD_BASE_URL}/{package}?{urlencode(query)}"
+
+
+def _probe_direct_endpoint(url: str) -> str:
+    """Resolve a direct APK endpoint and return its filename using four bytes."""
+    response = utils.cf_aware_get(
+        url,
+        headers={**HEADERS, "Range": "bytes=0-3"},
+        timeout=30,
+        retries=2,
+    )
+    try:
+        response.raise_for_status()
+        content_type = response.headers.get("content-type", "").casefold()
+        if "html" in content_type or response.content[:2] != b"PK":
+            raise ValueError("APKPure direct endpoint did not return an APK archive")
+        return utils.extract_filename(response).replace("+", " ")
+    finally:
+        response.close()
+
+
+def _latest_direct_version(package: str) -> str | None:
+    try:
+        filename = _probe_direct_endpoint(_direct_endpoint(package, version="latest"))
+        match = re.search(
+            r"_([0-9][^_]+)_APKPure\.apk$",
+            filename,
+            flags=re.IGNORECASE,
+        )
+        return match.group(1).strip() if match else None
+    except Exception as error:
+        logging.debug("APKPure direct latest probe failed for %s: %s", package, error)
+        return None
+
+
+def get_latest_version(app_name: str, config: dict) -> str | None:
+    direct_version = _latest_direct_version(config["package"])
+    if direct_version:
+        logging.info(
+            "APKPure direct endpoint reports %s for %s",
+            direct_version,
+            app_name,
+        )
+        return direct_version
+
+    url = f"{SITE_BASE_URL}/{config['name']}/{config['package']}/versions"
 
     try:
         response = utils.cf_aware_get(url, headers=HEADERS, timeout=TIMEOUT)
@@ -63,7 +112,7 @@ def get_latest_version(app_name: str, config: str) -> str:
             )
             new_slug = _resolve_apkpure_slug(app_name, config)
             if new_slug:
-                url = f"{BASE_URL}/{new_slug}/{config['package']}/versions"
+                url = f"{SITE_BASE_URL}/{new_slug}/{config['package']}/versions"
                 response = utils.cf_aware_get(url, headers=HEADERS, timeout=TIMEOUT)
             else:
                 logging.warning(f"Could not resolve new APKPure slug for {app_name}. "
@@ -87,8 +136,75 @@ def get_latest_version(app_name: str, config: str) -> str:
     return None
 
 
-def get_download_link(version: str, app_name: str, config: str) -> str:
-    url = f"{BASE_URL}/{config['name']}/{config['package']}/download/{version}"
+def _direct_download_for_candidate(
+    candidate: VersionCandidate, app_name: str, config: dict
+) -> str | None:
+    package = config["package"]
+    if candidate.code:
+        url = _direct_endpoint(package, versionCode=candidate.code)
+    else:
+        url = _direct_endpoint(package, version="latest")
+
+    try:
+        filename = _probe_direct_endpoint(url)
+        if not candidate.code and not any(
+            alias.casefold() in filename.casefold()
+            for alias in candidate.aliases("apkpure")
+        ):
+            logging.info(
+                "APKPure latest direct APK is not compatible with %s: %s",
+                candidate.describe(),
+                filename,
+            )
+            return None
+        logging.info(
+            "APKPure direct APK matched %s for %s: %s",
+            candidate.describe(),
+            app_name,
+            filename,
+        )
+        # Return the stable package endpoint, not the expiring signed redirect.
+        return url
+    except Exception as error:
+        logging.info(
+            "APKPure direct endpoint failed for %s %s: %s",
+            app_name,
+            candidate.describe(),
+            error,
+        )
+        return None
+
+
+def get_download_link_for_candidate(
+    candidate: VersionCandidate, app_name: str, config: dict
+) -> str | None:
+    if not candidate.code:
+        code = discovered_version_code(config["package"], candidate.name)
+        if code:
+            candidate = VersionCandidate(
+                name=candidate.name,
+                code=code,
+                raw=candidate.raw,
+            )
+            logging.info(
+                "APKPure reused versionCode %s discovered by an earlier provider",
+                code,
+            )
+    direct = _direct_download_for_candidate(candidate, app_name, config)
+    if direct:
+        return direct
+    for version in candidate.aliases("apkpure"):
+        link = _html_download_link(version, app_name, config)
+        if link:
+            return link
+    return None
+
+
+def _html_download_link(version: str, app_name: str, config: dict) -> str | None:
+    url = (
+        f"{SITE_BASE_URL}/{config['name']}/{config['package']}"
+        f"/download/{version}"
+    )
 
     try:
         response = utils.cf_aware_get(url, headers=HEADERS, timeout=TIMEOUT)
@@ -107,3 +223,13 @@ def get_download_link(version: str, app_name: str, config: str) -> str:
         logging.error(f"Failed to fetch download link for {app_name} v{version}: {e}")
 
     return None
+
+
+def get_download_link(
+    version: str, app_name: str, config: dict
+) -> str | None:
+    return get_download_link_for_candidate(
+        VersionCandidate(name=version),
+        app_name,
+        config,
+    )

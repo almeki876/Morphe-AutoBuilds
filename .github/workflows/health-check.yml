@@ -1,0 +1,118 @@
+name: Repository and APK Provider Health
+
+on:
+  schedule:
+    - cron: '17 3 * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: repository-provider-health
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  health:
+    name: Validate configuration and providers
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v7
+
+      - name: Setup Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.11'
+          cache: pip
+
+      - name: Install Dependencies
+        run: pip install -r requirements.txt
+
+      - name: Validate Repository Configuration
+        run: python3 scripts/validate_repository.py
+
+      - name: Probe Build Tool Releases
+        id: tools
+        continue-on-error: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PAT: ${{ secrets.PAT }}
+        run: python3 scripts/download_all_tools.py 2>&1 | tee build-tool-health.log
+
+      - name: Probe APK Providers
+        id: providers
+        continue-on-error: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          HTTP_RETRIES: '2'
+          HTTP_RETRY_BASE_SECONDS: '3'
+          HTTP_RETRY_MAX_SECONDS: '20'
+          APKMIRROR_REQUEST_INTERVAL_SECONDS: '3.5'
+        run: >-
+          python3 scripts/provider_health.py
+          --target-successes 2
+          --max-providers 6
+
+      - name: Publish Health Summary
+        if: always()
+        run: |
+          if [ ! -f provider-health.md ]; then
+            printf '# APK provider health\n\nProvider probe terminated before writing a report.\n' \
+              > provider-health.md
+          fi
+          cat provider-health.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload Diagnostic Report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: provider-health-${{ github.run_id }}
+          path: |
+            provider-health.json
+            provider-health.md
+            build-tool-health.log
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Open or Update Failure Issue
+        if: steps.tools.outcome == 'failure' || steps.providers.outcome == 'failure'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          title="Automated APK build health check failed"
+          printf 'Build tools: %s\nAPK providers: %s\n\n' \
+            "${{ steps.tools.outcome }}" "${{ steps.providers.outcome }}" \
+            | cat - provider-health.md > health-issue.md
+          issue=$(gh issue list --state open --search "$title in:title" --json number,title \
+            --jq ".[] | select(.title == \"$title\") | .number" | head -n 1)
+          printf '\n\nWorkflow run: %s\n' "$RUN_URL" >> health-issue.md
+          if [ -n "$issue" ]; then
+            gh issue comment "$issue" --body-file health-issue.md
+          else
+            gh issue create --title "$title" --body-file health-issue.md
+          fi
+
+      - name: Close Recovered Failure Issue
+        if: steps.tools.outcome == 'success' && steps.providers.outcome == 'success'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          title="Automated APK build health check failed"
+          issue=$(gh issue list --state open --search "$title in:title" --json number,title \
+            --jq ".[] | select(.title == \"$title\") | .number" | head -n 1)
+          if [ -n "$issue" ]; then
+            gh issue close "$issue" --comment "Recovered automatically in run ${{ github.run_id }}."
+          fi
+
+      - name: Fail When Health Check Fails
+        if: steps.tools.outcome == 'failure' || steps.providers.outcome == 'failure'
+        run: |
+          echo "::error::Build-tool or APK-provider health check failed."
+          exit 1

@@ -1,6 +1,7 @@
 import logging
 import re
 from src import utils
+from src.versioning import VersionCandidate, parse_candidate
 from bs4 import BeautifulSoup
 
 
@@ -10,6 +11,21 @@ def _natural_version_key(version: str) -> tuple:
         (0, int(part)) if part.isdigit() else (1, part.casefold())
         for part in re.findall(r"\d+|[^\d]+", version)
     )
+
+
+def _entry_candidate(entry: dict) -> VersionCandidate | None:
+    return parse_candidate(str(entry.get("version", "")))
+
+
+def _entry_matches(entry: dict, version: str) -> bool:
+    identity = _entry_candidate(entry)
+    if identity is None:
+        return str(entry.get("version", "")) == version
+    return version in {
+        identity.name,
+        identity.code,
+        str(entry.get("version", "")),
+    }
 
 
 def get_latest_version(app_name: str, config: dict) -> str:
@@ -26,12 +42,21 @@ def get_latest_version(app_name: str, config: dict) -> str:
                 logging.info(f"✓ Found: {response.url}")
                 soup = BeautifulSoup(response.content, "html.parser")
                 version_spans = soup.select('#versions-items-list .version')
-                versions = [span.text.strip() for span in version_spans if span.text.strip()]
+                versions = [
+                    candidate
+                    for span in version_spans
+                    if span.text.strip()
+                    for candidate in [parse_candidate(span.text.strip())]
+                    if candidate is not None
+                ]
                 
                 if versions:
-                    highest_version = max(versions, key=_natural_version_key)
-                    logging.info(f"Found version {highest_version} for {app_name}")
-                    return highest_version
+                    highest = max(
+                        versions,
+                        key=lambda candidate: _natural_version_key(candidate.name),
+                    )
+                    logging.info(f"Found version {highest.describe()} for {app_name}")
+                    return highest.name
             elif response.status_code == 404:
                 logging.debug(f"✗ Not found: {url}")
                 continue
@@ -75,7 +100,7 @@ def get_download_link(version: str, app_name: str, config: dict) -> str:
                     break
                     
                 for entry in version_data:
-                    if entry["version"] == version:
+                    if _entry_matches(entry, version):
                         version_url_parts = entry["versionURL"]
                         version_url = f"{version_url_parts['url']}/{version_url_parts['extraURL']}/{version_url_parts['versionID']}"
                         version_page = utils.cf_aware_get(version_url)
@@ -99,7 +124,11 @@ def get_download_link(version: str, app_name: str, config: dict) -> str:
                             return f"https://dw.uptodown.com/dwn/{download_url}"
                 
                 if all(
-                    _natural_version_key(entry["version"])
+                    _natural_version_key(
+                        (_entry_candidate(entry) or VersionCandidate(
+                            name=str(entry.get("version", "0"))
+                        )).name
+                    )
                     < _natural_version_key(version)
                     for entry in version_data
                 ):
@@ -110,6 +139,22 @@ def get_download_link(version: str, app_name: str, config: dict) -> str:
             continue
     
     logging.error(f"Version {version} not found for {app_name}")
+    return None
+
+
+def get_download_link_for_candidate(
+    candidate: VersionCandidate, app_name: str, config: dict
+) -> str | None:
+    errors: list[str] = []
+    for alias in candidate.aliases("uptodown"):
+        try:
+            link = get_download_link(alias, app_name, config)
+            if link:
+                return link
+        except Exception as error:
+            errors.append(f"{alias}: {type(error).__name__}: {error}")
+    if errors:
+        raise ValueError("; ".join(errors))
     return None
 
 def generate_possible_uptodown_names(config: dict) -> list:

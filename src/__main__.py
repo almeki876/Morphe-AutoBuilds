@@ -247,7 +247,10 @@ def _build_patch_flags(
     # フォールバック: patches/<app>-<source>.txt
     patches_txt = Path("patches") / f"{app_name}-{source}.txt"
     if not patches_txt.exists():
-        logging.warning("⚠️  No patches-list.json and no %s — no patches selected", patches_txt)
+        logging.info(
+            "ℹ️  No explicit patch allowlist for %s; using patch bundle defaults",
+            patches_txt,
+        )
         return [], []
 
     enables_fb:  list[str] = []
@@ -801,10 +804,24 @@ def run_build(app_name: str, source: str, arch: str = "universal") -> str:
     # ── 4. Download input APK ────────────────────────────────────────────────
     input_apk: Path | None = None
     version:   str  | None = None
+    package = providers.configured_package(app_name)
+    if not package:
+        logging.error("❌ FATAL: No package ID configured for '%s'.", app_name)
+        exit(1)
+    compatible_versions = utils.get_supported_version_candidates(
+        package,
+        str(cli),
+        str(bundle),
+    )
 
     for platform in providers.download_priority(app_name):
         input_apk, version = downloader.download_platform(
-            app_name, platform, str(cli), str(bundle), arch
+            app_name,
+            platform,
+            str(cli),
+            str(bundle),
+            arch,
+            version_candidates=compatible_versions,
         )
         if input_apk:
             logging.info("✅ APK obtained from %s", platform)

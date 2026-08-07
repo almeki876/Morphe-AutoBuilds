@@ -17,6 +17,8 @@ from urllib.parse import urlencode, urljoin, urlparse
 from bs4 import BeautifulSoup
 
 from src import utils
+from src.downloads import DownloadSpec
+from src.versioning import remember_version_code
 
 
 BASE_URL = "https://www.apkmirror.com"
@@ -28,6 +30,7 @@ HEADERS = {
 _RELEASE_HREF_RE = re.compile(r"^/apk/[^/]+/[^/]+/[^/]+-release/?$")
 _DISCOVERY_PAGES: dict[str, BeautifulSoup | None] = {}
 _DISCOVERY_FINAL_URLS: dict[str, str] = {}
+_RELEASE_PAGES: dict[str, tuple[BeautifulSoup, str, str]] = {}
 _DISCOVERY_BLOCKED = False
 _LAST_REQUEST_AT = 0.0
 
@@ -38,10 +41,10 @@ def _throttle() -> None:
     try:
         interval = max(
             0.0,
-            float(os.getenv("APKMIRROR_REQUEST_INTERVAL_SECONDS", "2.0")),
+            float(os.getenv("APKMIRROR_REQUEST_INTERVAL_SECONDS", "3.5")),
         )
     except ValueError:
-        interval = 2.0
+        interval = 3.5
     remaining = interval - (time.monotonic() - _LAST_REQUEST_AT)
     if remaining > 0:
         time.sleep(remaining + random.uniform(0.0, 0.4))
@@ -84,7 +87,9 @@ def _discovery_page(url: str) -> tuple[BeautifulSoup, str] | None:
         return soup, response.url
     except Exception as error:
         _DISCOVERY_PAGES[url] = None
-        if "403" in str(error):
+        if isinstance(error, utils.BotProtectionError) or any(
+            status in str(error) for status in ("403", "429")
+        ):
             _DISCOVERY_BLOCKED = True
             logging.warning(
                 "APKMirror blocked discovery requests for this job; "
@@ -115,6 +120,66 @@ def _configured_app_url(config: dict) -> str | None:
     if not org or not name:
         return None
     return f"{BASE_URL}/apk/{org}/{name}/"
+
+
+def _version_slug(version: str) -> str:
+    """Convert an APKMirror display version to its release-URL spelling."""
+    return re.sub(r"[^a-z0-9]+", "-", version.casefold()).strip("-")
+
+
+def _configured_release_url(version: str, config: dict) -> str | None:
+    org = config.get("org")
+    name = config.get("name")
+    if not org or not name:
+        return None
+    release_slug = f"{name}-{_version_slug(version)}-release"
+    return f"{BASE_URL}/apk/{org}/{name}/{release_slug}/"
+
+
+def _validated_release_url(
+    url: str,
+    version: str,
+    config: dict,
+) -> str | None:
+    """Return a release URL only when title and package match exactly."""
+    try:
+        soup, final_url, text = _release_page(url, retries=2)
+        title = soup.title.get_text(" ", strip=True) if soup.title else ""
+        if not _version_matches(title, version):
+            return None
+        package = config.get("package")
+        if package and package not in text:
+            return None
+        return final_url
+    except Exception as error:
+        logging.debug("APKMirror direct release probe failed at %s: %s", url, error)
+        return None
+
+
+def _release_page(
+    url: str,
+    *,
+    retries: int | None = None,
+) -> tuple[BeautifulSoup, str, str]:
+    cached = _RELEASE_PAGES.get(url)
+    if cached:
+        return cached
+    response = _get(url, retries=retries)
+    value = (
+        BeautifulSoup(response.content, "html.parser"),
+        response.url,
+        response.text,
+    )
+    _RELEASE_PAGES[url] = value
+    _RELEASE_PAGES[response.url] = value
+    return value
+
+
+def _uploads_url(soup: BeautifulSoup, final_url: str) -> str | None:
+    anchor = soup.select_one("a[href*='/uploads/'][href*='appcategory=']")
+    if not anchor:
+        return None
+    return urljoin(final_url, anchor["href"])
 
 
 def _release_links(soup: BeautifulSoup, version: str) -> list[tuple[str, str]]:
@@ -180,9 +245,28 @@ def _discover_release(version: str, app_name: str, config: dict) -> str | None:
                 logging.info("APKMirror release discovered from app page: %s", chosen[0])
                 return chosen[0]
 
+    # App landing pages show only the newest release per variant. If the
+    # requested compatible version is older, probe APKMirror's deterministic
+    # release spelling before issuing broad searches. Doing this after the app
+    # page avoids speculative 403s for apps whose release slug includes extra
+    # title/version-code segments (for example Nova Launcher).
+    configured_release = _configured_release_url(version, config)
+    if configured_release and not _DISCOVERY_BLOCKED:
+        direct = _validated_release_url(configured_release, version, config)
+        if direct:
+            logging.info("APKMirror release resolved directly: %s", direct)
+            return direct
+
     # Package search repairs stale publisher/app slugs and also enables
     # APKMirror for apps without a hand-written apps/apkmirror JSON file.
-    queries = [config.get("package"), config.get("name"), app_name]
+    queries = [
+        " ".join(
+            value for value in (config.get("package"), version) if value
+        ),
+        " ".join(
+            value for value in (config.get("name"), version) if value
+        ),
+    ]
     for query in dict.fromkeys(value for value in queries if value):
         discovered = _discovery_page(_search_url(query))
         if discovered:
@@ -264,6 +348,16 @@ def _select_variant(
         return None
     candidates.sort(key=lambda item: item[0], reverse=True)
     score, url, description = candidates[0]
+    version_codes = re.findall(r"\b\d{5,}\b", description)
+    package = str(config.get("package") or "")
+    if package and version_codes:
+        remember_version_code(package, version, version_codes[0])
+        logging.info(
+            "APKMirror discovered versionCode %s for %s %s",
+            version_codes[0],
+            package,
+            version,
+        )
     logging.info(
         "APKMirror selected variant (score=%d): %s [%s]",
         score,
@@ -273,14 +367,17 @@ def _select_variant(
     return url
 
 
-def _final_download_link(variant_url: str) -> str | None:
+def _final_download_link(variant_url: str) -> DownloadSpec:
     variant = _get(variant_url)
     soup = BeautifulSoup(variant.content, "html.parser")
 
     # On some layouts the variant page is already the final keyed page.
     direct = soup.select_one("a#download-link[href]")
     if direct:
-        return urljoin(variant.url, direct["href"])
+        return DownloadSpec(
+            url=urljoin(variant.url, direct["href"]),
+            headers={"Referer": variant.url},
+        )
 
     button = (
         soup.select_one("a.downloadButton[href]")
@@ -298,7 +395,10 @@ def _final_download_link(variant_url: str) -> str | None:
     )
     if not direct:
         raise ValueError("APKMirror keyed page has no final download link")
-    return urljoin(keyed.url, direct["href"])
+    return DownloadSpec(
+        url=urljoin(keyed.url, direct["href"]),
+        headers={"Referer": keyed.url},
+    )
 
 
 def get_download_link(
@@ -306,7 +406,7 @@ def get_download_link(
     app_name: str,
     config: dict,
     arch: str | None = None,
-) -> str | None:
+) -> DownloadSpec | None:
     clean_version = _clean_version(version)
     release_url = _discover_release(clean_version, app_name, config)
     if not release_url:
@@ -316,12 +416,11 @@ def get_download_link(
         return None
 
     try:
-        release = _get(release_url)
-        soup = BeautifulSoup(release.content, "html.parser")
+        soup, _, release_text = _release_page(release_url)
         if not _version_matches(soup.title.get_text(" ", strip=True), clean_version):
             raise ValueError("release title does not match requested version")
         package = config.get("package")
-        if package and package not in release.text:
+        if package and package not in release_text:
             raise ValueError(
                 f"release package does not match requested package '{package}'"
             )
@@ -330,6 +429,10 @@ def get_download_link(
         if not variant_url:
             raise ValueError("release contains no compatible downloadable variant")
         return _final_download_link(variant_url)
+    except utils.BotProtectionError:
+        # The downloader must stop trying further compatible versions on this
+        # host and move to the next provider immediately.
+        raise
     except Exception as error:
         logging.warning(
             "APKMirror download flow failed for %s %s: %s",
@@ -341,7 +444,7 @@ def get_download_link(
 
 
 def get_latest_version(app_name: str, config: dict) -> str | None:
-    sources = []
+    sources: list[str] = []
     configured_url = _configured_app_url(config)
     if configured_url:
         sources.append(configured_url)
@@ -357,18 +460,42 @@ def get_latest_version(app_name: str, config: dict) -> str | None:
     for url in sources:
         discovered = _discovery_page(url)
         if discovered:
-            soup, _ = discovered
-            versions = []
-            for row in soup.select("div.table-row"):
-                text = " ".join(row.get_text(" ", strip=True).split())
-                if " beta" in text.casefold():
-                    continue
-                for match in re.finditer(r"(?<!\d)(\d+(?:\.\d+)+)(?!\d)", text):
-                    versions.append(match.group(1))
-                    break
-            latest = utils.get_highest_version(list(dict.fromkeys(versions)))
+            soup, final_url = discovered
+            uploads = _uploads_url(soup, final_url)
+            if uploads:
+                uploads_page = _discovery_page(uploads)
+                if uploads_page:
+                    soup, _ = uploads_page
+            versions = _versions_from_release_anchors(soup, config)
+            latest = utils.get_highest_version(versions)
             if latest:
                 return latest
         if _DISCOVERY_BLOCKED:
             break
     return None
+
+
+def _versions_from_release_anchors(
+    soup: BeautifulSoup,
+    config: dict,
+) -> list[str]:
+    """Extract versions only from release links belonging to this app."""
+    configured_name = str(config.get("name") or "").casefold()
+    versions: list[str] = []
+    seen_links: set[str] = set()
+    for anchor in soup.find_all("a", href=True):
+        absolute = urljoin(BASE_URL, anchor["href"].split("#", 1)[0])
+        path = urlparse(absolute).path
+        if not _RELEASE_HREF_RE.fullmatch(path):
+            continue
+        parts = path.strip("/").split("/")
+        if configured_name and len(parts) >= 3 and parts[2].casefold() != configured_name:
+            continue
+        if absolute in seen_links:
+            continue
+        text = anchor.get_text(" ", strip=True)
+        matches = re.findall(r"(?<!\d)(\d+(?:\.\d+)+)(?!\d)", text)
+        if matches:
+            versions.append(matches[-1])
+            seen_links.add(absolute)
+    return list(dict.fromkeys(versions))

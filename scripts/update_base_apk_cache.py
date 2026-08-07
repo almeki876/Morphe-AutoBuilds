@@ -9,7 +9,7 @@ import time
 from collections import defaultdict
 from pathlib import Path
 
-from github import Github
+from github import Auth, Github
 from github.GithubException import GithubException
 
 from src.apk_cache import (
@@ -45,7 +45,7 @@ def upload_with_retry(release, path: Path) -> None:
 def main() -> None:
     token = os.environ["GITHUB_TOKEN"]
     repository = os.environ["GITHUB_REPOSITORY"]
-    repo = Github(token).get_repo(repository)
+    repo = Github(auth=Auth.Token(token)).get_repo(repository)
     release = find_release(repo)
     if release is None:
         release = repo.create_git_release(

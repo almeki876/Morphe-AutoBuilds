@@ -1,8 +1,5 @@
 name: Trigger Test Build All (Release)
 
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-
 on:
   workflow_dispatch:
 
@@ -15,7 +12,7 @@ jobs:
 
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Fetch Latest Tags and Trigger Build
         env:
@@ -54,6 +51,7 @@ jobs:
             -f hoo_tag="$hoo_tag" \
             -f rookie_tag="$rookie_tag" \
             -f tosox_tag="$tosox_tag" \
+            -f yuzu_tag="patche" \
             -f dropped_tag="$dropped_tag" \
             -f morphe_updated="true" \
             -f anddea_updated="true" \
@@ -61,6 +59,7 @@ jobs:
             -f hoo_updated="true" \
             -f rookie_updated="true" \
             -f tosox_updated="true" \
+            -f yuzu_updated="true" \
             -f dropped_updated="true" \
             -f morphe_force_build="true" \
             -f anddea_force_build="true" \
@@ -68,6 +67,7 @@ jobs:
             -f hoo_force_build="true" \
             -f rookie_force_build="true" \
             -f tosox_force_build="true" \
+            -f yuzu_force_build="true" \
             -f dropped_force_build="true"
 
           echo "Build workflow triggered successfully."

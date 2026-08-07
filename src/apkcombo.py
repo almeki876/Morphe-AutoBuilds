@@ -9,6 +9,7 @@ from urllib.parse import parse_qs, urljoin, urlparse
 from bs4 import BeautifulSoup
 
 from src import utils
+from src.versioning import VersionCandidate
 
 
 HEADERS = {
@@ -53,18 +54,32 @@ def _version_anchors(soup: BeautifulSoup, version: str | None = None):
             yield anchor
 
 
+def _anchor_candidate(anchor) -> VersionCandidate | None:
+    text = anchor.get_text(" ", strip=True)
+    matches = re.findall(r"(?<!\d)(\d+)\s+\((\d[^()]*)\)", text)
+    if not matches:
+        return None
+    code, name = matches[-1]
+    return VersionCandidate(name=name, code=code, raw=text)
+
+
 def get_latest_version(app_name: str, config: dict) -> str | None:
     try:
         response = _versions_page(app_name, config)
-        versions = []
+        versions: list[VersionCandidate] = []
         for anchor in _version_anchors(
             BeautifulSoup(response.content, "html.parser")
         ):
-            href = anchor.get("href", "")
-            match = re.search(r"/phone-(.+?)-apk(?:[/?#]|$)", href)
-            if match:
-                versions.append(match.group(1))
-        return utils.get_highest_version(versions)
+            candidate = _anchor_candidate(anchor)
+            if candidate:
+                versions.append(candidate)
+        if not versions:
+            return None
+        versions.sort(
+            key=lambda item: utils.normalize_version(item.name),
+            reverse=True,
+        )
+        return versions[0].name
     except Exception as error:
         logging.warning("apkcombo: latest version lookup failed for %s: %s", app_name, error)
         return None
@@ -76,7 +91,41 @@ def get_download_link(version: str, app_name: str, config: dict) -> str | None:
     version_anchor = next(_version_anchors(soup, version), None)
     if version_anchor is None:
         raise ValueError(f"apkcombo: version '{version}' not found for {app_name}")
+    return _download_from_anchor(version_anchor, response, version, app_name, config)
 
+
+def get_download_link_for_candidate(
+    candidate: VersionCandidate, app_name: str, config: dict
+) -> str | None:
+    response = _versions_page(app_name, config)
+    soup = BeautifulSoup(response.content, "html.parser")
+    aliases = set(candidate.aliases("apkcombo"))
+    version_anchor = None
+    for anchor in _version_anchors(soup):
+        identity = _anchor_candidate(anchor)
+        if identity and aliases.intersection({identity.name, identity.code}):
+            version_anchor = anchor
+            break
+    if version_anchor is None:
+        raise ValueError(
+            f"apkcombo: version '{candidate.describe()}' not found for {app_name}"
+        )
+    return _download_from_anchor(
+        version_anchor,
+        response,
+        candidate.describe(),
+        app_name,
+        config,
+    )
+
+
+def _download_from_anchor(
+    version_anchor,
+    response,
+    version: str,
+    app_name: str,
+    config: dict,
+) -> str:
     variant_url = urljoin(response.url, version_anchor["href"])
     variant = utils.cf_aware_get(
         variant_url,

@@ -2,9 +2,26 @@ import os
 import logging
 from curl_cffi import requests
 from curl_cffi.requests.impersonate import DEFAULT_CHROME
-from github import Github
+from github import Auth, Github
 
-session = requests.Session(impersonate=DEFAULT_CHROME)
+
+def create_http_session():
+    """Create a fresh browser-impersonating session for public APK sites."""
+    return requests.Session(impersonate=DEFAULT_CHROME)
+
+
+session = create_http_session()
+
+
+def reset_http_session():
+    """Replace a session whose connection pool or DNS state became unhealthy."""
+    global session
+    try:
+        session.close()
+    except Exception:
+        pass
+    session = create_http_session()
+    return session
 
 # Logging
 logging.basicConfig(
@@ -23,4 +40,4 @@ bucket_name = os.getenv('BUCKET_NAME')
 
 # APKmirror base url
 base_url = "https://www.apkmirror.com"
-gh = Github(github_token) if github_token else Github()
+gh = Github(auth=Auth.Token(github_token)) if github_token else Github()

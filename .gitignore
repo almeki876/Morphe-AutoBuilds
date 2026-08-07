@@ -28,6 +28,11 @@ base-apk-cache-out/
 build-metadata/
 release_notes.md
 build_status.md
+apk-version-health.md
+provider-health*.json
+provider-health*.md
+build-tool-health.log
+health-issue.md
 virustotal_results.json
 virustotal_results.md
 *.apk

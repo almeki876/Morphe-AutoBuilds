@@ -11,9 +11,40 @@ from sys import exit
 import subprocess
 from pathlib import Path
 from urllib.parse import urlparse, unquote, parse_qs, urlsplit
+from src.versioning import VersionCandidate, parse_candidates
 
 
 RETRYABLE_HTTP_STATUSES = frozenset({403, 408, 425, 429, 500, 502, 503, 504})
+_BLOCKED_HOSTS: set[str] = set()
+
+
+class BotProtectionError(RuntimeError):
+    """A host returned an interactive anti-bot page instead of the resource."""
+
+
+def is_bot_challenge(response) -> bool:
+    """Recognize Cloudflare challenge pages without relying on one status code."""
+    if response is None:
+        return False
+    if str(response.headers.get("cf-mitigated", "")).casefold() == "challenge":
+        return True
+    content_type = str(response.headers.get("content-type", "")).casefold()
+    if "html" not in content_type:
+        return False
+    body = response.content[:65536].lower()
+    markers = (
+        b"/cdn-cgi/challenge-platform/",
+        b"cf_chl_",
+        b"challenges.cloudflare.com",
+        b"enable javascript and cookies to continue",
+        b"just a moment",
+    )
+    return any(marker in body for marker in markers)
+
+
+def clear_blocked_hosts() -> None:
+    """Reset the per-process challenge circuit breaker (primarily for probes)."""
+    _BLOCKED_HOSTS.clear()
 
 
 def _positive_number_from_env(name: str, default: float) -> float:
@@ -27,7 +58,24 @@ def _positive_number_from_env(name: str, default: float) -> float:
 def safe_url_for_log(url: str) -> str:
     """Drop query strings/fragments so signed download credentials are never logged."""
     parts = urlsplit(url)
-    return f"{parts.scheme}://{parts.netloc}{parts.path}"
+    hostname = (parts.hostname or "").casefold()
+    path = parts.path
+    if hostname == "dw.uptodown.com" and path.startswith("/dwn/"):
+        path = "/dwn/<redacted>"
+    elif hostname == "url-provider.aptoide.com" and path.startswith("/download/"):
+        path = "/download/<redacted>"
+    return f"{parts.scheme}://{parts.netloc}{path}"
+
+
+def safe_text_for_log(value: object, limit: int = 500) -> str:
+    """Redact every HTTP URL embedded in an exception or diagnostic message."""
+    text = str(value).replace("\r", " ").replace("\n", " ").strip()
+    text = re.sub(
+        r"https?://[^\s)\]}>,;]+",
+        lambda match: safe_url_for_log(match.group(0)),
+        text,
+    )
+    return text[:limit]
 
 
 def retry_after_seconds(response, attempt: int) -> float:
@@ -55,63 +103,56 @@ def retry_after_seconds(response, attempt: int) -> float:
 
 
 def cf_aware_get(url: str, retries: int | None = None, **kwargs):
-    """GET with bounded retries and a Cloudflare Turnstile bypass.
+    """GET with retries and a fail-fast circuit breaker for bot challenges.
 
-    Used by apkmirror/apkpure/uptodown, which are all fronted by Cloudflare
-    and intermittently return challenges or throttling responses to Actions
-    runners. 403/429/5xx responses and transport errors use capped exponential
-    backoff with jitter, while Retry-After is honored when present.
+    Interactive Cloudflare challenges cannot be reliably completed by a
+    headless GitHub Actions job. Retrying the same challenge for every version
+    only wastes minutes and increases blocking. Once a host serves a confirmed
+    challenge, further requests to that host fail immediately and the
+    orchestrator can continue with another provider. Ordinary throttling and
+    transport failures still use bounded exponential backoff.
     """
-    from src import session as _session
+    from src import reset_http_session, session as current_session
+
+    _session = current_session
 
     if retries is None:
         retries = int(_positive_number_from_env("HTTP_RETRIES", 4))
     retries = max(1, retries)
     kwargs.setdefault("timeout", 30)
     safe_url = safe_url_for_log(url)
+    hostname = (urlparse(url).hostname or "").casefold()
+    if hostname in _BLOCKED_HOSTS:
+        raise BotProtectionError(
+            f"interactive bot protection already detected for {hostname}"
+        )
 
     for attempt in range(1, retries + 1):
         response = None
         try:
             response = _session.get(url, **kwargs)
-            try:
-                from src.cf_bypass import is_cf_challenge, solve_cloudflare
-
-                if is_cf_challenge(response):
-                    logging.info(
-                        "Cloudflare challenge on %s — launching bypass…", safe_url
-                    )
-                    cookies = solve_cloudflare(url)
-                    if cookies:
-                        hostname = urlparse(url).hostname or ""
-                        domain = "." + ".".join(hostname.split(".")[-2:])
-                        for name, value in cookies.items():
-                            _session.cookies.set(name, value, domain=domain)
-                        response.close()
-                        response = _session.get(url, **kwargs)
-                        if response.status_code == 403:
-                            logging.warning(
-                                "Cloudflare bypass got cookies but retry still "
-                                "returned 403 for %s", safe_url
-                            )
-                        else:
-                            logging.info(
-                                "Cloudflare bypass succeeded for %s (status %s)",
-                                safe_url,
-                                response.status_code,
-                            )
-                    else:
-                        logging.warning(
-                            "Cloudflare bypass could not obtain cookies for %s",
-                            safe_url,
-                        )
-            except ImportError:
-                logging.debug("nodriver not installed; skipping Cloudflare bypass")
-            except Exception as bypass_error:
-                logging.debug(
-                    "Cloudflare bypass attempt failed for %s: %s",
-                    safe_url,
-                    bypass_error,
+            if is_bot_challenge(response):
+                challenge_hostname = (
+                    urlparse(response.url).hostname or hostname
+                ).casefold()
+                if challenge_hostname:
+                    _BLOCKED_HOSTS.add(challenge_hostname)
+                status = response.status_code
+                challenge_url = safe_url_for_log(response.url)
+                response.close()
+                raise BotProtectionError(
+                    f"interactive bot protection returned HTTP {status} "
+                    f"for {challenge_url}"
+                )
+            if response.status_code == 403 and hostname in {
+                "www.apkmirror.com",
+                "apkcombo.com",
+                "apkpure.com",
+            }:
+                _BLOCKED_HOSTS.add(hostname)
+                response.close()
+                raise BotProtectionError(
+                    f"HTTP 403 blocked automated requests to {hostname}"
                 )
 
             if (
@@ -130,12 +171,16 @@ def cf_aware_get(url: str, retries: int | None = None, **kwargs):
                 wait,
             )
             response.close()
+        except BotProtectionError:
+            raise
         except Exception as error:
             if attempt >= retries:
                 raise
+            _session = reset_http_session()
             wait = retry_after_seconds(None, attempt)
             logging.warning(
-                "Request to %s failed on attempt %d/%d (%s); retrying in %.1fs",
+                "Request to %s failed on attempt %d/%d (%s); "
+                "resetting session and retrying in %.1fs",
                 safe_url,
                 attempt,
                 retries,
@@ -313,7 +358,9 @@ def get_highest_version(versions: list[str]) -> str | None:
             highest_version = v
     return highest_version
 
-def get_supported_versions(package_name: str, cli: str, patches: str) -> list[str]:
+def get_supported_version_candidates(
+    package_name: str, cli: str, patches: str
+) -> list[VersionCandidate]:
     # Morphe CLI and ReVanced CLI have different list-versions syntax.
     # CLI-kind detection lives in src/cli_compat.py (single source of truth);
     # imported locally to avoid a circular import (cli_compat itself uses
@@ -369,50 +416,25 @@ def get_supported_versions(package_name: str, cli: str, patches: str) -> list[st
         logging.warning(f"CLI returned error/usage output, cannot determine version")
         return []
 
-    versions = []
-    for line in lines:
-        line = line.strip()
-        # Strip Morphe CLI INFO: prefix if present
-        if line.lower().startswith('info:') or line.lower().startswith('warning:'):
-            continue
-        if line and 'Any' not in line:
-            # Parse version - CLIの出力形式は複数パターンある:
-            #   "6.6 build 002"           -> バージョン名
-            #   "32.30.0(1575420)"        -> バージョン名
-            #   "81042 (8.5.1) (1 patch)" -> vercode (vername) ... Morphe形式
-            #   "4.12.81 (1 patch)"       -> バージョン名 (パッチ数)
-            parts = line.split()
-            if parts:
-                first = parts[0]
-                # Validate it looks like a version (starts with a digit)
-                if not first[0].isdigit():
-                    continue
-
-                # Morphe形式: "vercode (vername) ..." -> vername を優先
-                # parts[1] が "(x.y.z)" の括弧付きバージョン名かチェック
-                if len(parts) >= 2 and parts[1].startswith("(") and parts[1].endswith(")"):
-                    inner = parts[1][1:-1]  # 括弧を除去
-                    if re.match(r"^\d[\d.]+$", inner):
-                        versions.append(inner)
-                        continue
-
-                version = first
-                # Check if next parts are "build XXX"
-                if len(parts) >= 3 and parts[1].lower() == "build":
-                    version = f"{parts[0]} build {parts[2]}"
-                versions.append(version)
-
-    if not versions:
+    candidates = parse_candidates(output)
+    if not candidates:
         logging.warning("No supported versions found")
         return []
 
-    # De-duplicate while preserving every supported alternative. Providers
-    # frequently remove the newest build before all mirrors have it, so callers
-    # must be able to try older compatible versions automatically.
-    unique_versions = list(dict.fromkeys(versions))
-    unique_versions.sort(key=normalize_version, reverse=True)
-    logging.info(f"CLI parsed compatible versions: {unique_versions}")
-    return unique_versions
+    candidates.sort(key=lambda item: normalize_version(item.name), reverse=True)
+    logging.info(
+        "CLI parsed compatible versions: %s",
+        [candidate.describe() for candidate in candidates],
+    )
+    return candidates
+
+
+def get_supported_versions(package_name: str, cli: str, patches: str) -> list[str]:
+    """Backward-compatible list of version names for older callers."""
+    return [
+        candidate.name
+        for candidate in get_supported_version_candidates(package_name, cli, patches)
+    ]
 
 
 def get_supported_version(package_name: str, cli: str, patches: str) -> Optional[str]:

@@ -1,8 +1,5 @@
 name: Build and Release APKs
 
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-
 # 同時に複数回このワークフローが走ると、download-tools ジョブが同じ
 # キャッシュキーを取り合って "Unable to reserve cache" 警告が出る
 # （実害は小さいが、無駄な再ダウンロードや紛らわしいログの原因になる）。
@@ -130,7 +127,10 @@ jobs:
 
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
+
+      - name: Validate Repository Configuration
+        run: python3 scripts/validate_repository.py
 
       # ---------------------------------------------------------------
       # 1. 各ソースの実際のパッチバージョンを確定させる
@@ -197,9 +197,9 @@ jobs:
       # ---------------------------------------------------------------
       - name: Restore Cached Tools
         id: cache-restore
-        # Restore専用Actionを使う。actions/cache@v4はpost処理で自動保存するため、
+        # Restore専用Actionを使う。actions/cacheの通常Actionはpost処理で自動保存するため、
         # 下の明示的なcache/saveと二重保存になり、reserve競合を起こす。
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v6
         with:
           path: tools/
           key: ${{ steps.resolve-tags.outputs.cache-key }}
@@ -211,7 +211,7 @@ jobs:
       # ---------------------------------------------------------------
       - name: Setup Python
         if: steps.cache-restore.outputs.cache-hit != 'true'
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: 3.11
 
@@ -248,7 +248,7 @@ jobs:
       # ---------------------------------------------------------------
       - name: Save Cached Tools
         if: steps.cache-restore.outputs.cache-hit != 'true'
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@v6
         with:
           path: tools/
           key: ${{ steps.resolve-tags.outputs.cache-key }}
@@ -265,7 +265,7 @@ jobs:
 
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Read Patch Config and Filter by Updated Sources
         id: read-matrix
@@ -307,17 +307,17 @@ jobs:
 
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Restore Cached Tools
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v6
         with:
           path: tools/
           key: ${{ needs.download-tools.outputs.cache-key }}
           fail-on-cache-miss: true
 
       - name: Install Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: 3.11
 
@@ -326,7 +326,7 @@ jobs:
       # 都合でJavaのメジャーバージョンが上がった際に
       # "UnsupportedClassVersionError" で全ビルドが壊れる。明示的に固定する。
       - name: Setup Java
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: 'temurin'
           java-version: '21'
@@ -344,18 +344,18 @@ jobs:
           HTTP_RETRY_BASE_SECONDS: '5'
           HTTP_RETRY_MAX_SECONDS: '60'
           APK_VERSION_CANDIDATES: '5'
-          APKMIRROR_REQUEST_INTERVAL_SECONDS: '2.0'
+          APKMIRROR_REQUEST_INTERVAL_SECONDS: '3.5'
           BASE_APK_CACHE: 'true'
           BASE_APK_CACHE_TAG: 'base-apk-cache-v1'
         run: |
           echo "Building ${{ matrix.app_name }} with ${{ matrix.source }}..."
           # 同時に開始した2ジョブも配布サイトへ同時着弾しないよう分散する。
-          sleep $((10 + RANDOM % 21))
+          sleep $((15 + RANDOM % 31))
           python3 -m src
 
       - name: Upload Verified Base APK Cache Candidate
         if: success() && hashFiles('base-apk-cache-out/*') != ''
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: base-apk-${{ matrix.app_name }}-${{ matrix.source }}
           path: base-apk-cache-out/*
@@ -363,7 +363,7 @@ jobs:
 
       - name: Upload APK Artifact
         if: success()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: apk-${{ matrix.app_name }}-${{ matrix.source }}
           path: |
@@ -380,17 +380,17 @@ jobs:
 
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Install Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: 3.11
 
       - name: Download Cache Candidates
         id: candidates
         continue-on-error: true
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           path: base-apk-cache-in
           pattern: base-apk-*
@@ -425,15 +425,15 @@ jobs:
 
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Setup Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: 3.11
 
       - name: Download All APK Artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           path: ./all-apks
           pattern: apk-*
@@ -482,7 +482,7 @@ jobs:
 
       - name: Preserve VirusTotal Report
         if: always() && hashFiles('virustotal_results.*') != ''
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: virustotal-report
           path: |
@@ -571,3 +571,53 @@ jobs:
           ls -1 ./release-apks/*.apk | sed 's/^/    - /'
           echo ""
           echo "Download: https://github.com/${{ github.repository }}/releases/tag/$release_tag"
+
+  persist-successful-state:
+    name: Persist Successful Upstream State
+    needs: [download-tools, build-apps, create-release]
+    if: >-
+      ${{
+        !cancelled() &&
+        needs.build-apps.result == 'success' &&
+        needs.create-release.result == 'success'
+      }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v7
+
+      - name: Setup Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.11'
+          cache: pip
+
+      - name: Save Resolved Patch and APK Versions
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SOURCE_TAG_MORPHE: ${{ needs.download-tools.outputs.morphe_resolved }}
+          SOURCE_TAG_ANDDEA: ${{ needs.download-tools.outputs.anddea_resolved }}
+          SOURCE_TAG_PIKO: ${{ needs.download-tools.outputs.piko_resolved }}
+          SOURCE_TAG_HOO: ${{ needs.download-tools.outputs.hoo_resolved }}
+          SOURCE_TAG_ROOKIE: ${{ needs.download-tools.outputs.rookie_resolved }}
+          SOURCE_TAG_TOSOX: ${{ needs.download-tools.outputs.tosox_resolved }}
+          SOURCE_TAG_YUZU: ${{ needs.download-tools.outputs.yuzu_resolved }}
+          SOURCE_TAG_DROPPED: ${{ needs.download-tools.outputs.dropped_resolved }}
+        run: |
+          pip install -r requirements.txt
+          python3 scripts/save_successful_state.py
+
+      - name: Commit State When Changed
+        run: |
+          if git diff --quiet -- last-tags.json; then
+            echo "State already current."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -- last-tags.json
+          git commit -m "chore: record successful build state [skip ci]"
+          git push

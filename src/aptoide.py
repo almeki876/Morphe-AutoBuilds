@@ -3,6 +3,7 @@ import logging
 import re
 from typing import Dict
 from src import utils
+from src.versioning import VersionCandidate
 
 BASE_URL = "https://ws75.aptoide.com/api/7/"
 
@@ -31,6 +32,7 @@ def get_latest_version(app_name: str, config: Dict) -> str:
         app_data = data.get('data', {})
         version = app_data.get('file', {}).get('vername')
         if version:
+            version = _normalize_vername(version)
             logging.info(f"aptoide: found version {version} for {package} (store: {store_name})")
             return version
         raise ValueError(f"aptoide: could not get version for '{package}' from store '{store_name}'")
@@ -46,9 +48,52 @@ def get_latest_version(app_name: str, config: Dict) -> str:
             f"aptoide: no exact result for package '{package}' "
             "(app may not exist on Aptoide)"
         )
-    version = item['file']['vername']
+    version = _normalize_vername(item['file']['vername'])
     logging.info(f"aptoide: found version {version} for {package}")
     return version
+
+
+def get_download_link_for_candidate(
+    candidate: VersionCandidate, app_name: str, config: Dict
+) -> str:
+    """Use Aptoide's version-code endpoint before slower version-name lookup."""
+    if candidate.code:
+        package = config["package"]
+        q = _get_q_param(config.get("arch", "universal"))
+        url = (
+            f"{BASE_URL}getAppMeta?package_name={package}"
+            f"&vercode={candidate.code}{q}"
+        )
+        response = utils.cf_aware_get(url)
+        response.raise_for_status()
+        data = response.json().get("data", {})
+        file_data = data.get("file", {})
+        returned_code = str(file_data.get("vercode", ""))
+        returned_name = _normalize_vername(str(file_data.get("vername", "")))
+        if returned_code != candidate.code:
+            raise ValueError(
+                f"aptoide: requested version code {candidate.code}, "
+                f"received {returned_code or 'none'}"
+            )
+        if returned_name not in candidate.aliases("aptoide"):
+            raise ValueError(
+                f"aptoide: version code {candidate.code} resolved to "
+                f"{returned_name!r}, expected {candidate.name!r}"
+            )
+        path = file_data.get("path")
+        if not path:
+            raise ValueError(
+                f"aptoide: no download path for version code {candidate.code}"
+            )
+        return path
+
+    errors: list[str] = []
+    for alias in candidate.aliases("aptoide"):
+        try:
+            return get_download_link(alias, app_name, config)
+        except Exception as error:
+            errors.append(f"{alias}: {type(error).__name__}: {error}")
+    raise ValueError("; ".join(errors))
 
 def get_download_link(version: str, app_name: str, config: Dict) -> str:
     package = config['package']
@@ -144,5 +189,10 @@ def _get_q_param(arch: str) -> str:
     cpu = cpu_map.get(arch, '')
     if cpu:
         q_str = f"myCPU={cpu}&leanback=0"
-        return f"&q={base64.b64encode(q_str.encode('utf-8')).decode('utf-8')}"
+        encoded = (
+            base64.urlsafe_b64encode(q_str.encode("utf-8"))
+            .decode("ascii")
+            .rstrip("=")
+        )
+        return f"&q={encoded}"
     return ''
