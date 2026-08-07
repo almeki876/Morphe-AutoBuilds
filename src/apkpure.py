@@ -3,12 +3,14 @@ import logging
 from src import utils
 from bs4 import BeautifulSoup
 
+BASE_URL = "https://apkpure.com"
+
 # curl-cffi supplies a User-Agent matching its TLS browser impersonation.
 # Overriding it with an old Chrome version creates a detectable mismatch and
 # can itself trigger APKPure's anti-bot 403 response.
 HEADERS = {
     'Accept-Language': 'en-US,en;q=0.9',
-    'Referer': 'https://apkpure.net/'
+    'Referer': f'{BASE_URL}/'
 }
 
 # APKPureのリクエストタイムアウト（秒）
@@ -26,7 +28,7 @@ def _resolve_apkpure_slug(app_name: str, config: dict) -> str | None:
     if not package:
         return None
 
-    search_url = f"https://apkpure.net/search?q={package}"
+    search_url = f"{BASE_URL}/search?q={package}"
     try:
         resp = utils.cf_aware_get(search_url, headers=HEADERS, timeout=TIMEOUT)
         if resp.status_code != 200:
@@ -48,7 +50,7 @@ def _resolve_apkpure_slug(app_name: str, config: dict) -> str | None:
 
 
 def get_latest_version(app_name: str, config: str) -> str:
-    url = f"https://apkpure.net/{config['name']}/{config['package']}/versions"
+    url = f"{BASE_URL}/{config['name']}/{config['package']}/versions"
 
     try:
         response = utils.cf_aware_get(url, headers=HEADERS, timeout=TIMEOUT)
@@ -61,7 +63,7 @@ def get_latest_version(app_name: str, config: str) -> str:
             )
             new_slug = _resolve_apkpure_slug(app_name, config)
             if new_slug:
-                url = f"https://apkpure.net/{new_slug}/{config['package']}/versions"
+                url = f"{BASE_URL}/{new_slug}/{config['package']}/versions"
                 response = utils.cf_aware_get(url, headers=HEADERS, timeout=TIMEOUT)
             else:
                 logging.warning(f"Could not resolve new APKPure slug for {app_name}. "
@@ -86,7 +88,7 @@ def get_latest_version(app_name: str, config: str) -> str:
 
 
 def get_download_link(version: str, app_name: str, config: str) -> str:
-    url = f"https://apkpure.net/{config['name']}/{config['package']}/download/{version}"
+    url = f"{BASE_URL}/{config['name']}/{config['package']}/download/{version}"
 
     try:
         response = utils.cf_aware_get(url, headers=HEADERS, timeout=TIMEOUT)

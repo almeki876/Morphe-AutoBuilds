@@ -38,7 +38,7 @@ MODULES: dict[str, ModuleType] = {
 
 DETAILS = {
     "apkmirror": ("APKMirror", "https://www.apkmirror.com/"),
-    "apkpure": ("APKPure", "https://apkpure.net/"),
+    "apkpure": ("APKPure", "https://apkpure.com/"),
     "uptodown": ("Uptodown", "https://en.uptodown.com/android"),
     "softonic": ("Softonic", "https://en.softonic.com/android"),
     "aptoide": ("Aptoide", "https://en.aptoide.com/"),
