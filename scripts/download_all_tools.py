@@ -75,8 +75,14 @@ def _is_permanent_github_error(message: str) -> bool:
             "resource not accessible by integration",
             "404 not found",
             "http 404",
+            "release not found",
         )
     )
+
+
+def _same_repository(first: str, second: str) -> bool:
+    """Compare GitHub owner/repository slugs without case sensitivity."""
+    return bool(first.strip()) and first.strip().casefold() == second.strip().casefold()
 
 
 def _credential_candidates(primary_token: str, fallback_token: str) -> list[tuple[str, str]]:
@@ -112,10 +118,65 @@ def download_asset_gh(
     for credential_label, credential in credentials:
         for attempt in range(1, retries + 1):
             try:
+                env = {**os.environ, "GH_TOKEN": credential}
+                verify_cmd = [
+                    "gh",
+                    "release",
+                    "view",
+                    tag,
+                    "--repo",
+                    repo,
+                    "--json",
+                    "assets",
+                    "--jq",
+                    ".assets[].name",
+                ]
+                verify_result = subprocess.run(
+                    verify_cmd, capture_output=True, text=True, env=env
+                )
+                verify_detail = "\n".join(
+                    part.strip()
+                    for part in (verify_result.stderr, verify_result.stdout)
+                    if part.strip()
+                )
+                if verify_result.returncode != 0:
+                    if _is_permanent_github_error(verify_detail):
+                        logging.error(
+                            f"  ❌ {credential_label} cannot access "
+                            f"{repo}@{tag}: {verify_detail or 'access denied'}"
+                        )
+                        if credential_label == "PAT":
+                            logging.error(
+                                "     Fine-grained PAT requirements: resource "
+                                f"owner '{repo.split('/', 1)[0]}', selected "
+                                f"repository '{repo}', Contents: Read-only."
+                            )
+                        break
+                    logging.warning(
+                        f"  ⚠️  {credential_label} preflight attempt {attempt}: "
+                        f"gh exit={verify_result.returncode}"
+                        + (f" stderr={verify_detail}" if verify_detail else "")
+                    )
+                    if attempt < retries:
+                        time.sleep(10 * attempt)
+                    continue
+
+                available_assets = {
+                    name.strip()
+                    for name in verify_result.stdout.splitlines()
+                    if name.strip()
+                }
+                if filename not in available_assets:
+                    available = ", ".join(sorted(available_assets)) or "(none)"
+                    logging.error(
+                        f"  ❌ Release {repo}@{tag} is accessible, but asset "
+                        f"'{filename}' does not exist. Available assets: {available}"
+                    )
+                    return False
+
                 with tempfile.TemporaryDirectory(
                     prefix=f".{dest.name}.", dir=dest.parent
                 ) as temp_dir:
-                    env = {**os.environ, "GH_TOKEN": credential}
                     cmd = [
                         "gh", "release", "download", tag,
                         "--repo", repo,
@@ -182,6 +243,7 @@ def main() -> int:
     # read access を持つ PAT が必要。
     yuzu_pat = os.environ.get("PAT", "").strip()
     github_token = os.environ.get("GITHUB_TOKEN", "").strip()
+    workflow_repo = os.environ.get("GITHUB_REPOSITORY", "").strip()
     yuzu_repo = "matchadaisuke/morphe-patches"
     yuzu_tag = "patche"
     yuzu_file = "patches-1.0.rvp"
@@ -191,13 +253,21 @@ def main() -> int:
 
     logging.info("\n📦 Downloading yuzu patches from private release")
     logging.info(f"  ⬇️  {yuzu_file}")
+    fallback_token = (
+        github_token if _same_repository(workflow_repo, yuzu_repo) else ""
+    )
+    if github_token and not fallback_token:
+        logging.info(
+            f"  ℹ️  Not using GITHUB_TOKEN for {yuzu_repo}: workflow token is "
+            f"scoped to {workflow_repo or '(unknown repository)'}."
+        )
     if not download_asset_gh(
         yuzu_repo,
         yuzu_tag,
         yuzu_file,
         yuzu_dest_file,
         token=yuzu_pat,
-        fallback_token=github_token,
+        fallback_token=fallback_token,
     ):
         failures.append("yuzu: patches-1.0.rvp")
 
