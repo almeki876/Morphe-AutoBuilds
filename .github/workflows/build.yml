@@ -197,7 +197,9 @@ jobs:
       # ---------------------------------------------------------------
       - name: Restore Cached Tools
         id: cache-restore
-        uses: actions/cache@v4
+        # Restore専用Actionを使う。actions/cache@v4はpost処理で自動保存するため、
+        # 下の明示的なcache/saveと二重保存になり、reserve競合を起こす。
+        uses: actions/cache/restore@v4
         with:
           path: tools/
           key: ${{ steps.resolve-tags.outputs.cache-key }}
@@ -292,8 +294,14 @@ jobs:
     name: Build ${{ matrix.app_name }} with ${{ matrix.source }}
     needs: [download-tools, prepare-matrix]
     runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: read
     strategy:
       fail-fast: false
+      # APK配布サイトへの同時アクセスを抑え、403/429/503を避ける。
+      # 21ジョブの一斉実行は各サイトのレート制限を誘発した実績がある。
+      max-parallel: 2
       matrix:
         include: ${{ fromJson(needs.prepare-matrix.outputs.matrix) }}
 
@@ -332,22 +340,77 @@ jobs:
           APP_NAME: ${{ matrix.app_name }}
           SOURCE: ${{ matrix.source }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          HTTP_RETRIES: '4'
+          HTTP_RETRY_BASE_SECONDS: '5'
+          HTTP_RETRY_MAX_SECONDS: '60'
+          APK_VERSION_CANDIDATES: '5'
+          APKMIRROR_REQUEST_INTERVAL_SECONDS: '2.0'
+          BASE_APK_CACHE: 'true'
+          BASE_APK_CACHE_TAG: 'base-apk-cache-v1'
         run: |
           echo "Building ${{ matrix.app_name }} with ${{ matrix.source }}..."
-          sleep $((RANDOM % 10))
+          # 同時に開始した2ジョブも配布サイトへ同時着弾しないよう分散する。
+          sleep $((10 + RANDOM % 21))
           python3 -m src
+
+      - name: Upload Verified Base APK Cache Candidate
+        if: success() && hashFiles('base-apk-cache-out/*') != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: base-apk-${{ matrix.app_name }}-${{ matrix.source }}
+          path: base-apk-cache-out/*
+          retention-days: 1
 
       - name: Upload APK Artifact
         if: success()
         uses: actions/upload-artifact@v4
         with:
           name: apk-${{ matrix.app_name }}-${{ matrix.source }}
-          path: "*.apk"
+          path: |
+            *.apk
+            build-metadata/apk-sources.json
+
+  update-base-apk-cache:
+    name: Update Base APK Cache
+    needs: [build-apps]
+    if: ${{ !cancelled() && needs.build-apps.result != 'skipped' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Install Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: 3.11
+
+      - name: Download Cache Candidates
+        id: candidates
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          path: base-apk-cache-in
+          pattern: base-apk-*
+          merge-multiple: true
+
+      - name: Update Hidden Durable Cache
+        if: steps.candidates.outcome == 'success'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BASE_APK_CACHE_TAG: 'base-apk-cache-v1'
+          BASE_APK_CACHE_KEEP: '10'
+        run: |
+          pip install -r requirements.txt
+          python3 -m scripts.update_base_apk_cache
 
   create-release:
     name: Create Integrated Release
     needs: [download-tools, prepare-matrix, build-apps]
     runs-on: ubuntu-latest
+    timeout-minutes: 300
     # build-apps の一部失敗時は成功分をリリースできるよう起動するが、
     # ツール取得や matrix 準備の失敗時は成果物が存在し得ないため起動しない。
     if: >-
@@ -386,6 +449,8 @@ jobs:
 
       - name: Check if Any APKs Were Built
         id: check-apks
+        env:
+          EXPECTED_MATRIX: ${{ needs.prepare-matrix.outputs.matrix }}
         run: |
           total=$(find ./release-apks -name "*.apk" 2>/dev/null | wc -l)
           echo "Total APKs built: $total"
@@ -397,6 +462,38 @@ jobs:
             echo "skip_release=false" >> $GITHUB_OUTPUT
           fi
 
+          python3 -m scripts.release_metadata
+
+      - name: Scan Final APKs with VirusTotal
+        if: steps.check-apks.outputs.skip_release == 'false'
+        env:
+          VIRUSTOTAL_API_KEY: ${{ secrets.VIRUSTOTAL_API_KEY }}
+          # Public APIの上限（4 requests/minute）を超えない間隔。
+          VT_REQUEST_INTERVAL_SECONDS: '16'
+          VT_POLL_INTERVAL_SECONDS: '30'
+          VT_ANALYSIS_TIMEOUT_SECONDS: '2700'
+          VT_MAX_RETRIES: '6'
+        run: |
+          pip install -r requirements.txt
+          python3 -m scripts.scan_virustotal \
+            --directory ./release-apks \
+            --markdown ./virustotal_results.md \
+            --json ./virustotal_results.json
+
+      - name: Preserve VirusTotal Report
+        if: always() && hashFiles('virustotal_results.*') != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: virustotal-report
+          path: |
+            virustotal_results.md
+            virustotal_results.json
+          retention-days: 30
+
+      - name: Add VirusTotal Report to Job Summary
+        if: always() && hashFiles('virustotal_results.md') != ''
+        run: cat virustotal_results.md >> "$GITHUB_STEP_SUMMARY"
+
       - name: Generate Release Tag (JST)
         if: steps.check-apks.outputs.skip_release == 'false'
         id: tag
@@ -407,74 +504,33 @@ jobs:
 
       - name: Generate Release Notes
         if: steps.check-apks.outputs.skip_release == 'false'
-        id: notes
+        env:
+          MORPHE_TAG: ${{ needs.download-tools.outputs.morphe_resolved }}
+          ANDDEA_TAG: ${{ needs.download-tools.outputs.anddea_resolved }}
+          PIKO_TAG: ${{ needs.download-tools.outputs.piko_resolved }}
+          HOO_TAG: ${{ needs.download-tools.outputs.hoo_resolved }}
+          ROOKIE_TAG: ${{ needs.download-tools.outputs.rookie_resolved }}
+          TOSOX_TAG: ${{ needs.download-tools.outputs.tosox_resolved }}
+          YUZU_TAG: ${{ needs.download-tools.outputs.yuzu_resolved }}
+          DROPPED_TAG: ${{ needs.download-tools.outputs.dropped_resolved }}
+          MORPHE_UPDATED: ${{ github.event.inputs.morphe_updated }}
+          ANDDEA_UPDATED: ${{ github.event.inputs.anddea_updated }}
+          PIKO_UPDATED: ${{ github.event.inputs.piko_updated }}
+          HOO_UPDATED: ${{ github.event.inputs.hoo_updated }}
+          ROOKIE_UPDATED: ${{ github.event.inputs.rookie_updated }}
+          TOSOX_UPDATED: ${{ github.event.inputs.tosox_updated }}
+          YUZU_UPDATED: ${{ github.event.inputs.yuzu_updated }}
+          DROPPED_UPDATED: ${{ github.event.inputs.dropped_updated }}
+          MORPHE_FORCE: ${{ github.event.inputs.morphe_force_build }}
+          ANDDEA_FORCE: ${{ github.event.inputs.anddea_force_build }}
+          PIKO_FORCE: ${{ github.event.inputs.piko_force_build }}
+          HOO_FORCE: ${{ github.event.inputs.hoo_force_build }}
+          ROOKIE_FORCE: ${{ github.event.inputs.rookie_force_build }}
+          TOSOX_FORCE: ${{ github.event.inputs.tosox_force_build }}
+          YUZU_FORCE: ${{ github.event.inputs.yuzu_force_build }}
+          DROPPED_FORCE: ${{ github.event.inputs.dropped_force_build }}
         run: |
-          # download-tools で解決済みのタグをそのまま使う（再解決しない）
-          morphe_tag="${{ needs.download-tools.outputs.morphe_resolved }}"
-          anddea_tag="${{ needs.download-tools.outputs.anddea_resolved }}"
-          piko_tag="${{ needs.download-tools.outputs.piko_resolved }}"
-          hoo_tag="${{ needs.download-tools.outputs.hoo_resolved }}"
-          rookie_tag="${{ needs.download-tools.outputs.rookie_resolved }}"
-          tosox_tag="${{ needs.download-tools.outputs.tosox_resolved }}"
-          yuzu_tag="${{ needs.download-tools.outputs.yuzu_resolved }}"
-          dropped_tag="${{ needs.download-tools.outputs.dropped_resolved }}"
-
-          morphe_updated="${{ github.event.inputs.morphe_updated }}"
-          anddea_updated="${{ github.event.inputs.anddea_updated }}"
-          piko_updated="${{ github.event.inputs.piko_updated }}"
-          hoo_updated="${{ github.event.inputs.hoo_updated }}"
-          rookie_updated="${{ github.event.inputs.rookie_updated }}"
-          tosox_updated="${{ github.event.inputs.tosox_updated }}"
-          yuzu_updated="${{ github.event.inputs.yuzu_updated }}"
-          dropped_updated="${{ github.event.inputs.dropped_updated }}"
-
-          jst_time=$(TZ=Asia/Tokyo date +'%Y-%m-%d %H:%M JST')
-
-          morphe_force="${{ github.event.inputs.morphe_force_build }}"
-          anddea_force="${{ github.event.inputs.anddea_force_build }}"
-          piko_force="${{ github.event.inputs.piko_force_build }}"
-          hoo_force="${{ github.event.inputs.hoo_force_build }}"
-          rookie_force="${{ github.event.inputs.rookie_force_build }}"
-          tosox_force="${{ github.event.inputs.tosox_force_build }}"
-          yuzu_force="${{ github.event.inputs.yuzu_force_build }}"
-          dropped_force="${{ github.event.inputs.dropped_force_build }}"
-
-          {
-            echo "$jst_time"
-            echo ""
-            echo "| Source | Version | Apps | Status |"
-            echo "| --- | --- | --- | --- |"
-
-            # emit_row label url tag updated force apps
-            # アセットにないソース（updated=false かつ force=false）は行を出力しない
-            emit_row() {
-              local label="$1" url="$2" tag="$3" updated="$4" force="$5" apps="$6"
-              # どちらもfalseならスキップ
-              if [ "$updated" != "true" ] && [ "$force" != "true" ]; then
-                return
-              fi
-              local status=""
-              if [ "$updated" = "true" ] && [ "$force" = "true" ]; then
-                status="🔄 Patches & APK"
-              elif [ "$updated" = "true" ]; then
-                status="🔄 Patches"
-              else
-                status="🔄 APK"
-              fi
-              echo "| [$label]($url) | [$tag]($url/releases/tag/$tag) | $apps | $status |"
-            }
-
-            emit_row "Morphe"          "https://github.com/MorpheApp/morphe-patches"         "$morphe_tag"  "$morphe_updated"  "$morphe_force"  "YouTube, YouTube Music"
-            emit_row "Anddea"          "https://github.com/anddea/revanced-patches"           "$anddea_tag"  "$anddea_updated"  "$anddea_force"  "YouTube, YouTube Music"
-            emit_row "Piko"            "https://github.com/crimera/piko"                      "$piko_tag"    "$piko_updated"    "$piko_force"    "Instagram"
-            emit_row "Hoo-dles"        "https://github.com/hoo-dles/morphe-patches"           "$hoo_tag"     "$hoo_updated"     "$hoo_force"     "AdGuard, Prime Video, Duolingo, IBS Paint, Icon Packer, Nova, Proton VPN, Smart Launcher, SoundCloud, WPS Office, Crunchyroll"
-            emit_row "RookieEnough"    "https://github.com/RookieEnough/De-ReVanced"          "$rookie_tag"  "$rookie_updated"  "$rookie_force"  "Proton Mail, Disney+, Photomath, Pixiv"
-            emit_row "Tosox"           "https://github.com/Tosox/revanced-patches"            "$tosox_tag"   "$tosox_updated"   "$tosox_force"   "MEGA"
-            emit_row "YuzuMikan404"    "https://github.com/YuzuMikan404/linegms-fork-second-" "$yuzu_tag"    "$yuzu_updated"    "$yuzu_force"    "ゆうちょ通帳, ゆうちょ認証"
-            emit_row "Dropped-Patches" "https://github.com/indrastorms/Dropped-Patches"       "$dropped_tag" "$dropped_updated" "$dropped_force" ""
-          } > release_notes.md
-
-          echo "Release notes generated"
+          python3 -m scripts.release_notes
 
       - name: Create Release
         if: steps.check-apks.outputs.skip_release == 'false'
@@ -482,6 +538,11 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           release_tag="${{ steps.tag.outputs.release_tag }}"
+          failed_count="${{ steps.check-apks.outputs.failed_count }}"
+          release_title="Morphe AutoBuilds $release_tag"
+          if [ "${failed_count:-0}" -gt 0 ]; then
+            release_title="$release_title (Partial)"
+          fi
 
           echo "Creating release: $release_tag"
 
@@ -490,7 +551,7 @@ jobs:
           git push --delete origin "refs/tags/$release_tag" 2>/dev/null || true
 
           gh release create "$release_tag" \
-            --title "Morphe AutoBuilds $release_tag" \
+            --title "$release_title" \
             --notes-file release_notes.md \
             ./release-apks/*.apk
 

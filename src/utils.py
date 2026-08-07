@@ -1,48 +1,151 @@
 import re
 import logging
+import os
+import random
+import time
+from datetime import datetime, timezone
+from email.utils import parsedate_to_datetime
 from typing import List, Optional
 from src import gh
 from sys import exit
 import subprocess
 from pathlib import Path
-from urllib.parse import urlparse, unquote, parse_qs
+from urllib.parse import urlparse, unquote, parse_qs, urlsplit
 
-def cf_aware_get(url: str, **kwargs):
-    """GET via the shared session, with a one-shot Cloudflare Turnstile bypass
-    if the source serves a CF challenge instead of the real page.
+
+RETRYABLE_HTTP_STATUSES = frozenset({403, 408, 425, 429, 500, 502, 503, 504})
+
+
+def _positive_number_from_env(name: str, default: float) -> float:
+    try:
+        value = float(os.getenv(name, str(default)))
+        return value if value > 0 else default
+    except (TypeError, ValueError):
+        return default
+
+
+def safe_url_for_log(url: str) -> str:
+    """Drop query strings/fragments so signed download credentials are never logged."""
+    parts = urlsplit(url)
+    return f"{parts.scheme}://{parts.netloc}{parts.path}"
+
+
+def retry_after_seconds(response, attempt: int) -> float:
+    """Honor Retry-After, otherwise return capped exponential backoff with jitter."""
+    cap = _positive_number_from_env("HTTP_RETRY_MAX_SECONDS", 60)
+    base = _positive_number_from_env("HTTP_RETRY_BASE_SECONDS", 5)
+    header = response.headers.get("Retry-After") if response is not None else None
+
+    if header:
+        try:
+            return min(cap, max(0.0, float(header)))
+        except (TypeError, ValueError):
+            try:
+                retry_at = parsedate_to_datetime(header)
+                if retry_at.tzinfo is None:
+                    retry_at = retry_at.replace(tzinfo=timezone.utc)
+                seconds = (retry_at - datetime.now(timezone.utc)).total_seconds()
+                return min(cap, max(0.0, seconds))
+            except (TypeError, ValueError, OverflowError, IndexError):
+                pass
+
+    exponential = base * (2 ** max(0, attempt - 1))
+    jitter = random.uniform(0, min(base, 5))
+    return min(cap, exponential + jitter)
+
+
+def cf_aware_get(url: str, retries: int | None = None, **kwargs):
+    """GET with bounded retries and a Cloudflare Turnstile bypass.
 
     Used by apkmirror/apkpure/uptodown, which are all fronted by Cloudflare
-    and intermittently serve a "Just a moment..." challenge page (HTTP 403)
-    to datacenter IPs like GitHub Actions runners. Falls back to the plain
-    (challenged) response if the nodriver dependency isn't installed or the
-    bypass itself fails — never raises on its own.
+    and intermittently return challenges or throttling responses to Actions
+    runners. 403/429/5xx responses and transport errors use capped exponential
+    backoff with jitter, while Retry-After is honored when present.
     """
     from src import session as _session
-    response = _session.get(url, **kwargs)
-    try:
-        from src.cf_bypass import is_cf_challenge, solve_cloudflare
-        if is_cf_challenge(response):
-            logging.info(f"Cloudflare challenge on {url} — launching bypass…")
-            cookies = solve_cloudflare(url)
-            if cookies:
-                domain = "." + ".".join(urlparse(url).hostname.split(".")[-2:])
-                for name, value in cookies.items():
-                    _session.cookies.set(name, value, domain=domain)
-                response = _session.get(url, **kwargs)
-                if response.status_code == 403:
-                    logging.warning(
-                        f"Cloudflare bypass got cookies but retry still 403 for {url} "
-                        "— likely an IP/fingerprint-level block rather than a solvable challenge."
+
+    if retries is None:
+        retries = int(_positive_number_from_env("HTTP_RETRIES", 4))
+    retries = max(1, retries)
+    kwargs.setdefault("timeout", 30)
+    safe_url = safe_url_for_log(url)
+
+    for attempt in range(1, retries + 1):
+        response = None
+        try:
+            response = _session.get(url, **kwargs)
+            try:
+                from src.cf_bypass import is_cf_challenge, solve_cloudflare
+
+                if is_cf_challenge(response):
+                    logging.info(
+                        "Cloudflare challenge on %s — launching bypass…", safe_url
                     )
-                else:
-                    logging.info(f"Cloudflare bypass succeeded for {url} (status {response.status_code})")
-            else:
-                logging.warning(f"Cloudflare bypass could not obtain cookies for {url}")
-    except ImportError:
-        logging.debug("nodriver not installed; skipping Cloudflare bypass")
-    except Exception as e:
-        logging.debug(f"Cloudflare bypass attempt failed for {url}: {e}")
-    return response
+                    cookies = solve_cloudflare(url)
+                    if cookies:
+                        hostname = urlparse(url).hostname or ""
+                        domain = "." + ".".join(hostname.split(".")[-2:])
+                        for name, value in cookies.items():
+                            _session.cookies.set(name, value, domain=domain)
+                        response.close()
+                        response = _session.get(url, **kwargs)
+                        if response.status_code == 403:
+                            logging.warning(
+                                "Cloudflare bypass got cookies but retry still "
+                                "returned 403 for %s", safe_url
+                            )
+                        else:
+                            logging.info(
+                                "Cloudflare bypass succeeded for %s (status %s)",
+                                safe_url,
+                                response.status_code,
+                            )
+                    else:
+                        logging.warning(
+                            "Cloudflare bypass could not obtain cookies for %s",
+                            safe_url,
+                        )
+            except ImportError:
+                logging.debug("nodriver not installed; skipping Cloudflare bypass")
+            except Exception as bypass_error:
+                logging.debug(
+                    "Cloudflare bypass attempt failed for %s: %s",
+                    safe_url,
+                    bypass_error,
+                )
+
+            if (
+                response.status_code not in RETRYABLE_HTTP_STATUSES
+                or attempt >= retries
+            ):
+                return response
+
+            wait = retry_after_seconds(response, attempt)
+            logging.warning(
+                "HTTP %s from %s (attempt %d/%d); retrying in %.1fs",
+                response.status_code,
+                safe_url,
+                attempt,
+                retries,
+                wait,
+            )
+            response.close()
+        except Exception as error:
+            if attempt >= retries:
+                raise
+            wait = retry_after_seconds(None, attempt)
+            logging.warning(
+                "Request to %s failed on attempt %d/%d (%s); retrying in %.1fs",
+                safe_url,
+                attempt,
+                retries,
+                error,
+                wait,
+            )
+
+        time.sleep(wait)
+
+    raise RuntimeError(f"GET retry loop ended unexpectedly for {safe_url}")
 
 
 def _parseparam(s):
@@ -210,7 +313,7 @@ def get_highest_version(versions: list[str]) -> str | None:
             highest_version = v
     return highest_version
 
-def get_supported_version(package_name: str, cli: str, patches: str) -> Optional[str]:
+def get_supported_versions(package_name: str, cli: str, patches: str) -> list[str]:
     # Morphe CLI and ReVanced CLI have different list-versions syntax.
     # CLI-kind detection lives in src/cli_compat.py (single source of truth);
     # imported locally to avoid a circular import (cli_compat itself uses
@@ -250,7 +353,7 @@ def get_supported_version(package_name: str, cli: str, patches: str) -> Optional
 
     if not output:
         logging.warning("No output returned from list-versions command")
-        return None
+        return []
 
     lines = output.splitlines()
     logging.info(f"CLI raw output lines: {lines}")
@@ -260,15 +363,11 @@ def get_supported_version(package_name: str, cli: str, patches: str) -> Optional
     all_output_lower = output.lower()
     if 'missing required option' in all_output_lower or 'unmatched argument' in all_output_lower:
         logging.warning(f"CLI returned error/usage output (missing option or unmatched arg), cannot determine version")
-        return None
+        return []
     first_line = lines[0].strip().lower()
     if 'usage:' in first_line or 'error' in first_line:
         logging.warning(f"CLI returned error/usage output, cannot determine version")
-        return None
-
-    if len(lines) <= 2:
-        logging.warning("Output has no version lines")
-        return None
+        return []
 
     versions = []
     for line in lines:
@@ -305,10 +404,21 @@ def get_supported_version(package_name: str, cli: str, patches: str) -> Optional
 
     if not versions:
         logging.warning("No supported versions found")
-        return None
+        return []
 
-    logging.info(f"CLI parsed versions: {versions}")
-    return get_highest_version(versions)
+    # De-duplicate while preserving every supported alternative. Providers
+    # frequently remove the newest build before all mirrors have it, so callers
+    # must be able to try older compatible versions automatically.
+    unique_versions = list(dict.fromkeys(versions))
+    unique_versions.sort(key=normalize_version, reverse=True)
+    logging.info(f"CLI parsed compatible versions: {unique_versions}")
+    return unique_versions
+
+
+def get_supported_version(package_name: str, cli: str, patches: str) -> Optional[str]:
+    """Backward-compatible helper returning only the newest compatible version."""
+    versions = get_supported_versions(package_name, cli, patches)
+    return versions[0] if versions else None
 
 def extract_filename(response, fallback_url=None) -> str:
     cd = response.headers.get('content-disposition')
@@ -330,13 +440,26 @@ def extract_filename(response, fallback_url=None) -> str:
     path = urlparse(fallback_url or response.url).path
     return unquote(Path(path).name)
 
-def detect_github_release(user: str, repo: str, tag: str, retries: int = 3, retry_delay: int = 10) -> dict:
+def detect_github_release(
+    user: str,
+    repo: str,
+    tag: str,
+    retries: int = 3,
+    retry_delay: int = 10,
+    *,
+    include_prereleases: bool = True,
+) -> dict:
     import time
 
     last_err = None
     for attempt in range(1, retries + 1):
         try:
-            return _detect_github_release_once(user, repo, tag)
+            return _detect_github_release_once(
+                user,
+                repo,
+                tag,
+                include_prereleases=include_prereleases,
+            )
         except Exception as e:
             last_err = e
             if attempt < retries:
@@ -353,12 +476,23 @@ def detect_github_release(user: str, repo: str, tag: str, retries: int = 3, retr
     raise last_err
 
 
-def _detect_github_release_once(user: str, repo: str, tag: str) -> dict:
+def _detect_github_release_once(
+    user: str,
+    repo: str,
+    tag: str,
+    *,
+    include_prereleases: bool = True,
+) -> dict:
     repo_obj = gh.get_repo(f"{user}/{repo}")
 
     if tag in ["latest", "latest-tag"]:
-        # prerelease 含む全リリースから最新を取得する
         releases = list(repo_obj.get_releases())
+        if not include_prereleases:
+            releases = [
+                release
+                for release in releases
+                if not release.prerelease and not release.draft
+            ]
         if not releases:
             raise ValueError(f"No releases found for {user}/{repo}")
         release = max(releases, key=lambda x: x.created_at)
@@ -393,5 +527,3 @@ def _detect_github_release_once(user: str, repo: str, tag: str) -> dict:
     except Exception as e:
         logging.error(f"Error fetching release {tag} for {user}/{repo}: {e}")
         raise
-
-

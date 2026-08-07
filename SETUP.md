@@ -1,218 +1,195 @@
-# Morphe AutoBuilds - セットアップガイド
+# Morphe AutoBuilds 運用セットアップ
 
-このガイドに従い、Morphe AutoBuilds システムを GitHub リポジトリで運用するための設定を行ってください。
+この文書は、Morphe AutoBuildsをフォークまたは独自リポジトリで運用する管理者向けです。公開済みAPKを利用するだけの場合は設定不要です。[README](./README.md)から最新リリースを確認してください。
 
-## 📋 前提条件
+## 必要なもの
 
-- GitHub リポジトリが作成済み
-- GitHub CLI (`gh`) がインストール済み
-- リポジトリへの管理者権限がある
+- GitHub Actionsを利用できるGitHubリポジトリ
+- リポジトリのActionsとSecretsを変更できる権限
+- `matchadaisuke/morphe-patches`を読み取れるPersonal Access Token
+- VirusTotal Communityまたは上位プランのAPIキー
+- コマンド操作を行う場合は[GitHub CLI](https://cli.github.com/)のログイン済み環境
 
-## 🔧 セットアップ手順
+このリポジトリはPython 3.11、Java 21、GitHub CLIなどをActions内で準備します。通常はローカル環境へビルドツールを導入する必要はありません。
 
-### ステップ 1: リポジトリに新規ファイルを push
+## 1. リポジトリを用意する
+
+GitHub上でこのリポジトリをフォークするか、内容を管理対象リポジトリへpushします。
+
+Actionsが次の操作を行うため、対象ブランチの保護ルールも確認してください。
+
+- Actionsワークフローの実行
+- GitHub Releaseとタグの作成
+- 内部APKキャッシュ用ドラフトリリースの更新
+- `last-tags.json`の自動更新とpush
+
+ブランチ保護でActionsからのpushを禁止している場合、更新確認は成功しても`last-tags.json`の保存に失敗します。
+
+## 2. GitHub Actionsを有効にする
+
+リポジトリの「Settings」から「Actions」→「General」を開き、使用しているActionsを実行できる設定にします。
+
+ワークフローには必要な`permissions`が個別に定義されています。ただし、組織ポリシーやブランチ保護はワークフロー設定より優先されるため、次の権限が許可されていることを確認してください。
+
+- Actionsからリポジトリ内容を読み取る
+- リリース、タグ、ドラフトリリースを作成・更新する
+- `check-upstream.yml`から`build.yml`を起動する
+- `github-actions[bot]`が`last-tags.json`を更新する
+
+## 3. 必須Secretsを登録する
+
+登録場所は「Settings」→「Secrets and variables」→「Actions」→「Repository secrets」です。
+
+| Secret名 | 用途 |
+| --- | --- |
+| `PAT` | 非公開のYuzuパッチリポジトリ`matchadaisuke/morphe-patches`の読み取り |
+| `VIRUSTOTAL_API_KEY` | 完成APKを公開前にVirusTotalで検査 |
+
+`GITHUB_TOKEN`はActions実行時にGitHubが自動発行するため、手動登録は不要です。現在の更新管理は`last-tags.json`を使用しており、古い手順にあった`LAST_MORPHE_TAG`などのRepository Variablesも不要です。
+
+### PAT
+
+Fine-grained Personal Access Tokenを使用する場合は、次の条件を満たすようにします。
+
+- Resource ownerが`matchadaisuke/morphe-patches`へアクセスできる所有者である
+- Repository accessに`matchadaisuke/morphe-patches`が含まれている
+- Repository permissionsの`Contents`が`Read-only`以上である
+- 有効期限内である
+
+トークンの値はファイル、コミット、Issue、Actionsログへ記載しないでください。
+
+GitHub CLIから登録する場合は、値をコマンド行へ直接書かず、表示される入力欄へ貼り付けます。
 
 ```bash
-# リポジトリをクローン
-git clone https://github.com/YOUR_USERNAME/morphe-autobuilds.git
-cd morphe-autobuilds
-
-# 新規ファイルをコピー
-cp my-patch-config.json .
-cp arch-config.json .
-cp scripts/generate_readme.py scripts/
-cp .github/workflows/check-upstream.yml .github/workflows/
-cp .github/workflows/build.yml .github/workflows/
-
-# 変更をコミット
-git add .
-git commit -m "feat: implement upstream-triggered build system with JST-tagged releases"
-git push origin main
+gh secret set PAT
 ```
 
-### ステップ 2: Repository Variables を初期化
+この非公開リポジトリへのアクセス権を持たないフォークでは、Yuzuパッチツールを取得できません。現在のビルドはツールを一括準備するため、PATが無効だと他のアプリを含むビルド全体が開始できない場合があります。
 
-GitHub CLI で Variables を設定します：
+### VirusTotal APIキー
+
+GitHub CLIから登録する場合は次を実行します。
 
 ```bash
-# Morphe の最新タグを取得して設定
-morphe_tag=$(gh api repos/MorpheApp/morphe-patches/releases/latest --jq '.tag_name')
-gh variable set LAST_MORPHE_TAG --body "$morphe_tag"
-echo "✅ LAST_MORPHE_TAG set to: $morphe_tag"
-
-# Anddea の最新タグを取得して設定
-anddea_tag=$(gh api repos/anddea/revanced-patches/releases/latest --jq '.tag_name')
-gh variable set LAST_ANDDEA_TAG --body "$anddea_tag"
-echo "✅ LAST_ANDDEA_TAG set to: $anddea_tag"
+gh secret set VIRUSTOTAL_API_KEY
 ```
 
-**GUI での設定方法**:
-1. リポジトリの Settings ページを開く
-2. 左メニューから「Variables and secrets」→「Variables」を選択
-3. 「New repository variable」をクリック
-4. 以下の2つを追加：
-   - `LAST_MORPHE_TAG`: 最新の Morphe タグ（例: `v1.13.2`）
-   - `LAST_ANDDEA_TAG`: 最新の Anddea タグ（例: `v5.4.0-all`）
+通常のVirusTotal APIへアップロードしたAPKは、VirusTotalや解析パートナーと共有される場合があります。共有条件を確認したうえで利用してください。
 
-### ステップ 3: GitHub Actions を有効化
+APIキーが未設定、無効、利用上限超過、または解析がタイムアウトした場合、未検査APKを公開しないためリリースジョブは失敗します。
 
-1. リポジトリの Settings ページを開く
-2. 左メニューから「Actions」→「General」を選択
-3. 「Allow all actions and reusable workflows」を選択
-4. 「Save」をクリック
+## 4. 設定ファイルを確認する
 
-### ステップ 4: 手動テスト（build.yml）
+初回実行前に、少なくとも次のファイルを確認します。
+
+| ファイル | 確認内容 |
+| --- | --- |
+| `my-patch-config.json` | ビルド対象の`app_name`と`source`、パッチオプション |
+| `arch-config.json` | 個別に固定するアーキテクチャ。未指定時はarm64優先 |
+| `apps/<provider>/<app>.json` | package ID、取得先の名前やURL、固定バージョン |
+| `sources/<source>.json` | CLIとパッチバンドルのGitHubリリース |
+| `last-tags.json` | 前回確認したパッチとAPKのバージョン |
+
+`apps/`の`version`が空の場合は、パッチが対応するバージョンを自動選択します。APKMirror設定の`org`やアプリ名が古い場合も、package IDによる検索を試みます。
+
+AdGuardは`apps/github/adguard.json`の設定で公式の安定版GitHub Releaseだけを使用します。取得元を保証するため、第三者APKサイトや既存の共通キャッシュへはフォールバックしません。ゆうちょ2アプリは`apps/github/`の設定でYuzuMikan404の専用GitHubリリースを優先し、取得できない場合は一般APKサイトへフォールバックします。
+
+## 5. 初回の動作確認
+
+GitHubの「Actions」タブから、最初に「Build and Release APKs」を手動実行します。手動実行では、ビルドしたいパッチソースの`*_updated`または`*_force_build`を`true`にしてください。すべて`false`のままだとビルドマトリクスは空になります。
+
+全ソースを確認する場合は、各ソースの更新フラグを`true`にします。Yuzuを確認する場合は`yuzu_updated`または`yuzu_force_build`も明示的に`true`にしてください。
+
+実行中は次の順番で確認します。
+
+1. `Download Build Tools`がすべてのCLIとパッチを取得できる
+2. `Prepare Build Matrix`に対象アプリが含まれる
+3. 各`Build <app> with <source>`ジョブがAPKを作成する
+4. `Scan Final APKs with VirusTotal`が全APKの解析を完了する
+5. `Create Integrated Release`がリリースを作成する
+
+ビルドは同時アクセスによる配布サイトの制限を避けるため、並列数を抑えて実行します。VirusTotal Community APIの待機もあるため、対象数によっては完了まで長時間かかります。
+
+GitHub CLIで状況を見る場合は次を使用できます。
 
 ```bash
-# build.yml を手動トリガー
-gh workflow run build.yml -f morphe_tag="latest" -f anddea_tag="latest"
-
-# ワークフロー実行状況を確認
-gh run list --workflow=build.yml --limit=1
+gh run list --workflow=build.yml --limit=5
+gh run watch
 ```
 
-**期待される結果**:
-- 4つの APK がビルドされる
-- JST 日時タグ（例: `2026-04-21_15-30-JST`）でリリースが作成される
-- README.md と全 APK がリリースアセットに含まれる
+## 6. 自動更新確認を有効にする
 
-### ステップ 5: check-upstream.yml テスト
+`Check Upstream for Updates`は、毎日09:00 UTC（日本時間18:00頃）に実行されます。GitHub Actionsのスケジュールは混雑により遅延することがあります。
+
+このワークフローは次を確認します。
+
+- Morphe、Anddea、Piko、hoo-dles、RookieEnough、Tosox、Dropped-Patchesの新しいリリース
+- パッチが任意バージョンへ対応するアプリの新しい元APK
+
+更新を検出すると、影響するパッチソースのビルドを起動し、確認済みバージョンを`last-tags.json`へ保存します。
+
+手動確認はActions画面、または次のコマンドから実行できます。
 
 ```bash
-# check-upstream.yml を手動トリガー
 gh workflow run check-upstream.yml
-
-# ワークフロー実行状況を確認
-gh run list --workflow=check-upstream.yml --limit=1
 ```
 
-**期待される結果**:
-- 最新の Morphe / Anddea タグが取得される
-- Variables と比較される
-- 差分がなければ「No updates found」とログに出力
-- 差分があれば build.yml が自動トリガー
+## 7. リリース結果を確認する
 
-### ステップ 6: PAT（Personal Access Token）設定（必須）
+正常なリリースには、成功したAPKと次の情報が含まれます。
 
-yuzu パッチは別のプライベートリポジトリ
-`matchadaisuke/morphe-patches` から取得するため、標準の
-`GITHUB_TOKEN` ではアクセスできません。このリポジトリを読み取れる PAT が必要です。
+- パッチソースと解決済みバージョン
+- 成功・失敗したアプリとソースの組み合わせ
+- 元APKの取得元、バージョン、アーキテクチャ
+- VirusTotalの検出数とSHA-256へのリンク
 
-1. GitHub で PAT を生成：
-   - Settings → Developer settings → Personal access tokens → Fine-grained tokens
-   - Repository access は `matchadaisuke/morphe-patches` のみに限定
-   - Repository permissions の `Contents` を `Read-only` に設定
-   - 有効期限を設定し、期限前にローテーション
-   - 「Generate token」をクリック
-   - トークンをコピー
+一部のビルドだけ失敗した場合、タイトルへ`Partial`が付き、成功したAPKのみ公開されることがあります。VirusTotalで検出または検査失敗が発生した場合は、APKが完成していてもリリースされません。
 
-2. リポジトリの Secrets に登録：
-   ```bash
-   gh secret set PAT --body "YOUR_PAT_HERE"
-   ```
+VirusTotalのMarkdownとJSONレポートは、Actions実行の`virustotal-report`アーティファクトへ30日間保存されます。
 
-3. ワークフローファイルで使用：
-   ```yaml
-   env:
-     PAT: ${{ secrets.PAT }}
-   ```
+## トラブルシューティング
 
-PAT を更新した後は `Build and Release APKs` を再実行し、`Download Build
-Tools` の yuzu 取得が成功することを確認してください。401 `Bad credentials`
-はトークンの失効・削除・入力不備を示すため、同じトークンの再試行では復旧しません。
+### `401 Bad credentials`またはPAT認証エラー
 
-### ステップ 7: 既存ワークフロー削除（オプション）
+- `PAT`がRepository Secretとして登録されているか確認する
+- PATの有効期限と失効状態を確認する
+- `matchadaisuke/morphe-patches`の`Contents: Read`権限を確認する
+- 同じ無効なトークンを再試行せず、新しいトークンへ更新する
 
-古い `patch.yml` を削除または無効化：
+### ビルドマトリクスが空になる
 
-```bash
-# ファイルを削除
-rm .github/workflows/patch.yml
+手動実行時の`*_updated`と`*_force_build`がすべて`false`になっています。対象ソースのどちらかを`true`にして再実行します。
 
-# または、cron トリガーをコメントアウト
-# schedule:
-#   - cron: '0 6 * * *'
+### 元APKを取得できない
 
-# 変更をコミット
-git add .
-git commit -m "chore: remove legacy patch.yml workflow"
-git push origin main
-```
+対象バージョンが各配布サイトに存在するか、package IDが正しいかを確認します。ワークフローはAPKMirror、APKPure、Uptodown、Softonic、Aptoide、APKComboの順に試すため、最後に記録された各取得元のエラーを確認してください。
 
-## 📊 動作確認チェックリスト
+403、429、503はアクセス制限や一時障害の可能性があります。不完全なファイルやHTMLが返った場合は自動的に拒否されます。
 
-以下の項目を確認して、システムが正常に動作していることを確認してください：
+### VirusTotalで停止する
 
-- [ ] Repository Variables が設定されている
-  ```bash
-  gh variable list
-  ```
+- Secret名が正確に`VIRUSTOTAL_API_KEY`になっているか確認する
+- APIキーが有効か、利用上限に達していないか確認する
+- `virustotal-report`とジョブ概要で対象APKの結果を確認する
+- `malicious`または`suspicious`が1件以上ある場合は、原因を確認するまで公開しない
 
-- [ ] build.yml が手動実行でき、4つの APK がビルドされる
+### リリースが作成されない
 
-- [ ] check-upstream.yml が手動実行でき、タグ取得ができる
+次のいずれかが原因です。
 
-- [ ] リリースが JST 日時タグで作成されている
-  ```bash
-  gh release list
-  ```
+- APKが1件も完成していない
+- VirusTotal検査が失敗または検出ありで終了した
+- `contents: write`が組織ポリシーで禁止されている
+- タグやリリースを作成する権限がない
 
-- [ ] リリースアセットに README.md と 4つの APK が含まれている
-  ```bash
-  gh release view <TAG> --json assets
-  ```
+### `last-tags.json`を更新できない
 
-- [ ] スケジュール実行（毎日 6:00 UTC）が有効になっている
-  - GitHub UI で Workflows ページを確認
+ブランチ保護、Ruleset、Actionsの書き込み権限を確認します。ワークフローは`github-actions[bot]`として`last-tags.json`だけをコミットします。
 
-## 🔍 トラブルシューティング
+## 運用上の注意
 
-### 問題: ワークフローが失敗する
-
-**原因**: GitHub Actions の権限不足
-
-**対処**:
-1. リポジトリの Settings → Actions → General を確認
-2. 「Allow all actions and reusable workflows」が選択されているか確認
-3. ワークフローファイルの `permissions` セクションが正しいか確認
-
-### 問題: Variables が更新されない
-
-**原因**: PAT の権限不足または未設定
-
-**対処**:
-1. PAT が `repo` スコープを持っているか確認
-2. `PAT` が Secrets に登録されており、有効期限内か確認
-3. PAT が `matchadaisuke/morphe-patches` を読み取れるか確認
-4. ワークフロー内で `PAT: ${{ secrets.PAT }}` を使用しているか確認
-
-### 問題: APK ビルドが失敗する
-
-**原因**: ツールのダウンロード失敗またはビルドエラー
-
-**対処**:
-1. ワークフロー実行ログを確認
-2. ツールの URL が正しいか確認（GitHub Releases から手動でダウンロード可能か）
-3. `src/__main__.py` の Morphe CLI 引数が正しいか確認
-
-### 問題: リリースが作成されない
-
-**原因**: APK ビルド失敗またはアセットアップロード失敗
-
-**対処**:
-1. ワークフロー実行ログで「Build APK」ステップを確認
-2. 「Collect All APKs」ステップで APK が見つかっているか確認
-3. GitHub の API レート制限に達していないか確認
-
-## 📞 サポート
-
-問題が解決しない場合は、以下を確認してください：
-
-1. [GitHub Actions Documentation](https://docs.github.com/en/actions)
-2. [GitHub CLI Manual](https://cli.github.com/manual/)
-3. ワークフロー実行ログの詳細メッセージ
-
-## 📝 参考資料
-
-- [実装ドキュメント](IMPLEMENTATION.md)
-- [設計書 v2.0](morphe-autobuild-設計書_v2.docx)
+- Secretsをリポジトリ内のファイルへ保存しないでください。
+- PATは対象リポジトリの読み取りだけに絞り、期限を設定してください。
+- パッチソース、配布サイト、VirusTotal APIは外部サービスです。仕様変更時はActionsログと各サービスの公式情報を確認してください。
+- 公開APKの「検出なし」は安全性の保証ではありません。
+- package ID、署名、取得元、ハッシュを確認できないAPKは公開しないでください。

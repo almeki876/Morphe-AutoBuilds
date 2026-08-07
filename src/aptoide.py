@@ -2,9 +2,19 @@ import base64
 import logging
 import re
 from typing import Dict
-from src import session
+from src import utils
 
 BASE_URL = "https://ws75.aptoide.com/api/7/"
+
+
+def _exact_package(items: list, package: str) -> dict | None:
+    """Never accept a fuzzy search result for a different Android package."""
+    for item in items:
+        candidate = item.get("package") or item.get("package_name")
+        if candidate == package:
+            return item
+    return None
+
 
 def get_latest_version(app_name: str, config: Dict) -> str:
     package = config['package']
@@ -15,7 +25,7 @@ def get_latest_version(app_name: str, config: Dict) -> str:
     store_name = config.get('store_name')
     if store_name:
         url = f"{BASE_URL}getApp?package_name={package}&store_name={store_name}{q}"
-        res = session.get(url)
+        res = utils.cf_aware_get(url)
         res.raise_for_status()
         data = res.json()
         app_data = data.get('data', {})
@@ -25,14 +35,18 @@ def get_latest_version(app_name: str, config: Dict) -> str:
             return version
         raise ValueError(f"aptoide: could not get version for '{package}' from store '{store_name}'")
 
-    url = f"{BASE_URL}apps/search?query={package}&limit=1&trusted=true{q}"
-    res = session.get(url)
+    url = f"{BASE_URL}apps/search?query={package}&limit=10&trusted=true{q}"
+    res = utils.cf_aware_get(url)
     res.raise_for_status()
     data = res.json()
     items = data.get('datalist', {}).get('list', [])
-    if not items:
-        raise ValueError(f"aptoide: no results for package '{package}' (app may not exist on Aptoide)")
-    version = items[0]['file']['vername']
+    item = _exact_package(items, package)
+    if not item:
+        raise ValueError(
+            f"aptoide: no exact result for package '{package}' "
+            "(app may not exist on Aptoide)"
+        )
+    version = item['file']['vername']
     logging.info(f"aptoide: found version {version} for {package}")
     return version
 
@@ -45,7 +59,7 @@ def get_download_link(version: str, app_name: str, config: Dict) -> str:
     # If a specific store_name is configured, use getApp endpoint directly
     if store_name:
         url = f"{BASE_URL}getApp?package_name={package}&store_name={store_name}{q}"
-        res = session.get(url)
+        res = utils.cf_aware_get(url)
         res.raise_for_status()
         data = res.json()
         path = data.get('data', {}).get('file', {}).get('path')
@@ -54,18 +68,19 @@ def get_download_link(version: str, app_name: str, config: Dict) -> str:
         raise ValueError(f"aptoide: no download path for '{package}' in store '{store_name}'")
 
     if version.lower() == "latest":
-        url = f"{BASE_URL}apps/search?query={package}&limit=1&trusted=true{q}"
-        res = session.get(url)
+        url = f"{BASE_URL}apps/search?query={package}&limit=10&trusted=true{q}"
+        res = utils.cf_aware_get(url)
         res.raise_for_status()
         data = res.json()
         items = data.get('datalist', {}).get('list', [])
-        if not items:
-            raise ValueError(f"aptoide: no results for package '{package}'")
-        return items[0]['file']['path']
+        item = _exact_package(items, package)
+        if not item:
+            raise ValueError(f"aptoide: no exact result for package '{package}'")
+        return item['file']['path']
 
     # Find vercode for specific version
     url_versions = f"{BASE_URL}listAppVersions?package_name={package}&limit=100{q}"
-    res_v = session.get(url_versions)
+    res_v = utils.cf_aware_get(url_versions)
     res_v.raise_for_status()
     versions_list = res_v.json().get('datalist', {}).get('list', [])
     vercode = None
@@ -80,26 +95,27 @@ def get_download_link(version: str, app_name: str, config: Dict) -> str:
             f"aptoide: version '{version}' not in listAppVersions for '{package}', "
             f"falling back to search API"
         )
-        url_search = f"{BASE_URL}apps/search?query={package}&limit=1&trusted=true{q}"
-        res_s = session.get(url_search)
+        url_search = f"{BASE_URL}apps/search?query={package}&limit=10&trusted=true{q}"
+        res_s = utils.cf_aware_get(url_search)
         res_s.raise_for_status()
         items = res_s.json().get('datalist', {}).get('list', [])
-        if not items:
+        item = _exact_package(items, package)
+        if not item:
             raise ValueError(f"aptoide: version '{version}' not found for package '{package}'")
-        found_vername = items[0]['file'].get('vername', '')
+        found_vername = item['file'].get('vername', '')
         normalized = _normalize_vername(found_vername)
         if normalized != version:
             raise ValueError(
                 f"aptoide: version '{version}' not available for package '{package}' "
                 f"(search returned '{found_vername}' instead)"
             )
-        path = items[0]['file'].get('path')
+        path = item['file'].get('path')
         if not path:
             raise ValueError(f"aptoide: no download path for package '{package}'")
         return path
 
     url_meta = f"{BASE_URL}getAppMeta?package_name={package}&vercode={vercode}{q}"
-    res_meta = session.get(url_meta)
+    res_meta = utils.cf_aware_get(url_meta)
     res_meta.raise_for_status()
     return res_meta.json()['data']['file']['path']
 

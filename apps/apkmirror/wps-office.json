@@ -1,0 +1,8 @@
+{
+  "name": "wps-office-pdf-word-excel-ppt",
+  "package": "cn.wps.moffice_eng",
+  "type": "APK",
+  "arch": "arm64-v8a",
+  "dpi": "nodpi",
+  "version": ""
+}

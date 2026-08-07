@@ -5,7 +5,7 @@ Config format (apps/github/{app_name}.json):
 {
     "user": "AdguardTeam",
     "repo": "AdguardForAndroid",
-    "asset_pattern": "adguard-release-v{version}.apk",
+    "asset_pattern": "adguard-{version}.apk",
     "package": "com.adguard.android",
     "version": ""
 }
@@ -32,11 +32,68 @@ def _resolve_release(config: Dict) -> tuple[dict, str]:
     user = config["user"]
     repo = config["repo"]
     tag = config.get("tag", "latest")
-    release = utils.detect_github_release(user, repo, tag)
+    release = utils.detect_github_release(
+        user,
+        repo,
+        tag,
+        include_prereleases=config.get("include_prereleases", True),
+    )
     # Extract clean version from tag (strip leading 'v')
     tag_name = release.get("tag_name", "")
     version = re.sub(r"^v", "", tag_name)
     return release, version
+
+
+def _matching_asset(
+    release: dict, config: Dict, app_name: str, version: str
+) -> Optional[dict]:
+    """Select one APK asset without crossing an explicit app pattern."""
+    assets = release.get("assets", [])
+    asset_pattern = config.get("asset_pattern", "*.apk")
+    asset_exclude = config.get("asset_exclude", "")
+    pattern = asset_pattern.replace("{version}", version)
+
+    for asset in assets:
+        name = str(asset.get("name", ""))
+        if (
+            fnmatch.fnmatch(name, pattern)
+            and name.lower().endswith(".apk")
+            and not (asset_exclude and asset_exclude in name)
+        ):
+            return asset
+
+    # An explicit pattern identifies a particular app/variant. Falling back to
+    # another APK in the same release can download the wrong application.
+    if asset_pattern != "*.apk":
+        logging.error(
+            "github: no asset matched explicit pattern %r for %s",
+            pattern,
+            app_name,
+        )
+        return None
+
+    for asset in assets:
+        name = str(asset.get("name", ""))
+        if name.lower().endswith(".apk") and not (
+            asset_exclude and asset_exclude in name
+        ):
+            return asset
+    return None
+
+
+def _asset_version(asset: dict, config: Dict) -> Optional[str]:
+    pattern = config.get("version_pattern")
+    if not pattern:
+        return None
+    match = re.search(str(pattern), str(asset.get("name", "")))
+    if not match:
+        return None
+    if "version" in match.groupdict():
+        return match.group("version")
+    if match.groups():
+        return match.group(1)
+    logging.error("github: version_pattern must contain a capture group")
+    return None
 
 
 def get_latest_version(app_name: str, config: Dict) -> Optional[str]:
@@ -50,7 +107,20 @@ def get_latest_version(app_name: str, config: Dict) -> Optional[str]:
             logging.info(f"github: direct_url config for {app_name} has no version, skipping")
         return version
     try:
-        _, version = _resolve_release(config)
+        release, version = _resolve_release(config)
+        if config.get("version_pattern"):
+            asset = _matching_asset(release, config, app_name, version)
+            if not asset:
+                return None
+            asset_version = _asset_version(asset, config)
+            if not asset_version:
+                logging.error(
+                    "github: could not extract app version from asset %r for %s",
+                    asset.get("name"),
+                    app_name,
+                )
+                return None
+            version = asset_version
         logging.info(f"github: latest version for {app_name} is {version}")
         return version
     except Exception as e:
@@ -61,34 +131,13 @@ def get_latest_version(app_name: str, config: Dict) -> Optional[str]:
 def get_download_link(version: str, app_name: str, config: Dict) -> Optional[str]:
     try:
         release, _ = _resolve_release(config)
-        assets = release.get("assets", [])
-
-        asset_pattern = config.get("asset_pattern", "*.apk")
-        asset_exclude = config.get("asset_exclude", "")
-        # Replace {version} placeholder
-        pattern = asset_pattern.replace("{version}", version)
-
-        def _is_excluded(name: str) -> bool:
-            return bool(asset_exclude and asset_exclude in name)
-
-        # Try exact pattern match first (fnmatch)
-        for asset in assets:
+        asset = _matching_asset(release, config, app_name, version)
+        if asset:
             name = asset["name"]
-            if fnmatch.fnmatch(name, pattern) and not _is_excluded(name):
-                logging.info(f"github: matched asset '{name}' for {app_name} v{version}")
-                return asset["browser_download_url"]
+            logging.info(f"github: matched asset '{name}' for {app_name} v{version}")
+            return asset["browser_download_url"]
 
-        # Fallback: just pick the first .apk asset (still respecting exclusions)
-        for asset in assets:
-            name = asset["name"]
-            if name.endswith(".apk") and not _is_excluded(name):
-                logging.info(
-                    f"github: pattern '{pattern}' did not match; "
-                    f"falling back to first .apk: {name}"
-                )
-                return asset["browser_download_url"]
-
-        logging.error(f"github: no .apk asset found in release for {app_name}")
+        logging.error(f"github: no matching .apk asset found for {app_name}")
         return None
 
     except Exception as e:

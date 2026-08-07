@@ -1,0 +1,8 @@
+{
+  "name": "icon-packer",
+  "package": "cn.ommiao.iconpacker",
+  "type": "APK",
+  "arch": "arm64-v8a",
+  "dpi": "nodpi",
+  "version": ""
+}

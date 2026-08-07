@@ -1,0 +1,8 @@
+{
+  "name": "crunchyroll",
+  "package": "com.crunchyroll.crunchyroid",
+  "type": "APK",
+  "arch": "arm64-v8a",
+  "dpi": "nodpi",
+  "version": ""
+}

@@ -1,6 +1,16 @@
-import logging 
+import logging
+import re
 from src import utils
 from bs4 import BeautifulSoup
+
+
+def _natural_version_key(version: str) -> tuple:
+    """Compare dotted/mixed versions numerically instead of lexicographically."""
+    return tuple(
+        (0, int(part)) if part.isdigit() else (1, part.casefold())
+        for part in re.findall(r"\d+|[^\d]+", version)
+    )
+
 
 def get_latest_version(app_name: str, config: dict) -> str:
     # Generate all possible Uptodown names
@@ -13,14 +23,13 @@ def get_latest_version(app_name: str, config: dict) -> str:
         try:
             response = utils.cf_aware_get(url)
             if response.status_code == 200:
-                content_size = len(response.content)
                 logging.info(f"✓ Found: {response.url}")
                 soup = BeautifulSoup(response.content, "html.parser")
                 version_spans = soup.select('#versions-items-list .version')
-                versions = [span.text for span in version_spans]
+                versions = [span.text.strip() for span in version_spans if span.text.strip()]
                 
                 if versions:
-                    highest_version = max(versions)
+                    highest_version = max(versions, key=_natural_version_key)
                     logging.info(f"Found version {highest_version} for {app_name}")
                     return highest_version
             elif response.status_code == 404:
@@ -56,7 +65,8 @@ def get_download_link(version: str, app_name: str, config: dict) -> str:
             data_code = soup.find('h1', id='detail-app-name')['data-code']
 
             page = 1
-            while True:
+            max_pages = 50
+            while page <= max_pages:
                 response = utils.cf_aware_get(f"{base_url}/apps/{data_code}/versions/{page}")
                 response.raise_for_status()
                 version_data = response.json().get('data', [])
@@ -88,7 +98,11 @@ def get_download_link(version: str, app_name: str, config: dict) -> str:
                             download_url = button['data-url']
                             return f"https://dw.uptodown.com/dwn/{download_url}"
                 
-                if all(entry["version"] < version for entry in version_data):
+                if all(
+                    _natural_version_key(entry["version"])
+                    < _natural_version_key(version)
+                    for entry in version_data
+                ):
                     break
                 page += 1
         except Exception as e:
@@ -99,75 +113,69 @@ def get_download_link(version: str, app_name: str, config: dict) -> str:
     return None
 
 def generate_possible_uptodown_names(config: dict) -> list:
-    """Generate all possible Uptodown URL patterns from config data"""
-    app_name = config.get('name', '')
-    package = config.get('package', '')
-    
-    possible_names = set()
-    
-    # 1. Basic variations
-    possible_names.add(app_name)
-    possible_names.add(app_name.replace('-', ''))
-    possible_names.add(app_name.replace('-plus', 'plus'))
-    possible_names.add(app_name.replace('-', '_'))
-    
-    # 2. Package name variations
-    package_dash = package.replace('.', '-')
-    possible_names.add(package_dash)
-    
-    # Common TLD patterns (com-, org-, net-)
-    if package.startswith('com.'):
-        possible_names.add(package_dash)
-        possible_names.add(package_dash.replace('com-', ''))
-        
-        # com-package variations
-        parts = package.split('.')
+    """Generate deterministic, de-duplicated URL slugs in priority order."""
+    app_name = config.get("name", "")
+    package = config.get("package", "")
+    possible_names: list[str] = []
+    seen: set[str] = set()
+
+    def add(candidate: str) -> None:
+        candidate = (candidate or "").lower()
+        if len(candidate) > 1 and candidate not in seen:
+            possible_names.append(candidate)
+            seen.add(candidate)
+
+    # The explicitly configured slug is always tried first.
+    add(app_name)
+    add(app_name.replace("-", ""))
+    add(app_name.replace("-plus", "plus"))
+    add(app_name.replace("-", "_"))
+
+    package_dash = package.replace(".", "-")
+    add(package_dash)
+
+    if package.startswith("com."):
+        add(package_dash.replace("com-", ""))
+        parts = package.split(".")
         if len(parts) >= 2:
-            # com-appname
-            possible_names.add(f"com-{parts[1]}")
-            # com-appname-lastpart
-            possible_names.add(f"com-{parts[1]}-{parts[-1]}")
-            # appname only
-            possible_names.add(parts[1])
-            possible_names.add(parts[-1])
-            
-            # For multi-part packages like com.disney.disneyplus
+            add(f"com-{parts[1]}")
+            add(f"com-{parts[1]}-{parts[-1]}")
+            add(parts[1])
+            add(parts[-1])
             if len(parts) >= 3:
-                possible_names.add(f"com-{parts[1]}{parts[2]}")
-                possible_names.add(f"com-{parts[1]}{parts[2]}-mea")
-                possible_names.add(f"com-{'-'.join(parts[1:])}")
-    
-    # 3. Common suffixes (these cover 99% of cases)
-    suffixes = ['', '-android', '-mobile', '-mea', '-plus', '-pro', '-lite', '-hd', '-apk']
+                add(f"com-{parts[1]}{parts[2]}")
+                add(f"com-{parts[1]}{parts[2]}-mea")
+                add(f"com-{'-'.join(parts[1:])}")
+
+    suffixes = [
+        "",
+        "-android",
+        "-mobile",
+        "-mea",
+        "-plus",
+        "-pro",
+        "-lite",
+        "-hd",
+        "-apk",
+    ]
     for suffix in suffixes:
-        possible_names.add(app_name + suffix)
-        possible_names.add(package_dash + suffix)
-    
-    # 4. Company/app combinations
-    # Extract company name from package (first meaningful part after TLD)
-    parts = package.split('.')
+        add(app_name + suffix)
+        add(package_dash + suffix)
+
+    parts = package.split(".")
     if len(parts) >= 2:
         company = parts[1]
         app_basename = parts[-1]
-        possible_names.add(f"{company}-{app_basename}")
-        possible_names.add(f"{company}-{app_name}")
-        
-        # For apps like Adobe
-        if 'adobe' in package.lower():
-            possible_names.add(f"adobe-{app_basename}")
-            possible_names.add(f"adobe-{app_basename}-mobile")
-    
-    # 5. Remove common words and try variations
-    clean_name = app_name
-    for word in ['plus', 'pro', 'lite', 'free', 'paid', 'mod']:
-        if word in clean_name:
-            clean = clean_name.replace(f'-{word}', '').replace(word, '')
-            possible_names.add(clean)
-            possible_names.add(f"{clean}-{word}")
-    
-    # 6. All lowercase
-    lowercase_names = {name.lower() for name in possible_names}
-    possible_names.update(lowercase_names)
-    
-    # Clean up: remove None/empty, deduplicate
-    return [name for name in possible_names if name and len(name) > 1]
+        add(f"{company}-{app_basename}")
+        add(f"{company}-{app_name}")
+        if "adobe" in package.lower():
+            add(f"adobe-{app_basename}")
+            add(f"adobe-{app_basename}-mobile")
+
+    for word in ["plus", "pro", "lite", "free", "paid", "mod"]:
+        if word in app_name:
+            clean = app_name.replace(f"-{word}", "").replace(word, "")
+            add(clean)
+            add(f"{clean}-{word}")
+
+    return possible_names

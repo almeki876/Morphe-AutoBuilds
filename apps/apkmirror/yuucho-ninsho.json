@@ -1,0 +1,8 @@
+{
+  "name": "yuucho-ninsho-app",
+  "package": "jp.japanpost.jp_bank.FIDOapp",
+  "type": "APK",
+  "arch": "arm64-v8a",
+  "dpi": "nodpi",
+  "version": ""
+}

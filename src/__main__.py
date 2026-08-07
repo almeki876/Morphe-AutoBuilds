@@ -62,7 +62,7 @@ from pathlib import Path
 from sys import exit
 from typing import Any
 
-from src import cli_compat, downloader, utils
+from src import cli_compat, downloader, providers, utils
 
 
 # ---------------------------------------------------------------------------
@@ -802,15 +802,10 @@ def run_build(app_name: str, source: str, arch: str = "universal") -> str:
     input_apk: Path | None = None
     version:   str  | None = None
 
-    for method in [
-        downloader.download_github,
-        downloader.download_apkmirror,
-        downloader.download_apkpure,
-        downloader.download_uptodown,
-        downloader.download_aptoide,
-    ]:
-        platform = method.__name__.replace("download_", "")
-        input_apk, version = method(app_name, str(cli), str(bundle))
+    for platform in providers.download_priority(app_name):
+        input_apk, version = downloader.download_platform(
+            app_name, platform, str(cli), str(bundle), arch
+        )
         if input_apk:
             logging.info("✅ APK obtained from %s", platform)
             break
@@ -890,7 +885,9 @@ def main() -> None:
         exit(1)
 
     # Determine target architectures from arch-config.json
-    arches = ["universal"]
+    # arm64 is the primary target. If it cannot be built, the loop below
+    # automatically retries universal once as a compatibility fallback.
+    arches = ["arm64-v8a"]
     arch_config_path = Path("arch-config.json")
 
     if arch_config_path.exists():
@@ -898,7 +895,7 @@ def main() -> None:
         if not isinstance(arch_config, list):
             logging.error(
                 "arch-config.json must be a JSON array (got %s). "
-                "Falling back to universal build.",
+                "Falling back to arm64-v8a build.",
                 type(arch_config).__name__,
             )
         else:
@@ -908,27 +905,42 @@ def main() -> None:
                     and entry.get("app_name") == app_name
                     and entry.get("source")   == source
                 ):
-                    arches = entry.get("arches") or entry.get("arch") or arches
+                    configured = entry.get("arches") or entry.get("arch")
+                    if isinstance(configured, str):
+                        arches = [configured]
+                    elif isinstance(configured, list) and configured:
+                        arches = configured
                     break
     else:
-        logging.warning("arch-config.json not found — building universal only.")
+        logging.warning("arch-config.json not found — prioritizing arm64-v8a.")
 
     built:  list[str] = []
     failed: list[str] = []
+    build_queue = list(dict.fromkeys(arches))
 
-    for arch in arches:
+    for arch in build_queue:
         logging.info("🔨 Building '%s' for %s…", app_name, arch)
         try:
             apk_path = run_build(app_name, source, arch)
             built.append(apk_path)
             print(f"✅ Built {arch}: {Path(apk_path).name}")
-        except SystemExit:
-            raise  # propagate fatal errors immediately
-        except Exception as exc:
+            if arch == "universal" and "arm64-v8a" in failed:
+                failed.remove("arm64-v8a")
+                logging.warning(
+                    "⚠️  arm64-v8a failed, but universal fallback succeeded."
+                )
+        except (SystemExit, Exception) as exc:
             logging.error("❌ Build failed for '%s' [%s]: %s", app_name, arch, exc)
+            downloader.remove_apk_origin(app_name, arch)
             failed.append(arch)
+            if arch == "arm64-v8a" and "universal" not in build_queue:
+                logging.warning(
+                    "🛟 Retrying '%s' as universal after arm64-v8a failure.",
+                    app_name,
+                )
+                build_queue.append("universal")
 
-    print(f"\n🎯 {len(built)} / {len(arches)} APK(s) built for '{app_name}':")
+    print(f"\n🎯 {len(built)} APK(s) built for '{app_name}':")
     for apk in built:
         print(f"   📱 {Path(apk).name}")
 

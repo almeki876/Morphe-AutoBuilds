@@ -1,0 +1,8 @@
+{
+  "name": "anytracker",
+  "package": "com.shervinkoushan.anyTracker",
+  "type": "APK",
+  "arch": "arm64-v8a",
+  "dpi": "nodpi",
+  "version": ""
+}

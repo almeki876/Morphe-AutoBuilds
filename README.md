@@ -1,318 +1,124 @@
-<div align="center">
-
-# 🚀 Morphe AutoBuilds
-
-[![Upstream Check](https://img.shields.io/github/actions/workflow/status/matchadaisuke/Morphe-AutoBuilds/check-upstream.yml?label=Upstream%20Check&style=for-the-badge&color=2ea44f)](https://github.com/matchadaisuke/Morphe-AutoBuilds/actions/workflows/check-upstream.yml)
-[![Build Status](https://img.shields.io/github/actions/workflow/status/matchadaisuke/Morphe-AutoBuilds/build.yml?label=Build%20Status&style=for-the-badge&color=0366d6)](https://github.com/matchadaisuke/Morphe-AutoBuilds/actions/workflows/build.yml)
-[![Latest Release](https://img.shields.io/github/v/release/matchadaisuke/Morphe-AutoBuilds?style=for-the-badge&label=Latest%20Release&color=orange)](https://github.com/matchadaisuke/Morphe-AutoBuilds/releases/latest)
-[![Python Version](https://img.shields.io/badge/Python-3.11%2B-blue?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
-
-<p align="center">
-  <strong>自動 Android APK ビルドシステム</strong><br>
-  複数パッチソース対応 • GitHub Actions 自動実行 • JST タイムスタンプリリース
-</p>
-
-<p align="center">
-  アップストリームのパッチリリースを自動検知し、ベース APK のダウンロード・パッチ適用・署名・リリース公開までを全自動で行うパイプラインです。
-</p>
-
-[![最新リリースを見る](https://img.shields.io/badge/最新リリースを見る-0A0A0A?style=flat&logo=github&logoColor=white)](https://github.com/matchadaisuke/Morphe-AutoBuilds/releases/latest)
-[![バグ報告](https://img.shields.io/badge/バグ報告-0A0A0A?style=flat&logo=github&logoColor=white)](https://github.com/matchadaisuke/Morphe-AutoBuilds/issues)
-
-</div>
-
----
-
-## ⚡ ダウンロード
-
-アップストリームが新バージョンをリリースすると自動的にビルドされます。タグは JST タイムスタンプ形式（例: `2026-04-21_15-30-JST`）です。
-
-[**→ 最新リリースを見る**](https://github.com/matchadaisuke/Morphe-AutoBuilds/releases/latest)
-
-| アプリ | パッチソース |
-| :--- | :--- |
-| **YouTube** | Morphe, Anddea |
-| **YouTube Music** | Morphe, Anddea |
-| **Instagram** | Piko |
-| **AdGuard** | hoo-dles |
-| **Prime Video** | hoo-dles |
-| **Duolingo** | hoo-dles |
-| **IBS Paint** | hoo-dles |
-| **Icon Packer** | hoo-dles |
-| **Nova Launcher** | hoo-dles |
-| **Proton VPN** | hoo-dles |
-| **Smart Launcher** | hoo-dles |
-| **SoundCloud** | hoo-dles |
-| **WPS Office** | hoo-dles |
-| **Crunchyroll** | hoo-dles |
-| **MEGA** | Tosox |
-| **Proton Mail** | RookieEnough |
-| **Disney+** | RookieEnough |
-| **Photomath** | RookieEnough |
-| **Pixiv** | RookieEnough |
-| **ゆうちょ通帳アプリ** | YuzuMikan404 |
-| **ゆうちょ認証アプリ** | YuzuMikan404 |
-
----
-
-## 📱 ビルド対象
-
-| アプリ | パッチソース | CLI |
-| :--- | :--- | :--- |
-| YouTube | Morphe | morphe-cli |
-| YouTube | Anddea (revanced-anddea) | morphe-cli |
-| YouTube Music | Morphe | morphe-cli |
-| YouTube Music | Anddea (revanced-anddea) | morphe-cli |
-| Instagram | Piko (crimera) | morphe-cli |
-| AdGuard | hoo-dles | morphe-cli |
-| Prime Video | hoo-dles | morphe-cli |
-| Duolingo | hoo-dles | morphe-cli |
-| IBS Paint | hoo-dles | morphe-cli |
-| Icon Packer | hoo-dles | morphe-cli |
-| Nova Launcher | hoo-dles | morphe-cli |
-| Proton VPN | hoo-dles | morphe-cli |
-| Smart Launcher | hoo-dles | morphe-cli |
-| SoundCloud | hoo-dles | morphe-cli |
-| WPS Office | hoo-dles | morphe-cli |
-| Crunchyroll | hoo-dles | morphe-cli |
-| MEGA | Tosox | revanced-cli v4.4.0 |
-| Proton Mail | RookieEnough (De-ReVanced) | morphe-cli |
-| Disney+ | RookieEnough (De-ReVanced) | morphe-cli |
-| Photomath | RookieEnough (De-ReVanced) | morphe-cli |
-| Pixiv | RookieEnough (De-ReVanced) | morphe-cli |
-| ゆうちょ通帳アプリ | YuzuMikan404 | revanced-cli v5.0.1 |
-| ゆうちょ認証アプリ | YuzuMikan404 | revanced-cli v5.0.1 |
-
----
-
-## ✨ 主な機能
-
-- **アップストリーム自動検知**: 全パッチソースの新リリースを毎日 JST 06:00 / 18:00 の2回監視し、更新があれば自動でビルドをトリガー
-- **統合リリース**: 全 APK を JST タイムスタンプタグでまとめてリリース
-- **複数 CLi 対応**: morphe-cli (v1.8.x / v1.9.x+) と revanced-cli (v4・v5+) を自動判別して適切な引数を構築
-- **動的パッチ選択**: `patches-list.json` から対象アプリ・バージョンに互換性のあるパッチを自動選択
-- **オプション制御**: `my-patch-config.json` でパッチオプション・無効化・強制有効化を一元管理
-- **APK 自動取得**: APKMirror・APKPure・Uptodown・Aptoide から互換バージョンを自動検索してダウンロード
-- **ツールキャッシュ**: ビルドツールをジョブ間でキャッシュし、ダウンロード時間を削減
-
----
-
-## 📋 システム構成
-
-### ワークフロー
-
-```
-check-upstream.yml（毎日 JST 06:00 / 18:00）
-  └─ Morphe・Anddea の最新タグを取得
-  └─ Repository Variables と比較
-  └─ 差分があれば build.yml をトリガー
-
-build.yml（アップストリーム更新時 or 手動実行）
-  ├─ Prepare Build Matrix  … ビルド対象の組み合わせを生成
-  ├─ Download Build Tools  … 各ソースのツールをダウンロード・キャッシュ
-  ├─ Build APK（並列）     … 各 app × source の組み合わせをビルド
-  └─ Create Integrated Release … 全 APK を統合してリリース作成
-```
-
-### リポジトリ構造
-
-```
-Morphe-AutoBuilds/
-├── .github/workflows/
-│   ├── check-upstream.yml      # アップストリーム監視
-│   └── build.yml               # ビルド & リリース
-├── src/                        # Python ビルドコア
-│   ├── __main__.py             # エントリポイント・パッチ実行ロジック
-│   ├── downloader.py           # APK・ツールダウンロード
-│   ├── apkmirror.py            # APKMirror 対応
-│   ├── apkpure.py              # APKPure 対応
-│   ├── uptodown.py             # Uptodown 対応
-│   ├── aptoide.py              # Aptoide 対応
-│   ├── github.py               # GitHub Releases 対応
-│   ├── utils.py                # 共通ユーティリティ
-│   └── __init__.py             # セッション・ロギング初期化
-├── scripts/
-│   ├── prepare_matrix.py       # ビルドマトリクス生成
-│   ├── download_all_tools.py   # ツール一括ダウンロード
-│   ├── download_reused_apks.py # 再利用 APK のダウンロード
-│   ├── check_apk_versions.py   # APK バージョン確認
-│   └── save_apk_versions.py    # APK バージョン保存
-├── apps/
-│   ├── apkmirror/              # APKMirror からダウンロードするアプリの設定
-│   ├── apkpure/                # APKPure からダウンロードするアプリの設定
-│   ├── uptodown/               # Uptodown からダウンロードするアプリの設定
-│   ├── aptoide/                # Aptoide からダウンロードするアプリの設定
-│   └── github/                 # GitHub Releases からダウンロードするアプリの設定
-├── sources/
-│   ├── morphe.json             # Morphe ツール定義
-│   ├── revanced-anddea.json    # Anddea ツール定義
-│   ├── piko.json               # Piko ツール定義
-│   ├── hoo.json                # hoo-dles ツール定義
-│   ├── tosox.json              # Tosox ツール定義
-│   ├── yuzu.json               # YuzuMikan404 ツール定義
-│   └── rookie.json             # RookieEnough ツール定義
-├── patches/
-│   ├── youtube-morphe.txt
-│   ├── youtube-revanced-anddea.txt
-│   ├── youtube-music-morphe.txt
-│   ├── youtube-music-revanced-anddea.txt
-│   ├── yuucho-tsucho-yuzu.txt
-│   └── yuucho-ninsho-yuzu.txt
-├── keystore/                   # 署名用キーストア
-├── my-patch-config.json        # パッチオプション・有効化・無効化の設定
-├── arch-config.json            # アーキテクチャ設定
-├── last-tags.json              # 前回リリースタグの記録
-└── SETUP.md                    # セットアップガイド
-```
-
----
-
-## ⚙️ 設定ガイド
-
-### 1. ビルド対象の定義（`my-patch-config.json`）
-
-`patch_list` に app × source の組み合わせを記述します。
-
-```json
-{
-  "patch_list": [
-    {
-      "app_name": "youtube",
-      "source": "revanced-anddea",
-      "options": [
-        { "patch": "Custom branding name for YouTube", "key": "appName", "value": "RVA" },
-        { "patch": "GmsCore support", "key": "packageNameYouTube", "value": "bill.youtube" }
-      ],
-      "disable": [],
-      "force_enable": []
-    }
-  ]
-}
-```
-
-**フィールド説明:**
-
-| フィールド | 説明 |
-| :--- | :--- |
-| `app_name` | アプリ名（`youtube`、`youtube-music`、`instagram` 等） |
-| `source` | パッチソース名（`sources/` 以下のファイル名と対応） |
-| `options` | パッチオプションのリスト。`patch`・`key`・`value` を指定 |
-| `disable` | 強制無効化するパッチ名のリスト |
-| `force_enable` | デフォルト無効のパッチを強制有効化するリスト |
-
-> **`force_enable` について**: `patches-list.json` 上で `use: false`（デフォルト無効）になっているパッチを有効化したい場合に使います。`patches/` の `.txt` ファイルの `+` 行は `patches-list.json` が存在する場合は参照されないため、このフィールドで指定してください。
-
-### 2. アーキテクチャ設定（`arch-config.json`）
-
-```json
-[
-  { "app_name": "youtube",       "source": "morphe",          "arches": ["arm64-v8a"] },
-  { "app_name": "youtube-music", "source": "revanced-anddea", "arches": ["arm64-v8a"] }
-]
-```
-
-### 3. パッチフィルター（`patches/<app>-<source>.txt`）
-
-`patches-list.json` が存在しないソースや、フォールバック時に参照されます。
-
-```text
-# - で始まる行 = 無効化
-# + で始まる行 = 強制有効化（patches-list.json がない場合のみ有効）
-
-- Custom branding name for YouTube
-+ Return YouTube Dislike
-```
-
-> `patches-list.json` があるソース（morphe、revanced-anddea 等）では動的選択が優先されます。無効化は `my-patch-config.json` の `disable`、強制有効化は `force_enable` で設定してください。
-
-### 4. APK ダウンロード設定（`apps/<platform>/<app>.json`）
-
-各プラットフォームからのダウンロード設定です。APKMirror の例:
-
-```json
-{
-  "org": "google-inc",
-  "name": "youtube",
-  "type": "APK",
-  "arch": "universal",
-  "dpi": "nodpi",
-  "package": "com.google.android.youtube",
-  "version": ""
-}
-```
-
-`version` を空にすると、パッチと互換性のある最新バージョンが自動選択されます。
-
-### 5. パッチソース定義（`sources/<source>.json`）
-
-ツールのダウンロード元（GitHub リリース）を定義します。
-
-```json
-[
-  { "name": "revanced-anddea" },
-  { "user": "MorpheApp", "repo": "morphe-cli",       "tag": "latest" },
-  { "user": "anddea",    "repo": "revanced-patches",  "tag": "latest" }
-]
-```
-
----
-
-## 🚀 セットアップ
-
-詳細は [SETUP.md](./SETUP.md) を参照してください。
-
-```bash
-# Repository Variables を初期化
-morphe_tag=$(gh api repos/MorpheApp/morphe-patches/releases/latest --jq '.tag_name')
-gh variable set LAST_MORPHE_TAG --body "$morphe_tag"
-
-anddea_tag=$(gh api repos/anddea/revanced-patches/releases/latest --jq '.tag_name')
-gh variable set LAST_ANDDEA_TAG --body "$anddea_tag"
-
-# 手動でビルドを実行
-gh workflow run build.yml
-
-# アップストリームチェックを手動実行
-gh workflow run check-upstream.yml
-```
-
----
-
-## 📥 インストール方法
-
-1. 最新リリースから目的の APK をダウンロード
-2. Android の「提供元不明のアプリ」を許可
-3. 既存の YouTube / YouTube Music をアンインストール
-4. APK をインストール
-5. 必要に応じて [MicroG-RE](https://github.com/ReVanced/GmsCore) をインストール（Google アカウント連携に必要）
-
----
-
-## 🔗 パッチソース一覧
-
-| ソース名 | リポジトリ |
-| :--- | :--- |
-| Morphe | https://github.com/MorpheApp/morphe-patches |
-| Anddea | https://github.com/anddea/revanced-patches |
-| Piko | https://github.com/crimera/piko |
-| hoo-dles | https://github.com/hoo-dles/morphe-patches |
-| Tosox | https://github.com/Tosox/revanced-patches |
-| YuzuMikan404 | https://github.com/YuzuMikan404/linegms-fork-second- |
-| RookieEnough | https://github.com/RookieEnough/De-ReVanced |
-
----
-
-## ⚠️ 免責事項
-
-- Morphe・各パッチ作者の公式ツールを使用した自動ビルドです
-- Morphe・Anddea・その他パッチ作者との公式な提携関係はありません
-- 自己責任でご利用ください
-- Google アカウント連携には MicroG-RE が必要な場合があります
-
----
-
-<div align="center">
-
-**役に立ったと思ったら ⭐ Star をお願いします**
-
-</div>
+# Morphe AutoBuilds
+
+[![Upstream Check](https://img.shields.io/github/actions/workflow/status/matchadaisuke/Morphe-AutoBuilds/check-upstream.yml?label=upstream%20check)](https://github.com/matchadaisuke/Morphe-AutoBuilds/actions/workflows/check-upstream.yml)
+[![Build Status](https://img.shields.io/github/actions/workflow/status/matchadaisuke/Morphe-AutoBuilds/build.yml?label=build)](https://github.com/matchadaisuke/Morphe-AutoBuilds/actions/workflows/build.yml)
+[![Latest Release](https://img.shields.io/github/v/release/matchadaisuke/Morphe-AutoBuilds?label=latest%20release)](https://github.com/matchadaisuke/Morphe-AutoBuilds/releases/latest)
+
+Morphe AutoBuildsは、Androidアプリへコミュニティ製パッチを適用し、インストール可能なAPKを自動作成するリポジトリです。パッチは、元アプリの機能や表示、動作を変更するための差分データです。
+
+GitHub Actionsがパッチや対象アプリの更新を確認し、互換性のある元APKの取得、パッチ適用、署名、VirusTotal検査、GitHub Releasesへの公開までを自動で行います。同じアプリでもパッチ提供元が異なる場合は、それぞれ別のAPKとして作成されます。
+
+> [!IMPORTANT]
+> このリポジトリと配布APKは、各アプリの開発元、Google、ReVanced、Morphe、各パッチ作者の公式配布物ではありません。利用前に「安全性と注意事項」を確認してください。
+
+## APKをダウンロードする
+
+完成したAPKは[最新リリース](https://github.com/matchadaisuke/Morphe-AutoBuilds/releases/latest)からダウンロードできます。リリース名には作成日時がJSTで記録されます。
+
+各リリースの説明には、次の情報が掲載されます。
+
+- ビルドに成功・失敗したアプリ
+- 使用したパッチソースとバージョン
+- 元APKのバージョン、アーキテクチャ、取得元
+- VirusTotalによる検査結果とファイルのSHA-256
+
+APKファイル名には、アプリ名、対象アーキテクチャ、元APKバージョンが含まれます。基本的には`arm64-v8a`版が優先され、作成できない場合は`universal`版へ自動的に切り替わります。
+
+## 対象アプリ
+
+現在の設定では、以下の組み合わせをビルドします。
+
+| パッチソース | 対象アプリ |
+| --- | --- |
+| [Morphe](https://github.com/MorpheApp/morphe-patches) | YouTube、YouTube Music |
+| [Anddea](https://github.com/anddea/revanced-patches) | YouTube、YouTube Music |
+| [Piko](https://github.com/crimera/piko) | Instagram |
+| [hoo-dles](https://github.com/hoo-dles/morphe-patches) | AdGuard、Prime Video、Duolingo、ibis Paint X、Icon Packer、Nova Launcher、Proton VPN、Smart Launcher、SoundCloud、WPS Office、Crunchyroll |
+| [Tosox](https://github.com/Tosox/revanced-patches) | MEGA |
+| [RookieEnough](https://github.com/RookieEnough/De-Vanced) | Proton Mail、Disney+、Photomath、Pixiv |
+| [YuzuMikan404](https://github.com/YuzuMikan404) | ゆうちょ通帳アプリ、ゆうちょ認証アプリ |
+
+対象やパッチ内容はアップストリームの変更に応じて変わることがあります。実際に適用された内容は、各リリースとGitHub Actionsのログを確認してください。
+
+## 自動ビルドの流れ
+
+このリポジトリは毎日18:00頃（JST）に、登録されたパッチソースと監視対象APKの更新を確認します。GitHub Actionsのスケジュール実行は混雑状況により遅れる場合があります。
+
+更新が見つかると、次の処理が実行されます。
+
+1. 使用するパッチツールとパッチバンドルのバージョンを確定する
+2. パッチが対応する元APKバージョンを調べる
+3. 複数の取得元から元APKをダウンロードする
+4. APKの形式とダウンロード内容を検証する
+5. パッチを適用し、リポジトリのキーストアで署名する
+6. 完成した全APKをVirusTotalで検査する
+7. 検査を通過した場合だけ、取得元情報付きのリリースを公開する
+
+一部のアプリだけビルドに失敗した場合は、成功したAPKのみを部分リリースとして公開することがあります。APKが1件も完成しなかった場合やVirusTotal検査を完了できなかった場合は、リリースを作成しません。
+
+## 元APKの取得方法
+
+通常は、パッチと互換性のあるバージョンを次の順番で探します。
+
+1. APKMirror
+2. APKPure
+3. Uptodown
+4. Softonic
+5. Aptoide
+6. APKCombo
+
+サイト別の設定がなくても、既存設定のpackage IDを利用して検索できる取得元があります。通信エラー、レート制限、不完全なダウンロード、HTMLの誤取得、壊れたAPKを検出した場合は、その取得元を失敗として次へ進みます。
+
+AdGuardは、公式の[AdguardTeam/AdguardForAndroid](https://github.com/AdguardTeam/AdguardForAndroid)にある最新の安定版GitHub Releaseからのみ取得します。通常版APKをバージョン込みのファイル名で特定し、Android TV版、プレリリース、第三者配布APK、取得元を確認できないキャッシュを選びません。公式GitHubから取得できない場合は、別サイトのAPKで続行せずビルドを停止します。
+
+ゆうちょ通帳アプリとゆうちょ認証アプリは、[YuzuMikan404/Yuucho-Tuucho-and-Ninsho](https://github.com/YuzuMikan404/Yuucho-Tuucho-and-Ninsho)のGitHubリリースを最優先にします。対象APKが見つからない場合のみ、上記6サイトを順番に試します。
+
+一度正常に取得できた元APKは、ハッシュ検証付きの内部キャッシュへ保存されることがあります。次回以降もpackage IDとバージョンが完全に一致する場合だけ再利用されます。
+
+## VirusTotal検査
+
+公開直前に、完成したすべてのAPKをVirusTotalへ送信して解析します。次のいずれかに該当する場合は、公開を中止します。
+
+- `malicious`または`suspicious`の判定が1件以上ある
+- APIエラーや利用上限により解析を完了できない
+- 解析がタイムアウトする
+- 完了した検査エンジンの判定を取得できない
+
+検査結果はリリースノートに掲載され、Actionsのレポートとしても保存されます。ただし、VirusTotalで検出がないことは、APKが完全に安全であることを保証するものではありません。
+
+## インストールの基本
+
+1. [最新リリース](https://github.com/matchadaisuke/Morphe-AutoBuilds/releases/latest)を開き、目的のアプリとパッチソースが含まれるAPKを選ぶ
+2. リリースノートで元APKの取得元、バージョン、VirusTotal結果を確認する
+3. 必要に応じて既存アプリのデータをバックアップする
+4. Android端末でAPKを開き、画面の案内に従ってインストールする
+
+Androidの設定によっては、ブラウザやファイル管理アプリに「不明なアプリのインストール」を一時的に許可する必要があります。インストール後は不要な許可を戻すことを推奨します。
+
+## インストール前の注意
+
+- 配布APKは元アプリとは異なる署名になるため、公式版へそのまま上書きインストールできない場合があります。
+- 既存アプリの削除が必要な場合は、先にデータや設定をバックアップしてください。
+- YouTubeなどでGoogleアカウントへログインするには、別途GmsCore系アプリが必要になる場合があります。
+- パッチ適用アプリの利用が、元アプリの利用規約や組織のセキュリティ方針に反する可能性があります。
+- 金融・認証アプリの改変版には特に大きなリスクがあります。仕組みと公開情報を理解できない場合は、公式アプリを利用してください。
+
+## このリポジトリを運用する場合
+
+通常の利用者は、リポジトリをセットアップする必要はありません。フォークや独自環境で自動ビルドを運用する場合は、[SETUP.md](./SETUP.md)を参照してください。
+
+主な設定は次のファイルに分かれています。
+
+| ファイルまたはディレクトリ | 内容 |
+| --- | --- |
+| `my-patch-config.json` | ビルドするアプリ、パッチソース、パッチオプション |
+| `arch-config.json` | アプリごとのアーキテクチャ指定 |
+| `apps/` | 元APKのpackage IDと取得元設定 |
+| `sources/` | パッチツールとパッチバンドルの取得設定 |
+| `.github/workflows/` | 更新確認、ビルド、検査、リリースの自動処理 |
+
+## 免責事項
+
+このリポジトリは、各アプリおよびパッチプロジェクトと提携していない非公式プロジェクトです。配布物の利用、アカウント、端末、データ、サービス利用条件に関する判断と責任は利用者にあります。
+
+問題を報告する場合は、秘密情報や個人情報を除いたうえで[Issues](https://github.com/matchadaisuke/Morphe-AutoBuilds/issues)へ実行日時、対象アプリ、失敗したステップを記載してください。

@@ -1,0 +1,8 @@
+{
+  "name": "ibispaint-x",
+  "package": "jp.ne.ibis.ibispaintx.app",
+  "type": "APK",
+  "arch": "arm64-v8a",
+  "dpi": "nodpi",
+  "version": ""
+}

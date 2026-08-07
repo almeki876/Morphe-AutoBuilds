@@ -1,0 +1,8 @@
+{
+  "name": "yucho-tsuco-bank-book",
+  "package": "jp.japanpost.jp_bank.bankbookapp",
+  "type": "APK",
+  "arch": "arm64-v8a",
+  "dpi": "nodpi",
+  "version": ""
+}

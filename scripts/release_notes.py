@@ -1,0 +1,121 @@
+"""Generate integrated release notes from workflow environment variables."""
+
+from __future__ import annotations
+
+import os
+from dataclasses import dataclass
+from datetime import datetime
+from pathlib import Path
+from zoneinfo import ZoneInfo
+
+
+@dataclass(frozen=True)
+class Source:
+    key: str
+    label: str
+    url: str
+    apps: str
+
+
+SOURCES = (
+    Source(
+        "MORPHE",
+        "Morphe",
+        "https://github.com/MorpheApp/morphe-patches",
+        "YouTube, YouTube Music",
+    ),
+    Source(
+        "ANDDEA",
+        "Anddea",
+        "https://github.com/anddea/revanced-patches",
+        "YouTube, YouTube Music",
+    ),
+    Source(
+        "PIKO",
+        "Piko",
+        "https://github.com/crimera/piko",
+        "Instagram",
+    ),
+    Source(
+        "HOO",
+        "Hoo-dles",
+        "https://github.com/hoo-dles/morphe-patches",
+        (
+            "AdGuard, Prime Video, Duolingo, ibis Paint X, Icon Packer, Nova, "
+            "Proton VPN, Smart Launcher, SoundCloud, WPS Office, Crunchyroll"
+        ),
+    ),
+    Source(
+        "ROOKIE",
+        "RookieEnough",
+        "https://github.com/RookieEnough/De-Vanced",
+        "Proton Mail, Disney+, Photomath, Pixiv",
+    ),
+    Source(
+        "TOSOX",
+        "Tosox",
+        "https://github.com/Tosox/revanced-patches",
+        "MEGA",
+    ),
+    Source(
+        "YUZU",
+        "YuzuMikan404",
+        "https://github.com/matchadaisuke/morphe-patches",
+        "ゆうちょ通帳, ゆうちょ認証",
+    ),
+    Source(
+        "DROPPED",
+        "Dropped-Patches",
+        "https://github.com/indrastorms/Dropped-Patches",
+        "",
+    ),
+)
+
+
+def _enabled(name: str) -> bool:
+    return os.environ.get(name, "").casefold() == "true"
+
+
+def _status(updated: bool, forced: bool) -> str:
+    if updated and forced:
+        return "Patches and APK updated"
+    if updated:
+        return "Patches updated"
+    return "APK updated"
+
+
+def render() -> str:
+    now = datetime.now(ZoneInfo("Asia/Tokyo")).strftime("%Y-%m-%d %H:%M JST")
+    lines = [
+        now,
+        "",
+        "| Source | Version | Apps | Status |",
+        "| --- | --- | --- | --- |",
+    ]
+    for source in SOURCES:
+        updated = _enabled(f"{source.key}_UPDATED")
+        forced = _enabled(f"{source.key}_FORCE")
+        if not updated and not forced:
+            continue
+        tag = os.environ.get(f"{source.key}_TAG", "unknown")
+        lines.append(
+            f"| [{source.label}]({source.url}) | "
+            f"[{tag}]({source.url}/releases/tag/{tag}) | "
+            f"{source.apps} | {_status(updated, forced)} |"
+        )
+    return "\n".join(lines) + "\n"
+
+
+def main() -> None:
+    output = Path(os.environ.get("RELEASE_NOTES_PATH", "release_notes.md"))
+    parts = [render()]
+    for name in ("build_status.md", "virustotal_results.md"):
+        path = Path(name)
+        if path.is_file() and path.stat().st_size:
+            parts.append(path.read_text(encoding="utf-8"))
+    output.write_text("".join(parts), encoding="utf-8")
+    print(f"Release notes generated: {output}")
+
+
+if __name__ == "__main__":
+    main()

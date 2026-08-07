@@ -2,8 +2,11 @@
     "user": "AdguardTeam",
     "repo": "AdguardForAndroid",
     "tag": "latest",
-    "asset_pattern": "adguard-*.apk",
-    "asset_exclude": ".TV.",
+    "include_prereleases": false,
+    "asset_pattern": "adguard-{version}.apk",
+    "primary": true,
+    "exclusive": true,
+    "cache": false,
     "package": "com.adguard.android",
     "version": ""
 }
