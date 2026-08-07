@@ -169,7 +169,9 @@ def main() -> int:
                 )
                 result.update(status="ok", http_status=status, size=size)
         except Exception as error:
-            result["error"] = f"{type(error).__name__}: {error}"
+            result["error"] = (
+                f"{type(error).__name__}: {utils.safe_text_for_log(error)}"
+            )
         results.append(result)
         if args.stop_after_success and result["status"] == "ok":
             break

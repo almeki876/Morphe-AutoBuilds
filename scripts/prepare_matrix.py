@@ -24,7 +24,8 @@ force = {
     'dropped':         os.environ.get('FORCE_DROPPED',  'false'),
 }
 
-all_items = json.load(open('./my-patch-config.json'))['patch_list']
+with open("./my-patch-config.json", encoding="utf-8") as config_file:
+    all_items = json.load(config_file)["patch_list"]
 
 def should_build(source):
     return upd.get(source) == 'true' or force.get(source) == 'true'

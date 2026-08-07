@@ -113,7 +113,7 @@ def download_resource(
 
 def download_required(source: str) -> tuple[list[Path], str]:
     source_path = Path("sources") / f"{source}.json"
-    with source_path.open() as json_file:
+    with source_path.open(encoding="utf-8") as json_file:
         repos_info = json.load(json_file)
 
     if isinstance(repos_info, dict) and "bundle_url" in repos_info:

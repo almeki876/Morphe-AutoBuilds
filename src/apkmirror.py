@@ -445,6 +445,21 @@ def get_download_link(
 
 def get_latest_version(app_name: str, config: dict) -> str | None:
     sources: list[str] = []
+    uploads_url = str(config.get("uploads_url") or "").strip()
+    if uploads_url:
+        parsed_uploads = urlparse(urljoin(BASE_URL, uploads_url))
+        if (
+            parsed_uploads.scheme == "https"
+            and parsed_uploads.hostname == "www.apkmirror.com"
+            and parsed_uploads.path.rstrip("/") == "/uploads"
+        ):
+            sources.append(parsed_uploads.geturl())
+        else:
+            logging.warning(
+                "Ignoring unsafe APKMirror uploads_url for %s: %s",
+                app_name,
+                utils.safe_url_for_log(uploads_url),
+            )
     configured_url = _configured_app_url(config)
     if configured_url:
         sources.append(configured_url)
