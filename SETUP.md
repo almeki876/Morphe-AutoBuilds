@@ -151,7 +151,7 @@ gh workflow run check-upstream.yml
 - 元APKの取得元、バージョン、アーキテクチャ
 - 元APKと完成APKそれぞれのVirusTotal検出数、照会方法、SHA-256へのリンク
 
-一部のビルドだけ失敗した場合、タイトルへ`Partial`が付き、成功したAPKのみ公開されることがあります。VirusTotalで検出または検査失敗が発生した場合は、APKが完成していてもリリースされません。
+一部のビルドだけ失敗した場合、タイトルへ`Partial`が付き、成功したAPKのみ公開されることがあります。VirusTotalで未確認の検出または検査失敗が発生した場合は、APKが完成していてもリリースされません。元APK全件cleanを前提に完全一致で許可された既知Repack/PUP判定は、警告と詳細を残して公開できます。
 
 VirusTotalの元APK用・完成APK用MarkdownとJSONレポートは、Actions実行の`virustotal-report`アーティファクトへ30日間保存されます。Markdownには検出エンジンの詳細、JSONには返却された全エンジンのカテゴリ、検出名、方式、バージョン、更新日が入ります。各APKの完了ごとにファイルを更新し、同じ内容の検出警告をActionsログにも出します。
 
@@ -205,7 +205,8 @@ APKMirrorのreleaseページは読めても最終`download.php`だけが403に�
 - Secret名が正確に`VIRUSTOTAL_API_KEY`になっているか確認する
 - APIキーが有効か、利用上限に達していないか確認する
 - `virustotal-report`とジョブ概要で対象APKの結果を確認する
-- `malicious`または`suspicious`が1件以上ある場合は、原因を確認するまで公開しない
+- 元APKに`malicious`または`suspicious`が1件以上ある場合は、原因を確認するまで公開しない
+- 完成APKの既知Repack/PUP警告は元APK全件cleanの場合だけ許可され、それ以外の新しい検出は公開を停止する
 - 元APKだけで検出される場合は取得元を疑い、完成APKだけで検出される場合はパッチ、APK変換、アーキテクチャ調整、再署名の差分を確認する
 
 ### リリースが作成されない

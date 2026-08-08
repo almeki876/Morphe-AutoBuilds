@@ -161,16 +161,34 @@ def _configured_release_url(version: str, config: dict) -> str | None:
     return f"{BASE_URL}/apk/{org}/{name}/{release_slug}/"
 
 
+def _release_version_candidates(version: str) -> list[str]:
+    """Return possible parent-release versions for a variant version.
+
+    APKMirror sometimes groups architecture-specific builds such as
+    ``3.0.452.1047`` under a parent release named ``3.0.452``.  Probe the
+    exact spelling first, then progressively shorter dotted spellings.  The
+    release page and selected variant are still validated against the full
+    requested version, so a sibling build cannot be selected accidentally.
+    """
+    candidates = [version]
+    parts = version.split(".")
+    while len(parts) > 3:
+        parts = parts[:-1]
+        candidates.append(".".join(parts))
+    return candidates
+
+
 def _validated_release_url(
     url: str,
     version: str,
     config: dict,
 ) -> str | None:
-    """Return a release URL only when title and package match exactly."""
+    """Return a release URL only when full variant version and package match."""
     try:
         soup, final_url, text = _release_page(url, retries=2)
-        title = soup.title.get_text(" ", strip=True) if soup.title else ""
-        if not _version_matches(title, version):
+        # Parent release titles can omit an architecture/build suffix.  The
+        # full variant version must nevertheless occur on the release page.
+        if not _version_matches(text, version):
             return None
         package = config.get("package")
         if package and package not in text:
@@ -275,12 +293,13 @@ def _discover_release(version: str, app_name: str, config: dict) -> str | None:
     # release spelling before issuing broad searches. Doing this after the app
     # page avoids speculative 403s for apps whose release slug includes extra
     # title/version-code segments (for example Nova Launcher).
-    configured_release = _configured_release_url(version, config)
-    if configured_release and not _DISCOVERY_BLOCKED:
-        direct = _validated_release_url(configured_release, version, config)
-        if direct:
-            logging.info("APKMirror release resolved directly: %s", direct)
-            return direct
+    for release_version in _release_version_candidates(version):
+        configured_release = _configured_release_url(release_version, config)
+        if configured_release and not _DISCOVERY_BLOCKED:
+            direct = _validated_release_url(configured_release, version, config)
+            if direct:
+                logging.info("APKMirror release resolved directly: %s", direct)
+                return direct
 
     # Package search repairs stale publisher/app slugs and also enables
     # APKMirror for apps without a hand-written apps/apkmirror JSON file.
@@ -442,8 +461,8 @@ def get_download_link(
 
     try:
         soup, _, release_text = _release_page(release_url)
-        if not _version_matches(soup.title.get_text(" ", strip=True), clean_version):
-            raise ValueError("release title does not match requested version")
+        if not _version_matches(release_text, clean_version):
+            raise ValueError("release page does not contain requested variant version")
         package = config.get("package")
         if package and package not in release_text:
             raise ValueError(

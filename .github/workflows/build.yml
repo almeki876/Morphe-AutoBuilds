@@ -507,6 +507,8 @@ jobs:
         run: |
           python3 -m scripts.scan_virustotal \
             --directory ./release-apks \
+            --allow-known-repack-detections \
+            --baseline-json ./virustotal_base_results.json \
             --title "VirusTotal patched APK scan results (after patching)" \
             --markdown ./virustotal_results.md \
             --json ./virustotal_results.json

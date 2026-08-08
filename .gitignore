@@ -15,6 +15,7 @@ tests/
 .tmp-*/
 tmp/
 temp/
+morphe-data/
 *.log
 
 # Downloaded dependencies and build outputs

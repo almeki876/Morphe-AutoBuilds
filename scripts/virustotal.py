@@ -1,8 +1,8 @@
 """Scan every release APK with VirusTotal before publishing it.
 
 The scanner is intentionally fail-closed: a missing API key, an incomplete
-analysis, a VirusTotal API failure, or any malicious/suspicious detection
-prevents the release job from continuing.
+analysis, a VirusTotal API failure, or an unreviewed malicious/suspicious
+detection prevents the release job from continuing.
 """
 
 from __future__ import annotations
@@ -329,15 +329,21 @@ def markdown_report(results: list[ScanResult]) -> str:
         "",
         (
             "Each file was checked by SHA-256 first and uploaded only when VirusTotal "
-            "had no existing result. The release is blocked when "
-            "VirusTotal reports one or more `malicious` or `suspicious` detections."
+            "had no existing result. Unknown `malicious` or `suspicious` detections "
+            "block the release. An exact reviewed generic repack/PUP signature may "
+            "be accepted only when every corresponding unmodified base APK is clean."
         ),
         "",
         "| APK | SHA-256 | Method | Malicious | Suspicious | Undetected | Result |",
         "| --- | --- | --- | ---: | ---: | ---: | --- |",
     ]
     for result in results:
-        label = "No detections" if result.verdict == "clean" else "Blocked"
+        if result.verdict == "clean":
+            label = "No detections"
+        elif result.verdict == "accepted-repack":
+            label = "Reviewed repack/PUP detection"
+        else:
+            label = "Blocked"
         escaped_file = result.file.replace("|", r"\|")
         lines.append(
             f"| {escaped_file} | "

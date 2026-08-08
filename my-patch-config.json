@@ -376,7 +376,9 @@
     {
       "app_name": "instagram",
       "source": "piko",
-      "disable": []
+      "disable": [
+        "Disable double tap like"
+      ]
     },
     {
       "app_name": "adguard",
