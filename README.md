@@ -32,7 +32,6 @@ APKファイル名には、アプリ名、対象アーキテクチャ、元APK�
 | --- | --- |
 | [Morphe](https://github.com/MorpheApp/morphe-patches) | YouTube、YouTube Music |
 | [Anddea](https://github.com/anddea/revanced-patches) | YouTube、YouTube Music |
-| [Piko](https://github.com/crimera/piko) | Instagram |
 | [hoo-dles](https://github.com/hoo-dles/morphe-patches) | AdGuard、Prime Video、Duolingo、ibis Paint X、Icon Packer、Nova Launcher、Proton VPN、Smart Launcher、SoundCloud、WPS Office、Crunchyroll |
 | [Tosox](https://github.com/Tosox/revanced-patches) | MEGA |
 | [RookieEnough](https://github.com/RookieEnough/De-Vanced) | Proton Mail、Disney+、Photomath、Pixiv |

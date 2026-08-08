@@ -27,7 +27,6 @@ jobs:
           echo "Fetching latest tags..."
           morphe_tag=$(fetch_tag  "MorpheApp/morphe-patches")
           anddea_tag=$(fetch_tag  "anddea/revanced-patches")
-          piko_tag=$(fetch_tag    "crimera/piko")
           hoo_tag=$(fetch_tag     "hoo-dles/morphe-patches")
           rookie_tag=$(fetch_tag  "RookieEnough/De-ReVanced")
           tosox_tag=$(fetch_tag   "Tosox/revanced-patches")
@@ -36,7 +35,6 @@ jobs:
           echo "Tags fetched:"
           echo "  morphe:  $morphe_tag"
           echo "  anddea:  $anddea_tag"
-          echo "  piko:    $piko_tag"
           echo "  hoo:     $hoo_tag"
           echo "  rookie:  $rookie_tag"
           echo "  tosox:   $tosox_tag"
@@ -47,7 +45,6 @@ jobs:
           gh workflow run build.yml \
             -f morphe_tag="$morphe_tag" \
             -f anddea_tag="$anddea_tag" \
-            -f piko_tag="$piko_tag" \
             -f hoo_tag="$hoo_tag" \
             -f rookie_tag="$rookie_tag" \
             -f tosox_tag="$tosox_tag" \
@@ -55,7 +52,6 @@ jobs:
             -f dropped_tag="$dropped_tag" \
             -f morphe_updated="true" \
             -f anddea_updated="true" \
-            -f piko_updated="true" \
             -f hoo_updated="true" \
             -f rookie_updated="true" \
             -f tosox_updated="true" \
@@ -63,7 +59,6 @@ jobs:
             -f dropped_updated="true" \
             -f morphe_force_build="true" \
             -f anddea_force_build="true" \
-            -f piko_force_build="true" \
             -f hoo_force_build="true" \
             -f rookie_force_build="true" \
             -f tosox_force_build="true" \

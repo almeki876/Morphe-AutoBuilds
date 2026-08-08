@@ -4,7 +4,6 @@ sys.path.insert(0, str(pathlib.Path(__file__).parent.parent))
 upd = {
     'morphe':          os.environ.get('UPD_MORPHE',  'false'),
     'revanced-anddea': os.environ.get('UPD_ANDDEA',  'false'),
-    'piko':            os.environ.get('UPD_PIKO',    'false'),
     'hoo':             os.environ.get('UPD_HOO',     'false'),
     'rookie':          os.environ.get('UPD_ROOKIE',  'false'),
     'tosox':           os.environ.get('UPD_TOSOX',   'false'),
@@ -16,7 +15,6 @@ upd = {
 force = {
     'morphe':          os.environ.get('FORCE_MORPHE',   'false'),
     'revanced-anddea': os.environ.get('FORCE_ANDDEA',   'false'),
-    'piko':            os.environ.get('FORCE_PIKO',     'false'),
     'hoo':             os.environ.get('FORCE_HOO',      'false'),
     'rookie':          os.environ.get('FORCE_ROOKIE',   'false'),
     'tosox':           os.environ.get('FORCE_TOSOX',    'false'),

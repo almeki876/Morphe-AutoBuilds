@@ -19,10 +19,6 @@ on:
         description: 'Anddea tag'
         required: false
         default: 'latest'
-      piko_tag:
-        description: 'Piko tag'
-        required: false
-        default: 'latest'
       hoo_tag:
         description: 'Hoo-dles tag'
         required: false
@@ -51,10 +47,6 @@ on:
         description: 'Whether Anddea was updated'
         required: false
         default: 'false'
-      piko_updated:
-        description: 'Whether Piko was updated'
-        required: false
-        default: 'false'
       hoo_updated:
         description: 'Whether Hoo-dles was updated'
         required: false
@@ -81,10 +73,6 @@ on:
         default: 'false'
       anddea_force_build:
         description: 'Force build Anddea due to APK update (no NEW badge)'
-        required: false
-        default: 'false'
-      piko_force_build:
-        description: 'Force build Piko due to APK update (no NEW badge)'
         required: false
         default: 'false'
       hoo_force_build:
@@ -118,7 +106,6 @@ jobs:
       cache-key: ${{ steps.resolve-tags.outputs.cache-key }}
       morphe_resolved:  ${{ steps.resolve-tags.outputs.morphe_resolved }}
       anddea_resolved:  ${{ steps.resolve-tags.outputs.anddea_resolved }}
-      piko_resolved:    ${{ steps.resolve-tags.outputs.piko_resolved }}
       hoo_resolved:     ${{ steps.resolve-tags.outputs.hoo_resolved }}
       rookie_resolved:  ${{ steps.resolve-tags.outputs.rookie_resolved }}
       tosox_resolved:   ${{ steps.resolve-tags.outputs.tosox_resolved }}
@@ -158,7 +145,6 @@ jobs:
 
           morphe_resolved=$(resolve_tag  "MorpheApp/morphe-patches"          "${{ github.event.inputs.morphe_tag }}")
           anddea_resolved=$(resolve_tag  "anddea/revanced-patches"            "${{ github.event.inputs.anddea_tag }}")
-          piko_resolved=$(resolve_tag    "crimera/piko"                       "${{ github.event.inputs.piko_tag }}")
           hoo_resolved=$(resolve_tag     "hoo-dles/morphe-patches"            "${{ github.event.inputs.hoo_tag }}")
           rookie_resolved=$(resolve_tag  "RookieEnough/De-ReVanced"           "${{ github.event.inputs.rookie_tag }}")
           tosox_resolved=$(resolve_tag   "Tosox/revanced-patches"             "${{ github.event.inputs.tosox_tag }}")
@@ -167,7 +153,6 @@ jobs:
 
           echo "morphe_resolved=$morphe_resolved"   >> $GITHUB_OUTPUT
           echo "anddea_resolved=$anddea_resolved"   >> $GITHUB_OUTPUT
-          echo "piko_resolved=$piko_resolved"       >> $GITHUB_OUTPUT
           echo "hoo_resolved=$hoo_resolved"         >> $GITHUB_OUTPUT
           echo "rookie_resolved=$rookie_resolved"   >> $GITHUB_OUTPUT
           echo "tosox_resolved=$tosox_resolved"     >> $GITHUB_OUTPUT
@@ -176,7 +161,7 @@ jobs:
 
           # キャッシュキー = ファイルハッシュ + 全パッチバージョンの結合
           # パッチが1つでも変わればキャッシュミスになる
-          version_string="${morphe_resolved}__${anddea_resolved}__${piko_resolved}__${hoo_resolved}__${rookie_resolved}__${tosox_resolved}__${yuzu_resolved}__${dropped_resolved}"
+          version_string="${morphe_resolved}__${anddea_resolved}__${hoo_resolved}__${rookie_resolved}__${tosox_resolved}__${yuzu_resolved}__${dropped_resolved}"
           file_hash="${{ hashFiles('my-patch-config.json', 'arch-config.json', 'sources/**') }}"
           cache_key="build-tools-${file_hash}-${version_string}"
           echo "cache-key=${cache_key}" >> $GITHUB_OUTPUT
@@ -184,7 +169,6 @@ jobs:
           echo "Resolved tags:"
           echo "  morphe:  $morphe_resolved"
           echo "  anddea:  $anddea_resolved"
-          echo "  piko:    $piko_resolved"
           echo "  hoo:     $hoo_resolved"
           echo "  rookie:  $rookie_resolved"
           echo "  tosox:   $tosox_resolved"
@@ -221,7 +205,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           UPD_MORPHE:   ${{ github.event.inputs.morphe_updated }}
           UPD_ANDDEA:   ${{ github.event.inputs.anddea_updated }}
-          UPD_PIKO:     ${{ github.event.inputs.piko_updated }}
           UPD_HOO:      ${{ github.event.inputs.hoo_updated }}
           UPD_ROOKIE:   ${{ github.event.inputs.rookie_updated }}
           UPD_TOSOX:    ${{ github.event.inputs.tosox_updated }}
@@ -231,7 +214,6 @@ jobs:
           SOURCE_TAG_MORPHE:          ${{ steps.resolve-tags.outputs.morphe_resolved }}
           SOURCE_TAG_ANDDEA:          ${{ steps.resolve-tags.outputs.anddea_resolved }}
           SOURCE_TAG_REVANCED_ANDDEA: ${{ steps.resolve-tags.outputs.anddea_resolved }}
-          SOURCE_TAG_PIKO:            ${{ steps.resolve-tags.outputs.piko_resolved }}
           SOURCE_TAG_HOO:             ${{ steps.resolve-tags.outputs.hoo_resolved }}
           SOURCE_TAG_ROOKIE:          ${{ steps.resolve-tags.outputs.rookie_resolved }}
           SOURCE_TAG_TOSOX:           ${{ steps.resolve-tags.outputs.tosox_resolved }}
@@ -272,7 +254,6 @@ jobs:
         env:
           UPD_MORPHE:   ${{ github.event.inputs.morphe_updated }}
           UPD_ANDDEA:   ${{ github.event.inputs.anddea_updated }}
-          UPD_PIKO:     ${{ github.event.inputs.piko_updated }}
           UPD_HOO:      ${{ github.event.inputs.hoo_updated }}
           UPD_ROOKIE:   ${{ github.event.inputs.rookie_updated }}
           UPD_TOSOX:    ${{ github.event.inputs.tosox_updated }}
@@ -280,7 +261,6 @@ jobs:
           UPD_DROPPED:  ${{ github.event.inputs.dropped_updated }}
           FORCE_MORPHE:  ${{ github.event.inputs.morphe_force_build }}
           FORCE_ANDDEA:  ${{ github.event.inputs.anddea_force_build }}
-          FORCE_PIKO:    ${{ github.event.inputs.piko_force_build }}
           FORCE_HOO:     ${{ github.event.inputs.hoo_force_build }}
           FORCE_ROOKIE:  ${{ github.event.inputs.rookie_force_build }}
           FORCE_TOSOX:   ${{ github.event.inputs.tosox_force_build }}
@@ -544,7 +524,6 @@ jobs:
         env:
           MORPHE_TAG: ${{ needs.download-tools.outputs.morphe_resolved }}
           ANDDEA_TAG: ${{ needs.download-tools.outputs.anddea_resolved }}
-          PIKO_TAG: ${{ needs.download-tools.outputs.piko_resolved }}
           HOO_TAG: ${{ needs.download-tools.outputs.hoo_resolved }}
           ROOKIE_TAG: ${{ needs.download-tools.outputs.rookie_resolved }}
           TOSOX_TAG: ${{ needs.download-tools.outputs.tosox_resolved }}
@@ -552,7 +531,6 @@ jobs:
           DROPPED_TAG: ${{ needs.download-tools.outputs.dropped_resolved }}
           MORPHE_UPDATED: ${{ github.event.inputs.morphe_updated }}
           ANDDEA_UPDATED: ${{ github.event.inputs.anddea_updated }}
-          PIKO_UPDATED: ${{ github.event.inputs.piko_updated }}
           HOO_UPDATED: ${{ github.event.inputs.hoo_updated }}
           ROOKIE_UPDATED: ${{ github.event.inputs.rookie_updated }}
           TOSOX_UPDATED: ${{ github.event.inputs.tosox_updated }}
@@ -560,7 +538,6 @@ jobs:
           DROPPED_UPDATED: ${{ github.event.inputs.dropped_updated }}
           MORPHE_FORCE: ${{ github.event.inputs.morphe_force_build }}
           ANDDEA_FORCE: ${{ github.event.inputs.anddea_force_build }}
-          PIKO_FORCE: ${{ github.event.inputs.piko_force_build }}
           HOO_FORCE: ${{ github.event.inputs.hoo_force_build }}
           ROOKIE_FORCE: ${{ github.event.inputs.rookie_force_build }}
           TOSOX_FORCE: ${{ github.event.inputs.tosox_force_build }}
@@ -637,7 +614,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SOURCE_TAG_MORPHE: ${{ needs.download-tools.outputs.morphe_resolved }}
           SOURCE_TAG_ANDDEA: ${{ needs.download-tools.outputs.anddea_resolved }}
-          SOURCE_TAG_PIKO: ${{ needs.download-tools.outputs.piko_resolved }}
           SOURCE_TAG_HOO: ${{ needs.download-tools.outputs.hoo_resolved }}
           SOURCE_TAG_ROOKIE: ${{ needs.download-tools.outputs.rookie_resolved }}
           SOURCE_TAG_TOSOX: ${{ needs.download-tools.outputs.tosox_resolved }}

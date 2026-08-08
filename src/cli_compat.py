@@ -3,7 +3,7 @@ CLI compatibility detection — single source of truth.
 
 Why this module exists
 -----------------------
-Morphe CLI / ReVanced CLI (and forks like Anddea, Piko, Hoo-dles, RookieEnough,
+Morphe CLI / ReVanced CLI (and forks like Anddea, Hoo-dles, RookieEnough,
 Tosox, YuzuMikan404 …) are all moving targets: upstream renames or removes
 flags between releases without warning (e.g. "--purge" silently became
 "--disable-purge" with inverted default behaviour in morphe-cli 1.10.0).

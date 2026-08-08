@@ -31,12 +31,6 @@ SOURCES = (
         "YouTube, YouTube Music",
     ),
     Source(
-        "PIKO",
-        "Piko",
-        "https://github.com/crimera/piko",
-        "Instagram",
-    ),
-    Source(
         "HOO",
         "Hoo-dles",
         "https://github.com/hoo-dles/morphe-patches",
