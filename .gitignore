@@ -36,8 +36,6 @@ provider-health*.json
 provider-health*.md
 build-tool-health.log
 health-issue.md
-virustotal_results.json
-virustotal_results.md
 virustotal_base_results.json
 virustotal_base_results.md
 *.apk

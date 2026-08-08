@@ -8,6 +8,9 @@
     "  disable: 明示的に無効化するパッチ名リスト",
     "    (バンドルの patches-list.json で use=true のパッチでも無効化できる)",
     "",
+    "  force_enable: 明示的に有効化するパッチ名リスト",
+    "    (patches-list.json がないソースでは、このリストを排他的な選択として使う)",
+    "",
     "  ※ enables は patches-list.json の use=true から自動生成されます"
   ],
   "patch_list": [
@@ -421,7 +424,11 @@
     {
       "app_name": "wps-office",
       "source": "hoo",
-      "disable": []
+      "disable": [],
+      "force_enable": [
+        "Disable anti-tamper",
+        "Enable Pro"
+      ]
     },
     {
       "app_name": "mega",
@@ -462,6 +469,152 @@
       "app_name": "pixiv",
       "source": "rookie",
       "disable": []
+    },
+    {
+      "app_name": "photoshop-mix",
+      "source": "rookie",
+      "disable": [],
+      "force_enable": [
+        "Bypass login"
+      ]
+    },
+    {
+      "app_name": "amazon-shopping",
+      "source": "rookie",
+      "disable": [],
+      "force_enable": [
+        "Always allow deep-linking"
+      ]
+    },
+    {
+      "app_name": "google-news",
+      "source": "rookie",
+      "disable": [],
+      "force_enable": [
+        "Enable CustomTabs",
+        "GmsCore support"
+      ]
+    },
+    {
+      "app_name": "google-photos",
+      "source": "rookie",
+      "disable": [],
+      "force_enable": [
+        "Spoof features",
+        "Enable DCIM folders backup control",
+        "GmsCore support",
+        "Fix selected account persistence"
+      ]
+    },
+    {
+      "app_name": "google-recorder",
+      "source": "rookie",
+      "disable": [],
+      "force_enable": [
+        "Remove device restrictions"
+      ]
+    },
+    {
+      "app_name": "threads",
+      "source": "rookie",
+      "disable": [],
+      "force_enable": [
+        "Hide ads"
+      ]
+    },
+    {
+      "app_name": "tiktok",
+      "source": "rookie",
+      "disable": [],
+      "force_enable": [
+        "Downloads",
+        "Playback speed",
+        "Show seekbar",
+        "Remember clear display",
+        "Feed filter",
+        "Sanitize sharing links",
+        "Settings",
+        "Fix Google login",
+        "Disable login requirement",
+        "Enable Open Debug"
+      ]
+    },
+    {
+      "app_name": "tumblr",
+      "source": "rookie",
+      "disable": [],
+      "force_enable": [
+        "Disable dashboard ads",
+        "Disable Ad-Free Banner",
+        "Disable in-app update",
+        "Disable blog notification reminder",
+        "Disable gift message popup",
+        "Disable Tumblr TV",
+        "Fix old versions"
+      ]
+    },
+    {
+      "app_name": "twitch",
+      "source": "rookie",
+      "disable": [],
+      "force_enable": [
+        "Block audio ads",
+        "Block embedded ads",
+        "Block video ads",
+        "Show deleted messages",
+        "Auto claim channel points",
+        "Debug mode"
+      ]
+    },
+    {
+      "app_name": "viber",
+      "source": "rookie",
+      "disable": [],
+      "force_enable": [
+        "Hide Ads",
+        "Hide navigation buttons"
+      ]
+    },
+    {
+      "app_name": "github",
+      "source": "hoo",
+      "disable": [],
+      "force_enable": [
+        "AMOLED dark theme"
+      ]
+    },
+    {
+      "app_name": "lightroom",
+      "source": "hoo",
+      "disable": [],
+      "force_enable": [
+        "Bypass login",
+        "Unlock premium features"
+      ]
+    },
+    {
+      "app_name": "windy",
+      "source": "hoo",
+      "disable": [],
+      "force_enable": [
+        "Enable Premium"
+      ]
+    },
+    {
+      "app_name": "xodo",
+      "source": "hoo",
+      "disable": [],
+      "force_enable": [
+        "Enable Pro"
+      ]
+    },
+    {
+      "app_name": "xrecorder",
+      "source": "hoo",
+      "disable": [],
+      "force_enable": [
+        "Enable Pro"
+      ]
     }
   ]
 }

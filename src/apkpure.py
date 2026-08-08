@@ -7,7 +7,7 @@ from src.versioning import VersionCandidate, discovered_version_code
 from bs4 import BeautifulSoup
 
 SITE_BASE_URL = "https://apkpure.com"
-DOWNLOAD_BASE_URL = "https://d.apkpure.net/b/APK"
+DOWNLOAD_BASE_URL = "https://d.apkpure.net/b"
 
 # curl-cffi supplies a User-Agent matching its TLS browser impersonation.
 # Overriding it with an old Chrome version creates a detectable mismatch and
@@ -53,8 +53,12 @@ def _resolve_apkpure_slug(app_name: str, config: dict) -> str | None:
     return None
 
 
-def _direct_endpoint(package: str, **query: str) -> str:
-    return f"{DOWNLOAD_BASE_URL}/{package}?{urlencode(query)}"
+def _direct_endpoint(
+    package: str,
+    archive_type: str = "APK",
+    **query: str,
+) -> str:
+    return f"{DOWNLOAD_BASE_URL}/{archive_type}/{package}?{urlencode(query)}"
 
 
 def _probe_direct_endpoint(url: str) -> str:
@@ -76,17 +80,27 @@ def _probe_direct_endpoint(url: str) -> str:
 
 
 def _latest_direct_version(package: str) -> str | None:
-    try:
-        filename = _probe_direct_endpoint(_direct_endpoint(package, version="latest"))
-        match = re.search(
-            r"_([0-9][^_]+)_APKPure\.apk$",
-            filename,
-            flags=re.IGNORECASE,
-        )
-        return match.group(1).strip() if match else None
-    except Exception as error:
-        logging.debug("APKPure direct latest probe failed for %s: %s", package, error)
-        return None
+    errors: list[str] = []
+    for archive_type in ("APK", "XAPK"):
+        try:
+            filename = _probe_direct_endpoint(
+                _direct_endpoint(package, archive_type, version="latest")
+            )
+            match = re.search(
+                r"_([0-9][^_]+)_APKPure\.(?:apk|xapk)$",
+                filename,
+                flags=re.IGNORECASE,
+            )
+            if match:
+                return match.group(1).strip()
+        except Exception as error:
+            errors.append(f"{archive_type}: {error}")
+    logging.debug(
+        "APKPure direct latest probe failed for %s: %s",
+        package,
+        "; ".join(errors),
+    )
+    return None
 
 
 def get_latest_version(app_name: str, config: dict) -> str | None:
@@ -140,39 +154,40 @@ def _direct_download_for_candidate(
     candidate: VersionCandidate, app_name: str, config: dict
 ) -> str | None:
     package = config["package"]
-    if candidate.code:
-        url = _direct_endpoint(package, versionCode=candidate.code)
-    else:
-        url = _direct_endpoint(package, version="latest")
-
-    try:
-        filename = _probe_direct_endpoint(url)
-        if not candidate.code and not any(
-            alias.casefold() in filename.casefold()
-            for alias in candidate.aliases("apkpure")
-        ):
+    query = (
+        {"versionCode": candidate.code}
+        if candidate.code
+        else {"version": "latest"}
+    )
+    errors: list[str] = []
+    for archive_type in ("APK", "XAPK"):
+        url = _direct_endpoint(package, archive_type, **query)
+        try:
+            filename = _probe_direct_endpoint(url)
+            if not candidate.code and not any(
+                alias.casefold() in filename.casefold()
+                for alias in candidate.aliases("apkpure")
+            ):
+                errors.append(f"{archive_type}: incompatible filename {filename}")
+                continue
             logging.info(
-                "APKPure latest direct APK is not compatible with %s: %s",
+                "APKPure direct %s matched %s for %s: %s",
+                archive_type,
                 candidate.describe(),
+                app_name,
                 filename,
             )
-            return None
-        logging.info(
-            "APKPure direct APK matched %s for %s: %s",
-            candidate.describe(),
-            app_name,
-            filename,
-        )
-        # Return the stable package endpoint, not the expiring signed redirect.
-        return url
-    except Exception as error:
-        logging.info(
-            "APKPure direct endpoint failed for %s %s: %s",
-            app_name,
-            candidate.describe(),
-            error,
-        )
-        return None
+            # Return the stable package endpoint, not the expiring signed redirect.
+            return url
+        except Exception as error:
+            errors.append(f"{archive_type}: {error}")
+    logging.info(
+        "APKPure direct endpoints failed for %s %s: %s",
+        app_name,
+        candidate.describe(),
+        "; ".join(errors),
+    )
+    return None
 
 
 def get_download_link_for_candidate(

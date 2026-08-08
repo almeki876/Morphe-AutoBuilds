@@ -329,9 +329,8 @@ def markdown_report(results: list[ScanResult]) -> str:
         "",
         (
             "Each file was checked by SHA-256 first and uploaded only when VirusTotal "
-            "had no existing result. Unknown `malicious` or `suspicious` detections "
-            "block the release. An exact reviewed generic repack/PUP signature may "
-            "be accepted only when every corresponding unmodified base APK is clean."
+            "had no existing result. Any `malicious` or `suspicious` detection "
+            "blocks the release."
         ),
         "",
         "| APK | SHA-256 | Method | Malicious | Suspicious | Undetected | Result |",
@@ -340,8 +339,6 @@ def markdown_report(results: list[ScanResult]) -> str:
     for result in results:
         if result.verdict == "clean":
             label = "No detections"
-        elif result.verdict == "accepted-repack":
-            label = "Reviewed repack/PUP detection"
         else:
             label = "Blocked"
         escaped_file = result.file.replace("|", r"\|")

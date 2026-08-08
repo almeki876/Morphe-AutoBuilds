@@ -188,7 +188,9 @@ def _build_patch_flags(
         ("youtube",       "revanced-anddea"): "com.google.android.youtube",
         ("youtube-music", "revanced-anddea"): "com.google.android.apps.youtube.music",
     }
-    pkg_name = PKG_MAP.get((app_name, source))
+    pkg_name = PKG_MAP.get((app_name, source)) or providers.configured_package(
+        app_name
+    )
 
     # tools/<source>/patches-list.json を探す
     patches_list_path = tools_dir / source / "patches-list.json"
@@ -244,6 +246,24 @@ def _build_patch_flags(
 
         except Exception as e:
             logging.warning("⚠️  Failed to parse patches-list.json: %s — falling back to txt", e)
+
+    # A force_enable list is also the explicit allowlist when a release does
+    # not ship patches-list.json. This keeps non-default requested patches from
+    # being silently ignored and activates the CLI's exclusive mode.
+    if patch_config.force_enable:
+        enables: list[str] = []
+        for name in patch_config.force_enable:
+            enables.extend([enable_flag, name])
+        disables: list[str] = []
+        for name in patch_config.disable:
+            disables.extend([disable_flag, name])
+        logging.info(
+            "📋 Explicit patch selection from force_enable: %d enable(s), "
+            "%d disable(s)",
+            len(enables) // 2,
+            len(disables) // 2,
+        )
+        return enables, disables
 
     # フォールバック: patches/<app>-<source>.txt
     patches_txt = Path("patches") / f"{app_name}-{source}.txt"
@@ -320,7 +340,13 @@ def _log_available_patches(cli: Path, bundle: Path) -> None:
     """Run list-patches and log the output for debugging. Never fatal."""
     try:
         output = utils.run_process(
-            ["java", "-jar", str(cli), "list-patches", str(bundle)],
+            [
+                "java",
+                "-jar",
+                str(cli),
+                "list-patches",
+                f"--patches={bundle}",
+            ],
             capture=True, silent=True, check=False,
         )
         if output:
@@ -873,8 +899,8 @@ def run_build(app_name: str, source: str, arch: str = "universal") -> str:
         exit(1)
 
     # Preserve the provider payload before split merging, architecture stripping,
-    # repair, patching, or signing changes any byte. VirusTotal can then tell a
-    # pre-existing base-APK detection from a patch-output-only detection.
+    # repair, patching, or signing changes any byte. VirusTotal scans this
+    # unmodified download in the release job.
     _stage_unmodified_base_apk(input_apk, app_name, source, arch, version)
 
     # ── 5. Merge split APKs (if needed) ─────────────────────────────────────

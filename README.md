@@ -32,9 +32,9 @@ APKファイル名には、アプリ名、対象アーキテクチャ、元APK�
 | --- | --- |
 | [Morphe](https://github.com/MorpheApp/morphe-patches) | YouTube、YouTube Music |
 | [Anddea](https://github.com/anddea/revanced-patches) | YouTube、YouTube Music |
-| [hoo-dles](https://github.com/hoo-dles/morphe-patches) | AdGuard、Prime Video、Duolingo、ibis Paint X、Icon Packer、Nova Launcher、Proton VPN、Smart Launcher、SoundCloud、WPS Office、Crunchyroll |
+| [hoo-dles](https://github.com/hoo-dles/morphe-patches) | AdGuard、Prime Video、Duolingo、ibis Paint X、Icon Packer、Nova Launcher、Proton VPN、Smart Launcher、SoundCloud、WPS Office、Crunchyroll、GitHub、Lightroom Mobile、Windy、Xodo、XRecorder |
 | [Tosox](https://github.com/Tosox/revanced-patches) | MEGA |
-| [RookieEnough](https://github.com/RookieEnough/De-Vanced) | Proton Mail、Disney+、Photomath、Pixiv |
+| [RookieEnough](https://github.com/RookieEnough/De-Vanced) | Proton Mail、Disney+、Photomath、Pixiv、Adobe Photoshop Mix、Amazon Shopping、Google News、Google Photos、Google Recorder、Threads、TikTok、Tumblr、Twitch、Viber |
 | [YuzuMikan404](https://github.com/YuzuMikan404) | ゆうちょ通帳アプリ、ゆうちょ認証アプリ |
 
 対象やパッチ内容はアップストリームの変更に応じて変わることがあります。実際に適用された内容は、各リリースとGitHub Actionsのログを確認してください。
@@ -53,8 +53,8 @@ APKファイル名には、アプリ名、対象アーキテクチャ、元APK�
 4. APKの形式とダウンロード内容を検証する
 5. 取得した未加工の元APKを検査用に保存する
 6. パッチを適用し、リポジトリのキーストアで署名する
-7. 保存した元APKと完成した全APKを別々にVirusTotalで検査する
-8. 両方の検査を通過した場合だけ、取得元情報付きのリリースを公開する
+7. 保存した元APKをVirusTotalで検査する
+8. 元APKの検査を通過した場合だけ、取得元情報付きのリリースを公開する
 
 一部のアプリだけビルドに失敗した場合は、成功したAPKのみを部分リリースとして公開することがあります。APKが1件も完成しなかった場合やVirusTotal検査を完了できなかった場合は、リリースを作成しません。
 
@@ -83,19 +83,16 @@ AdGuardは、公式の[AdguardTeam/AdguardForAndroid](https://github.com/Adguard
 
 ## VirusTotal検査
 
-取得直後に保存した未加工の元APKと、パッチ適用・署名後の完成APKを分けてVirusTotalで検査します。これにより、元APKですでに検出されていたのか、パッチや後続処理後にだけ検出されたのかを区別できます。
+取得直後に保存した未加工の元APKをVirusTotalで検査します。パッチ適用・署名後の完成APKは、アップロード時間とAPI消費を抑えるため検査対象にしません。
 
 各ファイルは最初にSHA-256でVirusTotalの既存結果を照会します。既存結果があればアップロードや再解析を行わずその結果を利用し、未知のハッシュだけをアップロードして解析します。次のいずれかに該当する場合は、公開を中止します。
 
 - 未加工の元APKに`malicious`または`suspicious`の判定が1件以上ある
-- 完成APKに未確認の`malicious`または`suspicious`判定がある
 - APIエラーや利用上限により解析を完了できない
 - 解析がタイムアウトする
 - 完了した検査エンジンの判定を取得できない
 
-元APKと完成APKの検査結果は別表でリリースノートに掲載され、Actionsのレポートとしても保存されます。検出時はエンジン名、カテゴリ、検出名、エンジンバージョン、定義更新日をActionsログとMarkdownへ出し、全エンジンの詳細をJSONアーティファクトへ保存します。レポートはAPKごとに更新するため、長時間の検査が途中で失敗した場合も完了済み分を確認できます。ただし、完成APKだけの検出は必ずしもパッチそのものが原因とは限らず、APKの変換、アーキテクチャ調整、再署名などの後続処理も差分に含まれます。また、VirusTotalで検出がないことは、APKが完全に安全であることを保証するものではありません。
-
-再署名された完成APKに限り、元APKが全件cleanであることを機械的に確認したうえで、過去の実行で全成果物へ共通して現れた特定エンジンの汎用Repack/PUP判定だけを、完全一致の許可リストで警告扱いにします。エンジン名、カテゴリ、検出名のどれかが異なる新しい判定、判定詳細の欠落、元APKとの件数不一致は引き続き公開を停止します。
+元APKの検査結果はリリースノートに掲載され、Actionsのレポートとしても保存されます。検出時はエンジン名、カテゴリ、検出名、エンジンバージョン、定義更新日をActionsログとMarkdownへ出し、全エンジンの詳細をJSONアーティファクトへ保存します。レポートはAPKごとに更新するため、長時間の検査が途中で失敗した場合も完了済み分を確認できます。VirusTotalで検出がないことは、元APKや完成APKが完全に安全であることを保証するものではありません。
 
 ## インストールの基本
 

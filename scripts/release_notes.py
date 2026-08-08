@@ -36,14 +36,19 @@ SOURCES = (
         "https://github.com/hoo-dles/morphe-patches",
         (
             "AdGuard, Prime Video, Duolingo, ibis Paint X, Icon Packer, Nova, "
-            "Proton VPN, Smart Launcher, SoundCloud, WPS Office, Crunchyroll"
+            "Proton VPN, Smart Launcher, SoundCloud, WPS Office, Crunchyroll, "
+            "GitHub, Lightroom Mobile, Windy, Xodo, XRecorder"
         ),
     ),
     Source(
         "ROOKIE",
         "RookieEnough",
         "https://github.com/RookieEnough/De-Vanced",
-        "Proton Mail, Disney+, Photomath, Pixiv",
+        (
+            "Proton Mail, Disney+, Photomath, Pixiv, Adobe Photoshop Mix, "
+            "Amazon Shopping, Google News, Google Photos, Google Recorder, "
+            "Threads, TikTok, Tumblr, Twitch, Viber"
+        ),
     ),
     Source(
         "TOSOX",
@@ -106,7 +111,6 @@ def main() -> None:
     for name in (
         "build_status.md",
         "virustotal_base_results.md",
-        "virustotal_results.md",
     ):
         path = Path(name)
         if path.is_file() and path.stat().st_size:

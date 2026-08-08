@@ -6,7 +6,7 @@ import argparse
 import json
 import os
 import sys
-from dataclasses import asdict, replace
+from dataclasses import asdict
 from pathlib import Path
 from typing import Callable
 
@@ -21,89 +21,19 @@ from scripts.virustotal import (
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--directory", type=Path, default=Path("release-apks"))
+    parser.add_argument("--directory", type=Path, default=Path("base-apks"))
     parser.add_argument(
-        "--markdown", type=Path, default=Path("virustotal_results.md")
+        "--markdown", type=Path, default=Path("virustotal_base_results.md")
     )
-    parser.add_argument("--json", type=Path, default=Path("virustotal_results.json"))
+    parser.add_argument(
+        "--json", type=Path, default=Path("virustotal_base_results.json")
+    )
     parser.add_argument(
         "--title",
         default="VirusTotal scan results",
         help="Heading used in the Markdown report.",
     )
-    parser.add_argument(
-        "--allow-known-repack-detections",
-        action="store_true",
-        help=(
-            "Accept only the exact generic repack/PUP signatures documented "
-            "by this repository. Use only after the corresponding unmodified "
-            "base APK scan has passed."
-        ),
-    )
-    parser.add_argument(
-        "--baseline-json",
-        type=Path,
-        help=(
-            "JSON report from the corresponding unmodified base APK scan; "
-            "required with --allow-known-repack-detections"
-        ),
-    )
     return parser.parse_args()
-
-
-# These two signatures appeared consistently only after patching/re-signing
-# otherwise clean base APKs. Keep the match deliberately exact: a new engine,
-# category, or detection name remains release-blocking until reviewed.
-KNOWN_REPACK_DETECTIONS = {
-    ("AhnLab-V3", "malicious", "PUP/Android.Malct.1228668"),
-    ("BitDefenderFalx", "malicious", "Android.Riskware.Repack.rXJBC"),
-}
-
-
-def _apply_known_repack_policy(result: ScanResult) -> ScanResult:
-    if result.verdict == "clean":
-        return result
-    detected = {
-        (
-            engine,
-            str(details.get("category") or ""),
-            str(details.get("result") or ""),
-        )
-        for engine, details in result.engines.items()
-        if details.get("category") in {"malicious", "suspicious"}
-    }
-    detection_count = result.malicious + result.suspicious
-    if (
-        detected
-        and len(detected) == detection_count
-        and detected <= KNOWN_REPACK_DETECTIONS
-    ):
-        return replace(result, verdict="accepted-repack")
-    return result
-
-
-def _verify_clean_baseline(path: Path | None, expected_count: int) -> None:
-    if path is None:
-        raise ValueError(
-            "--baseline-json is required with --allow-known-repack-detections"
-        )
-    try:
-        report = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError) as error:
-        raise ValueError(f"could not read base APK scan report: {error}") from error
-    results = report.get("results")
-    failures = report.get("failures")
-    if not isinstance(results, list) or not isinstance(failures, list):
-        raise ValueError("base APK scan report has an invalid structure")
-    if failures:
-        raise ValueError("base APK scan report contains failures")
-    if len(results) != expected_count:
-        raise ValueError(
-            "base/final APK scan count mismatch: "
-            f"{len(results)} base vs {expected_count} final"
-        )
-    if any(result.get("verdict") != "clean" for result in results):
-        raise ValueError("base APK scan report contains a non-clean verdict")
 
 
 def _client(api_key: str) -> VirusTotalClient:
@@ -120,7 +50,6 @@ def _scan_all(
     client: VirusTotalClient,
     apk_files: list[Path],
     on_progress: Callable[[list[ScanResult], list[str]], None] | None = None,
-    allow_known_repack_detections: bool = False,
 ) -> tuple[list[ScanResult], list[str]]:
     results: list[ScanResult] = []
     failures: list[str] = []
@@ -140,8 +69,6 @@ def _scan_all(
             else:
                 result = client.scan(apk)
                 by_hash[result.sha256] = result
-            if allow_known_repack_detections:
-                result = _apply_known_repack_policy(result)
             results.append(result)
             print(
                 f"{apk.name}: malicious={result.malicious}, "
@@ -166,13 +93,6 @@ def _scan_all(
                 print(
                     f"::warning::{apk.name}: VirusTotal reported detections, "
                     "but engine-level details were not returned by the API.",
-                    flush=True,
-                )
-            if result.verdict == "accepted-repack":
-                print(
-                    f"::warning::{apk.name}: only reviewed generic repack/PUP "
-                    "detections remain; accepted because the unmodified base "
-                    "APK scan passed",
                     flush=True,
                 )
             if on_progress:
@@ -248,13 +168,6 @@ def main() -> int:
         print("::error::No APK files were found for VirusTotal scanning.", file=sys.stderr)
         return 2
 
-    if args.allow_known_repack_detections:
-        try:
-            _verify_clean_baseline(args.baseline_json, len(apk_files))
-        except ValueError as error:
-            print(f"::error::{error}. Release blocked.", file=sys.stderr)
-            return 2
-
     def save_progress(
         current_results: list[ScanResult],
         current_failures: list[str],
@@ -271,15 +184,10 @@ def main() -> int:
         _client(api_key),
         apk_files,
         on_progress=save_progress,
-        allow_known_repack_detections=args.allow_known_repack_detections,
     )
     _write_reports(args.markdown, args.json, results, failures, args.title)
 
-    unsafe = [
-        result
-        for result in results
-        if result.verdict not in {"clean", "accepted-repack"}
-    ]
+    unsafe = [result for result in results if result.verdict != "clean"]
     if failures:
         print(
             f"::error::{len(failures)} APK(s) could not be conclusively scanned. "

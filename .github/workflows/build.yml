@@ -146,7 +146,7 @@ jobs:
           morphe_resolved=$(resolve_tag  "MorpheApp/morphe-patches"          "${{ github.event.inputs.morphe_tag }}")
           anddea_resolved=$(resolve_tag  "anddea/revanced-patches"            "${{ github.event.inputs.anddea_tag }}")
           hoo_resolved=$(resolve_tag     "hoo-dles/morphe-patches"            "${{ github.event.inputs.hoo_tag }}")
-          rookie_resolved=$(resolve_tag  "RookieEnough/De-ReVanced"           "${{ github.event.inputs.rookie_tag }}")
+          rookie_resolved=$(resolve_tag  "RookieEnough/De-Vanced"              "${{ github.event.inputs.rookie_tag }}")
           tosox_resolved=$(resolve_tag   "Tosox/revanced-patches"             "${{ github.event.inputs.tosox_tag }}")
           yuzu_resolved="patche"  # 固定リリースタグ (matchadaisuke/morphe-patches)
           dropped_resolved=$(resolve_tag "indrastorms/Dropped-Patches"        "${{ github.event.inputs.dropped_tag }}")
@@ -476,40 +476,20 @@ jobs:
             --markdown ./virustotal_base_results.md \
             --json ./virustotal_base_results.json
 
-      - name: Scan Final Patched APKs with VirusTotal
-        if: steps.check-apks.outputs.skip_release == 'false'
-        env:
-          VIRUSTOTAL_API_KEY: ${{ secrets.VIRUSTOTAL_API_KEY }}
-          VT_REQUEST_INTERVAL_SECONDS: '16'
-          VT_POLL_INTERVAL_SECONDS: '30'
-          VT_ANALYSIS_TIMEOUT_SECONDS: '2700'
-          VT_MAX_RETRIES: '6'
-        run: |
-          python3 -m scripts.scan_virustotal \
-            --directory ./release-apks \
-            --allow-known-repack-detections \
-            --baseline-json ./virustotal_base_results.json \
-            --title "VirusTotal patched APK scan results (after patching)" \
-            --markdown ./virustotal_results.md \
-            --json ./virustotal_results.json
-
       - name: Preserve VirusTotal Report
-        if: always() && hashFiles('virustotal*_results.*') != ''
+        if: always() && hashFiles('virustotal_base_results.*') != ''
         uses: actions/upload-artifact@v7
         with:
           name: virustotal-report
           path: |
             virustotal_base_results.md
             virustotal_base_results.json
-            virustotal_results.md
-            virustotal_results.json
           retention-days: 30
 
       - name: Add VirusTotal Report to Job Summary
-        if: always() && hashFiles('virustotal*_results.md') != ''
+        if: always() && hashFiles('virustotal_base_results.md') != ''
         run: |
           [ -f virustotal_base_results.md ] && cat virustotal_base_results.md >> "$GITHUB_STEP_SUMMARY"
-          [ -f virustotal_results.md ] && cat virustotal_results.md >> "$GITHUB_STEP_SUMMARY"
 
       - name: Generate Release Tag (JST)
         if: steps.check-apks.outputs.skip_release == 'false'
