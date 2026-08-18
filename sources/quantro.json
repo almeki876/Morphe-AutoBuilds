@@ -1,0 +1,15 @@
+[
+    {
+        "name": "quantro"
+    },
+    {
+        "user": "MorpheApp",
+        "repo": "morphe-cli",
+        "tag": "latest"
+    },
+    {
+        "user": "Quantro100",
+        "repo": "Morphe-patches",
+        "tag": "latest"
+    }
+]

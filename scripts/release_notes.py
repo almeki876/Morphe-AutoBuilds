@@ -38,8 +38,26 @@ SOURCES = (
             "AdGuard, Prime Video, Duolingo, ibis Paint X, Icon Packer, Nova, "
             "Proton VPN, Smart Launcher, SoundCloud, WPS Office, Crunchyroll, "
             "GitHub, Lightroom Mobile, Windy, Xodo, XRecorder, "
-            "ゆうちょ通帳, ゆうちょ認証"
+            "ゆうちょ通帳, ゆうちょ認証, Adobe Scan, AccuBattery"
         ),
+    ),
+    Source(
+        "HOOMANS",
+        "Hoomans",
+        "https://github.com/arandomhooman/hoomans-morphe-patches",
+        "Adobe Acrobat, FolderSync",
+    ),
+    Source(
+        "QUANTRO",
+        "Quantro",
+        "https://github.com/Quantro100/Morphe-patches",
+        "AliExpress",
+    ),
+    Source(
+        "FLUFFY",
+        "Fluffy",
+        "https://github.com/rabilrbl/fluffy-patches",
+        "Alarmy",
     ),
     Source(
         "ROOKIE",
@@ -70,6 +88,7 @@ SOURCES = (
         "",
     ),
 )
+
 
 
 def _enabled(name: str) -> bool:

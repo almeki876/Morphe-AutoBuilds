@@ -623,6 +623,64 @@
       "force_enable": [
         "Enable Pro"
       ]
+    },
+    {
+      "app_name": "alarmy",
+      "source": "fluffy",
+      "disable": [],
+      "force_enable": [
+        "Remove ads",
+        "Unlock Pro subscription"
+      ]
+    },
+    {
+      "app_name": "aliexpress",
+      "source": "quantro",
+      "disable": [],
+      "force_enable": [
+        "Bypass signature check",
+        "Disable analytics",
+        "Disable forced updates",
+        "Disable promotions notifications",
+        "Disable splash screen",
+        "Enable image saving",
+        "Remove ads",
+        "Remove affiliate tracking",
+        "Remove coupons popup",
+        "Remove sponsored items from search"
+      ]
+    },
+    {
+      "app_name": "adobe-scan",
+      "source": "hoo",
+      "disable": [],
+      "force_enable": [
+        "Unlock Premium"
+      ]
+    },
+    {
+      "app_name": "adobe-acrobat",
+      "source": "hoomans",
+      "disable": [],
+      "force_enable": [
+        "Unlock Pro"
+      ]
+    },
+    {
+      "app_name": "foldersync",
+      "source": "hoomans",
+      "disable": [],
+      "force_enable": [
+        "Unlock Premium"
+      ]
+    },
+    {
+      "app_name": "accubattery",
+      "source": "hoo",
+      "disable": [],
+      "force_enable": [
+        "Unlock Premium"
+      ]
     }
   ]
 }

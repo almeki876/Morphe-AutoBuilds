@@ -1,0 +1,15 @@
+[
+    {
+        "name": "fluffy"
+    },
+    {
+        "user": "MorpheApp",
+        "repo": "morphe-cli",
+        "tag": "latest"
+    },
+    {
+        "user": "rabilrbl",
+        "repo": "fluffy-patches",
+        "tag": "latest"
+    }
+]
