@@ -39,7 +39,7 @@ SOURCES = (
             "Proton VPN, Smart Launcher, SoundCloud, WPS Office, Crunchyroll, "
             "GitHub, Windy, Xodo, XRecorder, "
             "ゆうちょ通帳, ゆうちょ認証, Adobe Scan, AccuBattery, KineStop, "
-            "KineMaster, Kahoot!, Ninja VPN"
+            "KineMaster, Kahoot!, Ninja VPN, Countdown Widget, CamScanner, Call Recorder"
         ),
     ),
     Source(
@@ -67,7 +67,7 @@ SOURCES = (
         (
             "Proton Mail, Disney+, Photomath, Pixiv, Adobe Photoshop Mix, "
             "Amazon Shopping, Google News, Google Photos, Google Recorder, "
-            "Threads, TikTok, Tumblr, Twitch, Viber"
+            "Threads, TikTok, Tumblr, Twitch, Viber, Amazon Music"
         ),
     ),
     Source(
@@ -116,7 +116,7 @@ SOURCES = (
         "AJSTRICK81",
         "ajstrick81",
         "https://github.com/ajstrick81/morphe-androidtv-patches",
-        "Prime Video (Android TV), Netflix",
+        "Prime Video (Android TV), Netflix, Disney+",
     ),
     Source(
         "ANDREWLIANG25",
@@ -141,6 +141,12 @@ SOURCES = (
         "Paresh-Maheshwari",
         "https://gitlab.com/Paresh-Maheshwari/paresh-patches",
         "Fing",
+    ),
+    Source(
+        "DH6K",
+        "dh6k",
+        "https://github.com/dh6k/morphe-patches",
+        "Brave",
     ),
 )
 

@@ -1,0 +1,9 @@
+{
+  "org": "intsig-information-co-ltd",
+  "name": "camscanner-pdf-scanner-app",
+  "type": "BUNDLE",
+  "arch": "universal",
+  "dpi": "nodpi",
+  "package": "com.intsig.camscanner",
+  "version": ""
+}

@@ -1,0 +1,9 @@
+{
+  "org": "gira",
+  "name": "countdown-widget",
+  "type": "APK",
+  "arch": "universal",
+  "dpi": "nodpi",
+  "package": "me.gira.widget.countdown",
+  "version": ""
+}

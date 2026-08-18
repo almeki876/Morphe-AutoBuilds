@@ -1,0 +1,9 @@
+{
+  "org": "brave-software",
+  "name": "brave-browser-beta",
+  "type": "BUNDLE",
+  "arch": "universal",
+  "dpi": "nodpi",
+  "package": "com.brave.browser_beta",
+  "version": ""
+}

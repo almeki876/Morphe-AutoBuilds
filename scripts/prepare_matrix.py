@@ -19,6 +19,7 @@ upd = {
     'hoo-dles':        os.environ.get('UPD_HOO_DLES',       'false'),
     'bholey':          os.environ.get('UPD_BHOLEY',         'false'),
     'paresh':          os.environ.get('UPD_PARESH',         'false'),
+    'dh6k':            os.environ.get('UPD_DH6K',           'false'),
 }
 
 # force_build: APK更新による再ビルド強制
@@ -40,6 +41,7 @@ force = {
     'hoo-dles':        os.environ.get('FORCE_HOO_DLES',       'false'),
     'bholey':          os.environ.get('FORCE_BHOLEY',         'false'),
     'paresh':          os.environ.get('FORCE_PARESH',         'false'),
+    'dh6k':            os.environ.get('FORCE_DH6K',           'false'),
 }
 
 apk_updated_raw = os.environ.get('APK_UPDATED_APPS', '[]')

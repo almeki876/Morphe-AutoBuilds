@@ -937,6 +937,76 @@
       "force_enable": [
         "Unlock Excel"
       ]
+    },
+    {
+      "app_name": "amazon-music",
+      "source": "rookie",
+      "disable": [],
+      "force_enable": [
+        "Prevent log upload",
+        "Rename shared permissions",
+        "Skip ads",
+        "Unlimited track skipping",
+        "Unlock Unlimited"
+      ]
+    },
+    {
+      "app_name": "brave",
+      "source": "dh6k",
+      "disable": [],
+      "force_enable": [
+        "Brave Origin"
+      ]
+    },
+    {
+      "app_name": "brave-beta",
+      "source": "dh6k",
+      "disable": [],
+      "force_enable": [
+        "Brave Origin"
+      ]
+    },
+    {
+      "app_name": "brave-nightly",
+      "source": "dh6k",
+      "disable": [],
+      "force_enable": [
+        "Brave Origin"
+      ]
+    },
+    {
+      "app_name": "call-recorder",
+      "source": "hoo",
+      "disable": [],
+      "force_enable": [
+        "Unlock Premium"
+      ]
+    },
+    {
+      "app_name": "camscanner",
+      "source": "hoo",
+      "disable": [],
+      "force_enable": [
+        "Disable telemetry",
+        "Unlock Yearly"
+      ]
+    },
+    {
+      "app_name": "countdown-widget",
+      "source": "hoo",
+      "disable": [],
+      "force_enable": [
+        "Unlock Premium"
+      ]
+    },
+    {
+      "app_name": "disney-plus",
+      "source": "ajstrick81",
+      "disable": [],
+      "force_enable": [
+        "Disney+ Android TV",
+        "Suppress Household Prompt"
+      ]
     }
   ]
 }

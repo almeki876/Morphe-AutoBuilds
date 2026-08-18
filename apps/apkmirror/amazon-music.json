@@ -1,0 +1,9 @@
+{
+  "org": "amazon-mobile-llc",
+  "name": "amazon-music-find-more-music",
+  "type": "BUNDLE",
+  "arch": "universal",
+  "dpi": "nodpi",
+  "package": "com.amazon.mp3",
+  "version": ""
+}
