@@ -8,5 +8,12 @@
   { "app_name": "ninja-vpn",              "source": "hoo",            "arches": ["arm64-v8a"] },
   { "app_name": "netflix-ninja",          "source": "ajstrick81",     "arches": ["arm64-v8a"] },
   { "app_name": "line",                   "source": "andrewliang25",  "arches": ["arm64-v8a"] },
-  { "app_name": "lightroom",              "source": "hoo-dles",       "arches": ["arm64-v8a"] }
+  { "app_name": "lightroom",              "source": "hoo-dles",       "arches": ["arm64-v8a"] },
+  { "app_name": "twitch",                 "source": "hoomans",        "arches": ["arm64-v8a"] },
+  { "app_name": "twitch-android-tv",      "source": "ajstrick81",     "arches": ["arm64-v8a", "armeabi-v7a"] },
+  { "app_name": "1-1-1-1",                "source": "hoo",            "arches": ["arm64-v8a"] },
+  { "app_name": "word",                   "source": "hoo",            "arches": ["arm64-v8a"] },
+  { "app_name": "windscribe-vpn",         "source": "hoo",            "arches": ["arm64-v8a"] },
+  { "app_name": "tiktok",                 "source": "icysymmetra",    "arches": ["arm64-v8a"] },
+  { "app_name": "threads",                "source": "durgesh0505",    "arches": ["arm64-v8a"] }
 ]

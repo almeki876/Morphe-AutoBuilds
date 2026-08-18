@@ -551,26 +551,49 @@
     },
     {
       "app_name": "threads",
-      "source": "rookie",
+      "source": "durgesh0505",
       "disable": [],
       "force_enable": [
-        "Hide ads"
+        "Change app name",
+        "Change package name",
+        "Hide ads",
+        "Remove AD_ID permission"
       ]
     },
     {
       "app_name": "tiktok",
-      "source": "rookie",
+      "source": "icysymmetra",
       "disable": [],
       "force_enable": [
+        "Always show publish date",
+        "Copy comments without username",
+        "Custom offline videos limit",
+        "Diagnostic tools",
+        "Disable login requirement",
+        "Disable long-press quick share",
+        "Disable screen capture detection",
         "Downloads",
-        "Playback speed",
-        "Show seekbar",
-        "Remember clear display",
+        "Enable Live search",
+        "Enable non-personalized search",
+        "Feature Gate Lab",
         "Feed filter",
+        "Feed tab navigation",
+        "Fix Google login",
+        "Hide CAPTCHA popups",
+        "Hide floating promotions",
+        "Hide quick comment reactions",
+        "Hold-and-slide 2x lock",
+        "Open external links directly",
+        "Playback speed",
+        "Remember clear display",
+        "Resume videos after scrolling",
+        "SIM spoof",
         "Sanitize sharing links",
         "Settings",
-        "Fix Google login",
-        "Disable login requirement"
+        "Show seekbar",
+        "Show seekbar thumbnail",
+        "Stop video looping",
+        "Translate comments"
       ]
     },
     {
@@ -589,15 +612,49 @@
     },
     {
       "app_name": "twitch",
-      "source": "rookie",
+      "source": "hoomans",
       "disable": [],
       "force_enable": [
-        "Block audio ads",
-        "Block embedded ads",
-        "Block video ads",
-        "Show deleted messages",
+        "7TV and BTTV emotes",
         "Auto claim channel points",
-        "Debug mode"
+        "Block live ads",
+        "Fix login",
+        "Hide display ads",
+        "Show deleted messages"
+      ]
+    },
+    {
+      "app_name": "twitch-android-tv",
+      "source": "ajstrick81",
+      "disable": [],
+      "force_enable": [
+        "Block TV ads"
+      ]
+    },
+    {
+      "app_name": "1-1-1-1",
+      "source": "hoo",
+      "disable": [],
+      "force_enable": [
+        "Disable Analytics / Telemetry",
+        "Disable SSL Pinning",
+        "Spoof WARP+ Unlimited UI"
+      ]
+    },
+    {
+      "app_name": "word",
+      "source": "hoo",
+      "disable": [],
+      "force_enable": [
+        "Unlock Word"
+      ]
+    },
+    {
+      "app_name": "windscribe-vpn",
+      "source": "hoo",
+      "disable": [],
+      "force_enable": [
+        "Unlock Premium"
       ]
     },
     {
