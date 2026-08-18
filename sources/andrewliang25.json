@@ -1,0 +1,15 @@
+[
+    {
+        "name": "andrewliang25"
+    },
+    {
+        "user": "MorpheApp",
+        "repo": "morphe-cli",
+        "tag": "latest"
+    },
+    {
+        "user": "andrewliang25",
+        "repo": "morphe-patches",
+        "tag": "latest"
+    }
+]

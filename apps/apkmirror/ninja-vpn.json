@@ -1,0 +1,9 @@
+{
+  "org": "ninja-vpn",
+  "name": "ninja-vpn",
+  "type": "APK",
+  "arch": "arm64-v8a",
+  "dpi": "nodpi",
+  "package": "app.ninjavpn.android",
+  "version": ""
+}

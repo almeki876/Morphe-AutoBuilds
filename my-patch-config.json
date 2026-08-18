@@ -593,7 +593,7 @@
     },
     {
       "app_name": "lightroom",
-      "source": "hoo",
+      "source": "hoo-dles",
       "disable": [],
       "force_enable": [
         "Bypass login",
@@ -732,6 +732,77 @@
         "Always incognito mode",
         "Block tracking and analytics",
         "Change package name"
+      ]
+    },
+    {
+      "app_name": "prime-video-android-tv",
+      "source": "ajstrick81",
+      "disable": [],
+      "force_enable": [
+        "Bundle native ad-strip hook",
+        "Clone Prime Video",
+        "Disable auto-updates",
+        "Load native ad-strip hook",
+        "Override certificate pinning",
+        "Prime Video extension",
+        "Skip ads"
+      ]
+    },
+    {
+      "app_name": "poweramp",
+      "source": "hoomans",
+      "disable": [],
+      "force_enable": [
+        "Unlock Premium"
+      ]
+    },
+    {
+      "app_name": "ninja-vpn",
+      "source": "hoo",
+      "disable": [],
+      "force_enable": [
+        "Unlock Premium"
+      ]
+    },
+    {
+      "app_name": "netflix-ninja",
+      "source": "ajstrick81",
+      "disable": [],
+      "force_enable": [
+        "Clone Netflix",
+        "Disable Netflix CertCheck",
+        "Minimize Network Fingerprint",
+        "Remove Netflix ads (bundle engine)",
+        "Remove Netflix ads (loader)",
+        "Suppress Household Prompt"
+      ]
+    },
+    {
+      "app_name": "line",
+      "source": "andrewliang25",
+      "disable": [],
+      "force_enable": [
+        "Disable LINE Premium",
+        "Disable VOOM",
+        "Fix chat backup sign-in via GmsCore",
+        "Fix push notifications",
+        "Hide Events button",
+        "Hide Home modules",
+        "Hide LINE GIFT button",
+        "Hide LINE TODAY tab",
+        "Hide Transfer button",
+        "Hide VOOM tab",
+        "Hide Wallet tab",
+        "Hide ad views",
+        "Hide attach menu extra tools",
+        "Hide calendar buttons",
+        "Hide community button",
+        "Hide premium unsend upsells",
+        "Keep chats unread",
+        "Keep unsent messages",
+        "Open links in external browser",
+        "Redirect LINE Pay",
+        "Remove banner ads"
       ]
     }
   ]

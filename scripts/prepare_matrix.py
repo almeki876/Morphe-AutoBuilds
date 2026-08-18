@@ -14,6 +14,9 @@ upd = {
     'jason':           os.environ.get('UPD_JASON',          'false'),
     'adobo':           os.environ.get('UPD_ADOBO',          'false'),
     'morning-entree':  os.environ.get('UPD_MORNING_ENTREE', 'false'),
+    'ajstrick81':     os.environ.get('UPD_AJSTRICK81',     'false'),
+    'andrewliang25':  os.environ.get('UPD_ANDREWLIANG25',  'false'),
+    'hoo-dles':        os.environ.get('UPD_HOO_DLES',       'false'),
 }
 
 # force_build: APK更新による再ビルド強制
@@ -30,6 +33,9 @@ force = {
     'jason':           os.environ.get('FORCE_JASON',          'false'),
     'adobo':           os.environ.get('FORCE_ADOBO',          'false'),
     'morning-entree':  os.environ.get('FORCE_MORNING_ENTREE', 'false'),
+    'ajstrick81':     os.environ.get('FORCE_AJSTRICK81',     'false'),
+    'andrewliang25':  os.environ.get('FORCE_ANDREWLIANG25',  'false'),
+    'hoo-dles':        os.environ.get('FORCE_HOO_DLES',       'false'),
 }
 
 apk_updated_raw = os.environ.get('APK_UPDATED_APPS', '[]')

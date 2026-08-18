@@ -32,21 +32,21 @@ SOURCES = (
     ),
     Source(
         "HOO",
-        "Hoo-dles",
+        "rushiranpise",
         "https://github.com/rushiranpise/morphe-patches",
         (
             "AdGuard, Prime Video, Duolingo, ibis Paint X, Icon Packer, Nova, "
             "Proton VPN, Smart Launcher, SoundCloud, WPS Office, Crunchyroll, "
-            "GitHub, Lightroom Mobile, Windy, Xodo, XRecorder, "
+            "GitHub, Windy, Xodo, XRecorder, "
             "ゆうちょ通帳, ゆうちょ認証, Adobe Scan, AccuBattery, KineStop, "
-            "KineMaster, Kahoot!"
+            "KineMaster, Kahoot!, Ninja VPN"
         ),
     ),
     Source(
         "HOOMANS",
         "Hoomans",
         "https://github.com/arandomhooman/hoomans-morphe-patches",
-        "Adobe Acrobat, FolderSync, InShot",
+        "Adobe Acrobat, FolderSync, InShot, Poweramp",
     ),
     Source(
         "QUANTRO",
@@ -111,6 +111,24 @@ SOURCES = (
         "Morning-Entree-Patches",
         "https://github.com/Entree3k/Morning-Entree-Patches",
         "Gboard",
+    ),
+    Source(
+        "AJSTRICK81",
+        "ajstrick81",
+        "https://github.com/ajstrick81/morphe-androidtv-patches",
+        "Prime Video (Android TV), Netflix",
+    ),
+    Source(
+        "ANDREWLIANG25",
+        "andrewliang25",
+        "https://github.com/andrewliang25/morphe-patches",
+        "LINE",
+    ),
+    Source(
+        "HOO_DLES",
+        "hoo-dles",
+        "https://github.com/hoo-dles/morphe-patches",
+        "Lightroom Mobile",
     ),
 )
 
