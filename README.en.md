@@ -32,12 +32,29 @@ The current configuration builds the following combinations:
 
 | Patch Source | Target Applications |
 | --- | --- |
-| [Morphe](https://github.com/MorpheApp/morphe-patches) | YouTube, YouTube Music |
+| [Morphe (Official)](https://github.com/MorpheApp/morphe-patches) | YouTube, YouTube Music |
 | [Anddea](https://github.com/anddea/revanced-patches) | YouTube, YouTube Music |
-| [Hoo-dles](https://github.com/rushiranpise/morphe-patches) | AdGuard, Prime Video, Duolingo, ibis Paint X, Icon Packer, Nova Launcher, Proton VPN, Smart Launcher, SoundCloud, WPS Office, Crunchyroll, GitHub, Lightroom Mobile, Windy, Xodo, XRecorder, Yuucho Tuucho, Yuucho Ninsho |
-| [Tosox](https://github.com/Tosox/revanced-patches) | MEGA |
-| [RookieEnough](https://github.com/RookieEnough/De-Vanced) | Proton Mail, Disney+, Photomath, Pixiv, Adobe Photoshop Mix, Amazon Shopping, Google News, Google Photos, Google Recorder, Threads, TikTok, Tumblr, Twitch, Viber |
-| [YuzuMikan404](https://github.com/YuzuMikan404) | Yuucho Tuucho, Yuucho Ninsho (Base APK Source) |
+| [Hoo (rushiranpise)](https://github.com/rushiranpise/morphe-patches) | 1.1.1.1, AccuBattery, AdGuard, Adobe Scan, Amazon Shopping, Call Recorder, CamScanner, Countdown Widget, Crunchyroll, Duolingo, Excel, File Manager, GitHub, ibis Paint X, Icon Packer, Kahoot, KineMaster, Kinestop, MEGA, Ninja VPN, Prime Video, SD Maid SE, Smart Launcher, SoundCloud, Speedtest, Windscribe VPN, Windy, Word, WPS Office, Xodo, XRecorder, Yuucho Tuucho, Yuucho Ninsho |
+| [Hoo-dles](https://github.com/hoo-dles/morphe-patches) | Lightroom Mobile |
+| [RookieEnough](https://github.com/RookieEnough/De-Vanced) | Amazon Music, Disney+, Google News, Google Photos, Google Recorder, Photomath, Adobe Photoshop Mix, Pixiv, Tumblr, Viber |
+| [ajstrick81](https://github.com/ajstrick81/morphe-androidtv-patches) | Disney+ (Android TV), Netflix, Prime Video (Android TV), Twitch (Android TV) |
+| [andrewliang25](https://github.com/andrewliang25/morphe-patches) | LINE |
+| [Hoomans](https://github.com/arandomhooman/hoomans-morphe-patches) | Adobe Acrobat, FolderSync, InShot, Poweramp, Twitch |
+| [hxreborn](https://github.com/hxreborn/morphe-patches) | Proton Mail |
+| [icysymmetra](https://github.com/icysymmetra/tiktok-patches-for-morphe) | TikTok |
+| [durgesh0505](https://github.com/durgesh0505/chiggi_morphe_patches) | Threads |
+| [Morning-Entree](https://github.com/Entree3k/Morning-Entree-Patches) | Gboard, Nova Launcher, Sleep as Android |
+| [Jason (jasonwu1994)](https://github.com/jasonwu1994/Gboard-patches) | Gboard |
+| [Adobo (jkennethcarino)](https://github.com/jkennethcarino/adobo) | Gboard |
+| [Paresh](https://github.com/Paresh-Maheshwari/paresh-patches) | Fing, Proton VPN |
+| [dh6k](https://github.com/dh6k/morphe-patches) | Brave, Brave Beta, Brave Nightly |
+| [BholeyKaBhakt](https://github.com/BholeyKaBhakt/android-patches-xtra) | Speedtest |
+| [Fluffy (rabilrbl)](https://github.com/rabilrbl/fluffy-patches) | Alarmy |
+| [Quantro](https://github.com/Quantro100/Morphe-patches) | AliExpress |
+| [Lain (kiraio-moe)](https://github.com/kiraio-moe/Lain-Patches) | iLovePDF |
+| [Dropped-Patches](https://github.com/indrastorms/Dropped-Patches) | *(Workflow infrastructure only; no build entries in current config)* |
+| [Tosox](https://github.com/Tosox/revanced-patches) | *(Workflow infrastructure only; no build entries in current config)* |
+| [YuzuMikan404](https://github.com/YuzuMikan404/Yuucho-Tuucho-and-Ninsho) | Yuucho Tuucho, Yuucho Ninsho *(Base APK source)* |
 
 Targets and applied patches may change over time according to upstream updates. Please inspect individual release notes and GitHub Actions logs for exact details of applied patches.
 
@@ -46,6 +63,8 @@ Targets and applied patches may change over time according to upstream updates. 
 This repository checks for updates to registered patch sources and target APKs daily around 18:00 (JST). Scheduled execution on GitHub Actions may be delayed depending on GitHub queue load.
 
 A separate periodic health check workflow validates repository configuration, patch tool release assets, and alternative APK providers every day. If all providers for an app fail or a tool fetch error occurs, a diagnostic report is uploaded, and an issue is automatically opened or updated. Once restored, the issue is closed automatically.
+
+A configuration check workflow runs on every push and pull request, validating JSON syntax, package IDs, source definitions, architecture settings, Python syntax, and provider registrations.
 
 When updates are detected, the workflow performs:
 
@@ -59,6 +78,8 @@ When updates are detected, the workflow performs:
 8. Publishing GitHub Releases with provenance metadata if VirusTotal check succeeds
 
 If only certain apps fail to build, partial releases containing only successful APKs may be published. If zero APKs are built or VirusTotal inspection fails, no release is published.
+
+A test workflow (`test-build.yml`) is also available for forcing all sources to build. When triggered manually, it fetches the latest tag for each source and runs the build with `force_build` flags set for every source.
 
 ## Base APK Retrieval Strategy
 
@@ -128,7 +149,18 @@ Main configurations:
 | `scripts/probe_apk_sources.py` | Diagnostic script for provider testing |
 | `scripts/validate_repository.py` | JSON schema, package ID, and architecture consistency validator |
 | `scripts/provider_health.py` | Daily provider health check |
-| `.github/workflows/` | Automated workflows for check, build, scan, and release |
+| `scripts/detect_version_pinned.py` | Detects version-pinned apps from patch bundles |
+| `scripts/check_apk_versions.py` | Detects APK updates for version-pinned apps |
+| `scripts/release_metadata.py` | Generates build result metadata (success/failure counts, etc.) |
+| `scripts/release_notes.py` | Generates release notes in Markdown |
+
+| Workflow | Purpose |
+| --- | --- |
+| `check-upstream.yml` | Patch source and APK update detection, build triggering |
+| `build.yml` | Tool download, matrix build, VirusTotal scan, release publishing |
+| `health-check.yml` | Configuration validation, tool release verification, daily APK provider health check |
+| `configuration-check.yml` | Push/PR configuration consistency check and Python compile check |
+| `test-build.yml` | Force build all sources for testing (manual trigger) |
 
 ## Disclaimer
 

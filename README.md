@@ -32,12 +32,29 @@ APKファイル名には、アプリ名、対象アーキテクチャ、元APK�
 
 | パッチソース | 対象アプリ |
 | --- | --- |
-| [Morphe](https://github.com/MorpheApp/morphe-patches) | YouTube、YouTube Music |
+| [Morphe (Official)](https://github.com/MorpheApp/morphe-patches) | YouTube、YouTube Music |
 | [Anddea](https://github.com/anddea/revanced-patches) | YouTube、YouTube Music |
-| [Hoo-dles](https://github.com/rushiranpise/morphe-patches) | AdGuard、Prime Video、Duolingo、ibis Paint X、Icon Packer、Nova Launcher、Proton VPN、Smart Launcher、SoundCloud、WPS Office、Crunchyroll、GitHub、Lightroom Mobile、Windy、Xodo、XRecorder、ゆうちょ通帳、ゆうちょ認証 |
-| [Tosox](https://github.com/Tosox/revanced-patches) | MEGA |
-| [RookieEnough](https://github.com/RookieEnough/De-Vanced) | Proton Mail、Disney+、Photomath、Pixiv、Adobe Photoshop Mix、Amazon Shopping、Google News、Google Photos、Google Recorder、Threads、TikTok、Tumblr、Twitch、Viber |
-| [YuzuMikan404](https://github.com/YuzuMikan404) | ゆうちょ通帳、ゆうちょ認証 (元APK取得元) |
+| [Hoo (rushiranpise)](https://github.com/rushiranpise/morphe-patches) | 1.1.1.1、AccuBattery、AdGuard、Adobe Scan、Amazon Shopping、Call Recorder、CamScanner、Countdown Widget、Crunchyroll、Duolingo、Excel、File Manager、GitHub、ibis Paint X、Icon Packer、Kahoot、KineMaster、Kinestop、MEGA、Ninja VPN、Prime Video、SD Maid SE、Smart Launcher、SoundCloud、Speedtest、Windscribe VPN、Windy、Word、WPS Office、Xodo、XRecorder、ゆうちょ通帳、ゆうちょ認証 |
+| [Hoo-dles](https://github.com/hoo-dles/morphe-patches) | Lightroom Mobile |
+| [RookieEnough](https://github.com/RookieEnough/De-Vanced) | Amazon Music、Disney+、Google News、Google Photos、Google Recorder、Photomath、Adobe Photoshop Mix、Pixiv、Tumblr、Viber |
+| [ajstrick81](https://github.com/ajstrick81/morphe-androidtv-patches) | Disney+ (Android TV)、Netflix、Prime Video (Android TV)、Twitch (Android TV) |
+| [andrewliang25](https://github.com/andrewliang25/morphe-patches) | LINE |
+| [Hoomans](https://github.com/arandomhooman/hoomans-morphe-patches) | Adobe Acrobat、FolderSync、InShot、Poweramp、Twitch |
+| [hxreborn](https://github.com/hxreborn/morphe-patches) | Proton Mail |
+| [icysymmetra](https://github.com/icysymmetra/tiktok-patches-for-morphe) | TikTok |
+| [durgesh0505](https://github.com/durgesh0505/chiggi_morphe_patches) | Threads |
+| [Morning-Entree](https://github.com/Entree3k/Morning-Entree-Patches) | Gboard、Nova Launcher、Sleep as Android |
+| [Jason (jasonwu1994)](https://github.com/jasonwu1994/Gboard-patches) | Gboard |
+| [Adobo (jkennethcarino)](https://github.com/jkennethcarino/adobo) | Gboard |
+| [Paresh](https://github.com/Paresh-Maheshwari/paresh-patches) | Fing、Proton VPN |
+| [dh6k](https://github.com/dh6k/morphe-patches) | Brave、Brave Beta、Brave Nightly |
+| [BholeyKaBhakt](https://github.com/BholeyKaBhakt/android-patches-xtra) | Speedtest |
+| [Fluffy (rabilrbl)](https://github.com/rabilrbl/fluffy-patches) | Alarmy |
+| [Quantro](https://github.com/Quantro100/Morphe-patches) | AliExpress |
+| [Lain (kiraio-moe)](https://github.com/kiraio-moe/Lain-Patches) | iLovePDF |
+| [Dropped-Patches](https://github.com/indrastorms/Dropped-Patches) | *(ワークフロー基盤のみ。現在のビルド設定にはエントリなし)* |
+| [Tosox](https://github.com/Tosox/revanced-patches) | *(ワークフロー基盤のみ。現在のビルド設定にはエントリなし)* |
+| [YuzuMikan404](https://github.com/YuzuMikan404/Yuucho-Tuucho-and-Ninsho) | ゆうちょ通帳、ゆうちょ認証 *(元APK取得元)* |
 
 対象やパッチ内容はアップストリームの変更に応じて変わることがあります。実際に適用された内容は、各リリースとGitHub Actionsのログを確認してください。
 
@@ -46,6 +63,8 @@ APKファイル名には、アプリ名、対象アーキテクチャ、元APK�
 このリポジトリは毎日18:00頃（JST）に、登録されたパッチソースと監視対象APKの更新を確認します。GitHub Actionsのスケジュール実行は混雑状況により遅れる場合があります。
 
 別の定期ヘルスチェックが、設定全体、パッチツールのリリース資産、各APKの代替取得元を毎日検査します。全取得元が使えないアプリやツール取得障害が見つかると、診断レポートを保存してIssueを自動作成または更新し、復旧後はIssueを自動で閉じます。
+
+push・プルリクエスト時には設定の整合性検査が自動で走り、JSON構文、package ID、ソース定義、アーキテクチャ設定、Pythonコードの構文とプロバイダ登録を検証します。
 
 更新が見つかると、次の処理が実行されます。
 
@@ -59,6 +78,8 @@ APKファイル名には、アプリ名、対象アーキテクチャ、元APK�
 8. 元APKの検査を通過した場合だけ、取得元情報付きのリリースを公開する
 
 一部のアプリだけビルドに失敗した場合は、成功したAPKのみを部分リリースとして公開することがあります。APKが1件も完成しなかった場合やVirusTotal検査を完了できなかった場合は、リリースを作成しません。
+
+全ソースを強制的にビルドするテストワークフロー (`test-build.yml`) も用意されています。手動で起動すると、各ソースの最新タグを取得し、すべてのソースに対して `force_build` フラグ付きでビルドを実行します。
 
 ## 元APKの取得方法
 
@@ -128,7 +149,18 @@ Androidの設定によっては、ブラウザやファイル管理アプリに�
 | `scripts/probe_apk_sources.py` | 指定版を各取得元で実通信確認する診断コマンド |
 | `scripts/validate_repository.py` | JSON、package ID、source、architectureの整合性検査 |
 | `scripts/provider_health.py` | 全対象アプリの取得元を実通信で定期検査 |
-| `.github/workflows/` | 更新確認、ビルド、検査、リリースの自動処理 |
+| `scripts/detect_version_pinned.py` | パッチバンドルからバージョン固定アプリを検出 |
+| `scripts/check_apk_versions.py` | バージョン固定アプリのAPK更新を検出 |
+| `scripts/release_metadata.py` | ビルド結果のメタデータ（成功/失敗カウント等）を生成 |
+| `scripts/release_notes.py` | リリースノートのMarkdownを生成 |
+
+| ワークフロー | 内容 |
+| --- | --- |
+| `check-upstream.yml` | パッチソースとAPKの更新確認、ビルドのトリガー |
+| `build.yml` | ツールダウンロード、マトリックスビルド、VirusTotal検査、リリース公開 |
+| `health-check.yml` | 設定検証、ツールリリース確認、APK取得元の定期ヘルスチェック |
+| `configuration-check.yml` | push/PR時の設定整合性検査とPythonコンパイルチェック |
+| `test-build.yml` | 全ソースの強制ビルドテスト（手動起動） |
 
 ## 免責事項
 
