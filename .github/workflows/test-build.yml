@@ -8,6 +8,7 @@ jobs:
     name: Trigger Full Build and Release Workflow
     runs-on: ubuntu-latest
     permissions:
+      contents: read
       actions: write
 
     steps:
@@ -40,8 +41,21 @@ jobs:
           echo "  tosox:   $tosox_tag"
           echo "  dropped: $dropped_tag"
 
-          echo "Triggering build.yml with all flags set to true..."
+          # タグ取得の検証: 空タグがあればエラーにする
+          failed=false
+          for src in morphe anddea hoo rookie tosox dropped; do
+            eval "tag=\${${src}_tag}"
+            if [ -z "$tag" ]; then
+              echo "::error::Failed to fetch tag for: $src"
+              failed=true
+            fi
+          done
+          [ "$failed" = "true" ] && exit 1
 
+          echo "Triggering build.yml with force_build for all sources..."
+
+          # *_updated=false  → NEWバッジを付けない（テストビルドなので）
+          # *_force_build=true → 全ソースを強制ビルド
           gh workflow run build.yml \
             -f morphe_tag="$morphe_tag" \
             -f anddea_tag="$anddea_tag" \
@@ -50,19 +64,20 @@ jobs:
             -f tosox_tag="$tosox_tag" \
             -f yuzu_tag="patche" \
             -f dropped_tag="$dropped_tag" \
-            -f morphe_updated="true" \
-            -f anddea_updated="true" \
-            -f hoo_updated="true" \
-            -f rookie_updated="true" \
-            -f tosox_updated="true" \
-            -f yuzu_updated="true" \
-            -f dropped_updated="true" \
+            -f morphe_updated="false" \
+            -f anddea_updated="false" \
+            -f hoo_updated="false" \
+            -f rookie_updated="false" \
+            -f tosox_updated="false" \
+            -f yuzu_updated="false" \
+            -f dropped_updated="false" \
             -f morphe_force_build="true" \
             -f anddea_force_build="true" \
             -f hoo_force_build="true" \
             -f rookie_force_build="true" \
             -f tosox_force_build="true" \
             -f yuzu_force_build="true" \
-            -f dropped_force_build="true"
+            -f dropped_force_build="true" \
+            -f apk_updated_apps="[]"
 
           echo "Build workflow triggered successfully."
