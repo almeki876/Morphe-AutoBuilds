@@ -308,7 +308,10 @@ def main() -> int:
             )
 
             try:
-                release = utils.detect_github_release(user, repo, tag)
+                if repo_info.get("gitlab"):
+                    release = utils.detect_gitlab_release(user, repo, tag)
+                else:
+                    release = utils.detect_github_release(user, repo, tag)
             except Exception as e:
                 logging.error(f"  ❌ Could not fetch release for {user}/{repo}: {e}")
                 failures.append(f"{name}: {user}/{repo}")

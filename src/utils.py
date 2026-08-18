@@ -551,3 +551,80 @@ def _detect_github_release_once(
     except Exception as e:
         logging.error(f"Error fetching release {tag} for {user}/{repo}: {e}")
         raise
+
+
+def detect_gitlab_release(
+    user: str,
+    repo: str,
+    tag: str = "latest",
+    retries: int = 3,
+    retry_delay: int = 10,
+) -> dict:
+    import json
+    import urllib.parse
+    import urllib.request
+
+    project_slug = urllib.parse.quote(f"{user}/{repo}", safe="")
+    url = f"https://gitlab.com/api/v4/projects/{project_slug}/releases"
+
+    req = urllib.request.Request(
+        url,
+        headers={"User-Agent": "Morphe-AutoBuilds", "Accept": "application/json"},
+    )
+    last_err = None
+    for attempt in range(1, retries + 1):
+        try:
+            with urllib.request.urlopen(req) as resp:
+                data = json.loads(resp.read().decode("utf-8"))
+                if not data:
+                    raise ValueError(f"No releases found for GitLab repo {user}/{repo}")
+
+                selected = None
+                if tag in ["latest", "latest-tag", ""]:
+                    selected = data[0]
+                else:
+                    for rel in data:
+                        if rel.get("tag_name") == tag or rel.get("name") == tag:
+                            selected = rel
+                            break
+                    if not selected:
+                        selected = data[0]
+
+                assets = []
+                for link in selected.get("assets", {}).get("links", []):
+                    download_url = link.get("direct_asset_url") or link.get("url")
+                    assets.append(
+                        {
+                            "name": link.get("name"),
+                            "browser_download_url": download_url,
+                        }
+                    )
+                for src in selected.get("assets", {}).get("sources", []):
+                    assets.append(
+                        {
+                            "name": f"{repo}-{selected.get('tag_name')}.{src.get('format')}",
+                            "browser_download_url": src.get("url"),
+                        }
+                    )
+
+                logging.info(f"Fetched GitLab release: {selected.get('tag_name')}")
+                return {
+                    "tag_name": selected.get("tag_name"),
+                    "name": selected.get("name"),
+                    "assets": assets,
+                    "created_at": selected.get("created_at"),
+                }
+        except Exception as e:
+            last_err = e
+            if attempt < retries:
+                logging.warning(
+                    f"⚠️  GitLab release fetch failed for {user}/{repo} "
+                    f"(attempt {attempt}/{retries}): {e} — retrying in {retry_delay}s..."
+                )
+                time.sleep(retry_delay)
+            else:
+                logging.error(
+                    f"❌ GitLab release fetch failed for {user}/{repo} "
+                    f"after {retries} attempts: {e}"
+                )
+    raise last_err

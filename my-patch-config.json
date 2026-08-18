@@ -403,13 +403,21 @@
     },
     {
       "app_name": "nova",
-      "source": "hoo",
-      "disable": []
+      "source": "morning-entree",
+      "disable": [],
+      "force_enable": [
+        "Disable Analytics & AD Tracking",
+        "Enable Prime"
+      ]
     },
     {
       "app_name": "proton-vpn",
-      "source": "hoo",
-      "disable": []
+      "source": "paresh",
+      "disable": [],
+      "force_enable": [
+        "Disable telemetry",
+        "Proton VPN Premium"
+      ]
     },
     {
       "app_name": "smart_launcher",
@@ -435,13 +443,24 @@
     },
     {
       "app_name": "mega",
-      "source": "tosox",
-      "disable": []
+      "source": "hoo",
+      "disable": [],
+      "force_enable": [
+        "Unlock Pro"
+      ]
     },
     {
       "app_name": "proton-mail",
-      "source": "rookie",
-      "disable": []
+      "source": "hxreborn",
+      "disable": [],
+      "force_enable": [
+        "AMOLED dark theme",
+        "Hide upgrade upselling",
+        "Remove 'Sent from' signature",
+        "Remove free accounts limit",
+        "Spoof signature",
+        "Unlock custom time picker"
+      ]
     },
     {
       "app_name": "yuucho-tsucho",
@@ -489,10 +508,17 @@
     },
     {
       "app_name": "amazon-shopping",
-      "source": "rookie",
+      "source": "hoo",
       "disable": [],
       "force_enable": [
-        "Always allow deep-linking"
+        "Dark mode",
+        "Disable search suggestions tracking",
+        "Disable video autoplay",
+        "Fix Amazon manifest conflicts",
+        "Hide Rufus tab",
+        "Open links in browser",
+        "Price history charts",
+        "Remove ads"
       ]
     },
     {

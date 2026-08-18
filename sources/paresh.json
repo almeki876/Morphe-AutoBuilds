@@ -1,0 +1,16 @@
+[
+    {
+        "name": "paresh"
+    },
+    {
+        "user": "MorpheApp",
+        "repo": "morphe-cli",
+        "tag": "latest"
+    },
+    {
+        "user": "Paresh-Maheshwari",
+        "repo": "paresh-patches",
+        "tag": "latest",
+        "gitlab": true
+    }
+]
