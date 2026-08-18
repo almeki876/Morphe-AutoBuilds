@@ -1,0 +1,15 @@
+[
+    {
+        "name": "lain"
+    },
+    {
+        "user": "MorpheApp",
+        "repo": "morphe-cli",
+        "tag": "latest"
+    },
+    {
+        "user": "kiraio-moe",
+        "repo": "Lain-Patches",
+        "tag": "latest"
+    }
+]

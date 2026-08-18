@@ -681,6 +681,58 @@
       "force_enable": [
         "Unlock Premium"
       ]
+    },
+    {
+      "app_name": "kinestop",
+      "source": "hoo",
+      "disable": []
+    },
+    {
+      "app_name": "kinemaster",
+      "source": "hoo",
+      "disable": []
+    },
+    {
+      "app_name": "kahoot",
+      "source": "hoo",
+      "disable": []
+    },
+    {
+      "app_name": "inshot",
+      "source": "hoomans",
+      "disable": []
+    },
+    {
+      "app_name": "ilovepdf",
+      "source": "lain",
+      "disable": []
+    },
+    {
+      "app_name": "gboard",
+      "source": "jason",
+      "disable": []
+    },
+    {
+      "app_name": "gboard",
+      "source": "adobo",
+      "disable": [],
+      "force_enable": [
+        "Enable OCR feature",
+        "Enable Undo feature",
+        "Enable access points menu redesign",
+        "Enable key shape selection",
+        "Toggle feature flags"
+      ]
+    },
+    {
+      "app_name": "gboard",
+      "source": "morning-entree",
+      "disable": [],
+      "force_enable": [
+        "Always incognito mode",
+        "Block tracking and analytics",
+        "Change package name"
+      ]
     }
   ]
 }

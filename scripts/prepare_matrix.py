@@ -2,24 +2,34 @@ import json, os, sys, pathlib
 sys.path.insert(0, str(pathlib.Path(__file__).parent.parent))
 
 upd = {
-    'morphe':          os.environ.get('UPD_MORPHE',  'false'),
-    'revanced-anddea': os.environ.get('UPD_ANDDEA',  'false'),
-    'hoo':             os.environ.get('UPD_HOO',     'false'),
-    'rookie':          os.environ.get('UPD_ROOKIE',  'false'),
-    'tosox':           os.environ.get('UPD_TOSOX',   'false'),
-    'yuzu':            os.environ.get('UPD_YUZU',    'false'),
-    'dropped':         os.environ.get('UPD_DROPPED', 'false'),
+    'morphe':          os.environ.get('UPD_MORPHE',         'false'),
+    'revanced-anddea': os.environ.get('UPD_ANDDEA',         'false'),
+    'hoo':             os.environ.get('UPD_HOO',            'false'),
+    'hoomans':         os.environ.get('UPD_HOOMANS',        'false'),
+    'rookie':          os.environ.get('UPD_ROOKIE',         'false'),
+    'tosox':           os.environ.get('UPD_TOSOX',          'false'),
+    'yuzu':            os.environ.get('UPD_YUZU',           'false'),
+    'dropped':         os.environ.get('UPD_DROPPED',        'false'),
+    'lain':            os.environ.get('UPD_LAIN',           'false'),
+    'jason':           os.environ.get('UPD_JASON',          'false'),
+    'adobo':           os.environ.get('UPD_ADOBO',          'false'),
+    'morning-entree':  os.environ.get('UPD_MORNING_ENTREE', 'false'),
 }
 
 # force_build: APK更新による再ビルド強制
 force = {
-    'morphe':          os.environ.get('FORCE_MORPHE',   'false'),
-    'revanced-anddea': os.environ.get('FORCE_ANDDEA',   'false'),
-    'hoo':             os.environ.get('FORCE_HOO',      'false'),
-    'rookie':          os.environ.get('FORCE_ROOKIE',   'false'),
-    'tosox':           os.environ.get('FORCE_TOSOX',    'false'),
-    'yuzu':            os.environ.get('FORCE_YUZU',     'false'),
-    'dropped':         os.environ.get('FORCE_DROPPED',  'false'),
+    'morphe':          os.environ.get('FORCE_MORPHE',         'false'),
+    'revanced-anddea': os.environ.get('FORCE_ANDDEA',         'false'),
+    'hoo':             os.environ.get('FORCE_HOO',            'false'),
+    'hoomans':         os.environ.get('FORCE_HOOMANS',        'false'),
+    'rookie':          os.environ.get('FORCE_ROOKIE',         'false'),
+    'tosox':           os.environ.get('FORCE_TOSOX',          'false'),
+    'yuzu':            os.environ.get('FORCE_YUZU',           'false'),
+    'dropped':         os.environ.get('FORCE_DROPPED',        'false'),
+    'lain':            os.environ.get('FORCE_LAIN',           'false'),
+    'jason':           os.environ.get('FORCE_JASON',          'false'),
+    'adobo':           os.environ.get('FORCE_ADOBO',          'false'),
+    'morning-entree':  os.environ.get('FORCE_MORNING_ENTREE', 'false'),
 }
 
 apk_updated_raw = os.environ.get('APK_UPDATED_APPS', '[]')

@@ -38,14 +38,15 @@ SOURCES = (
             "AdGuard, Prime Video, Duolingo, ibis Paint X, Icon Packer, Nova, "
             "Proton VPN, Smart Launcher, SoundCloud, WPS Office, Crunchyroll, "
             "GitHub, Lightroom Mobile, Windy, Xodo, XRecorder, "
-            "ゆうちょ通帳, ゆうちょ認証, Adobe Scan, AccuBattery"
+            "ゆうちょ通帳, ゆうちょ認証, Adobe Scan, AccuBattery, KineStop, "
+            "KineMaster, Kahoot!"
         ),
     ),
     Source(
         "HOOMANS",
         "Hoomans",
         "https://github.com/arandomhooman/hoomans-morphe-patches",
-        "Adobe Acrobat, FolderSync",
+        "Adobe Acrobat, FolderSync, InShot",
     ),
     Source(
         "QUANTRO",
@@ -86,6 +87,30 @@ SOURCES = (
         "Dropped-Patches",
         "https://github.com/indrastorms/Dropped-Patches",
         "",
+    ),
+    Source(
+        "LAIN",
+        "Lain-Patches",
+        "https://github.com/kiraio-moe/Lain-Patches",
+        "iLovePDF",
+    ),
+    Source(
+        "JASON",
+        "Gboard-patches",
+        "https://github.com/jasonwu1994/Gboard-patches",
+        "Gboard",
+    ),
+    Source(
+        "ADOBO",
+        "adobo",
+        "https://github.com/jkennethcarino/adobo",
+        "Gboard",
+    ),
+    Source(
+        "MORNING_ENTREE",
+        "Morning-Entree-Patches",
+        "https://github.com/Entree3k/Morning-Entree-Patches",
+        "Gboard",
     ),
 )
 

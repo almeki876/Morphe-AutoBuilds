@@ -1,0 +1,15 @@
+[
+    {
+        "name": "morning-entree"
+    },
+    {
+        "user": "MorpheApp",
+        "repo": "morphe-cli",
+        "tag": "latest"
+    },
+    {
+        "user": "Entree3k",
+        "repo": "Morning-Entree-Patches",
+        "tag": "latest"
+    }
+]
