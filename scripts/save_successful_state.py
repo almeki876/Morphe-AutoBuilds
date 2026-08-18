@@ -30,6 +30,8 @@ def main() -> None:
 
     for key, env_name in SOURCE_ENV.items():
         value = os.getenv(env_name, "").strip()
+        if not value and key == "anddea":
+            value = os.getenv("SOURCE_TAG_REVANCED_ANDDEA", "").strip()
         if value and value not in {"latest", "unknown"} and not value.startswith("{"):
             state[key] = value
 

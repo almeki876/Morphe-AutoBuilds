@@ -1,5 +1,7 @@
 # Morphe AutoBuilds
 
+[日本語] | [English](README.en.md)
+
 [![Upstream Check](https://img.shields.io/github/actions/workflow/status/matchadaisuke/Morphe-AutoBuilds/check-upstream.yml?label=upstream%20check)](https://github.com/matchadaisuke/Morphe-AutoBuilds/actions/workflows/check-upstream.yml)
 [![Build Status](https://img.shields.io/github/actions/workflow/status/matchadaisuke/Morphe-AutoBuilds/build.yml?label=build)](https://github.com/matchadaisuke/Morphe-AutoBuilds/actions/workflows/build.yml)
 [![Latest Release](https://img.shields.io/github/v/release/matchadaisuke/Morphe-AutoBuilds?label=latest%20release)](https://github.com/matchadaisuke/Morphe-AutoBuilds/releases/latest)

@@ -95,6 +95,10 @@ on:
         description: 'Force build Dropped-Patches due to APK update (no NEW badge)'
         required: false
         default: 'false'
+      apk_updated_apps:
+        description: 'JSON array of apps whose APK was updated'
+        required: false
+        default: '[]'
 
 jobs:
   download-tools:
@@ -266,6 +270,7 @@ jobs:
           FORCE_TOSOX:   ${{ github.event.inputs.tosox_force_build }}
           FORCE_YUZU:    ${{ github.event.inputs.yuzu_force_build }}
           FORCE_DROPPED: ${{ github.event.inputs.dropped_force_build }}
+          APK_UPDATED_APPS: ${{ github.event.inputs.apk_updated_apps }}
         run: |
           # env: + run: is valid; env: + uses: is not (Actions parser error).
           python3 scripts/prepare_matrix.py
@@ -614,3 +619,54 @@ jobs:
           git add -- last-tags.json
           git commit -m "chore: record successful build state [skip ci]"
           git push
+
+  handle-build-failure:
+    name: Open or Update Build Failure Issue
+    needs: [download-tools, prepare-matrix, build-apps, create-release]
+    if: >-
+      ${{
+        always() &&
+        (needs.download-tools.result == 'failure' ||
+         needs.prepare-matrix.result == 'failure' ||
+         needs.build-apps.result == 'failure' ||
+         needs.create-release.result == 'failure')
+      }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+
+    steps:
+      - name: Open or Update Failure Issue
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          TOOLS_RESULT: ${{ needs.download-tools.result }}
+          MATRIX_RESULT: ${{ needs.prepare-matrix.result }}
+          BUILD_RESULT: ${{ needs.build-apps.result }}
+          RELEASE_RESULT: ${{ needs.create-release.result }}
+        run: |
+          title="Automated APK build workflow failed"
+          cat <<EOF > build-failure-issue.md
+          # Automated APK Build Failure Report
+
+          An error occurred during the APK build and release workflow run.
+
+          ## Job Status Summary
+          - **Download Tools**: ${TOOLS_RESULT}
+          - **Prepare Matrix**: ${MATRIX_RESULT}
+          - **Build Apps**: ${BUILD_RESULT}
+          - **Create Release**: ${RELEASE_RESULT}
+
+          **Workflow Run**: ${RUN_URL}
+          EOF
+
+          issue=$(gh issue list --state open --search "$title in:title" --json number,title \
+            --jq ".[] | select(.title == \"$title\") | .number" | head -n 1)
+          if [ -n "$issue" ]; then
+            gh issue comment "$issue" --body-file build-failure-issue.md
+          else
+            gh issue create --title "$title" --body-file build-failure-issue.md --label "bug"
+          fi
+

@@ -72,7 +72,11 @@ SOURCES = (
 
 
 def _enabled(name: str) -> bool:
-    return os.environ.get(name, "").casefold() == "true"
+    val = os.environ.get(name, "").casefold() == "true"
+    if not val and name.startswith("ANDDEA_"):
+        alias = name.replace("ANDDEA_", "REVANCED_ANDDEA_")
+        val = os.environ.get(alias, "").casefold() == "true"
+    return val
 
 
 def _status(updated: bool, forced: bool) -> str:

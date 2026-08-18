@@ -72,9 +72,12 @@ jobs:
             local prev
             prev=$(load_last "$src")
 
-            if [ -z "$cur" ]; then
+            if [ -z "$cur" ] || [ "$cur" = "unknown" ]; then
               echo "${src}_updated=false" >> $GITHUB_OUTPUT
-              echo "WARNING: $src: fetch failed, skipping"
+              echo "WARNING: $src: fetch failed or unknown, skipping"
+            elif [ -z "$prev" ]; then
+              echo "${src}_updated=false" >> $GITHUB_OUTPUT
+              echo "INFO: $src: initial tag recorded as $cur (not marking as updated)"
             elif [ "$cur" != "$prev" ]; then
               any_updated=true
               echo "${src}_updated=true" >> $GITHUB_OUTPUT
@@ -160,7 +163,7 @@ jobs:
 
           # APK更新で影響を受けるソースを特定（*_upd フラグは汚染しない）
           morphe_force=false; anddea_force=false; hoo_force=false
-          rookie_force=false; tosox_force=false; dropped_force=false
+          rookie_force=false; tosox_force=false; yuzu_force=false; dropped_force=false
 
           if [ -n "$APK_UPDATED_APPS" ] && [ "$APK_UPDATED_APPS" != "[]" ]; then
             while IFS= read -r line; do
@@ -174,6 +177,7 @@ jobs:
           [ "${FORCE_HOO:-false}" = "true" ]             && hoo_force=true
           [ "${FORCE_ROOKIE:-false}" = "true" ]          && rookie_force=true
           [ "${FORCE_TOSOX:-false}" = "true" ]           && tosox_force=true
+          [ "${FORCE_YUZU:-false}" = "true" ]            && yuzu_force=true
           [ "${FORCE_DROPPED:-false}" = "true" ]         && dropped_force=true
 
           gh workflow run build.yml \
@@ -182,19 +186,23 @@ jobs:
             -f hoo_tag="${{ steps.fetch.outputs.hoo_tag }}" \
             -f rookie_tag="${{ steps.fetch.outputs.rookie_tag }}" \
             -f tosox_tag="${{ steps.fetch.outputs.tosox_tag }}" \
+            -f yuzu_tag="patche" \
             -f dropped_tag="${{ steps.fetch.outputs.dropped_tag }}" \
             -f morphe_updated="$morphe_upd" \
             -f anddea_updated="$anddea_upd" \
             -f hoo_updated="$hoo_upd" \
             -f rookie_updated="$rookie_upd" \
             -f tosox_updated="$tosox_upd" \
+            -f yuzu_updated="false" \
             -f dropped_updated="$dropped_upd" \
             -f morphe_force_build="$morphe_force" \
             -f anddea_force_build="$anddea_force" \
             -f hoo_force_build="$hoo_force" \
             -f rookie_force_build="$rookie_force" \
             -f tosox_force_build="$tosox_force" \
+            -f yuzu_force_build="$yuzu_force" \
             -f dropped_force_build="$dropped_force" \
+            -f apk_updated_apps="${APK_UPDATED_APPS:-[]}" \
 
           echo "Build workflow triggered"
 
