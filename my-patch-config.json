@@ -414,7 +414,10 @@
     {
       "app_name": "smart_launcher",
       "source": "hoo",
-      "disable": []
+      "disable": [],
+      "force_enable": [
+        "Enable Pro"
+      ]
     },
     {
       "app_name": "soundcloud",
@@ -442,13 +445,19 @@
     },
     {
       "app_name": "yuucho-tsucho",
-      "source": "yuzu",
-      "disable": []
+      "source": "hoo",
+      "disable": [],
+      "force_enable": [
+        "Hide ADB status"
+      ]
     },
     {
       "app_name": "yuucho-ninsho",
-      "source": "yuzu",
-      "disable": []
+      "source": "hoo",
+      "disable": [],
+      "force_enable": [
+        "Hide ADB status"
+      ]
     },
     {
       "app_name": "disney-plus",

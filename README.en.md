@@ -34,10 +34,10 @@ The current configuration builds the following combinations:
 | --- | --- |
 | [Morphe](https://github.com/MorpheApp/morphe-patches) | YouTube, YouTube Music |
 | [Anddea](https://github.com/anddea/revanced-patches) | YouTube, YouTube Music |
-| [hoo-dles](https://github.com/hoo-dles/morphe-patches) | AdGuard, Prime Video, Duolingo, ibis Paint X, Icon Packer, Nova Launcher, Proton VPN, Smart Launcher, SoundCloud, WPS Office, Crunchyroll, GitHub, Lightroom Mobile, Windy, Xodo, XRecorder |
+| [Hoo-dles](https://github.com/rushiranpise/morphe-patches) | AdGuard, Prime Video, Duolingo, ibis Paint X, Icon Packer, Nova Launcher, Proton VPN, Smart Launcher, SoundCloud, WPS Office, Crunchyroll, GitHub, Lightroom Mobile, Windy, Xodo, XRecorder, Yuucho Tuucho, Yuucho Ninsho |
 | [Tosox](https://github.com/Tosox/revanced-patches) | MEGA |
 | [RookieEnough](https://github.com/RookieEnough/De-Vanced) | Proton Mail, Disney+, Photomath, Pixiv, Adobe Photoshop Mix, Amazon Shopping, Google News, Google Photos, Google Recorder, Threads, TikTok, Tumblr, Twitch, Viber |
-| [YuzuMikan404](https://github.com/YuzuMikan404) | Japan Post Bank Passbook, Japan Post Bank Authentication |
+| [YuzuMikan404](https://github.com/YuzuMikan404) | Yuucho Tuucho, Yuucho Ninsho (Base APK Source) |
 
 Targets and applied patches may change over time according to upstream updates. Please inspect individual release notes and GitHub Actions logs for exact details of applied patches.
 

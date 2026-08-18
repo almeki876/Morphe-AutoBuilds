@@ -27,7 +27,7 @@ jobs:
           echo "Fetching latest tags..."
           morphe_tag=$(fetch_tag  "MorpheApp/morphe-patches")
           anddea_tag=$(fetch_tag  "anddea/revanced-patches")
-          hoo_tag=$(fetch_tag     "hoo-dles/morphe-patches")
+          hoo_tag=$(fetch_tag     "rushiranpise/morphe-patches")
           rookie_tag=$(fetch_tag  "RookieEnough/De-Vanced")
           tosox_tag=$(fetch_tag   "Tosox/revanced-patches")
           dropped_tag=$(fetch_tag "indrastorms/Dropped-Patches")

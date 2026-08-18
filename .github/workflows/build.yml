@@ -149,7 +149,7 @@ jobs:
 
           morphe_resolved=$(resolve_tag  "MorpheApp/morphe-patches"          "${{ github.event.inputs.morphe_tag }}")
           anddea_resolved=$(resolve_tag  "anddea/revanced-patches"            "${{ github.event.inputs.anddea_tag }}")
-          hoo_resolved=$(resolve_tag     "hoo-dles/morphe-patches"            "${{ github.event.inputs.hoo_tag }}")
+          hoo_resolved=$(resolve_tag     "rushiranpise/morphe-patches"        "${{ github.event.inputs.hoo_tag }}")
           rookie_resolved=$(resolve_tag  "RookieEnough/De-Vanced"              "${{ github.event.inputs.rookie_tag }}")
           tosox_resolved=$(resolve_tag   "Tosox/revanced-patches"             "${{ github.event.inputs.tosox_tag }}")
           yuzu_resolved="patche"  # 固定リリースタグ (matchadaisuke/morphe-patches)

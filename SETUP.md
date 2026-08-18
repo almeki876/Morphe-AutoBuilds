@@ -124,7 +124,7 @@ gh run watch
 
 このワークフローは次を確認します。
 
-- Morphe、Anddea、hoo-dles、RookieEnough、Tosox、Dropped-Patchesの新しいリリース
+- Morphe、Anddea、Hoo-dles (rushiranpise)、RookieEnough、Tosox、Dropped-Patchesの新しいリリース
 - パッチが任意バージョンへ対応するアプリの新しい元APK
 
 更新を検出すると、影響するパッチソースのビルドを起動し、確認済みバージョンを`last-tags.json`へ保存します。

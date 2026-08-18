@@ -33,11 +33,12 @@ SOURCES = (
     Source(
         "HOO",
         "Hoo-dles",
-        "https://github.com/hoo-dles/morphe-patches",
+        "https://github.com/rushiranpise/morphe-patches",
         (
             "AdGuard, Prime Video, Duolingo, ibis Paint X, Icon Packer, Nova, "
             "Proton VPN, Smart Launcher, SoundCloud, WPS Office, Crunchyroll, "
-            "GitHub, Lightroom Mobile, Windy, Xodo, XRecorder"
+            "GitHub, Lightroom Mobile, Windy, Xodo, XRecorder, "
+            "ゆうちょ通帳, ゆうちょ認証"
         ),
     ),
     Source(
@@ -60,7 +61,7 @@ SOURCES = (
         "YUZU",
         "YuzuMikan404",
         "https://github.com/matchadaisuke/morphe-patches",
-        "ゆうちょ通帳, ゆうちょ認証",
+        "",
     ),
     Source(
         "DROPPED",
