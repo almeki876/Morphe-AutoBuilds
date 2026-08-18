@@ -15,5 +15,6 @@
   { "app_name": "word",                   "source": "hoo",            "arches": ["arm64-v8a"] },
   { "app_name": "windscribe-vpn",         "source": "hoo",            "arches": ["arm64-v8a"] },
   { "app_name": "tiktok",                 "source": "icysymmetra",    "arches": ["arm64-v8a"] },
-  { "app_name": "threads",                "source": "durgesh0505",    "arches": ["arm64-v8a"] }
+  { "app_name": "threads",                "source": "durgesh0505",    "arches": ["arm64-v8a"] },
+  { "app_name": "excel",                  "source": "hoo",            "arches": ["arm64-v8a"] }
 ]

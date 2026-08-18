@@ -887,6 +887,56 @@
         "Redirect LINE Pay",
         "Remove banner ads"
       ]
+    },
+    {
+      "app_name": "speedtest",
+      "source": "bholey",
+      "disable": []
+    },
+    {
+      "app_name": "speedtest",
+      "source": "hoo",
+      "disable": []
+    },
+    {
+      "app_name": "sleep-as-android",
+      "source": "morning-entree",
+      "disable": [],
+      "force_enable": [
+        "Enable Premium"
+      ]
+    },
+    {
+      "app_name": "sd-maid-se",
+      "source": "hoo",
+      "disable": [],
+      "force_enable": [
+        "Unlock Pro"
+      ]
+    },
+    {
+      "app_name": "fing",
+      "source": "paresh",
+      "disable": [],
+      "force_enable": [
+        "Fing Premium"
+      ]
+    },
+    {
+      "app_name": "file-manager",
+      "source": "hoo",
+      "disable": [],
+      "force_enable": [
+        "Unlock Premium"
+      ]
+    },
+    {
+      "app_name": "excel",
+      "source": "hoo",
+      "disable": [],
+      "force_enable": [
+        "Unlock Excel"
+      ]
     }
   ]
 }

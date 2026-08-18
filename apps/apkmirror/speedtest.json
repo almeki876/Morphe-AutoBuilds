@@ -1,0 +1,9 @@
+{
+  "org": "ookla",
+  "name": "speedtest-by-ookla",
+  "type": "BUNDLE",
+  "arch": "universal",
+  "dpi": "nodpi",
+  "package": "org.zwanoo.android.speedtest",
+  "version": ""
+}

@@ -1,0 +1,9 @@
+{
+  "org": "alpha-inventor-file-manager",
+  "name": "file-manager",
+  "type": "APK",
+  "arch": "universal",
+  "dpi": "nodpi",
+  "package": "com.alphainventor.filemanager",
+  "version": ""
+}

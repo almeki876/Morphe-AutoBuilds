@@ -130,6 +130,18 @@ SOURCES = (
         "https://github.com/hoo-dles/morphe-patches",
         "Lightroom Mobile",
     ),
+    Source(
+        "BHOLEY",
+        "BholeyKaBhakt",
+        "https://github.com/BholeyKaBhakt/android-patches-xtra",
+        "Speedtest",
+    ),
+    Source(
+        "PARESH",
+        "Paresh-Maheshwari",
+        "https://gitlab.com/Paresh-Maheshwari/paresh-patches",
+        "Fing",
+    ),
 )
 
 

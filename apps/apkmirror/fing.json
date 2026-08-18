@@ -1,0 +1,9 @@
+{
+  "org": "fing-limited",
+  "name": "fing-network-tools",
+  "type": "APK",
+  "arch": "universal",
+  "dpi": "nodpi",
+  "package": "com.overlook.android.fing",
+  "version": ""
+}

@@ -17,6 +17,8 @@ upd = {
     'ajstrick81':     os.environ.get('UPD_AJSTRICK81',     'false'),
     'andrewliang25':  os.environ.get('UPD_ANDREWLIANG25',  'false'),
     'hoo-dles':        os.environ.get('UPD_HOO_DLES',       'false'),
+    'bholey':          os.environ.get('UPD_BHOLEY',         'false'),
+    'paresh':          os.environ.get('UPD_PARESH',         'false'),
 }
 
 # force_build: APK更新による再ビルド強制
@@ -36,6 +38,8 @@ force = {
     'ajstrick81':     os.environ.get('FORCE_AJSTRICK81',     'false'),
     'andrewliang25':  os.environ.get('FORCE_ANDREWLIANG25',  'false'),
     'hoo-dles':        os.environ.get('FORCE_HOO_DLES',       'false'),
+    'bholey':          os.environ.get('FORCE_BHOLEY',         'false'),
+    'paresh':          os.environ.get('FORCE_PARESH',         'false'),
 }
 
 apk_updated_raw = os.environ.get('APK_UPDATED_APPS', '[]')

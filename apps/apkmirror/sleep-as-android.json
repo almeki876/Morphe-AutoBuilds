@@ -1,0 +1,9 @@
+{
+  "org": "urbandroid",
+  "name": "sleep-as-android",
+  "type": "APK",
+  "arch": "universal",
+  "dpi": "nodpi",
+  "package": "com.urbandroid.sleep",
+  "version": ""
+}
