@@ -244,7 +244,8 @@
           "value": "@android:color/black"
         }
       ],
-      "disable": [
+      "disable": [],
+      "force_enable": [
         "AddResourcesPatch"
       ]
     },
@@ -368,13 +369,12 @@
           "value": "2147483647"
         }
       ],
-      "disable": [
-        "AddResourcesPatch"
-      ],
+      "disable": [],
       "force_enable": [
         "Hide overlay filter",
         "Hide player overlay filter",
-        "Disable music video in album"
+        "Disable music video in album",
+        "AddResourcesPatch"
       ]
     },
     {
@@ -414,17 +414,17 @@
     {
       "app_name": "proton-vpn",
       "source": "paresh",
-      "disable": [
-        "Proton VPN Premium"
-      ],
+      "disable": [],
       "force_enable": [
-        "Disable telemetry"
+        "Disable telemetry",
+        "Proton VPN Premium"
       ]
     },
     {
       "app_name": "smart_launcher",
       "source": "hoo-dles",
-      "disable": [
+      "disable": [],
+      "force_enable": [
         "Enable Pro"
       ]
     },
@@ -622,7 +622,8 @@
     {
       "app_name": "twitch-android-tv",
       "source": "ajstrick81",
-      "disable": [
+      "disable": [],
+      "force_enable": [
         "Block TV ads"
       ]
     },
@@ -793,14 +794,13 @@
     {
       "app_name": "gboard",
       "source": "adobo",
-      "disable": [
-        "Toggle feature flags"
-      ],
+      "disable": [],
       "force_enable": [
         "Enable OCR feature",
         "Enable Undo feature",
         "Enable access points menu redesign",
-        "Enable key shape selection"
+        "Enable key shape selection",
+        "Toggle feature flags"
       ]
     },
     {
@@ -830,7 +830,8 @@
     {
       "app_name": "poweramp",
       "source": "hoomans",
-      "disable": [
+      "disable": [],
+      "force_enable": [
         "Unlock Premium"
       ]
     },
@@ -936,33 +937,35 @@
     {
       "app_name": "amazon-music",
       "source": "rookie",
-      "disable": [
-        "Unlimited track skipping"
-      ],
+      "disable": [],
       "force_enable": [
         "Prevent log upload",
         "Rename shared permissions",
-        "Unlock Unlimited"
+        "Unlock Unlimited",
+        "Unlimited track skipping"
       ]
     },
     {
       "app_name": "brave",
       "source": "dh6k",
-      "disable": [
+      "disable": [],
+      "force_enable": [
         "Brave Origin"
       ]
     },
     {
       "app_name": "brave-beta",
       "source": "dh6k",
-      "disable": [
+      "disable": [],
+      "force_enable": [
         "Brave Origin"
       ]
     },
     {
       "app_name": "brave-nightly",
       "source": "dh6k",
-      "disable": [
+      "disable": [],
+      "force_enable": [
         "Brave Origin"
       ]
     },
@@ -994,11 +997,10 @@
     {
       "app_name": "disney-plus",
       "source": "ajstrick81",
-      "disable": [
-        "Suppress Household Prompt"
-      ],
+      "disable": [],
       "force_enable": [
-        "Disney+ Android TV"
+        "Disney+ Android TV",
+        "Suppress Household Prompt"
       ]
     }
   ]
