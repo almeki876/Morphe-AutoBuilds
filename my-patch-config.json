@@ -413,10 +413,11 @@
     {
       "app_name": "proton-vpn",
       "source": "paresh",
-      "disable": [],
-      "force_enable": [
-        "Disable telemetry",
+      "disable": [
         "Proton VPN Premium"
+      ],
+      "force_enable": [
+        "Disable telemetry"
       ]
     },
     {
@@ -621,8 +622,7 @@
     {
       "app_name": "twitch-android-tv",
       "source": "ajstrick81",
-      "disable": [],
-      "force_enable": [
+      "disable": [
         "Block TV ads"
       ]
     },
@@ -793,13 +793,14 @@
     {
       "app_name": "gboard",
       "source": "adobo",
-      "disable": [],
+      "disable": [
+        "Toggle feature flags"
+      ],
       "force_enable": [
         "Enable OCR feature",
         "Enable Undo feature",
         "Enable access points menu redesign",
-        "Enable key shape selection",
-        "Toggle feature flags"
+        "Enable key shape selection"
       ]
     },
     {
@@ -829,8 +830,7 @@
     {
       "app_name": "poweramp",
       "source": "hoomans",
-      "disable": [],
-      "force_enable": [
+      "disable": [
         "Unlock Premium"
       ]
     },
@@ -936,35 +936,33 @@
     {
       "app_name": "amazon-music",
       "source": "rookie",
-      "disable": [],
+      "disable": [
+        "Unlimited track skipping"
+      ],
       "force_enable": [
         "Prevent log upload",
         "Rename shared permissions",
-        "Unlimited track skipping",
         "Unlock Unlimited"
       ]
     },
     {
       "app_name": "brave",
       "source": "dh6k",
-      "disable": [],
-      "force_enable": [
+      "disable": [
         "Brave Origin"
       ]
     },
     {
       "app_name": "brave-beta",
       "source": "dh6k",
-      "disable": [],
-      "force_enable": [
+      "disable": [
         "Brave Origin"
       ]
     },
     {
       "app_name": "brave-nightly",
       "source": "dh6k",
-      "disable": [],
-      "force_enable": [
+      "disable": [
         "Brave Origin"
       ]
     },
@@ -996,7 +994,9 @@
     {
       "app_name": "disney-plus",
       "source": "ajstrick81",
-      "disable": [],
+      "disable": [
+        "Suppress Household Prompt"
+      ],
       "force_enable": [
         "Disney+ Android TV"
       ]

@@ -3,6 +3,7 @@ import logging
 import os
 import shutil
 import subprocess
+import sys
 import tempfile
 import time
 from pathlib import Path
@@ -538,10 +539,12 @@ def download_with_apkeep(
     """Download an APK with apkeep when its executable is available."""
     output_dir = output_dir or Path(".")
     executable = shutil.which("apkeep")
-    for candidate in (
-        Path(".venv") / "Scripts" / "apkeep.exe",
-        Path(".venv") / "bin" / "apkeep",
-    ):
+    candidates = (
+        (Path(".venv") / "Scripts" / "apkeep.exe",)
+        if sys.platform == "win32"
+        else (Path(".venv") / "bin" / "apkeep",)
+    )
+    for candidate in candidates:
         if executable is None and candidate.is_file():
             executable = str(candidate)
             break
