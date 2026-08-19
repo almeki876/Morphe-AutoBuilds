@@ -383,22 +383,22 @@
     },
     {
       "app_name": "prime-video",
-      "source": "rushiranpise",
+      "source": "hoo-dles",
       "disable": []
     },
     {
       "app_name": "duolingo",
-      "source": "rushiranpise",
+      "source": "hoo-dles",
       "disable": []
     },
     {
       "app_name": "ibs_paint",
-      "source": "rushiranpise",
+      "source": "hoo-dles",
       "disable": []
     },
     {
       "app_name": "icon-packer",
-      "source": "rushiranpise",
+      "source": "hoo-dles",
       "disable": []
     },
     {
@@ -421,7 +421,7 @@
     },
     {
       "app_name": "smart_launcher",
-      "source": "rushiranpise",
+      "source": "hoo-dles",
       "disable": [],
       "force_enable": [
         "Enable Pro"
@@ -429,12 +429,12 @@
     },
     {
       "app_name": "soundcloud",
-      "source": "rushiranpise",
+      "source": "hoo-dles",
       "disable": []
     },
     {
       "app_name": "wps-office",
-      "source": "rushiranpise",
+      "source": "hoo-dles",
       "disable": [],
       "force_enable": [
         "Disable anti-tamper",
@@ -485,7 +485,7 @@
     },
     {
       "app_name": "crunchyroll",
-      "source": "rushiranpise",
+      "source": "hoo-dles",
       "disable": []
     },
     {
@@ -668,7 +668,7 @@
     },
     {
       "app_name": "github",
-      "source": "rushiranpise",
+      "source": "hoo-dles",
       "disable": [],
       "force_enable": [
         "AMOLED dark theme"
@@ -685,7 +685,7 @@
     },
     {
       "app_name": "windy",
-      "source": "rushiranpise",
+      "source": "hoo-dles",
       "disable": [],
       "force_enable": [
         "Enable Premium"
@@ -693,7 +693,7 @@
     },
     {
       "app_name": "xodo",
-      "source": "rushiranpise",
+      "source": "hoo-dles",
       "disable": [],
       "force_enable": [
         "Enable Pro"
