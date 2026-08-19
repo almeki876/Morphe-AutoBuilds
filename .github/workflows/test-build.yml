@@ -78,6 +78,7 @@ jobs:
             -f tosox_force_build="true" \
             -f yuzu_force_build="true" \
             -f dropped_force_build="true" \
+            -f build_all_sources="true" \
             -f apk_updated_apps="[]"
 
           echo "Build workflow triggered successfully."

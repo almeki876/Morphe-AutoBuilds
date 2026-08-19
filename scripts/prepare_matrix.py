@@ -6,6 +6,11 @@ upd = {
     'revanced-anddea': os.environ.get('UPD_ANDDEA',         'false'),
     'rushiranpise':    os.environ.get('UPD_RUSHIRANPISE',   'false'),
     'hoomans':         os.environ.get('UPD_HOOMANS',        'false'),
+    'durgesh0505':     os.environ.get('UPD_DURGESH0505',     'false'),
+    'icysymmetra':     os.environ.get('UPD_ICYSYMMETRA',      'false'),
+    'fluffy':          os.environ.get('UPD_FLUFFY',           'false'),
+    'quantro':         os.environ.get('UPD_QUANTRO',          'false'),
+    'shaun-the-sheep-patches': os.environ.get('UPD_SHAUN_THE_SHEEP_PATCHES', 'false'),
     'rookie':          os.environ.get('UPD_ROOKIE',         'false'),
     'tosox':           os.environ.get('UPD_TOSOX',          'false'),
     'yuzu':            os.environ.get('UPD_YUZU',           'false'),
@@ -28,6 +33,11 @@ force = {
     'revanced-anddea': os.environ.get('FORCE_ANDDEA',         'false'),
     'rushiranpise':    os.environ.get('FORCE_RUSHIRANPISE',  'false'),
     'hoomans':         os.environ.get('FORCE_HOOMANS',        'false'),
+    'durgesh0505':     os.environ.get('FORCE_DURGESH0505',     'false'),
+    'icysymmetra':     os.environ.get('FORCE_ICYSYMMETRA',      'false'),
+    'fluffy':          os.environ.get('FORCE_FLUFFY',           'false'),
+    'quantro':         os.environ.get('FORCE_QUANTRO',          'false'),
+    'shaun-the-sheep-patches': os.environ.get('FORCE_SHAUN_THE_SHEEP_PATCHES', 'false'),
     'rookie':          os.environ.get('FORCE_ROOKIE',         'false'),
     'tosox':           os.environ.get('FORCE_TOSOX',          'false'),
     'yuzu':            os.environ.get('FORCE_YUZU',           'false'),
@@ -64,6 +74,7 @@ source_labels = {
     'bholey': 'BholeyKaBhakt',
     'paresh': 'Paresh-Maheshwari',
     'dh6k': 'dh6k',
+    'shaun-the-sheep-patches': 'shaun-the-sheep-patches',
 }
 
 apk_updated_raw = os.environ.get('APK_UPDATED_APPS', '[]')
@@ -74,6 +85,8 @@ except Exception:
 
 with open("./my-patch-config.json", encoding="utf-8") as config_file:
     all_items = json.load(config_file)["patch_list"]
+
+build_all_sources = os.environ.get('BUILD_ALL_SOURCES', 'false') == 'true'
 
 def should_build_item(item):
     source = item['source']
@@ -91,7 +104,7 @@ def should_build_item(item):
 
     return False
 
-all_true = all(v == 'true' for v in upd.values())
+all_true = build_all_sources or all(v == 'true' for v in upd.values())
 matrix = all_items if all_true else [i for i in all_items if should_build_item(i)]
 for item in matrix:
     item['source_label'] = source_labels.get(item['source'], item['source'])

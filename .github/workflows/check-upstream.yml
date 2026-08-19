@@ -97,6 +97,12 @@ jobs:
 
           echo "any_updated=$any_updated" >> $GITHUB_OUTPUT
 
+      - name: Check All Declared Patch Sources
+        id: all_sources
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python3 scripts/check_upstream_sources.py
+
       - name: Setup Java
         uses: actions/setup-java@v5
         with:
@@ -147,7 +153,7 @@ jobs:
         run: cat apk-version-health.md >> "$GITHUB_STEP_SUMMARY"
 
       - name: Trigger Build if Updates Found
-        if: steps.compare.outputs.any_updated == 'true' || steps.apkver.outputs.any_apk_updated == 'true'
+        if: steps.compare.outputs.any_updated == 'true' || steps.all_sources.outputs.any_updated == 'true' || steps.apkver.outputs.any_apk_updated == 'true'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           APK_UPDATED_APPS: ${{ steps.apkver.outputs.apk_updated_apps }}
@@ -202,6 +208,7 @@ jobs:
             -f tosox_force_build="$tosox_force" \
             -f yuzu_force_build="$yuzu_force" \
             -f dropped_force_build="$dropped_force" \
+            -f build_all_sources="true" \
             -f apk_updated_apps="${APK_UPDATED_APPS:-[]}" \
 
           echo "Build workflow triggered"

@@ -99,6 +99,10 @@ on:
         description: 'JSON array of apps whose APK was updated'
         required: false
         default: '[]'
+      build_all_sources:
+        description: 'Build every app/source entry in my-patch-config.json'
+        required: false
+        default: 'false'
 
 jobs:
   download-tools:
@@ -270,6 +274,7 @@ jobs:
           FORCE_TOSOX:   ${{ github.event.inputs.tosox_force_build }}
           FORCE_YUZU:    ${{ github.event.inputs.yuzu_force_build }}
           FORCE_DROPPED: ${{ github.event.inputs.dropped_force_build }}
+          BUILD_ALL_SOURCES: ${{ github.event.inputs.build_all_sources }}
           APK_UPDATED_APPS: ${{ github.event.inputs.apk_updated_apps }}
         run: |
           # env: + run: is valid; env: + uses: is not (Actions parser error).

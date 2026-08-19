@@ -6,6 +6,8 @@ import json
 import os
 from pathlib import Path
 import runpy
+from urllib.error import HTTPError, URLError
+from urllib.request import Request, urlopen
 
 
 STATE_FILE = Path("last-tags.json")
@@ -18,6 +20,22 @@ SOURCE_ENV = {
     "yuzu": "SOURCE_TAG_YUZU",
     "dropped": "SOURCE_TAG_DROPPED",
 }
+
+
+def latest_github_tag(owner: str, repo: str) -> str:
+    request = Request(
+        f"https://api.github.com/repos/{owner}/{repo}/releases?per_page=100",
+        headers={
+            "Accept": "application/vnd.github+json",
+            "Authorization": f"Bearer {os.environ.get('GITHUB_TOKEN', '')}",
+            "User-Agent": "Morphe-AutoBuilds",
+        },
+    )
+    with urlopen(request, timeout=30) as response:
+        releases = json.load(response)
+    releases = [release for release in releases if release.get("published_at")]
+    releases.sort(key=lambda release: release["published_at"], reverse=True)
+    return releases[0]["tag_name"] if releases else ""
 
 
 def main() -> None:
@@ -34,6 +52,21 @@ def main() -> None:
             value = os.getenv("SOURCE_TAG_REVANCED_ANDDEA", "").strip()
         if value and value not in {"latest", "unknown"} and not value.startswith("{"):
             state[key] = value
+
+    sources_dir = Path("sources")
+    for source_path in sources_dir.glob("*.json"):
+        repositories = json.loads(source_path.read_text(encoding="utf-8"))
+        if not isinstance(repositories, list) or len(repositories) < 3:
+            continue
+        repository = repositories[2]
+        if repository.get("gitlab"):
+            continue
+        try:
+            value = latest_github_tag(repository["user"], repository["repo"])
+        except (HTTPError, URLError, TimeoutError, KeyError, IndexError):
+            continue
+        if value:
+            state[repositories[0]["name"]] = value
 
     STATE_FILE.write_text(
         json.dumps(state, ensure_ascii=False, indent=2) + "\n",
