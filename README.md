@@ -35,9 +35,9 @@ APKファイル名には、アプリ名、対象アーキテクチャ、元APK�
 | [Morphe (Official)](https://github.com/MorpheApp/morphe-patches) | YouTube、YouTube Music |
 | [Anddea](https://github.com/anddea/revanced-patches) | YouTube、YouTube Music |
 | [rushiranpise](https://github.com/rushiranpise/morphe-patches) | 1.1.1.1、AccuBattery、AdGuard、Adobe Scan、Amazon Shopping、Call Recorder、CamScanner、Countdown Widget、Excel、File Manager、Kahoot、KineMaster、MEGA、Ninja VPN、SD Maid SE、Speedtest、Windscribe VPN、Word、ゆうちょ通帳、ゆうちょ認証 |
-| [Hoo-dles](https://github.com/hoo-dles/morphe-patches) | Lightroom Mobile、Prime Video、Duolingo、ibis Paint X、Icon Packer、Smart Launcher、SoundCloud、WPS Office、Crunchyroll、GitHub、Windy、Xodo、XRecorder |
+| [Hoo-dles](https://github.com/hoo-dles/morphe-patches) | Lightroom Mobile、Prime Video、Duolingo、ibis Paint X、Icon Packer、Smart Launcher、SoundCloud、WPS Office、GitHub、Windy、Xodo、XRecorder、Google News |
 | [shaun-the-sheep-patches](https://github.com/shaun-the-sheep-patches/morphe-patches) | Kinestop |
-| [RookieEnough](https://github.com/RookieEnough/De-Vanced) | Amazon Music、Disney+、Google News、Google Photos、Google Recorder、Photomath、Adobe Photoshop Mix、Pixiv、Tumblr、Viber |
+| [RookieEnough](https://github.com/RookieEnough/De-Vanced) | Amazon Music、Google Photos、Google Recorder、Photomath、Adobe Photoshop Mix、Pixiv、Viber |
 | [ajstrick81](https://github.com/ajstrick81/morphe-androidtv-patches) | Disney+ (Android TV)、Netflix、Prime Video (Android TV)、Twitch (Android TV) |
 | [andrewliang25](https://github.com/andrewliang25/morphe-patches) | LINE |
 | [Hoomans](https://github.com/arandomhooman/hoomans-morphe-patches) | Adobe Acrobat、FolderSync、InShot、Poweramp、Twitch |
@@ -53,6 +53,7 @@ APKファイル名には、アプリ名、対象アーキテクチャ、元APK�
 | [Fluffy (rabilrbl)](https://github.com/rabilrbl/fluffy-patches) | Alarmy |
 | [Quantro](https://github.com/Quantro100/Morphe-patches) | AliExpress |
 | [Lain (kiraio-moe)](https://github.com/kiraio-moe/Lain-Patches) | iLovePDF |
+| [NekoGryphou](https://github.com/NekoGryphou/gryphous-morphe-patches) | Crunchyroll |
 
 対象やパッチ内容はアップストリームの変更に応じて変わることがあります。実際に適用された内容は、各リリースとGitHub Actionsのログを確認してください。
 

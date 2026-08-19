@@ -1,0 +1,15 @@
+[
+    {
+        "name": "nekogryphou"
+    },
+    {
+        "user": "MorpheApp",
+        "repo": "morphe-cli",
+        "tag": "latest"
+    },
+    {
+        "user": "NekoGryphou",
+        "repo": "gryphous-morphe-patches",
+        "tag": "latest"
+    }
+]
