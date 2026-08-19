@@ -14,6 +14,7 @@ import logging
 import os
 import re
 import shutil
+import subprocess
 import zipfile
 from pathlib import Path
 
@@ -123,6 +124,51 @@ def find_release(repo, tag: str = CACHE_TAG):
     return None
 
 
+def _download_with_gh(repository: str, tag: str, prefix: str) -> list[Path]:
+    """Download all matching draft-release assets through the GitHub CLI."""
+    CACHE_DIR.mkdir(parents=True, exist_ok=True)
+    pattern = f"{prefix}*"
+    environment = os.environ.copy()
+    token = environment.get("GITHUB_TOKEN") or environment.get("GH_TOKEN")
+    if token:
+        environment["GH_TOKEN"] = token
+    try:
+        result = subprocess.run(
+            [
+                "gh",
+                "release",
+                "download",
+                tag,
+                "--repo",
+                repository,
+                "--pattern",
+                pattern,
+                "--clobber",
+                "--dir",
+                str(CACHE_DIR),
+            ],
+            capture_output=True,
+            text=True,
+            env=environment,
+            check=False,
+        )
+    except OSError as error:
+        logging.warning("gh release download could not start: %s", error)
+        return []
+    if result.stdout.strip():
+        logging.info("gh release download output: %s", result.stdout.strip())
+    if result.returncode:
+        logging.warning(
+            "gh release download failed (exit %d): %s",
+            result.returncode,
+            result.stderr.strip() or "no stderr output",
+        )
+        return []
+    if result.stderr.strip():
+        logging.info("gh release download diagnostics: %s", result.stderr.strip())
+    return sorted(CACHE_DIR.glob(pattern))
+
+
 def _copy_for_build(source: Path, app_name: str, version: str) -> Path:
     suffix = source.suffix.lower() or ".apk"
     safe_app = re.sub(r"[^A-Za-z0-9._-]+", "-", app_name).strip("-") or "app"
@@ -177,6 +223,13 @@ def restore(package: str, version: str, app_name: str) -> Path | None:
             key=lambda asset: asset.created_at or asset.updated_at,
             reverse=True,
         )
+        downloaded = _download_with_gh(repository, release.tag_name, prefix)
+        for candidate in downloaded:
+            parsed = parse_asset_name(candidate.name)
+            if parsed and validate_asset(candidate):
+                restored = _copy_for_build(candidate, app_name, version)
+                logging.info("📦 APK cache hit (GitHub CLI): %s %s", package, version)
+                return restored
         for asset in matches:
             parsed = parse_asset_name(asset.name)
             if not parsed:

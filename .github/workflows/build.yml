@@ -294,6 +294,8 @@ jobs:
     needs: [download-tools, prepare-matrix]
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    permissions:
+      contents: write
     continue-on-error: true
     strategy:
       fail-fast: false
@@ -347,6 +349,7 @@ jobs:
           APKMIRROR_REQUEST_INTERVAL_SECONDS: '3.5'
           BASE_APK_CACHE: 'true'
           BASE_APK_CACHE_TAG: 'base-apk-cache-v2'
+          BASE_APK_CACHE_REPOSITORY: ${{ github.repository }}
         run: |
           python3 scripts/download_apks.py 2>&1 | tee download.log
           exit ${PIPESTATUS[0]}
@@ -452,7 +455,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     permissions:
-      contents: read
+      contents: write
     strategy:
       fail-fast: false
       # ダウンロードは前段の専用Matrixで完了しているため、CPUパッチを並列化する。
@@ -529,6 +532,7 @@ jobs:
           APKMIRROR_REQUEST_INTERVAL_SECONDS: '3.5'
           BASE_APK_CACHE: 'true'
           BASE_APK_CACHE_TAG: 'base-apk-cache-v2'
+          BASE_APK_CACHE_REPOSITORY: ${{ github.repository }}
         run: |
           echo "Building ${{ matrix.app_name }} with ${{ matrix.source_label }}..."
           python3 -m src 2>&1 | tee build.log
