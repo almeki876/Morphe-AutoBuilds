@@ -35,7 +35,7 @@ The current configuration builds the following combinations:
 | [Morphe (Official)](https://github.com/MorpheApp/morphe-patches) | YouTube, YouTube Music |
 | [Anddea](https://github.com/anddea/revanced-patches) | YouTube, YouTube Music |
 | [rushiranpise](https://github.com/rushiranpise/morphe-patches) | 1.1.1.1, AccuBattery, AdGuard, Adobe Scan, Amazon Shopping, Call Recorder, CamScanner, Countdown Widget, Excel, File Manager, Kahoot, KineMaster, MEGA, Ninja VPN, SD Maid SE, Speedtest, Windscribe VPN, Word, Yuucho Tuucho, Yuucho Ninsho |
-| [Hoo-dles](https://github.com/hoo-dles/morphe-patches) | Lightroom Mobile |
+| [Hoo-dles](https://github.com/hoo-dles/morphe-patches) | Lightroom Mobile, Prime Video, Duolingo, ibis Paint X, Icon Packer, Smart Launcher, SoundCloud, WPS Office, Crunchyroll, GitHub, Windy, Xodo, XRecorder |
 | [shaun-the-sheep-patches](https://github.com/shaun-the-sheep-patches/morphe-patches) | Kinestop |
 | [RookieEnough](https://github.com/RookieEnough/De-Vanced) | Amazon Music, Disney+, Google News, Google Photos, Google Recorder, Photomath, Adobe Photoshop Mix, Pixiv, Tumblr, Viber |
 | [ajstrick81](https://github.com/ajstrick81/morphe-androidtv-patches) | Disney+ (Android TV), Netflix, Prime Video (Android TV), Twitch (Android TV) |

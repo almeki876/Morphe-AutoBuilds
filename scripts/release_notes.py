@@ -18,137 +18,27 @@ class Source:
 
 
 SOURCES = (
-    Source(
-        "MORPHE",
-        "Morphe",
-        "https://github.com/MorpheApp/morphe-patches",
-        "YouTube, YouTube Music",
-    ),
-    Source(
-        "ANDDEA",
-        "Anddea",
-        "https://github.com/anddea/revanced-patches",
-        "YouTube, YouTube Music",
-    ),
-    Source(
-        "RUSHIRANPISE",
-        "rushiranpise",
-        "https://github.com/rushiranpise/morphe-patches",
-        (
-            "AdGuard, Prime Video, Duolingo, ibis Paint X, Icon Packer, "
-            "Smart Launcher, SoundCloud, WPS Office, MEGA, "
-            "ゆうちょ通帳, ゆうちょ認証, Crunchyroll, Amazon Shopping, "
-            "1.1.1.1, Word, Windscribe VPN, GitHub, Windy, Xodo, XRecorder, "
-            "Adobe Scan, AccuBattery, KineStop, KineMaster, Kahoot!, Ninja VPN, "
-            "Speedtest, SD Maid SE, File Manager, Excel, Call Recorder, CamScanner, "
-            "Countdown Widget"
-        ),
-    ),
-    Source(
-        "HOOMANS",
-        "Hoomans",
-        "https://github.com/arandomhooman/hoomans-morphe-patches",
-        "Twitch, Adobe Acrobat, FolderSync, InShot, Poweramp",
-    ),
-    Source(
-        "QUANTRO",
-        "Quantro",
-        "https://github.com/Quantro100/Morphe-patches",
-        "AliExpress",
-    ),
-    Source(
-        "FLUFFY",
-        "Fluffy",
-        "https://github.com/rabilrbl/fluffy-patches",
-        "Alarmy",
-    ),
-    Source(
-        "ROOKIE",
-        "RookieEnough",
-        "https://github.com/RookieEnough/De-Vanced",
-        (
-            "Disney+, Photomath, Pixiv, Adobe Photoshop Mix, Google News, "
-            "Google Photos, Google Recorder, Tumblr, Viber, Amazon Music"
-        ),
-    ),
-    Source(
-        "DURGESH0505",
-        "durgesh0505",
-        "https://github.com/durgesh0505/chiggi_morphe_patches",
-        "Threads",
-    ),
-    Source(
-        "ICYSYMMETRA",
-        "icysymmetra",
-        "https://github.com/icysymmetra/tiktok-patches-for-morphe",
-        "TikTok",
-    ),
-    Source(
-        "LAIN",
-        "Lain-Patches",
-        "https://github.com/kiraio-moe/Lain-Patches",
-        "iLovePDF",
-    ),
-    Source(
-        "JASON",
-        "Gboard-patches",
-        "https://github.com/jasonwu1994/Gboard-patches",
-        "Gboard",
-    ),
-    Source(
-        "ADOBO",
-        "adobo",
-        "https://github.com/jkennethcarino/adobo",
-        "Gboard",
-    ),
-    Source(
-        "MORNING_ENTREE",
-        "Morning-Entree-Patches",
-        "https://github.com/Entree3k/Morning-Entree-Patches",
-        "Nova, Gboard, Sleep as Android",
-    ),
-    Source(
-        "AJSTRICK81",
-        "ajstrick81",
-        "https://github.com/ajstrick81/morphe-androidtv-patches",
-        "Twitch (Android TV), Prime Video (Android TV), Netflix, Disney+",
-    ),
-    Source(
-        "ANDREWLIANG25",
-        "andrewliang25",
-        "https://github.com/andrewliang25/morphe-patches",
-        "LINE",
-    ),
-    Source(
-        "HOO_DLES",
-        "hoo-dles",
-        "https://github.com/hoo-dles/morphe-patches",
-        "Lightroom Mobile",
-    ),
-    Source(
-        "BHOLEY",
-        "BholeyKaBhakt",
-        "https://github.com/BholeyKaBhakt/android-patches-xtra",
-        "Speedtest",
-    ),
-    Source(
-        "PARESH",
-        "Paresh-Maheshwari",
-        "https://gitlab.com/Paresh-Maheshwari/paresh-patches",
-        "Proton VPN, Fing",
-    ),
-    Source(
-        "HXREBORN",
-        "hxreborn",
-        "https://github.com/hxreborn/morphe-patches",
-        "Proton Mail",
-    ),
-    Source(
-        "DH6K",
-        "dh6k",
-        "https://github.com/dh6k/morphe-patches",
-        "Brave, Brave Beta, Brave Nightly",
-    ),
+    Source("MORPHE", "Morphe", "https://github.com/MorpheApp/morphe-patches", "YouTube, YouTube Music"),
+    Source("ANDDEA", "Anddea", "https://github.com/anddea/revanced-patches", "YouTube, YouTube Music"),
+    Source("RUSHIRANPISE", "rushiranpise", "https://github.com/rushiranpise/morphe-patches", "1.1.1.1, AccuBattery, AdGuard, Adobe Scan, Amazon Shopping, Call Recorder, CamScanner, Countdown Widget, Excel, File Manager, Kahoot!, KineMaster, MEGA, Ninja VPN, SD Maid SE, Speedtest, Windscribe VPN, Word, Yuucho Tuucho, Yuucho Ninsho"),
+    Source("HOO_DLES", "hoo-dles", "https://github.com/hoo-dles/morphe-patches", "Prime Video, Duolingo, ibis Paint X, Icon Packer, Smart Launcher, SoundCloud, WPS Office, Crunchyroll, GitHub, Lightroom Mobile, Windy, Xodo, XRecorder"),
+    Source("SHAUN_THE_SHEEP_PATCHES", "shaun-the-sheep-patches", "https://github.com/shaun-the-sheep-patches/morphe-patches", "KineStop"),
+    Source("ROOKIE", "RookieEnough", "https://github.com/RookieEnough/De-Vanced", "Amazon Music, Disney+, Google News, Google Photos, Google Recorder, Photomath, Adobe Photoshop Mix, Pixiv, Tumblr, Viber"),
+    Source("AJSTRICK81", "ajstrick81", "https://github.com/ajstrick81/morphe-androidtv-patches", "Disney+ (Android TV), Netflix, Prime Video (Android TV), Twitch (Android TV)"),
+    Source("ANDREWLIANG25", "andrewliang25", "https://github.com/andrewliang25/morphe-patches", "LINE"),
+    Source("HOOMANS", "Hoomans", "https://github.com/arandomhooman/hoomans-morphe-patches", "Adobe Acrobat, FolderSync, InShot, Poweramp, Twitch"),
+    Source("HXREBORN", "hxreborn", "https://github.com/hxreborn/morphe-patches", "Proton Mail"),
+    Source("ICYSYMMETRA", "icysymmetra", "https://github.com/icysymmetra/tiktok-patches-for-morphe", "TikTok"),
+    Source("DURGESH0505", "durgesh0505", "https://github.com/durgesh0505/chiggi_morphe_patches", "Threads"),
+    Source("MORNING_ENTREE", "Morning-Entree-Patches", "https://github.com/Entree3k/Morning-Entree-Patches", "Gboard, Nova Launcher, Sleep as Android"),
+    Source("JASON", "Gboard-patches", "https://github.com/jasonwu1994/Gboard-patches", "Gboard"),
+    Source("ADOBO", "adobo", "https://github.com/jkennethcarino/adobo", "Gboard"),
+    Source("PARESH", "Paresh-Maheshwari", "https://gitlab.com/Paresh-Maheshwari/paresh-patches", "Fing, Proton VPN"),
+    Source("DH6K", "dh6k", "https://github.com/dh6k/morphe-patches", "Brave, Brave Beta, Brave Nightly"),
+    Source("BHOLEY", "BholeyKaBhakt", "https://github.com/BholeyKaBhakt/android-patches-xtra", "Speedtest"),
+    Source("FLUFFY", "Fluffy", "https://github.com/rabilrbl/fluffy-patches", "Alarmy"),
+    Source("QUANTRO", "Quantro", "https://github.com/Quantro100/Morphe-patches", "AliExpress"),
+    Source("LAIN", "Lain-Patches", "https://github.com/kiraio-moe/Lain-Patches", "iLovePDF"),
 )
 
 
