@@ -65,6 +65,17 @@ class ScanResult:
     reanalyzed: bool
 
 
+@dataclass(frozen=True)
+class HashLookup:
+    sha256: str
+    analysis_id: str | None
+    stats: dict[str, int]
+    engines: dict[str, dict[str, object]]
+    method: str
+    last_analysis_date: int | None
+    reanalyzed: bool
+
+
 class VirusTotalClient:
     def __init__(
         self,
@@ -221,6 +232,63 @@ class VirusTotalClient:
             }
         return results
 
+    def lookup_hash(self, path: Path, sha256: str) -> HashLookup:
+        report_url = f"{API_BASE}/files/{quote(sha256)}"
+        response = self.request("GET", report_url, expected=(200, 404))
+
+        if response.status_code == 404:
+            return HashLookup(
+                sha256, None, {}, {}, "uploaded", None, False
+            )
+
+        attributes = response.json().get("data", {}).get("attributes", {})
+        stats = self._stats(attributes)
+        if not stats:
+            print(f"Requesting a fresh analysis for {path.name}...", flush=True)
+            response = self.request("POST", f"{report_url}/analyse")
+            analysis_id = str(response.json().get("data", {}).get("id") or "")
+            if not analysis_id:
+                raise VirusTotalError(
+                    f"VirusTotal did not return an analysis ID for {path.name}"
+                )
+            return HashLookup(sha256, analysis_id, {}, {}, "reanalyzed", None, True)
+
+        engines = self._engine_results(attributes, "last_analysis_results")
+        raw_date = attributes.get("last_analysis_date")
+        last_analysis_date = (
+            int(raw_date) if isinstance(raw_date, (int, float)) else None
+        )
+        malware_detected = stats.get("malicious", 0) > 0
+        is_stale = malware_detected and (
+            last_analysis_date is None
+            or time.time() - last_analysis_date > self.max_analysis_age_seconds
+        )
+        if is_stale:
+            print(
+                f"Existing VirusTotal result for {path.name} is older than "
+                f"{self.max_analysis_age_seconds / 86400:.0f} days; "
+                "requesting a fresh analysis.",
+                flush=True,
+            )
+            response = self.request("POST", f"{report_url}/analyse")
+            analysis_id = str(response.json().get("data", {}).get("id") or "")
+            if not analysis_id:
+                raise VirusTotalError(
+                    f"VirusTotal did not return an analysis ID for {path.name}"
+                )
+            return HashLookup(
+                sha256, analysis_id, stats, engines, "reanalyzed", last_analysis_date, True
+            )
+
+        print(
+            f"Using existing VirusTotal result for {path.name} "
+            f"(SHA-256 {sha256[:12]}...); no upload required.",
+            flush=True,
+        )
+        return HashLookup(
+            sha256, None, stats, engines, "hash lookup", last_analysis_date, False
+        )
+
     def start_analysis(
         self,
         path: Path,
@@ -233,61 +301,15 @@ class VirusTotalClient:
         int | None,
         bool,
     ]:
-        report_url = f"{API_BASE}/files/{quote(sha256)}"
-        response = self.request("GET", report_url, expected=(200, 404))
-
-        if response.status_code == 200:
-            attributes = response.json().get("data", {}).get("attributes", {})
-            stats = self._stats(attributes)
-            if stats:
-                engines = self._engine_results(
-                    attributes,
-                    "last_analysis_results",
-                )
-                raw_date = attributes.get("last_analysis_date")
-                last_analysis_date = (
-                    int(raw_date) if isinstance(raw_date, (int, float)) else None
-                )
-                malware_detected = stats.get("malicious", 0) > 0
-                is_stale = (
-                    malware_detected
-                    and (
-                    last_analysis_date is None
-                    or time.time() - last_analysis_date
-                    > self.max_analysis_age_seconds
-                    )
-                )
-                if is_stale:
-                    print(
-                        f"Existing VirusTotal result for {path.name} is older than "
-                        f"{self.max_analysis_age_seconds / 86400:.0f} days; "
-                        "requesting a fresh analysis.",
-                        flush=True,
-                    )
-                    response = self.request("POST", f"{report_url}/analyse")
-                    analysis_id = str(response.json().get("data", {}).get("id") or "")
-                    if not analysis_id:
-                        raise VirusTotalError(
-                            f"VirusTotal did not return an analysis ID for {path.name}"
-                        )
-                    return analysis_id, stats, engines, "reanalyzed", last_analysis_date, True
-                print(
-                    f"Using existing VirusTotal result for {path.name} "
-                    f"(SHA-256 {sha256[:12]}...); no upload required.",
-                    flush=True,
-                )
-                return None, stats, engines, "hash lookup", last_analysis_date, False
-            print(f"Requesting a fresh analysis for {path.name}...", flush=True)
-            response = self.request("POST", f"{report_url}/analyse")
-            analysis_id = str(response.json().get("data", {}).get("id") or "")
-            if not analysis_id:
-                raise VirusTotalError(
-                    f"VirusTotal did not return an analysis ID for {path.name}"
-                )
-            return analysis_id, {}, {}, "reanalyzed", None, True
-        if response.status_code != 404:
-            raise VirusTotalError(
-                f"Could not check {path.name}: {self._error_message(response)}"
+        lookup = self.lookup_hash(path, sha256)
+        if lookup.analysis_id is not None or lookup.method != "uploaded":
+            return (
+                lookup.analysis_id,
+                lookup.stats,
+                lookup.engines,
+                lookup.method,
+                lookup.last_analysis_date,
+                lookup.reanalyzed,
             )
         return self._start_upload(path), {}, {}, "uploaded", None, False
 
@@ -335,9 +357,17 @@ class VirusTotalClient:
 
     def scan(self, path: Path) -> ScanResult:
         sha256 = sha256_file(path)
-        analysis_id, stats, engines, method, last_analysis_date, reanalyzed = (
-            self.start_analysis(path, sha256)
-        )
+        return self.scan_lookup(path, self.lookup_hash(path, sha256))
+
+    def scan_lookup(self, path: Path, lookup: HashLookup) -> ScanResult:
+        analysis_id = lookup.analysis_id
+        stats = lookup.stats
+        engines = lookup.engines
+        method = lookup.method
+        last_analysis_date = lookup.last_analysis_date
+        reanalyzed = lookup.reanalyzed
+        if method == "uploaded":
+            analysis_id = self._start_upload(path)
         if analysis_id:
             try:
                 stats, engines, completed_date = self.wait_for_analysis(
@@ -398,7 +428,7 @@ class VirusTotalClient:
             verdict = "unsafe"
         return ScanResult(
             file=path.name,
-            sha256=sha256,
+            sha256=lookup.sha256,
             size=path.stat().st_size,
             analysis_id=analysis_id or "",
             malicious=malicious,
@@ -412,7 +442,7 @@ class VirusTotalClient:
             verdict=verdict,
             method=method,
             engines=engines,
-            permalink=f"https://www.virustotal.com/gui/file/{sha256}/detection",
+            permalink=f"https://www.virustotal.com/gui/file/{lookup.sha256}/detection",
             last_analysis_date=last_analysis_date,
             reanalyzed=reanalyzed,
         )

@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Callable
 
 from scripts.virustotal import (
+    HashLookup,
     ScanResult,
     VirusTotalClient,
     VirusTotalError,
@@ -57,9 +58,10 @@ def _scan_all(
 ) -> tuple[list[ScanResult], list[str]]:
     results: list[ScanResult] = []
     failures: list[str] = []
+    prepared: list[tuple[Path, HashLookup]] = []
 
-    def scan_one(apk: Path) -> ScanResult:
-        return client.scan(apk)
+    def lookup_one(apk: Path) -> tuple[Path, HashLookup]:
+        return apk, client.lookup_hash(apk, sha256_file(apk))
 
     workers = max(
         1,
@@ -69,11 +71,33 @@ def _scan_all(
         ),
     )
     print(
-        f"Scanning {len(apk_files)} APK(s) with {workers} concurrent worker(s).",
+        f"Hash lookup phase: scanning {len(apk_files)} APK(s) with "
+        f"{workers} concurrent worker(s).",
         flush=True,
     )
     with ThreadPoolExecutor(max_workers=workers, thread_name_prefix="vt-scan") as pool:
-        pending = {pool.submit(scan_one, apk): apk for apk in apk_files}
+        pending = {pool.submit(lookup_one, apk): apk for apk in apk_files}
+        for future in as_completed(pending):
+            apk = pending[future]
+            try:
+                prepared.append(future.result())
+            except (VirusTotalError, OSError, ValueError) as error:
+                message = f"{apk.name}: {error}"
+                failures.append(message)
+                print(f"::error::{message}", file=sys.stderr, flush=True)
+            if on_progress:
+                on_progress(results, failures)
+
+    print(
+        f"Upload and analysis phase: processing {len(prepared)} hash result(s); "
+        "only unknown files are uploaded.",
+        flush=True,
+    )
+    with ThreadPoolExecutor(max_workers=workers, thread_name_prefix="vt-scan") as pool:
+        pending = {
+            pool.submit(client.scan_lookup, apk, lookup): apk
+            for apk, lookup in prepared
+        }
         for future in as_completed(pending):
             apk = pending[future]
             try:
@@ -110,7 +134,6 @@ def _scan_all(
                 print(f"::error::{message}", file=sys.stderr, flush=True)
             if on_progress:
                 on_progress(results, failures)
-
     results.sort(key=lambda result: result.file)
     failures.sort()
     return results, failures

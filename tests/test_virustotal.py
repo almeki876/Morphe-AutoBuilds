@@ -62,6 +62,49 @@ def clean_report(last_analysis_date: int | None) -> FakeResponse:
 
 
 class VirusTotalTests(unittest.TestCase):
+    def test_hash_lookup_defers_unknown_file_upload(self):
+        client = FakeClient(
+            [
+                FakeResponse(404, {}),
+                FakeResponse(200, {"data": {"id": "analysis-upload"}}),
+                FakeResponse(
+                    200,
+                    {
+                        "data": {
+                            "attributes": {
+                                "status": "completed",
+                                "date": int(time.time()),
+                                "stats": {"malicious": 0, "undetected": 11},
+                                "results": {},
+                            }
+                        }
+                    },
+                ),
+            ]
+        )
+
+        with tempfile.NamedTemporaryFile(suffix=".apk") as stream:
+            lookup = client.lookup_hash(Path(stream.name), "d" * 64)
+            self.assertEqual(lookup.method, "uploaded")
+            self.assertEqual([call[0] for call in client.calls], ["GET"])
+
+            result = client.scan_lookup(Path(stream.name), lookup)
+
+        self.assertEqual(result.method, "uploaded")
+        self.assertEqual(
+            [call[0] for call in client.calls], ["GET", "POST", "GET"]
+        )
+
+    def test_known_hash_lookup_does_not_enter_upload_phase(self):
+        client = FakeClient([clean_report(int(time.time()))])
+
+        with tempfile.NamedTemporaryFile(suffix=".apk") as stream:
+            lookup = client.lookup_hash(Path(stream.name), "e" * 64)
+            result = client.scan_lookup(Path(stream.name), lookup)
+
+        self.assertEqual(result.method, "hash lookup")
+        self.assertEqual([call[0] for call in client.calls], ["GET"])
+
     def test_stale_hash_queues_reanalysis_and_uses_completed_results(self):
         old_date = int(time.time()) - 91 * 86400
         client = FakeClient(
