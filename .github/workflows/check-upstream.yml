@@ -157,8 +157,11 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           APK_UPDATED_APPS: ${{ steps.apkver.outputs.apk_updated_apps }}
+          UPDATED_SOURCES: ${{ steps.all_sources.outputs.updated_sources }}
         run: |
           echo "Triggering build workflow..."
+
+          updated_sources="$UPDATED_SOURCES"
 
           morphe_upd="${{ steps.compare.outputs.morphe_updated }}"
           anddea_upd="${{ steps.compare.outputs.anddea_updated }}"
@@ -186,6 +189,13 @@ jobs:
           [ "${FORCE_YUZU:-false}" = "true" ]            && yuzu_force=true
           [ "${FORCE_DROPPED:-false}" = "true" ]         && dropped_force=true
 
+          for forced_source in morphe anddea rushiranpise rookie tosox yuzu dropped; do
+            eval "forced=\${${forced_source}_force}"
+            if [ "$forced" = "true" ]; then
+              updated_sources="${updated_sources:+$updated_sources,}$forced_source"
+            fi
+          done
+
           gh workflow run build.yml \
             -f morphe_tag="${{ steps.fetch.outputs.morphe_tag }}" \
             -f anddea_tag="${{ steps.fetch.outputs.anddea_tag }}" \
@@ -208,7 +218,7 @@ jobs:
             -f tosox_force_build="$tosox_force" \
             -f yuzu_force_build="$yuzu_force" \
             -f dropped_force_build="$dropped_force" \
-            -f build_all_sources="true" \
+            -f updated_sources="$updated_sources" \
             -f apk_updated_apps="${APK_UPDATED_APPS:-[]}" \
 
           echo "Build workflow triggered"

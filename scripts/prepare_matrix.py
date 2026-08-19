@@ -87,6 +87,13 @@ with open("./my-patch-config.json", encoding="utf-8") as config_file:
     all_items = json.load(config_file)["patch_list"]
 
 build_all_sources = os.environ.get('BUILD_ALL_SOURCES', 'false') == 'true'
+updated_sources = {
+    source.strip()
+    for source in os.environ.get('UPDATED_SOURCES', '').split(',')
+    if source.strip()
+}
+if 'anddea' in updated_sources:
+    updated_sources.add('revanced-anddea')
 
 def should_build_item(item):
     source = item['source']
@@ -105,7 +112,12 @@ def should_build_item(item):
     return False
 
 all_true = build_all_sources or all(v == 'true' for v in upd.values())
-matrix = all_items if all_true else [i for i in all_items if should_build_item(i)]
+if build_all_sources:
+    matrix = all_items
+elif updated_sources:
+    matrix = [i for i in all_items if i['source'] in updated_sources]
+else:
+    matrix = all_items if all_true else [i for i in all_items if should_build_item(i)]
 for item in matrix:
     item['source_label'] = source_labels.get(item['source'], item['source'])
 

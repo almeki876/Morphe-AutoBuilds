@@ -38,7 +38,7 @@ def main() -> int:
     if not isinstance(state, dict):
         state = {}
 
-    any_updated = False
+    updated_sources: list[str] = []
     for source_path in sorted(SOURCES_DIR.glob("*.json")):
         repositories = json.loads(source_path.read_text(encoding="utf-8"))
         if not isinstance(repositories, list) or len(repositories) < 3:
@@ -53,7 +53,8 @@ def main() -> int:
 
         previous = state.get(source, "")
         if previous and current and current != previous:
-            any_updated = True
+            workflow_source = "anddea" if source == "revanced-anddea" else source
+            updated_sources.append(workflow_source)
             print(f"UPDATED: {source}: {previous} -> {current}")
         elif current:
             print(f"UNCHANGED: {source}: {current}")
@@ -63,7 +64,8 @@ def main() -> int:
     output_file = os.environ.get("GITHUB_OUTPUT")
     if output_file:
         with open(output_file, "a", encoding="utf-8") as output:
-            output.write(f"any_updated={'true' if any_updated else 'false'}\n")
+            output.write(f"any_updated={'true' if updated_sources else 'false'}\n")
+            output.write(f"updated_sources={','.join(sorted(updated_sources))}\n")
     return 0
 
 
