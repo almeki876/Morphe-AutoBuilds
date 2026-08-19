@@ -1,0 +1,15 @@
+[
+    {
+        "name": "shaun-the-sheep-patches"
+    },
+    {
+        "user": "MorpheApp",
+        "repo": "morphe-cli",
+        "tag": "latest"
+    },
+    {
+        "user": "shaun-the-sheep-patches",
+        "repo": "morphe-patches",
+        "tag": "latest"
+    }
+]
