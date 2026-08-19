@@ -5,7 +5,7 @@ import random
 import time
 from datetime import datetime, timezone
 from email.utils import parsedate_to_datetime
-from typing import List, Optional
+from typing import Callable, List, Optional
 from src import gh
 from sys import exit
 import subprocess
@@ -315,7 +315,8 @@ def run_process(
     stream: bool = False,
     silent: bool = False,
     check: bool = True,
-    shell: bool = False
+    shell: bool = False,
+    on_output: Optional[Callable[[str], None]] = None,
 ) -> Optional[str]:
     process = subprocess.Popen(
         command,
@@ -333,6 +334,8 @@ def run_process(
     try:
         for line in iter(process.stdout.readline, ''):
             if line:
+                if on_output:
+                    on_output(line)
                 if not silent:
                     print(line.rstrip(), flush=True)
                 if capture:

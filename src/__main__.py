@@ -61,7 +61,7 @@ from dataclasses import dataclass, field
 from os import getenv
 from pathlib import Path
 from sys import exit
-from typing import Any
+from typing import Any, Callable
 
 from src import apk_cache, cli_compat, downloader, provenance, providers, utils
 
@@ -344,6 +344,33 @@ def _build_option_flags(options: list[PatchOption], cli_ver: str) -> list[str]:
 # Patching
 # ---------------------------------------------------------------------------
 
+_FAILED_PATCH_RE = re.compile(r"SEVERE:\s+FAILED:\s*(?P<name>.+?)\s*$", re.IGNORECASE)
+_FINGERPRINT_FAILURE_RE = re.compile(
+    r"PatchException:\s+Failed to match the fingerprint", re.IGNORECASE
+)
+
+
+class PatchFailureParser:
+    """Extract patches skipped by a CLI running with continue-on-error."""
+
+    def __init__(self) -> None:
+        self.failed_patches: list[str] = []
+        self._fingerprint_failure_seen = False
+
+    def __call__(self, line: str) -> None:
+        match = _FAILED_PATCH_RE.search(line)
+        if match:
+            name = match.group("name").strip()
+            if name and name not in self.failed_patches:
+                self.failed_patches.append(name)
+        if _FINGERPRINT_FAILURE_RE.search(line):
+            self._fingerprint_failure_seen = True
+
+    def result(self) -> list[str]:
+        if self._fingerprint_failure_seen and not self.failed_patches:
+            return ["Unknown"]
+        return list(self.failed_patches)
+
 def _log_available_patches(cli: Path, bundle: Path) -> None:
     """Run list-patches and log the output for debugging. Never fatal."""
     try:
@@ -410,6 +437,7 @@ def _patch_morphe(
     disables: list[str],
     option_flags: list[str],
     patch_options: "list[PatchOption] | None" = None,
+    on_output: Callable[[str], None] | None = None,
 ) -> None:
     """Patch using Morphe CLI.
 
@@ -577,7 +605,7 @@ def _patch_morphe(
             str(input_apk),
         ]
     logging.info("Running: %s", " ".join(cmd))
-    utils.run_process(cmd, stream=True)
+    utils.run_process(cmd, stream=True, on_output=on_output)
 
 
 def _patch_revanced(
@@ -589,6 +617,7 @@ def _patch_revanced(
     disables: list[str],
     option_flags: list[str],
     cli_ver: str = "v5plus",
+    on_output: Callable[[str], None] | None = None,
 ) -> None:
     """
     Patch using ReVanced CLI v4 or v5+.
@@ -618,7 +647,7 @@ def _patch_revanced(
         str(input_apk),
     ]
     logging.info("Running: %s", " ".join(cmd))
-    utils.run_process(cmd, stream=True)
+    utils.run_process(cmd, stream=True, on_output=on_output)
 
 
 def _patch_legacy(
@@ -629,6 +658,7 @@ def _patch_legacy(
     enables: list[str],
     disables: list[str],
     option_flags: list[str],
+    on_output: Callable[[str], None] | None = None,
 ) -> None:
     """Patch using ReVanced CLI v3 (legacy *-all.jar without version number)."""
     if option_flags:
@@ -647,7 +677,7 @@ def _patch_legacy(
         str(input_apk),
     ]
     logging.info("Running: %s", " ".join(cmd))
-    utils.run_process(cmd, stream=True)
+    utils.run_process(cmd, stream=True, on_output=on_output)
 
 
 # ---------------------------------------------------------------------------
@@ -801,6 +831,7 @@ def _write_build_report(
     status: str,
     error_category: str | None = None,
     error_summary: str | None = None,
+    failed_patches: list[str] | None = None,
 ) -> None:
     """Persist patch selection for the workflow's human-readable summary."""
     applied_patches = [
@@ -829,11 +860,12 @@ def _write_build_report(
         if name not in applied_patches and name not in {item["name"] for item in excluded_patches}
     ]
     feature_failures = excluded_patches + missing_requested
+    failed_patches = list(dict.fromkeys(failed_patches or []))
     lifecycle_status = (
         "success_full"
-        if status == "success" and not feature_failures
+        if status == "success" and not feature_failures and not failed_patches
         else "success_partial"
-        if status == "success"
+        if status == "success" and (feature_failures or failed_patches)
         else "failure"
     )
     report = {
@@ -853,7 +885,8 @@ def _write_build_report(
         "excluded_patches": excluded_patches,
         "disabled_patches": [item["name"] for item in excluded_patches],
         "feature_failures": feature_failures,
-        "fully_applied": status == "success" and not feature_failures,
+        "failed_patches": failed_patches,
+        "fully_applied": status == "success" and not feature_failures and not failed_patches,
         "error_category": error_category,
         "error_summary": error_summary,
     }
@@ -1112,14 +1145,24 @@ def run_build(app_name: str, source: str, arch: str = "universal") -> str:
     # ── 9. Patch ─────────────────────────────────────────────────────────────
     output_apk = Path(f"{app_name}-{arch}-patch-v{version}.apk")
     logging.info("🔧 Patching with %s CLI (%s)…", cli_ver, cli.name)
+    patch_failure_parser = PatchFailureParser()
 
     try:
         if is_morphe:
-            _patch_morphe(cli, bundle, input_apk, output_apk, enables, disables, option_flags, patch_config.options)
+            _patch_morphe(
+                cli, bundle, input_apk, output_apk, enables, disables,
+                option_flags, patch_config.options, patch_failure_parser,
+            )
         elif cli_ver in ("v4", "v5plus"):
-            _patch_revanced(cli, bundle, input_apk, output_apk, enables, disables, option_flags, cli_ver)
+            _patch_revanced(
+                cli, bundle, input_apk, output_apk, enables, disables,
+                option_flags, cli_ver, patch_failure_parser,
+            )
         else:
-            _patch_legacy(cli, bundle, input_apk, output_apk, enables, disables, option_flags)
+            _patch_legacy(
+                cli, bundle, input_apk, output_apk, enables, disables,
+                option_flags, patch_failure_parser,
+            )
     except Exception as error:
         raise BuildFailure(
             "PATCH_APPLY_FAILED",
@@ -1154,6 +1197,7 @@ def run_build(app_name: str, source: str, arch: str = "universal") -> str:
         disables,
         patch_config,
         "success",
+        failed_patches=patch_failure_parser.result(),
     )
 
     print(f"✅ APK built: {signed_apk.name}")

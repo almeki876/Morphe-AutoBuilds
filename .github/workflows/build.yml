@@ -649,6 +649,32 @@ jobs:
           GH_REPO: ${{ github.repository }}
         run: python3 scripts/report_build_failure.py --directory failure-results
 
+  report-partial-patch-failures:
+    name: Report Partial Patch Failures
+    needs: [build-apps, create-release]
+    if: ${{ needs.create-release.result == 'success' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v7
+
+      - name: Download Build Results
+        uses: actions/download-artifact@v8
+        with:
+          path: partial-results
+          pattern: build-status-*
+          merge-multiple: true
+
+      - name: Create Partial Patch Failure Issues
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+        run: python3 scripts/report_build_failure.py --directory partial-results --partial-only
+
   update-base-apk-cache:
     name: Update Base APK Cache
     needs: [build-apps]

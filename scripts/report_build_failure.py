@@ -49,6 +49,21 @@ def _report(report_root: Path, app: str, source: str) -> dict:
         return {}
 
 
+def _patch_source_url(source: str) -> str:
+    config_path = Path("sources") / f"{source}.json"
+    try:
+        config = json.loads(config_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return "unknown"
+    if isinstance(config, dict) and config.get("bundle_url"):
+        return str(config["bundle_url"])
+    if isinstance(config, list):
+        for item in config:
+            if isinstance(item, dict) and item.get("user") and item.get("repo"):
+                return f"https://github.com/{item['user']}/{item['repo']}"
+    return "unknown"
+
+
 def _version(status: dict[str, str], report_root: Path, app: str, source: str) -> str:
     value = _report(report_root, app, source).get("version")
     if value:
@@ -245,6 +260,50 @@ def _manage_feature_lifecycle(
         _close_related("[Build Failure]", app, source_name, message)
 
 
+def _partial_patch_body(report: dict, status: dict[str, str]) -> str:
+    app = str(report.get("app_name") or status.get("app") or "unknown")
+    package = configured_package(app) or "unknown"
+    source = str(report.get("source") or status.get("source") or "unknown")
+    source_url = str(report.get("patch_source_url") or _patch_source_url(source))
+    failed = [str(item) for item in report.get("failed_patches", []) if str(item).strip()]
+    failed_lines = "\n".join(f"  - `{name}`" for name in failed)
+    return f"""## 概要
+ビルドとリリースは完了しましたが、パッチ適用時に以下のパッチが指紋不一致等の理由でスキップされました。上流のパッチソース（リポジトリ）の対応状況を確認してください。
+
+- **対象アプリ**: {app} ({package})
+- **パッチソース**: {source_url}
+- **適用に失敗したパッチ**:
+{failed_lines}
+
+※このIssueは自動的に作成されました。
+"""
+
+
+def _manage_partial_patch_failures(report_root: Path) -> int:
+    statuses = {
+        (status.get("app"), status.get("source")): status
+        for path in report_root.rglob("*.txt")
+        for status in [_read_status(path)]
+    }
+    created = 0
+    for path in sorted(report_root.glob("*.json")):
+        try:
+            report = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            continue
+        if not isinstance(report, dict) or report.get("status") != "success":
+            continue
+        failed = report.get("failed_patches") or []
+        if not failed:
+            continue
+        app = str(report.get("app_name") or "unknown")
+        source_name = str(report.get("source_name") or report.get("source") or "unknown")
+        title = f"[Partial Patch Failure] {app} ({source_name}) - 一部パッチ適用失敗"
+        _publish(title, _partial_patch_body(report, statuses.get((report.get("app_name"), report.get("source")), {})))
+        created += 1
+    return created
+
+
 def _body(status: dict[str, str], report_root: Path) -> str:
     app = status["app"]
     source = status["source"]
@@ -311,8 +370,16 @@ def main() -> int:
         action="store_true",
         help="Render issue updates without calling GitHub CLI.",
     )
+    parser.add_argument(
+        "--partial-only",
+        action="store_true",
+        help="Report successful releases with silently failed patches only.",
+    )
     args = parser.parse_args()
     DRY_RUN = args.dry_run
+    if args.partial_only:
+        print(f"Processed {_manage_partial_patch_failures(args.directory)} partial patch failure(s).")
+        return 0
     statuses = sorted(args.directory.rglob("*.txt"))
     failures = []
     for path in statuses:
