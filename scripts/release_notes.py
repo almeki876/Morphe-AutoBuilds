@@ -48,7 +48,7 @@ SOURCES = (
         "HOOMANS",
         "Hoomans",
         "https://github.com/arandomhooman/hoomans-morphe-patches",
-        "Adobe Acrobat, FolderSync, InShot, Poweramp",
+        "Twitch, Adobe Acrobat, FolderSync, InShot, Poweramp",
     ),
     Source(
         "QUANTRO",
@@ -105,13 +105,13 @@ SOURCES = (
         "MORNING_ENTREE",
         "Morning-Entree-Patches",
         "https://github.com/Entree3k/Morning-Entree-Patches",
-        "Gboard",
+        "Nova, Gboard, Sleep as Android",
     ),
     Source(
         "AJSTRICK81",
         "ajstrick81",
         "https://github.com/ajstrick81/morphe-androidtv-patches",
-        "Prime Video (Android TV), Netflix, Disney+",
+        "Twitch (Android TV), Prime Video (Android TV), Netflix, Disney+",
     ),
     Source(
         "ANDREWLIANG25",
@@ -135,13 +135,19 @@ SOURCES = (
         "PARESH",
         "Paresh-Maheshwari",
         "https://gitlab.com/Paresh-Maheshwari/paresh-patches",
-        "Fing",
+        "Proton VPN, Fing",
+    ),
+    Source(
+        "HXREBORN",
+        "hxreborn",
+        "https://github.com/hxreborn/morphe-patches",
+        "Proton Mail",
     ),
     Source(
         "DH6K",
         "dh6k",
         "https://github.com/dh6k/morphe-patches",
-        "Brave",
+        "Brave, Brave Beta, Brave Nightly",
     ),
 )
 
