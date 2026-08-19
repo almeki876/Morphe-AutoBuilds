@@ -6,7 +6,10 @@ import json
 import logging
 import os
 import shutil
+import sys
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from src import apk_cache, downloader, providers, utils
 
@@ -23,12 +26,9 @@ def _find_tools(source: str) -> tuple[list[Path], Path, Path]:
         else utils.find_file(files, contains="revanced-cli", suffix=".jar")
     )
     bundle = (
-        utils.find_file(files, contains="patches", suffix=".mpp")
-        or utils.find_file(files, suffix=".mpp")
+        utils.find_latest_patch_bundle(files, (".mpp",))
         if is_morphe
-        else utils.find_file(files, contains="patches", suffix=".rvp")
-        or utils.find_file(files, contains="patches", suffix=".mpp")
-        or utils.find_file(files, suffix=".mpp")
+        else utils.find_latest_patch_bundle(files, (".rvp", ".mpp"))
         or utils.find_file(files, contains="patches", suffix=".jar")
     )
     if not cli or not bundle:

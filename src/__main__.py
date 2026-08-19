@@ -150,25 +150,6 @@ def _cli_version(cli: Path) -> str:
     return cli_compat.detect_cli_kind(cli)
 
 
-def _find_latest_patch_bundle(files: list[Path], suffixes: tuple[str, ...]) -> Path | None:
-    """Select the newest versioned patch bundle from a release's assets."""
-    candidates = [
-        file for file in files
-        if file.suffix in suffixes and "patches" in file.name.lower()
-    ]
-    if not candidates:
-        candidates = [file for file in files if file.suffix in suffixes]
-    if not candidates:
-        return None
-
-    def version_key(file: Path) -> tuple[list[int], str]:
-        version_match = re.search(r"(?:^|[-_])v?(\d+(?:\.\d+)+)", file.stem, re.IGNORECASE)
-        version = version_match.group(1) if version_match else "0"
-        return utils.normalize_version(version), file.name
-
-    return max(candidates, key=version_key)
-
-
 # ---------------------------------------------------------------------------
 # Patch flag helpers
 # ---------------------------------------------------------------------------
@@ -904,10 +885,10 @@ def run_build(app_name: str, source: str, arch: str = "universal") -> str:
             utils.find_file(download_files, contains="morphe-cli", suffix=".jar", exclude=["dev"])
             or utils.find_file(download_files, contains="morphe", suffix=".jar")
         )
-        bundle = _find_latest_patch_bundle(download_files, (".mpp",))
+        bundle = utils.find_latest_patch_bundle(download_files, (".mpp",))
     else:
         cli = utils.find_file(download_files, contains="revanced-cli", suffix=".jar")
-        bundle = _find_latest_patch_bundle(download_files, (".rvp", ".mpp"))
+        bundle = utils.find_latest_patch_bundle(download_files, (".rvp", ".mpp"))
         bundle = bundle or utils.find_file(
             download_files, contains="patches", suffix=".jar"
         )

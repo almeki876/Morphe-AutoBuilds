@@ -268,6 +268,29 @@ def find_file(files: list[Path], prefix: str = None, suffix: str = None, contain
     
     return None
 
+
+def find_latest_patch_bundle(
+    files: list[Path], suffixes: tuple[str, ...]
+) -> Path | None:
+    """Select the newest versioned patch bundle from a release's assets."""
+    candidates = [
+        file for file in files
+        if file.suffix in suffixes and "patches" in file.name.lower()
+    ]
+    if not candidates:
+        candidates = [file for file in files if file.suffix in suffixes]
+    if not candidates:
+        return None
+
+    def version_key(file: Path) -> tuple[list[int], str]:
+        version_match = re.search(
+            r"(?:^|[-_])v?(\d+(?:\.\d+)+)", file.stem, re.IGNORECASE
+        )
+        version = version_match.group(1) if version_match else "0"
+        return normalize_version(version), file.name
+
+    return max(candidates, key=version_key)
+
 def find_apksigner() -> str | None:
     sdk_root = Path("/usr/local/lib/android/sdk")
     build_tools_dir = sdk_root / "build-tools"
