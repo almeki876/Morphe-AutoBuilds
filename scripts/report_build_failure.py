@@ -139,6 +139,12 @@ def _feature_body(
         status, Path("."), app, str(report.get("source") or status.get("source"))
     )
     log = status.get("log", "No raw log excerpt was captured.")[-16000:]
+    options = [
+        f"- `{item.get('patch')}`: `{item.get('key')}={item.get('value')}`"
+        for item in report.get("requested_options", [])
+        if isinstance(item, dict)
+    ]
+    options_text = "\n".join(options) or "- None recorded"
     return f"""# Feature patch failure
 
 - **App:** `{app}`
@@ -155,6 +161,10 @@ This patch was temporarily disabled or could not be selected so the build could 
 ## Reason
 
 {patch.get('reason', 'The requested patch was not applied.')}
+
+## Requested patch options
+
+{options_text}
 
 ## Raw build log
 

@@ -823,6 +823,10 @@ def _write_build_report(
         "version": version,
         "status": status,
         "requested_patches": requested_patches,
+        "requested_options": [
+            {"patch": option.patch, "key": option.key, "value": option.value}
+            for option in patch_config.options
+        ],
         "applied_patches": applied_patches,
         "excluded_patches": excluded_patches,
         "feature_failures": feature_failures,
