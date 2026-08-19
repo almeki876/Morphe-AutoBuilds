@@ -1,8 +1,13 @@
 {
+  "org": "crunchyroll",
   "name": "crunchyroll",
+  "uploads_url": "https://www.apkmirror.com/uploads/?appcategory=crunchyroll",
   "package": "com.crunchyroll.crunchyroid",
   "type": "APK",
   "arch": "arm64-v8a",
   "dpi": "nodpi",
-  "version": ""
+  "version": "",
+  "fallback_versions": [
+    "3.113.2"
+  ]
 }
