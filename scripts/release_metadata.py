@@ -7,6 +7,33 @@ import os
 from pathlib import Path
 
 
+SOURCE_LABELS = {
+    "morphe": "Morphe",
+    "revanced-anddea": "Anddea",
+    "hoo": "rushiranpise",
+    "hoomans": "arandomhooman",
+    "rookie": "RookieEnough",
+    "durgesh0505": "durgesh0505",
+    "icysymmetra": "icysymmetra",
+    "ajstrick81": "ajstrick81",
+    "andrewliang25": "andrewliang25",
+    "hoo-dles": "hoo-dles",
+    "fluffy": "rabilrbl",
+    "quantro": "Quantro100",
+    "lain": "kiraio-moe",
+    "jason": "jasonwu1994",
+    "adobo": "jkennethcarino",
+    "morning-entree": "Entree3k",
+    "bholey": "BholeyKaBhakt",
+    "paresh": "Paresh-Maheshwari",
+    "dh6k": "dh6k",
+}
+
+
+def _source_label(source: str) -> str:
+    return SOURCE_LABELS.get(source, source)
+
+
 def _cell(value: object) -> str:
     return str(value or "-").replace("|", r"\|").replace("\n", " ")
 
@@ -81,7 +108,9 @@ def render(
     ]
     if failed:
         lines.extend(["", "Failed builds:", ""])
-        lines.extend(f"- `{app}` with `{source}`" for app, source in failed)
+        lines.extend(
+            f"- `{app}` with `{_source_label(source)}`" for app, source in failed
+        )
 
     if origins:
         lines.extend(
@@ -102,7 +131,9 @@ def render(
             lines.append(
                 "| {app} | {patch} | {version} | {arch} | {provider} |".format(
                     app=_cell(item.get("app_name")),
-                    patch=_cell(item.get("patch_source")),
+                    patch=_cell(
+                        _source_label(str(item.get("patch_source") or ""))
+                    ),
                     version=_cell(item.get("version")),
                     arch=_cell(item.get("architecture")),
                     provider=provider,

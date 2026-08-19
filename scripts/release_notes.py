@@ -35,11 +35,13 @@ SOURCES = (
         "rushiranpise",
         "https://github.com/rushiranpise/morphe-patches",
         (
-            "AdGuard, Prime Video, Duolingo, ibis Paint X, Icon Packer, Nova, "
-            "Proton VPN, Smart Launcher, SoundCloud, WPS Office, Crunchyroll, "
-            "GitHub, Windy, Xodo, XRecorder, "
-            "ゆうちょ通帳, ゆうちょ認証, Adobe Scan, AccuBattery, KineStop, "
-            "KineMaster, Kahoot!, Ninja VPN, Countdown Widget, CamScanner, Call Recorder"
+            "AdGuard, Prime Video, Duolingo, ibis Paint X, Icon Packer, "
+            "Smart Launcher, SoundCloud, WPS Office, MEGA, "
+            "ゆうちょ通帳, ゆうちょ認証, Crunchyroll, Amazon Shopping, "
+            "1.1.1.1, Word, Windscribe VPN, GitHub, Windy, Xodo, XRecorder, "
+            "Adobe Scan, AccuBattery, KineStop, KineMaster, Kahoot!, Ninja VPN, "
+            "Speedtest, SD Maid SE, File Manager, Excel, Call Recorder, CamScanner, "
+            "Countdown Widget"
         ),
     ),
     Source(
@@ -65,28 +67,21 @@ SOURCES = (
         "RookieEnough",
         "https://github.com/RookieEnough/De-Vanced",
         (
-            "Proton Mail, Disney+, Photomath, Pixiv, Adobe Photoshop Mix, "
-            "Amazon Shopping, Google News, Google Photos, Google Recorder, "
-            "Threads, TikTok, Tumblr, Twitch, Viber, Amazon Music"
+            "Disney+, Photomath, Pixiv, Adobe Photoshop Mix, Google News, "
+            "Google Photos, Google Recorder, Tumblr, Viber, Amazon Music"
         ),
     ),
     Source(
-        "TOSOX",
-        "Tosox",
-        "https://github.com/Tosox/revanced-patches",
-        "MEGA",
+        "DURGESH0505",
+        "durgesh0505",
+        "https://github.com/durgesh0505/chiggi_morphe_patches",
+        "Threads",
     ),
     Source(
-        "YUZU",
-        "YuzuMikan404",
-        "https://github.com/matchadaisuke/morphe-patches",
-        "",
-    ),
-    Source(
-        "DROPPED",
-        "Dropped-Patches",
-        "https://github.com/indrastorms/Dropped-Patches",
-        "",
+        "ICYSYMMETRA",
+        "icysymmetra",
+        "https://github.com/icysymmetra/tiktok-patches-for-morphe",
+        "TikTok",
     ),
     Source(
         "LAIN",
