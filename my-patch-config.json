@@ -423,8 +423,7 @@
     {
       "app_name": "smart_launcher",
       "source": "hoo-dles",
-      "disable": [],
-      "force_enable": [
+      "disable": [
         "Enable Pro"
       ]
     },
