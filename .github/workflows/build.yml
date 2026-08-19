@@ -294,12 +294,12 @@ jobs:
     needs: [download-tools, prepare-matrix]
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    continue-on-error: true
     strategy:
       fail-fast: false
       max-parallel: 8
       matrix:
         include: ${{ fromJson(needs.prepare-matrix.outputs.matrix) }}
-      continue-on-error: true
 
     steps:
       - name: Checkout Repository
