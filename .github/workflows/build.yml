@@ -299,6 +299,7 @@ jobs:
       max-parallel: 8
       matrix:
         include: ${{ fromJson(needs.prepare-matrix.outputs.matrix) }}
+      continue-on-error: true
 
     steps:
       - name: Checkout Repository
@@ -327,6 +328,7 @@ jobs:
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
 
       - name: Download Base APK
+        id: download-apk
         env:
           APP_NAME: ${{ matrix.app_name }}
           SOURCE: ${{ matrix.source }}
@@ -339,9 +341,38 @@ jobs:
           APKMIRROR_REQUEST_INTERVAL_SECONDS: '3.5'
           BASE_APK_CACHE: 'true'
           BASE_APK_CACHE_TAG: 'base-apk-cache-v2'
-        run: python3 scripts/download_apks.py
+        run: |
+          python3 scripts/download_apks.py 2>&1 | tee download.log
+          exit ${PIPESTATUS[0]}
+
+      - name: Record Download Result
+        if: always()
+        run: |
+          mkdir -p download-status
+          {
+            echo "app=${{ matrix.app_name }}"
+            echo "source=${{ matrix.source }}"
+            echo "source_name=${{ matrix.source_label }}"
+            echo "phase=Download"
+            echo "status=${{ steps.download-apk.outcome }}"
+            echo "run=${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+            echo ""
+            echo "traceback_or_error_tail<<EOF"
+            if [ -f download.log ]; then tail -n 120 download.log; else echo "Download step did not start."; fi
+            echo "EOF"
+          } > "download-status/${{ matrix.app_name }}-${{ matrix.source }}.txt"
+          cat "download-status/${{ matrix.app_name }}-${{ matrix.source }}.txt" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload Download Result
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: download-status-${{ matrix.app_name }}-${{ matrix.source }}
+          path: download-status/*.txt
+          retention-days: 7
 
       - name: Upload Base APK Input
+        if: success()
         uses: actions/upload-artifact@v7
         with:
           name: base-input-${{ matrix.app_name }}-${{ matrix.source }}
@@ -445,6 +476,8 @@ jobs:
           {
             echo "app=${{ matrix.app_name }}"
             echo "source=${{ matrix.source }}"
+            echo "source_name=${{ matrix.source_label }}"
+            echo "phase=Patch"
             echo "status=${{ steps.build-apk.outcome }}"
             echo "run=${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           } > "build-status/${{ matrix.app_name }}-${{ matrix.source }}.txt"
@@ -460,6 +493,29 @@ jobs:
             cp build-metadata/build-report.json "build-status/${{ matrix.app_name }}-${{ matrix.source }}.json"
           fi
           cat "build-status/${{ matrix.app_name }}-${{ matrix.source }}.txt" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "### Patch application details" >> "$GITHUB_STEP_SUMMARY"
+          if [ -f build-metadata/build-report.json ]; then
+            jq -r '
+              "- **Patch source:** `" + (.source_name // .source) + "`",
+              "- **Status:** `" + .status + "`",
+              "",
+              "**Applied patches**",
+              ((.applied_patches // [])[] | "- `" + . + "`"),
+              "",
+              "**Excluded patches**",
+              ((.excluded_patches // [])[] | "- `" + .name + "`: " + .reason)
+            ' build-metadata/build-report.json >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "- No patch report was produced before the failure." >> "$GITHUB_STEP_SUMMARY"
+          fi
+          if [ -f build.log ]; then
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "**Error log excerpt**" >> "$GITHUB_STEP_SUMMARY"
+            echo '```text' >> "$GITHUB_STEP_SUMMARY"
+            tail -n 80 build.log >> "$GITHUB_STEP_SUMMARY"
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+          fi
 
       - name: Upload Build Result
         if: always()
@@ -493,6 +549,40 @@ jobs:
           path: |
             *.apk
             build-metadata/apk-sources.json
+
+  report-build-failures:
+    name: Report Per-App Build Failures
+    needs: [prepare-matrix, download-apks, build-apps]
+    if: ${{ always() && needs.prepare-matrix.result == 'success' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v7
+
+      - name: Setup Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: 3.11
+
+      - name: Install Dependencies
+        run: pip install -r requirements.txt
+
+      - name: Download Build Failure Results
+        uses: actions/download-artifact@v8
+        with:
+          path: failure-results
+          pattern: '*-status-*'
+          merge-multiple: true
+
+      - name: Create or Update App Issues
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+        run: python3 scripts/report_build_failure.py --directory failure-results
 
   update-base-apk-cache:
     name: Update Base APK Cache
