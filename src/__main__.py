@@ -70,6 +70,14 @@ from src import apk_cache, cli_compat, downloader, provenance, providers, utils
 # Data model
 # ---------------------------------------------------------------------------
 
+class BuildFailure(RuntimeError):
+    """A build failure with a stable category for workflow metadata."""
+
+    def __init__(self, category: str, message: str) -> None:
+        super().__init__(message)
+        self.category = category
+        self.message = message
+
 @dataclass
 class PatchOption:
     """A single key/value option for a specific patch, as read from my-patch-config.json."""
@@ -788,6 +796,8 @@ def _write_build_report(
     disables: list[str],
     patch_config: PatchConfig,
     status: str,
+    error_category: str | None = None,
+    error_summary: str | None = None,
 ) -> None:
     """Persist patch selection for the workflow's human-readable summary."""
     applied_patches = [
@@ -841,10 +851,40 @@ def _write_build_report(
         "disabled_patches": [item["name"] for item in excluded_patches],
         "feature_failures": feature_failures,
         "fully_applied": status == "success" and not feature_failures,
+        "error_category": error_category,
+        "error_summary": error_summary,
     }
     path = Path("build-metadata") / "build-report.json"
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+
+def _write_failure_report(
+    app_name: str,
+    source: str,
+    arch: str,
+    category: str,
+    message: str,
+) -> None:
+    """Write failure metadata even when the build stopped before patch selection."""
+    report = {
+        "app_name": app_name,
+        "source": source,
+        "patch_source": source,
+        "source_name": source,
+        "architecture": arch,
+        "status": "failure",
+        "lifecycle_status": "failure",
+        "error_category": category,
+        "error_summary": message[:500],
+    }
+    path = Path("build-metadata") / "build-report.json"
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        provenance.record_failure(app_name, source, arch, category, message[:500])
+    except OSError as error:
+        logging.warning("Could not persist build failure metadata: %s", error)
 
 
 def run_build(app_name: str, source: str, arch: str = "universal") -> str:
@@ -861,7 +901,13 @@ def run_build(app_name: str, source: str, arch: str = "universal") -> str:
             logging.info("   • [%s] %s = %r", opt.patch, opt.key, opt.value)
 
     # ── 1. Download tools ───────────────────────────────────────────────────
-    download_files, source_name = downloader.download_required(source)
+    try:
+        download_files, source_name = downloader.download_required(source)
+    except Exception as error:
+        raise BuildFailure(
+            "PATCH_APPLY_FAILED",
+            f"patch tool or bundle download failed: {type(error).__name__}: {error}",
+        ) from error
 
     logging.info("📦 Downloaded %d file(s) for '%s':", len(download_files), source)
     for f in download_files:
@@ -914,14 +960,14 @@ def run_build(app_name: str, source: str, arch: str = "universal") -> str:
             "and scripts/download_all_tools.py.",
             source, is_morphe, [f.name for f in download_files], source,
         )
-        exit(1)
+        raise BuildFailure("PATCH_APPLY_FAILED", "CLI jar was not found in downloaded tools")
     if not bundle:
         logging.error(
             "❌ FATAL: Patch bundle not found for source '%s' (is_morphe=%s). "
             "Downloaded files: %s.",
             source, is_morphe, [f.name for f in download_files],
         )
-        exit(1)
+        raise BuildFailure("PATCH_APPLY_FAILED", "patch bundle was not found in downloaded tools")
 
     logging.info("✅ CLI:    %s", cli.name)
     logging.info("✅ Bundle: %s", bundle.name)
@@ -943,7 +989,10 @@ def run_build(app_name: str, source: str, arch: str = "universal") -> str:
         input_apk = Path(preloaded_apk)
         version = getenv("PRE_DOWNLOADED_VERSION")
         if not input_apk.is_file() or not version:
-            raise RuntimeError("PRE_DOWNLOADED_APK and PRE_DOWNLOADED_VERSION must point to a valid input")
+            raise BuildFailure(
+                "APK_DOWNLOAD_FAILED",
+                "pre-downloaded APK or version is invalid",
+            )
         logging.info("✅ Using pre-downloaded APK input: %s", input_apk)
     else:
         compatible_versions = utils.get_supported_version_candidates(
@@ -975,7 +1024,10 @@ def run_build(app_name: str, source: str, arch: str = "universal") -> str:
                 "❌ FATAL: Could not resolve a fallback version for %s.",
                 app_name,
             )
-            exit(1)
+            raise BuildFailure(
+                "APK_DOWNLOAD_FAILED",
+                f"could not resolve a compatible APK version for {app_name}",
+            )
         logging.warning(
             "⚠️  Standard APK providers failed; trying fallback chain for %s v%s",
             package,
@@ -1010,8 +1062,10 @@ def run_build(app_name: str, source: str, arch: str = "universal") -> str:
             )
 
     if input_apk is None:
-        logging.error("❌ FATAL: Could not download APK for '%s' from any source.", app_name)
-        exit(1)
+        raise BuildFailure(
+            "APK_DOWNLOAD_FAILED",
+            f"could not download or validate APK for {app_name} from any provider",
+        )
 
     # Preserve the provider payload before split merging, architecture stripping,
     # repair, patching, or signing changes any byte. VirusTotal scans this
@@ -1056,12 +1110,18 @@ def run_build(app_name: str, source: str, arch: str = "universal") -> str:
     output_apk = Path(f"{app_name}-{arch}-patch-v{version}.apk")
     logging.info("🔧 Patching with %s CLI (%s)…", cli_ver, cli.name)
 
-    if is_morphe:
-        _patch_morphe(cli, bundle, input_apk, output_apk, enables, disables, option_flags, patch_config.options)
-    elif cli_ver in ("v4", "v5plus"):
-        _patch_revanced(cli, bundle, input_apk, output_apk, enables, disables, option_flags, cli_ver)
-    else:
-        _patch_legacy(cli, bundle, input_apk, output_apk, enables, disables, option_flags)
+    try:
+        if is_morphe:
+            _patch_morphe(cli, bundle, input_apk, output_apk, enables, disables, option_flags, patch_config.options)
+        elif cli_ver in ("v4", "v5plus"):
+            _patch_revanced(cli, bundle, input_apk, output_apk, enables, disables, option_flags, cli_ver)
+        else:
+            _patch_legacy(cli, bundle, input_apk, output_apk, enables, disables, option_flags)
+    except Exception as error:
+        raise BuildFailure(
+            "PATCH_APPLY_FAILED",
+            f"patch CLI failed: {type(error).__name__}: {error}",
+        ) from error
 
     input_apk.unlink(missing_ok=True)
 
@@ -1071,7 +1131,7 @@ def run_build(app_name: str, source: str, arch: str = "universal") -> str:
             "The patch command likely failed silently.",
             output_apk,
         )
-        exit(1)
+        raise BuildFailure("PATCH_APPLY_FAILED", "patch CLI did not produce an APK")
 
     # ── 10. Sign ─────────────────────────────────────────────────────────────
     signed_apk = Path(f"{app_name}-{arch}-{source_name}-v{version}.apk")
@@ -1080,7 +1140,7 @@ def run_build(app_name: str, source: str, arch: str = "universal") -> str:
 
     if not signed_apk.exists():
         logging.error("❌ FATAL: Signed APK was not produced for '%s'.", app_name)
-        exit(1)
+        raise BuildFailure("PATCH_APPLY_FAILED", "APK signing did not produce the signed APK")
 
     _write_build_report(
         app_name,
@@ -1155,9 +1215,16 @@ def main() -> None:
                     "⚠️  arm64-v8a failed, but universal fallback succeeded."
                 )
         except (SystemExit, Exception) as exc:
+            if isinstance(exc, BuildFailure):
+                category = exc.category
+                summary = exc.message
+            else:
+                category = "PATCH_APPLY_FAILED"
+                summary = f"{type(exc).__name__}: {exc}"
             logging.error("❌ Build failed for '%s' [%s]: %s", app_name, arch, exc)
             downloader.remove_apk_origin(app_name, arch)
             _remove_staged_base_apk(app_name, source, arch)
+            _write_failure_report(app_name, source, arch, category, summary)
             failed.append(arch)
             if arch == "arm64-v8a" and "universal" not in build_queue:
                 logging.warning(

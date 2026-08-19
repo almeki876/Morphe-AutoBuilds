@@ -105,6 +105,14 @@ def _failure_logs(report_root: Path) -> list[tuple[str, str]]:
     return logs
 
 
+def _failure_reports(reports: list[dict]) -> dict[tuple[str, str], dict]:
+    return {
+        (str(report.get("app_name")), str(report.get("source"))): report
+        for report in reports
+        if report.get("status") == "failure"
+    }
+
+
 def _unique_origins(origins: list[dict]) -> list[dict]:
     unique: dict[tuple[object, ...], dict] = {}
     for item in origins:
@@ -140,17 +148,29 @@ def render(
     ]
     if failed:
         lines.extend(["", "Failed builds:", ""])
-        lines.extend(
-            f"- `{app}` with `{_source_label(source)}`" for app, source in failed
-        )
+        failure_reports = _failure_reports(reports or [])
+        for app, source in failed:
+            report = failure_reports.get((app, source), {})
+            category = report.get("error_category") or "UNKNOWN"
+            summary = report.get("error_summary") or "No error summary recorded."
+            lines.append(
+                f"- `{app}` with `{_source_label(source)}`: "
+                f"`{_cell(category)}` - {_cell(summary)}"
+            )
+            if category == "PATCH_APPLY_FAILED":
+                lines.append(
+                    "  ⚠️ **この問題はパッチソース（上流）に起因する障害のため、"
+                    "すぐに解決できるようなものではありません。** 安定運用の維持に向け、"
+                    "今後別のパッチソースへの切り替えを検討します。"
+                )
 
     if reports:
         lines.extend([
             "",
             "## Patch application details",
             "",
-            "| App | Patch source | Status | Applied patches | Excluded patches |",
-            "| --- | --- | --- | --- | --- |",
+            "| App | Patch source | Status | Error category | Error summary | Applied patches | Excluded patches |",
+            "| --- | --- | --- | --- | --- | --- | --- |",
         ])
         for report in reports:
             applied = report.get("applied_patches") or []
@@ -165,6 +185,8 @@ def render(
                 f"| {_cell(report.get('app_name'))} | "
                 f"{_cell(report.get('source_name') or _source_label(str(report.get('source') or '')))} | "
                 f"{_cell(report.get('lifecycle_status') or report.get('status'))} | "
+                f"{_cell(report.get('error_category'))} | "
+                f"{_cell(report.get('error_summary'))} | "
                 f"{applied_text} | {excluded_text} |"
             )
 

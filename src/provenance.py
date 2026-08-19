@@ -71,6 +71,46 @@ def record(
     )
 
 
+def record_failure(
+    app_name: str,
+    source: str,
+    arch: str,
+    category: str,
+    message: str,
+) -> None:
+    """Persist a failed build classification for release reporting."""
+    entry = {
+        "app_name": app_name,
+        "patch_source": source,
+        "version": "unknown",
+        "architecture": arch,
+        "provider": None,
+        "provider_label": None,
+        "provider_url": None,
+        "cached": False,
+        "filename": None,
+        "build_status": "failure",
+        "error_category": category,
+        "error_summary": message,
+    }
+    key_fields = ("app_name", "patch_source", "architecture")
+    entries = [
+        item
+        for item in _read_entries()
+        if not all(item.get(field) == entry[field] for field in key_fields)
+    ]
+    entries.append(entry)
+    try:
+        _write_entries(entries)
+    except OSError as error:
+        logging.warning(
+            "Could not record failed build metadata for %s/%s: %s",
+            app_name,
+            arch,
+            error,
+        )
+
+
 def remove(app_name: str, arch: str) -> None:
     """Remove provenance for an architecture that failed to produce an APK."""
     if not METADATA_PATH.exists():
