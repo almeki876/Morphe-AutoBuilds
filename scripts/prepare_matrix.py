@@ -4,7 +4,7 @@ sys.path.insert(0, str(pathlib.Path(__file__).parent.parent))
 upd = {
     'morphe':          os.environ.get('UPD_MORPHE',         'false'),
     'revanced-anddea': os.environ.get('UPD_ANDDEA',         'false'),
-    'hoo':             os.environ.get('UPD_HOO',            'false'),
+    'rushiranpise':    os.environ.get('UPD_RUSHIRANPISE',   'false'),
     'hoomans':         os.environ.get('UPD_HOOMANS',        'false'),
     'rookie':          os.environ.get('UPD_ROOKIE',         'false'),
     'tosox':           os.environ.get('UPD_TOSOX',          'false'),
@@ -26,7 +26,7 @@ upd = {
 force = {
     'morphe':          os.environ.get('FORCE_MORPHE',         'false'),
     'revanced-anddea': os.environ.get('FORCE_ANDDEA',         'false'),
-    'hoo':             os.environ.get('FORCE_HOO',            'false'),
+    'rushiranpise':    os.environ.get('FORCE_RUSHIRANPISE',  'false'),
     'hoomans':         os.environ.get('FORCE_HOOMANS',        'false'),
     'rookie':          os.environ.get('FORCE_ROOKIE',         'false'),
     'tosox':           os.environ.get('FORCE_TOSOX',          'false'),
@@ -42,6 +42,28 @@ force = {
     'bholey':          os.environ.get('FORCE_BHOLEY',         'false'),
     'paresh':          os.environ.get('FORCE_PARESH',         'false'),
     'dh6k':            os.environ.get('FORCE_DH6K',           'false'),
+}
+
+source_labels = {
+    'morphe': 'Morphe',
+    'revanced-anddea': 'Anddea',
+    'rushiranpise': 'rushiranpise',
+    'hoomans': 'arandomhooman',
+    'rookie': 'RookieEnough',
+    'durgesh0505': 'durgesh0505',
+    'icysymmetra': 'icysymmetra',
+    'ajstrick81': 'ajstrick81',
+    'andrewliang25': 'andrewliang25',
+    'hoo-dles': 'hoo-dles',
+    'fluffy': 'rabilrbl',
+    'quantro': 'Quantro100',
+    'lain': 'kiraio-moe',
+    'jason': 'jasonwu1994',
+    'adobo': 'jkennethcarino',
+    'morning-entree': 'Entree3k',
+    'bholey': 'BholeyKaBhakt',
+    'paresh': 'Paresh-Maheshwari',
+    'dh6k': 'dh6k',
 }
 
 apk_updated_raw = os.environ.get('APK_UPDATED_APPS', '[]')
@@ -71,6 +93,8 @@ def should_build_item(item):
 
 all_true = all(v == 'true' for v in upd.values())
 matrix = all_items if all_true else [i for i in all_items if should_build_item(i)]
+for item in matrix:
+    item['source_label'] = source_labels.get(item['source'], item['source'])
 
 if not matrix:
     print('WARNING: No sources or apps were updated - matrix is empty.', file=sys.stderr)

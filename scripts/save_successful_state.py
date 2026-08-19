@@ -12,7 +12,7 @@ STATE_FILE = Path("last-tags.json")
 SOURCE_ENV = {
     "morphe": "SOURCE_TAG_MORPHE",
     "anddea": "SOURCE_TAG_ANDDEA",
-    "hoo": "SOURCE_TAG_HOO",
+    "rushiranpise": "SOURCE_TAG_RUSHIRANPISE",
     "rookie": "SOURCE_TAG_ROOKIE",
     "tosox": "SOURCE_TAG_TOSOX",
     "yuzu": "SOURCE_TAG_YUZU",

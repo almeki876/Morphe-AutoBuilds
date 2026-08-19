@@ -28,7 +28,7 @@ jobs:
           echo "Fetching latest tags..."
           morphe_tag=$(fetch_tag  "MorpheApp/morphe-patches")
           anddea_tag=$(fetch_tag  "anddea/revanced-patches")
-          hoo_tag=$(fetch_tag     "rushiranpise/morphe-patches")
+          rushiranpise_tag=$(fetch_tag "rushiranpise/morphe-patches")
           rookie_tag=$(fetch_tag  "RookieEnough/De-Vanced")
           tosox_tag=$(fetch_tag   "Tosox/revanced-patches")
           dropped_tag=$(fetch_tag "indrastorms/Dropped-Patches")
@@ -36,14 +36,14 @@ jobs:
           echo "Tags fetched:"
           echo "  morphe:  $morphe_tag"
           echo "  anddea:  $anddea_tag"
-          echo "  hoo:     $hoo_tag"
+          echo "  rushiranpise: $rushiranpise_tag"
           echo "  rookie:  $rookie_tag"
           echo "  tosox:   $tosox_tag"
           echo "  dropped: $dropped_tag"
 
           # タグ取得の検証: 空タグがあればエラーにする
           failed=false
-          for src in morphe anddea hoo rookie tosox dropped; do
+          for src in morphe anddea rushiranpise rookie tosox dropped; do
             eval "tag=\${${src}_tag}"
             if [ -z "$tag" ]; then
               echo "::error::Failed to fetch tag for: $src"
@@ -59,21 +59,21 @@ jobs:
           gh workflow run build.yml \
             -f morphe_tag="$morphe_tag" \
             -f anddea_tag="$anddea_tag" \
-            -f hoo_tag="$hoo_tag" \
+            -f rushiranpise_tag="$rushiranpise_tag" \
             -f rookie_tag="$rookie_tag" \
             -f tosox_tag="$tosox_tag" \
             -f yuzu_tag="patche" \
             -f dropped_tag="$dropped_tag" \
             -f morphe_updated="false" \
             -f anddea_updated="false" \
-            -f hoo_updated="false" \
+            -f rushiranpise_updated="false" \
             -f rookie_updated="false" \
             -f tosox_updated="false" \
             -f yuzu_updated="false" \
             -f dropped_updated="false" \
             -f morphe_force_build="true" \
             -f anddea_force_build="true" \
-            -f hoo_force_build="true" \
+            -f rushiranpise_force_build="true" \
             -f rookie_force_build="true" \
             -f tosox_force_build="true" \
             -f yuzu_force_build="true" \

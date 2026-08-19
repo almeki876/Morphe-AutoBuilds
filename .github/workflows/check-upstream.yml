@@ -40,12 +40,12 @@ jobs:
 
           morphe_tag=$(fetch_tag  "MorpheApp/morphe-patches")
           anddea_tag=$(fetch_tag  "anddea/revanced-patches")
-          hoo_tag=$(fetch_tag     "rushiranpise/morphe-patches")
+          rushiranpise_tag=$(fetch_tag "rushiranpise/morphe-patches")
           rookie_tag=$(fetch_tag  "RookieEnough/De-Vanced")
           tosox_tag=$(fetch_tag   "Tosox/revanced-patches")
           dropped_tag=$(fetch_tag "indrastorms/Dropped-Patches")
 
-          for var in morphe anddea hoo rookie tosox dropped; do
+          for var in morphe anddea rushiranpise rookie tosox dropped; do
             eval "tag=\${${var}_tag}"
             [ -z "$tag" ] && echo "WARNING: Could not fetch tag for: $var" || echo "OK: $var: $tag"
             echo "${var}_tag=${tag}" >> $GITHUB_OUTPUT
@@ -56,7 +56,7 @@ jobs:
         env:
           FETCH_MORPHE:  ${{ steps.fetch.outputs.morphe_tag }}
           FETCH_ANDDEA:  ${{ steps.fetch.outputs.anddea_tag }}
-          FETCH_HOO:     ${{ steps.fetch.outputs.hoo_tag }}
+          FETCH_RUSHIRANPISE: ${{ steps.fetch.outputs.rushiranpise_tag }}
           FETCH_ROOKIE:  ${{ steps.fetch.outputs.rookie_tag }}
           FETCH_TOSOX:   ${{ steps.fetch.outputs.tosox_tag }}
           FETCH_DROPPED: ${{ steps.fetch.outputs.dropped_tag }}
@@ -90,7 +90,7 @@ jobs:
 
           check_src morphe  "$FETCH_MORPHE"
           check_src anddea  "$FETCH_ANDDEA"
-          check_src hoo     "$FETCH_HOO"
+          check_src rushiranpise "$FETCH_RUSHIRANPISE"
           check_src rookie  "$FETCH_ROOKIE"
           check_src tosox   "$FETCH_TOSOX"
           check_src dropped "$FETCH_DROPPED"
@@ -111,7 +111,7 @@ jobs:
           PAT: ${{ secrets.PAT }}
           SOURCE_TAG_MORPHE:          ${{ steps.fetch.outputs.morphe_tag }}
           SOURCE_TAG_REVANCED_ANDDEA: ${{ steps.fetch.outputs.anddea_tag }}
-          SOURCE_TAG_HOO:             ${{ steps.fetch.outputs.hoo_tag }}
+          SOURCE_TAG_RUSHIRANPISE:    ${{ steps.fetch.outputs.rushiranpise_tag }}
           SOURCE_TAG_ROOKIE:          ${{ steps.fetch.outputs.rookie_tag }}
           SOURCE_TAG_TOSOX:           ${{ steps.fetch.outputs.tosox_tag }}
           SOURCE_TAG_DROPPED:         ${{ steps.fetch.outputs.dropped_tag }}
@@ -126,7 +126,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SOURCE_TAG_MORPHE:          ${{ steps.fetch.outputs.morphe_tag }}
           SOURCE_TAG_REVANCED_ANDDEA: ${{ steps.fetch.outputs.anddea_tag }}
-          SOURCE_TAG_HOO:             ${{ steps.fetch.outputs.hoo_tag }}
+          SOURCE_TAG_RUSHIRANPISE:    ${{ steps.fetch.outputs.rushiranpise_tag }}
           SOURCE_TAG_ROOKIE:          ${{ steps.fetch.outputs.rookie_tag }}
           SOURCE_TAG_TOSOX:           ${{ steps.fetch.outputs.tosox_tag }}
           SOURCE_TAG_DROPPED:         ${{ steps.fetch.outputs.dropped_tag }}
@@ -156,13 +156,13 @@ jobs:
 
           morphe_upd="${{ steps.compare.outputs.morphe_updated }}"
           anddea_upd="${{ steps.compare.outputs.anddea_updated }}"
-          hoo_upd="${{ steps.compare.outputs.hoo_updated }}"
+          rushiranpise_upd="${{ steps.compare.outputs.rushiranpise_updated }}"
           rookie_upd="${{ steps.compare.outputs.rookie_updated }}"
           tosox_upd="${{ steps.compare.outputs.tosox_updated }}"
           dropped_upd="${{ steps.compare.outputs.dropped_updated }}"
 
           # APK更新で影響を受けるソースを特定（*_upd フラグは汚染しない）
-          morphe_force=false; anddea_force=false; hoo_force=false
+          morphe_force=false; anddea_force=false; rushiranpise_force=false
           rookie_force=false; tosox_force=false; yuzu_force=false; dropped_force=false
 
           if [ -n "$APK_UPDATED_APPS" ] && [ "$APK_UPDATED_APPS" != "[]" ]; then
@@ -174,7 +174,7 @@ jobs:
           # FORCE_* は *_force に入れる（NEWバッジ用の *_upd は変えない）
           [ "${FORCE_MORPHE:-false}" = "true" ]          && morphe_force=true
           [ "${FORCE_REVANCED_ANDDEA:-false}" = "true" ] && anddea_force=true
-          [ "${FORCE_HOO:-false}" = "true" ]             && hoo_force=true
+          [ "${FORCE_RUSHIRANPISE:-false}" = "true" ]   && rushiranpise_force=true
           [ "${FORCE_ROOKIE:-false}" = "true" ]          && rookie_force=true
           [ "${FORCE_TOSOX:-false}" = "true" ]           && tosox_force=true
           [ "${FORCE_YUZU:-false}" = "true" ]            && yuzu_force=true
@@ -183,21 +183,21 @@ jobs:
           gh workflow run build.yml \
             -f morphe_tag="${{ steps.fetch.outputs.morphe_tag }}" \
             -f anddea_tag="${{ steps.fetch.outputs.anddea_tag }}" \
-            -f hoo_tag="${{ steps.fetch.outputs.hoo_tag }}" \
+            -f rushiranpise_tag="${{ steps.fetch.outputs.rushiranpise_tag }}" \
             -f rookie_tag="${{ steps.fetch.outputs.rookie_tag }}" \
             -f tosox_tag="${{ steps.fetch.outputs.tosox_tag }}" \
             -f yuzu_tag="patche" \
             -f dropped_tag="${{ steps.fetch.outputs.dropped_tag }}" \
             -f morphe_updated="$morphe_upd" \
             -f anddea_updated="$anddea_upd" \
-            -f hoo_updated="$hoo_upd" \
+            -f rushiranpise_updated="$rushiranpise_upd" \
             -f rookie_updated="$rookie_upd" \
             -f tosox_updated="$tosox_upd" \
             -f yuzu_updated="false" \
             -f dropped_updated="$dropped_upd" \
             -f morphe_force_build="$morphe_force" \
             -f anddea_force_build="$anddea_force" \
-            -f hoo_force_build="$hoo_force" \
+            -f rushiranpise_force_build="$rushiranpise_force" \
             -f rookie_force_build="$rookie_force" \
             -f tosox_force_build="$tosox_force" \
             -f yuzu_force_build="$yuzu_force" \

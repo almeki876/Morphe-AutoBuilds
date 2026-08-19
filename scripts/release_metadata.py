@@ -10,7 +10,7 @@ from pathlib import Path
 SOURCE_LABELS = {
     "morphe": "Morphe",
     "revanced-anddea": "Anddea",
-    "hoo": "rushiranpise",
+    "rushiranpise": "rushiranpise",
     "hoomans": "arandomhooman",
     "rookie": "RookieEnough",
     "durgesh0505": "durgesh0505",

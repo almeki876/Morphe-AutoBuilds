@@ -31,7 +31,7 @@ SOURCES = (
         "YouTube, YouTube Music",
     ),
     Source(
-        "HOO",
+        "RUSHIRANPISE",
         "rushiranpise",
         "https://github.com/rushiranpise/morphe-patches",
         (

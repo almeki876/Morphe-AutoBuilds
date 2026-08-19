@@ -378,27 +378,27 @@
     },
     {
       "app_name": "adguard",
-      "source": "hoo",
+      "source": "rushiranpise",
       "disable": []
     },
     {
       "app_name": "prime-video",
-      "source": "hoo",
+      "source": "rushiranpise",
       "disable": []
     },
     {
       "app_name": "duolingo",
-      "source": "hoo",
+      "source": "rushiranpise",
       "disable": []
     },
     {
       "app_name": "ibs_paint",
-      "source": "hoo",
+      "source": "rushiranpise",
       "disable": []
     },
     {
       "app_name": "icon-packer",
-      "source": "hoo",
+      "source": "rushiranpise",
       "disable": []
     },
     {
@@ -421,7 +421,7 @@
     },
     {
       "app_name": "smart_launcher",
-      "source": "hoo",
+      "source": "rushiranpise",
       "disable": [],
       "force_enable": [
         "Enable Pro"
@@ -429,12 +429,12 @@
     },
     {
       "app_name": "soundcloud",
-      "source": "hoo",
+      "source": "rushiranpise",
       "disable": []
     },
     {
       "app_name": "wps-office",
-      "source": "hoo",
+      "source": "rushiranpise",
       "disable": [],
       "force_enable": [
         "Disable anti-tamper",
@@ -443,7 +443,7 @@
     },
     {
       "app_name": "mega",
-      "source": "hoo",
+      "source": "rushiranpise",
       "disable": [],
       "force_enable": [
         "Unlock Pro"
@@ -464,7 +464,7 @@
     },
     {
       "app_name": "yuucho-tsucho",
-      "source": "hoo",
+      "source": "rushiranpise",
       "disable": [],
       "force_enable": [
         "Hide ADB status"
@@ -472,7 +472,7 @@
     },
     {
       "app_name": "yuucho-ninsho",
-      "source": "hoo",
+      "source": "rushiranpise",
       "disable": [],
       "force_enable": [
         "Hide ADB status"
@@ -485,7 +485,7 @@
     },
     {
       "app_name": "crunchyroll",
-      "source": "hoo",
+      "source": "rushiranpise",
       "disable": []
     },
     {
@@ -508,7 +508,7 @@
     },
     {
       "app_name": "amazon-shopping",
-      "source": "hoo",
+      "source": "rushiranpise",
       "disable": [],
       "force_enable": [
         "Dark mode",
@@ -633,7 +633,7 @@
     },
     {
       "app_name": "1-1-1-1",
-      "source": "hoo",
+      "source": "rushiranpise",
       "disable": [],
       "force_enable": [
         "Disable Analytics / Telemetry",
@@ -643,7 +643,7 @@
     },
     {
       "app_name": "word",
-      "source": "hoo",
+      "source": "rushiranpise",
       "disable": [],
       "force_enable": [
         "Unlock Word"
@@ -651,7 +651,7 @@
     },
     {
       "app_name": "windscribe-vpn",
-      "source": "hoo",
+      "source": "rushiranpise",
       "disable": [],
       "force_enable": [
         "Unlock Premium"
@@ -668,7 +668,7 @@
     },
     {
       "app_name": "github",
-      "source": "hoo",
+      "source": "rushiranpise",
       "disable": [],
       "force_enable": [
         "AMOLED dark theme"
@@ -685,7 +685,7 @@
     },
     {
       "app_name": "windy",
-      "source": "hoo",
+      "source": "rushiranpise",
       "disable": [],
       "force_enable": [
         "Enable Premium"
@@ -693,7 +693,7 @@
     },
     {
       "app_name": "xodo",
-      "source": "hoo",
+      "source": "rushiranpise",
       "disable": [],
       "force_enable": [
         "Enable Pro"
@@ -701,7 +701,7 @@
     },
     {
       "app_name": "xrecorder",
-      "source": "hoo",
+      "source": "rushiranpise",
       "disable": [],
       "force_enable": [
         "Enable Pro"
@@ -735,7 +735,7 @@
     },
     {
       "app_name": "adobe-scan",
-      "source": "hoo",
+      "source": "rushiranpise",
       "disable": [],
       "force_enable": [
         "Unlock Premium"
@@ -759,7 +759,7 @@
     },
     {
       "app_name": "accubattery",
-      "source": "hoo",
+      "source": "rushiranpise",
       "disable": [],
       "force_enable": [
         "Unlock Premium"
@@ -767,17 +767,17 @@
     },
     {
       "app_name": "kinestop",
-      "source": "hoo",
+      "source": "rushiranpise",
       "disable": []
     },
     {
       "app_name": "kinemaster",
-      "source": "hoo",
+      "source": "rushiranpise",
       "disable": []
     },
     {
       "app_name": "kahoot",
-      "source": "hoo",
+      "source": "rushiranpise",
       "disable": []
     },
     {
@@ -841,7 +841,7 @@
     },
     {
       "app_name": "ninja-vpn",
-      "source": "hoo",
+      "source": "rushiranpise",
       "disable": [],
       "force_enable": [
         "Unlock Premium"
@@ -895,7 +895,7 @@
     },
     {
       "app_name": "speedtest",
-      "source": "hoo",
+      "source": "rushiranpise",
       "disable": []
     },
     {
@@ -908,7 +908,7 @@
     },
     {
       "app_name": "sd-maid-se",
-      "source": "hoo",
+      "source": "rushiranpise",
       "disable": [],
       "force_enable": [
         "Unlock Pro"
@@ -924,7 +924,7 @@
     },
     {
       "app_name": "file-manager",
-      "source": "hoo",
+      "source": "rushiranpise",
       "disable": [],
       "force_enable": [
         "Unlock Premium"
@@ -932,7 +932,7 @@
     },
     {
       "app_name": "excel",
-      "source": "hoo",
+      "source": "rushiranpise",
       "disable": [],
       "force_enable": [
         "Unlock Excel"
@@ -975,7 +975,7 @@
     },
     {
       "app_name": "call-recorder",
-      "source": "hoo",
+      "source": "rushiranpise",
       "disable": [],
       "force_enable": [
         "Unlock Premium"
@@ -983,7 +983,7 @@
     },
     {
       "app_name": "camscanner",
-      "source": "hoo",
+      "source": "rushiranpise",
       "disable": [],
       "force_enable": [
         "Disable telemetry",
@@ -992,7 +992,7 @@
     },
     {
       "app_name": "countdown-widget",
-      "source": "hoo",
+      "source": "rushiranpise",
       "disable": [],
       "force_enable": [
         "Unlock Premium"

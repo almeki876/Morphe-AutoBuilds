@@ -19,8 +19,8 @@ on:
         description: 'Anddea tag'
         required: false
         default: 'latest'
-      hoo_tag:
-        description: 'Hoo-dles tag'
+      rushiranpise_tag:
+        description: 'rushiranpise tag'
         required: false
         default: 'latest'
       rookie_tag:
@@ -47,8 +47,8 @@ on:
         description: 'Whether Anddea was updated'
         required: false
         default: 'false'
-      hoo_updated:
-        description: 'Whether Hoo-dles was updated'
+      rushiranpise_updated:
+        description: 'Whether rushiranpise was updated'
         required: false
         default: 'false'
       rookie_updated:
@@ -75,8 +75,8 @@ on:
         description: 'Force build Anddea due to APK update (no NEW badge)'
         required: false
         default: 'false'
-      hoo_force_build:
-        description: 'Force build Hoo-dles due to APK update (no NEW badge)'
+      rushiranpise_force_build:
+        description: 'Force build rushiranpise due to APK update (no NEW badge)'
         required: false
         default: 'false'
       rookie_force_build:
@@ -110,7 +110,7 @@ jobs:
       cache-key: ${{ steps.resolve-tags.outputs.cache-key }}
       morphe_resolved:  ${{ steps.resolve-tags.outputs.morphe_resolved }}
       anddea_resolved:  ${{ steps.resolve-tags.outputs.anddea_resolved }}
-      hoo_resolved:     ${{ steps.resolve-tags.outputs.hoo_resolved }}
+      rushiranpise_resolved: ${{ steps.resolve-tags.outputs.rushiranpise_resolved }}
       rookie_resolved:  ${{ steps.resolve-tags.outputs.rookie_resolved }}
       tosox_resolved:   ${{ steps.resolve-tags.outputs.tosox_resolved }}
       yuzu_resolved:    ${{ steps.resolve-tags.outputs.yuzu_resolved }}
@@ -149,7 +149,7 @@ jobs:
 
           morphe_resolved=$(resolve_tag  "MorpheApp/morphe-patches"          "${{ github.event.inputs.morphe_tag }}")
           anddea_resolved=$(resolve_tag  "anddea/revanced-patches"            "${{ github.event.inputs.anddea_tag }}")
-          hoo_resolved=$(resolve_tag     "rushiranpise/morphe-patches"        "${{ github.event.inputs.hoo_tag }}")
+          rushiranpise_resolved=$(resolve_tag "rushiranpise/morphe-patches" "${{ github.event.inputs.rushiranpise_tag }}")
           rookie_resolved=$(resolve_tag  "RookieEnough/De-Vanced"              "${{ github.event.inputs.rookie_tag }}")
           tosox_resolved=$(resolve_tag   "Tosox/revanced-patches"             "${{ github.event.inputs.tosox_tag }}")
           yuzu_resolved="patche"  # 固定リリースタグ (matchadaisuke/morphe-patches)
@@ -157,7 +157,7 @@ jobs:
 
           echo "morphe_resolved=$morphe_resolved"   >> $GITHUB_OUTPUT
           echo "anddea_resolved=$anddea_resolved"   >> $GITHUB_OUTPUT
-          echo "hoo_resolved=$hoo_resolved"         >> $GITHUB_OUTPUT
+          echo "rushiranpise_resolved=$rushiranpise_resolved" >> $GITHUB_OUTPUT
           echo "rookie_resolved=$rookie_resolved"   >> $GITHUB_OUTPUT
           echo "tosox_resolved=$tosox_resolved"     >> $GITHUB_OUTPUT
           echo "yuzu_resolved=$yuzu_resolved"       >> $GITHUB_OUTPUT
@@ -165,7 +165,7 @@ jobs:
 
           # キャッシュキー = ファイルハッシュ + 全パッチバージョンの結合
           # パッチが1つでも変わればキャッシュミスになる
-          version_string="${morphe_resolved}__${anddea_resolved}__${hoo_resolved}__${rookie_resolved}__${tosox_resolved}__${yuzu_resolved}__${dropped_resolved}"
+          version_string="${morphe_resolved}__${anddea_resolved}__${rushiranpise_resolved}__${rookie_resolved}__${tosox_resolved}__${yuzu_resolved}__${dropped_resolved}"
           file_hash="${{ hashFiles('my-patch-config.json', 'arch-config.json', 'sources/**') }}"
           cache_key="build-tools-${file_hash}-${version_string}"
           echo "cache-key=${cache_key}" >> $GITHUB_OUTPUT
@@ -173,7 +173,7 @@ jobs:
           echo "Resolved tags:"
           echo "  morphe:  $morphe_resolved"
           echo "  anddea:  $anddea_resolved"
-          echo "  hoo:     $hoo_resolved"
+          echo "  rushiranpise: $rushiranpise_resolved"
           echo "  rookie:  $rookie_resolved"
           echo "  tosox:   $tosox_resolved"
           echo "  yuzu:    $yuzu_resolved"
@@ -209,7 +209,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           UPD_MORPHE:   ${{ github.event.inputs.morphe_updated }}
           UPD_ANDDEA:   ${{ github.event.inputs.anddea_updated }}
-          UPD_HOO:      ${{ github.event.inputs.hoo_updated }}
+          UPD_RUSHIRANPISE: ${{ github.event.inputs.rushiranpise_updated }}
           UPD_ROOKIE:   ${{ github.event.inputs.rookie_updated }}
           UPD_TOSOX:    ${{ github.event.inputs.tosox_updated }}
           UPD_YUZU:     ${{ github.event.inputs.yuzu_updated }}
@@ -218,7 +218,7 @@ jobs:
           SOURCE_TAG_MORPHE:          ${{ steps.resolve-tags.outputs.morphe_resolved }}
           SOURCE_TAG_ANDDEA:          ${{ steps.resolve-tags.outputs.anddea_resolved }}
           SOURCE_TAG_REVANCED_ANDDEA: ${{ steps.resolve-tags.outputs.anddea_resolved }}
-          SOURCE_TAG_HOO:             ${{ steps.resolve-tags.outputs.hoo_resolved }}
+          SOURCE_TAG_RUSHIRANPISE:    ${{ steps.resolve-tags.outputs.rushiranpise_resolved }}
           SOURCE_TAG_ROOKIE:          ${{ steps.resolve-tags.outputs.rookie_resolved }}
           SOURCE_TAG_TOSOX:           ${{ steps.resolve-tags.outputs.tosox_resolved }}
           SOURCE_TAG_YUZU:            ${{ steps.resolve-tags.outputs.yuzu_resolved }}
@@ -258,14 +258,14 @@ jobs:
         env:
           UPD_MORPHE:   ${{ github.event.inputs.morphe_updated }}
           UPD_ANDDEA:   ${{ github.event.inputs.anddea_updated }}
-          UPD_HOO:      ${{ github.event.inputs.hoo_updated }}
+          UPD_RUSHIRANPISE: ${{ github.event.inputs.rushiranpise_updated }}
           UPD_ROOKIE:   ${{ github.event.inputs.rookie_updated }}
           UPD_TOSOX:    ${{ github.event.inputs.tosox_updated }}
           UPD_YUZU:     ${{ github.event.inputs.yuzu_updated }}
           UPD_DROPPED:  ${{ github.event.inputs.dropped_updated }}
           FORCE_MORPHE:  ${{ github.event.inputs.morphe_force_build }}
           FORCE_ANDDEA:  ${{ github.event.inputs.anddea_force_build }}
-          FORCE_HOO:     ${{ github.event.inputs.hoo_force_build }}
+          FORCE_RUSHIRANPISE: ${{ github.event.inputs.rushiranpise_force_build }}
           FORCE_ROOKIE:  ${{ github.event.inputs.rookie_force_build }}
           FORCE_TOSOX:   ${{ github.event.inputs.tosox_force_build }}
           FORCE_YUZU:    ${{ github.event.inputs.yuzu_force_build }}
@@ -276,7 +276,7 @@ jobs:
           python3 scripts/prepare_matrix.py
 
   build-apps:
-    name: Build ${{ matrix.app_name }} with ${{ matrix.source }}
+    name: Build ${{ matrix.app_name }} with ${{ matrix.source_label }}
     needs: [download-tools, prepare-matrix]
     runs-on: ubuntu-latest
     timeout-minutes: 45
@@ -333,7 +333,7 @@ jobs:
           BASE_APK_CACHE: 'true'
           BASE_APK_CACHE_TAG: 'base-apk-cache-v1'
         run: |
-          echo "Building ${{ matrix.app_name }} with ${{ matrix.source }}..."
+          echo "Building ${{ matrix.app_name }} with ${{ matrix.source_label }}..."
           # 同時に開始した2ジョブも配布サイトへ同時着弾しないよう分散する。
           sleep $((15 + RANDOM % 31))
           python3 -m src
@@ -509,21 +509,21 @@ jobs:
         env:
           MORPHE_TAG: ${{ needs.download-tools.outputs.morphe_resolved }}
           ANDDEA_TAG: ${{ needs.download-tools.outputs.anddea_resolved }}
-          HOO_TAG: ${{ needs.download-tools.outputs.hoo_resolved }}
+          RUSHIRANPISE_TAG: ${{ needs.download-tools.outputs.rushiranpise_resolved }}
           ROOKIE_TAG: ${{ needs.download-tools.outputs.rookie_resolved }}
           TOSOX_TAG: ${{ needs.download-tools.outputs.tosox_resolved }}
           YUZU_TAG: ${{ needs.download-tools.outputs.yuzu_resolved }}
           DROPPED_TAG: ${{ needs.download-tools.outputs.dropped_resolved }}
           MORPHE_UPDATED: ${{ github.event.inputs.morphe_updated }}
           ANDDEA_UPDATED: ${{ github.event.inputs.anddea_updated }}
-          HOO_UPDATED: ${{ github.event.inputs.hoo_updated }}
+          RUSHIRANPISE_UPDATED: ${{ github.event.inputs.rushiranpise_updated }}
           ROOKIE_UPDATED: ${{ github.event.inputs.rookie_updated }}
           TOSOX_UPDATED: ${{ github.event.inputs.tosox_updated }}
           YUZU_UPDATED: ${{ github.event.inputs.yuzu_updated }}
           DROPPED_UPDATED: ${{ github.event.inputs.dropped_updated }}
           MORPHE_FORCE: ${{ github.event.inputs.morphe_force_build }}
           ANDDEA_FORCE: ${{ github.event.inputs.anddea_force_build }}
-          HOO_FORCE: ${{ github.event.inputs.hoo_force_build }}
+          RUSHIRANPISE_FORCE: ${{ github.event.inputs.rushiranpise_force_build }}
           ROOKIE_FORCE: ${{ github.event.inputs.rookie_force_build }}
           TOSOX_FORCE: ${{ github.event.inputs.tosox_force_build }}
           YUZU_FORCE: ${{ github.event.inputs.yuzu_force_build }}
@@ -599,7 +599,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SOURCE_TAG_MORPHE: ${{ needs.download-tools.outputs.morphe_resolved }}
           SOURCE_TAG_ANDDEA: ${{ needs.download-tools.outputs.anddea_resolved }}
-          SOURCE_TAG_HOO: ${{ needs.download-tools.outputs.hoo_resolved }}
+          SOURCE_TAG_RUSHIRANPISE: ${{ needs.download-tools.outputs.rushiranpise_resolved }}
           SOURCE_TAG_ROOKIE: ${{ needs.download-tools.outputs.rookie_resolved }}
           SOURCE_TAG_TOSOX: ${{ needs.download-tools.outputs.tosox_resolved }}
           SOURCE_TAG_YUZU: ${{ needs.download-tools.outputs.yuzu_resolved }}
