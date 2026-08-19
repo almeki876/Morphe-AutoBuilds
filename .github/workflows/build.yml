@@ -426,10 +426,10 @@ jobs:
       - name: Scan Unmodified Base APKs with VirusTotal
         env:
           VIRUSTOTAL_API_KEY: ${{ secrets.VIRUSTOTAL_API_KEY }}
-          # Keep uploads and analysis polling concurrent while the client-wide
-          # request interval continues to protect the VirusTotal API quota.
-          VT_WORKERS: '16'
-          VT_REQUEST_INTERVAL_SECONDS: '16'
+          # Keep uploads and analysis polling highly concurrent while retaining
+          # a client-wide request interval to protect the VirusTotal API quota.
+          VT_WORKERS: '32'
+          VT_REQUEST_INTERVAL_SECONDS: '8'
           VT_POLL_INTERVAL_SECONDS: '30'
           VT_ANALYSIS_TIMEOUT_SECONDS: '2700'
           VT_MAX_RETRIES: '6'
@@ -462,7 +462,7 @@ jobs:
     strategy:
       fail-fast: false
       # ダウンロードは前段の専用Matrixで完了しているため、CPUパッチを並列化する。
-      max-parallel: 6
+      max-parallel: 12
       matrix:
         include: ${{ fromJson(needs.prepare-matrix.outputs.matrix) }}
     continue-on-error: true
