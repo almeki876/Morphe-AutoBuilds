@@ -426,6 +426,9 @@ jobs:
       - name: Scan Unmodified Base APKs with VirusTotal
         env:
           VIRUSTOTAL_API_KEY: ${{ secrets.VIRUSTOTAL_API_KEY }}
+          # Keep uploads and analysis polling concurrent while the client-wide
+          # request interval continues to protect the VirusTotal API quota.
+          VT_WORKERS: '16'
           VT_REQUEST_INTERVAL_SECONDS: '16'
           VT_POLL_INTERVAL_SECONDS: '30'
           VT_ANALYSIS_TIMEOUT_SECONDS: '2700'

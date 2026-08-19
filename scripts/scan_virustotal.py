@@ -67,7 +67,7 @@ def _scan_all(
         1,
         min(
             len(apk_files),
-            int(os.environ.get("VT_WORKERS", "4")),
+            int(os.environ.get("VT_WORKERS", "16")),
         ),
     )
     print(
