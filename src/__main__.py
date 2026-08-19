@@ -895,6 +895,50 @@ def run_build(app_name: str, source: str, arch: str = "universal") -> str:
             break
 
     if input_apk is None:
+        fallback_version = next(
+            (candidate.canonical for candidate in compatible_versions),
+            None,
+        )
+        if not fallback_version:
+            logging.error(
+                "❌ FATAL: Could not resolve a fallback version for %s.",
+                app_name,
+            )
+            exit(1)
+        logging.warning(
+            "⚠️  Standard APK providers failed; trying fallback chain for %s v%s",
+            package,
+            fallback_version,
+        )
+        try:
+            input_apk = downloader.download_with_fallback_chain(
+                package,
+                fallback_version,
+                Path("."),
+            )
+            version = fallback_version
+            if not apk_cache.is_valid_apk_archive(input_apk):
+                input_apk.unlink(missing_ok=True)
+                raise ValueError("fallback chain returned HTML or a corrupt APK archive")
+            apk_cache.stage(input_apk, package, version, "fallback-chain")
+            logging.info("✅ fallback chain: downloaded %s v%s -> %s", app_name, version, input_apk.name)
+            provenance.record(
+                app_name,
+                version,
+                "fallback-chain",
+                input_apk,
+                arch,
+                config={"package": package},
+            )
+        except Exception as error:
+            logging.error(
+                "❌ fallback chain: download failed for %s: %s: %s",
+                app_name,
+                type(error).__name__,
+                error,
+            )
+
+    if input_apk is None:
         logging.error("❌ FATAL: Could not download APK for '%s' from any source.", app_name)
         exit(1)
 

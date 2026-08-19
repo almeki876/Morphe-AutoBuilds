@@ -1,6 +1,8 @@
 import json
 import logging
 import os
+import shutil
+import subprocess
 import tempfile
 import time
 from pathlib import Path
@@ -507,3 +509,81 @@ def download_apkeditor() -> Path:
         if asset["name"].startswith("APKEditor") and asset["name"].endswith(".jar"):
             return download_resource(asset["browser_download_url"])
     raise RuntimeError("APKEditor .jar file not found in the latest release")
+
+
+def download_with_justapk(
+    package: str,
+    version: str,
+    output_dir: Path | None = None,
+) -> Path:
+    """Download an APK through justapk's mobile-source fallback."""
+    from justapk import APKDownloader
+
+    result = APKDownloader().download(
+        package,
+        version=version,
+        output_dir=output_dir or Path("."),
+    )
+    filepath = Path(result.path)
+    if not filepath.is_file() or filepath.stat().st_size <= 0:
+        raise IOError(f"justapk returned an invalid APK path: {filepath}")
+    return filepath
+
+
+def download_with_apkeep(
+    package: str,
+    version: str,
+    output_dir: Path | None = None,
+) -> Path:
+    """Download an APK with apkeep when its executable is available."""
+    output_dir = output_dir or Path(".")
+    executable = shutil.which("apkeep")
+    for candidate in (
+        Path(".venv") / "Scripts" / "apkeep.exe",
+        Path(".venv") / "bin" / "apkeep",
+    ):
+        if executable is None and candidate.is_file():
+            executable = str(candidate)
+            break
+    if executable is None:
+        raise FileNotFoundError("apkeep executable was not found")
+
+    output_dir.mkdir(parents=True, exist_ok=True)
+    before = {
+        path: path.stat().st_mtime_ns
+        for path in output_dir.rglob("*")
+        if path.is_file()
+    }
+    subprocess.run(
+        [executable, "-a", f"{package}@{version}", str(output_dir)],
+        check=True,
+    )
+    candidates = [
+        path
+        for path in output_dir.rglob("*")
+        if path.is_file()
+        and path.suffix.lower() in {".apk", ".apkm", ".apks", ".xapk"}
+        and (path not in before or path.stat().st_mtime_ns > before[path])
+    ]
+    if not candidates:
+        raise IOError(f"apkeep produced no APK for {package}@{version}")
+    return max(candidates, key=lambda path: path.stat().st_mtime_ns)
+
+
+def download_with_fallback_chain(
+    package: str,
+    version: str,
+    output_dir: Path,
+) -> Path:
+    """Try non-browser downloaders in priority order for any application."""
+    errors: list[str] = []
+    for provider, downloader in (
+        ("justapk", download_with_justapk),
+        ("apkeep", download_with_apkeep),
+    ):
+        try:
+            return downloader(package, version, output_dir)
+        except Exception as error:
+            errors.append(f"{provider}: {type(error).__name__}: {error}")
+            logging.warning("⚠️  %s fallback failed: %s", provider, error)
+    raise RuntimeError("all non-browser fallbacks failed: " + "; ".join(errors))

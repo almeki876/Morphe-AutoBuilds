@@ -1,5 +1,8 @@
 {
     "name": "crunchyroll",
     "package": "com.crunchyroll.crunchyroid",
-    "version": ""
+    "version": "",
+    "fallback_versions": [
+        "3.113.2"
+    ]
 }
