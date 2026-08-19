@@ -75,6 +75,36 @@ def _apk_origins(artifact_root: Path) -> list[dict]:
     return origins
 
 
+def _build_reports(report_root: Path) -> list[dict]:
+    reports: list[dict] = []
+    for path in report_root.rglob("*.json"):
+        if not path.name.endswith(".json") or path.name == "apk-sources.json":
+            continue
+        try:
+            data = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            continue
+        if isinstance(data, dict) and "app_name" in data and "source" in data:
+            reports.append(data)
+    return sorted(reports, key=lambda item: (str(item.get("app_name")), str(item.get("source"))))
+
+
+def _failure_logs(report_root: Path) -> list[tuple[str, str]]:
+    logs: list[tuple[str, str]] = []
+    for path in sorted(report_root.glob("*.txt")):
+        try:
+            content = path.read_text(encoding="utf-8")
+        except OSError:
+            continue
+        marker = "traceback_or_error_tail<<EOF"
+        if marker not in content:
+            continue
+        tail = content.split(marker, 1)[1].split("\nEOF", 1)[0].strip()
+        if tail:
+            logs.append((path.stem, tail))
+    return logs
+
+
 def _unique_origins(origins: list[dict]) -> list[dict]:
     unique: dict[tuple[object, ...], dict] = {}
     for item in origins:
@@ -98,6 +128,8 @@ def render(
     succeeded: list[tuple[str, str]],
     failed: list[tuple[str, str]],
     origins: list[dict],
+    reports: list[dict] | None = None,
+    failure_logs: list[tuple[str, str]] | None = None,
 ) -> str:
     lines = [
         "",
@@ -111,6 +143,34 @@ def render(
         lines.extend(
             f"- `{app}` with `{_source_label(source)}`" for app, source in failed
         )
+
+    if reports:
+        lines.extend([
+            "",
+            "## Patch application details",
+            "",
+            "| App | Patch source | Status | Applied patches | Excluded patches |",
+            "| --- | --- | --- | --- | --- |",
+        ])
+        for report in reports:
+            applied = report.get("applied_patches") or []
+            excluded = report.get("excluded_patches") or []
+            applied_text = ", ".join(f"`{_cell(item)}`" for item in applied) or "-"
+            excluded_text = ", ".join(
+                f"`{_cell(item.get('name'))}` ({_cell(item.get('reason'))})"
+                for item in excluded
+                if isinstance(item, dict)
+            ) or "-"
+            lines.append(
+                f"| {_cell(report.get('app_name'))} | "
+                f"{_cell(report.get('source_name') or _source_label(str(report.get('source') or '')))} | "
+                f"{_cell(report.get('status'))} | {applied_text} | {excluded_text} |"
+            )
+
+    if failure_logs:
+        lines.extend(["", "## Failure details", ""])
+        for name, log in failure_logs:
+            lines.extend([f"### {name}", "", "```text", log, "```", ""])
 
     if origins:
         lines.extend(
@@ -151,8 +211,15 @@ def _append(path: str | None, content: str) -> None:
 
 def main() -> None:
     artifact_root = Path(os.environ.get("ARTIFACT_ROOT", "all-apks"))
+    report_root = Path(os.environ.get("REPORT_ROOT", "build-results"))
     succeeded, failed = _build_outcomes(_expected_matrix(), artifact_root)
-    content = render(succeeded, failed, _apk_origins(artifact_root))
+    content = render(
+        succeeded,
+        failed,
+        _apk_origins(artifact_root),
+        _build_reports(report_root),
+        _failure_logs(report_root),
+    )
     Path(os.environ.get("BUILD_STATUS_PATH", "build_status.md")).write_text(
         content, encoding="utf-8"
     )

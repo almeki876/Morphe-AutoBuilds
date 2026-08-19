@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+from concurrent.futures import ThreadPoolExecutor, as_completed
 import json
 import os
 import sys
@@ -53,64 +54,62 @@ def _scan_all(
 ) -> tuple[list[ScanResult], list[str]]:
     results: list[ScanResult] = []
     failures: list[str] = []
-    by_hash: dict[str, ScanResult] = {}
 
-    for apk in apk_files:
-        try:
-            sha256 = sha256_file(apk)
-            if sha256 in by_hash:
-                result = ScanResult(
-                    **{
-                        **asdict(by_hash[sha256]),
-                        "file": apk.name,
-                        "size": apk.stat().st_size,
-                    }
-                )
-            else:
-                result = client.scan(apk)
-                by_hash[result.sha256] = result
-            results.append(result)
-            print(
-                f"{apk.name}: malicious={result.malicious}, "
-                f"suspicious={result.suspicious}, verdict={result.verdict}",
-                flush=True,
-            )
-            detected = [
-                (engine, details)
-                for engine, details in result.engines.items()
-                if details.get("category") in {"malicious", "suspicious"}
-            ]
-            for engine, details in sorted(detected):
+    def scan_one(apk: Path) -> ScanResult:
+        return client.scan(apk)
+
+    workers = max(
+        1,
+        min(
+            len(apk_files),
+            int(os.environ.get("VT_WORKERS", "4")),
+        ),
+    )
+    print(
+        f"Scanning {len(apk_files)} APK(s) with {workers} concurrent worker(s).",
+        flush=True,
+    )
+    with ThreadPoolExecutor(max_workers=workers, thread_name_prefix="vt-scan") as pool:
+        pending = {pool.submit(scan_one, apk): apk for apk in apk_files}
+        for future in as_completed(pending):
+            apk = pending[future]
+            try:
+                result = future.result()
+                results.append(result)
                 print(
-                    f"::warning::{apk.name}: engine={engine}, "
-                    f"category={details.get('category')}, "
-                    f"detection={details.get('result') or 'unspecified'}, "
-                    f"version={details.get('engine_version') or 'unknown'}, "
-                    f"update={details.get('engine_update') or 'unknown'}",
+                    f"{apk.name}: malicious={result.malicious}, "
+                    f"suspicious={result.suspicious}, verdict={result.verdict}",
                     flush=True,
                 )
-            if result.verdict != "clean" and not detected:
-                print(
-                    f"::warning::{apk.name}: VirusTotal reported detections, "
-                    "but engine-level details were not returned by the API.",
-                    flush=True,
-                )
+                detected = [
+                    (engine, details)
+                    for engine, details in result.engines.items()
+                    if details.get("category") in {"malicious", "suspicious"}
+                ]
+                for engine, details in sorted(detected):
+                    print(
+                        f"::warning::{apk.name}: engine={engine}, "
+                        f"category={details.get('category')}, "
+                        f"detection={details.get('result') or 'unspecified'}, "
+                        f"version={details.get('engine_version') or 'unknown'}, "
+                        f"update={details.get('engine_update') or 'unknown'}",
+                        flush=True,
+                    )
+                if result.verdict != "clean" and not detected:
+                    print(
+                        f"::warning::{apk.name}: VirusTotal reported detections, "
+                        "but engine-level details were not returned by the API.",
+                        flush=True,
+                    )
+            except (VirusTotalError, OSError, ValueError) as error:
+                message = f"{apk.name}: {error}"
+                failures.append(message)
+                print(f"::error::{message}", file=sys.stderr, flush=True)
             if on_progress:
                 on_progress(results, failures)
-        except VirusTotalError as error:
-            message = f"{apk.name}: {error}"
-            failures.append(message)
-            print(f"::error::{message}", file=sys.stderr, flush=True)
-            if on_progress:
-                on_progress(results, failures)
-            # API-wide failures normally affect every remaining file.
-            break
-        except (OSError, ValueError) as error:
-            message = f"{apk.name}: {error}"
-            failures.append(message)
-            print(f"::error::{message}", file=sys.stderr, flush=True)
-            if on_progress:
-                on_progress(results, failures)
+
+    results.sort(key=lambda result: result.file)
+    failures.sort()
     return results, failures
 
 

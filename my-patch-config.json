@@ -11,7 +11,8 @@
     "  force_enable: 明示的に有効化するパッチ名リスト",
     "    (patches-list.json がないソースでは、このリストを排他的な選択として使う)",
     "",
-    "  ※ enables は patches-list.json の use=true から自動生成されます"
+    "  ※ enables は patches-list.json の use=true から自動生成されます",
+    "  enabled: false または skip_build: true でこのアプリ×ソースをMatrixから除外できます"
   ],
   "patch_list": [
     {

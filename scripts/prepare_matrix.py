@@ -86,6 +86,11 @@ except Exception:
 with open("./my-patch-config.json", encoding="utf-8") as config_file:
     all_items = json.load(config_file)["patch_list"]
 
+
+def is_enabled(item):
+    """Return whether a configured app/source pair belongs in the matrix."""
+    return item.get("enabled", True) is not False and item.get("skip_build", False) is not True
+
 build_all_sources = os.environ.get('BUILD_ALL_SOURCES', 'false') == 'true'
 updated_sources = {
     source.strip()
@@ -118,13 +123,15 @@ def should_build_item(item):
 
 all_true = build_all_sources or all(v == 'true' for v in upd.values())
 if build_all_sources:
-    matrix = all_items
+    matrix = [i for i in all_items if is_enabled(i)]
 elif updated_sources:
-    matrix = [i for i in all_items if i['source'] in updated_sources]
+    matrix = [i for i in all_items if is_enabled(i) and i['source'] in updated_sources]
 elif updated_apps:
-    matrix = [i for i in all_items if i['app_name'] in updated_apps]
+    matrix = [i for i in all_items if is_enabled(i) and i['app_name'] in updated_apps]
 else:
-    matrix = all_items if all_true else [i for i in all_items if should_build_item(i)]
+    matrix = [i for i in all_items if is_enabled(i)] if all_true else [
+        i for i in all_items if is_enabled(i) and should_build_item(i)
+    ]
 for item in matrix:
     item['source_label'] = source_labels.get(item['source'], item['source'])
 

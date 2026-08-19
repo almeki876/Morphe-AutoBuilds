@@ -779,6 +779,41 @@ def _remove_staged_base_apk(app_name: str, source: str, arch: str) -> None:
             candidate.unlink(missing_ok=True)
 
 
+def _write_build_report(
+    app_name: str,
+    source: str,
+    version: str,
+    source_name: str,
+    enables: list[str],
+    disables: list[str],
+    status: str,
+) -> None:
+    """Persist patch selection for the workflow's human-readable summary."""
+    report = {
+        "app_name": app_name,
+        "source": source,
+        "source_name": source_name,
+        "version": version,
+        "status": status,
+        "applied_patches": [
+            enables[index + 1]
+            for index in range(0, len(enables), 2)
+            if index + 1 < len(enables)
+        ],
+        "excluded_patches": [
+            {
+                "name": disables[index + 1],
+                "reason": "explicitly disabled in my-patch-config.json or patches allowlist",
+            }
+            for index in range(0, len(disables), 2)
+            if index + 1 < len(disables)
+        ],
+    }
+    path = Path("build-metadata") / "build-report.json"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+
 def run_build(app_name: str, source: str, arch: str = "universal") -> str:
     """Download, patch, and sign one APK. Returns the signed APK path."""
 
@@ -875,26 +910,34 @@ def run_build(app_name: str, source: str, arch: str = "universal") -> str:
     if not package:
         logging.error("❌ FATAL: No package ID configured for '%s'.", app_name)
         exit(1)
-    compatible_versions = utils.get_supported_version_candidates(
-        package,
-        str(cli),
-        str(bundle),
-    )
-
-    for platform in providers.download_priority(app_name):
-        input_apk, version = downloader.download_platform(
-            app_name,
-            platform,
+    preloaded_apk = getenv("PRE_DOWNLOADED_APK")
+    if preloaded_apk:
+        input_apk = Path(preloaded_apk)
+        version = getenv("PRE_DOWNLOADED_VERSION")
+        if not input_apk.is_file() or not version:
+            raise RuntimeError("PRE_DOWNLOADED_APK and PRE_DOWNLOADED_VERSION must point to a valid input")
+        logging.info("✅ Using pre-downloaded APK input: %s", input_apk)
+    else:
+        compatible_versions = utils.get_supported_version_candidates(
+            package,
             str(cli),
             str(bundle),
-            arch,
-            version_candidates=compatible_versions,
         )
-        if input_apk:
-            logging.info("✅ APK obtained from %s", platform)
-            break
 
-    if input_apk is None:
+        for platform in providers.download_priority(app_name):
+            input_apk, version = downloader.download_platform(
+                app_name,
+                platform,
+                str(cli),
+                str(bundle),
+                arch,
+                version_candidates=compatible_versions,
+            )
+            if input_apk:
+                logging.info("✅ APK obtained from %s", platform)
+                break
+
+    if input_apk is None and not preloaded_apk:
         fallback_version = next(
             (candidate.canonical for candidate in compatible_versions),
             None,
@@ -966,6 +1009,15 @@ def run_build(app_name: str, source: str, arch: str = "universal") -> str:
 
     # ── 7b. Build option flags ───────────────────────────────────────────────
     option_flags = _build_option_flags(patch_config.options, cli_ver)
+    _write_build_report(
+        app_name,
+        source,
+        version,
+        source_name,
+        enables,
+        disables,
+        "patching",
+    )
 
     # ── 8. Repair APK ────────────────────────────────────────────────────────
     logging.info("Checking APK integrity…")
@@ -1000,6 +1052,16 @@ def run_build(app_name: str, source: str, arch: str = "universal") -> str:
     if not signed_apk.exists():
         logging.error("❌ FATAL: Signed APK was not produced for '%s'.", app_name)
         exit(1)
+
+    _write_build_report(
+        app_name,
+        source,
+        version,
+        source_name,
+        enables,
+        disables,
+        "success",
+    )
 
     print(f"✅ APK built: {signed_apk.name}")
     return str(signed_apk)

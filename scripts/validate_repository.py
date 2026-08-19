@@ -131,6 +131,10 @@ def _validate_patch_config(
         if not packages.get(app):
             validation.error(f"{context}: no APK package ID configured for {app}")
 
+        for field in ("enabled", "skip_build"):
+            if field in entry and not isinstance(entry[field], bool):
+                validation.error(f"{context}.{field} must be a boolean")
+
         options = entry.get("options", [])
         if not isinstance(options, list):
             validation.error(f"{context}.options must be an array")

@@ -8,6 +8,7 @@ detection prevents the release job from continuing.
 from __future__ import annotations
 
 import hashlib
+import threading
 import time
 from dataclasses import dataclass
 from pathlib import Path
@@ -62,12 +63,14 @@ class VirusTotalClient:
         self.analysis_timeout = analysis_timeout
         self.max_retries = max_retries
         self._last_request = 0.0
+        self._rate_limit_lock = threading.Lock()
 
     def _rate_limit(self) -> None:
-        delay = self.request_interval - (time.monotonic() - self._last_request)
-        if delay > 0:
-            time.sleep(delay)
-        self._last_request = time.monotonic()
+        with self._rate_limit_lock:
+            delay = self.request_interval - (time.monotonic() - self._last_request)
+            if delay > 0:
+                time.sleep(delay)
+            self._last_request = time.monotonic()
 
     @staticmethod
     def _error_message(response: requests.Response) -> str:

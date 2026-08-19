@@ -289,18 +289,78 @@ jobs:
         run: |
           python3 scripts/prepare_matrix.py
 
+  download-apks:
+    name: Download ${{ matrix.app_name }} base APK
+    needs: [download-tools, prepare-matrix]
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      max-parallel: 8
+      matrix:
+        include: ${{ fromJson(needs.prepare-matrix.outputs.matrix) }}
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v7
+
+      - name: Restore Cached Tools
+        uses: actions/cache/restore@v6
+        with:
+          path: tools/
+          key: ${{ needs.download-tools.outputs.cache-key }}
+          fail-on-cache-miss: true
+
+      - name: Install Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: 3.11
+
+      - name: Install Dependencies
+        run: pip install -r requirements.txt
+
+      - name: Install apkeep
+        run: |
+          mkdir -p "$HOME/.local/bin"
+          curl -fsSL "https://github.com/EFForg/apkeep/releases/latest/download/apkeep-x86_64-unknown-linux-gnu" -o "$HOME/.local/bin/apkeep"
+          chmod +x "$HOME/.local/bin/apkeep"
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Download Base APK
+        env:
+          APP_NAME: ${{ matrix.app_name }}
+          SOURCE: ${{ matrix.source }}
+          ARCH: arm64-v8a
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          HTTP_RETRIES: '4'
+          HTTP_RETRY_BASE_SECONDS: '5'
+          HTTP_RETRY_MAX_SECONDS: '60'
+          APK_VERSION_CANDIDATES: '5'
+          APKMIRROR_REQUEST_INTERVAL_SECONDS: '3.5'
+          BASE_APK_CACHE: 'true'
+          BASE_APK_CACHE_TAG: 'base-apk-cache-v2'
+        run: python3 scripts/download_apks.py
+
+      - name: Upload Base APK Input
+        uses: actions/upload-artifact@v7
+        with:
+          name: base-input-${{ matrix.app_name }}-${{ matrix.source }}
+          path: |
+            base-apk-input/*
+            build-metadata/apk-sources.json
+          retention-days: 1
+
   build-apps:
     name: Build ${{ matrix.app_name }} with ${{ matrix.source_label }}
-    needs: [download-tools, prepare-matrix]
+    needs: [download-tools, prepare-matrix, download-apks]
     runs-on: ubuntu-latest
     timeout-minutes: 45
     permissions:
       contents: read
     strategy:
       fail-fast: false
-      # APK配布サイトへの同時アクセスを抑え、403/429/503を避ける。
-      # 21ジョブの一斉実行は各サイトのレート制限を誘発した実績がある。
-      max-parallel: 2
+      # ダウンロードは前段の専用Matrixで完了しているため、CPUパッチを並列化する。
+      max-parallel: 6
       matrix:
         include: ${{ fromJson(needs.prepare-matrix.outputs.matrix) }}
     continue-on-error: true
@@ -343,6 +403,23 @@ jobs:
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
           "$HOME/.local/bin/apkeep" --version
 
+      - name: Download APK Input Artifact
+        uses: actions/download-artifact@v8
+        with:
+          name: base-input-${{ matrix.app_name }}-${{ matrix.source }}
+          path: .
+
+      - name: Resolve Pre-downloaded APK
+        run: |
+          apk_path=$(find ./base-apk-input -type f \( -name '*.apk' -o -name '*.apkm' -o -name '*.apks' -o -name '*.xapk' \) -print -quit)
+          if [ -z "$apk_path" ]; then
+            echo "::error::No pre-downloaded APK input was found."
+            exit 1
+          fi
+          version=$(python3 -c 'import json; print(json.load(open("./base-apk-input/manifest.json"))["version"])')
+          echo "PRE_DOWNLOADED_APK=$apk_path" >> "$GITHUB_ENV"
+          echo "PRE_DOWNLOADED_VERSION=$version" >> "$GITHUB_ENV"
+
       - name: Build APK
         id: build-apk
         env:
@@ -358,9 +435,8 @@ jobs:
           BASE_APK_CACHE_TAG: 'base-apk-cache-v2'
         run: |
           echo "Building ${{ matrix.app_name }} with ${{ matrix.source_label }}..."
-          # 同時に開始した2ジョブも配布サイトへ同時着弾しないよう分散する。
-          sleep $((15 + RANDOM % 31))
-          python3 -m src
+          python3 -m src 2>&1 | tee build.log
+          exit ${PIPESTATUS[0]}
 
       - name: Record Build Result
         if: always()
@@ -372,6 +448,17 @@ jobs:
             echo "status=${{ steps.build-apk.outcome }}"
             echo "run=${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           } > "build-status/${{ matrix.app_name }}-${{ matrix.source }}.txt"
+          if [ -f build.log ]; then
+            {
+              echo ""
+              echo "traceback_or_error_tail<<EOF"
+              tail -n 80 build.log
+              echo "EOF"
+            } >> "build-status/${{ matrix.app_name }}-${{ matrix.source }}.txt"
+          fi
+          if [ -f build-metadata/build-report.json ]; then
+            cp build-metadata/build-report.json "build-status/${{ matrix.app_name }}-${{ matrix.source }}.json"
+          fi
           cat "build-status/${{ matrix.app_name }}-${{ matrix.source }}.txt" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload Build Result
@@ -379,7 +466,7 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: build-status-${{ matrix.app_name }}-${{ matrix.source }}
-          path: build-status/*.txt
+          path: build-status/*
           retention-days: 7
 
       - name: Upload Verified Base APK Cache Candidate
@@ -699,12 +786,13 @@ jobs:
 
   handle-build-failure:
     name: Open or Update Build Failure Issue
-    needs: [download-tools, prepare-matrix, build-apps, create-release]
+    needs: [download-tools, prepare-matrix, download-apks, build-apps, create-release]
     if: >-
       ${{
         always() &&
         (needs.download-tools.result == 'failure' ||
          needs.prepare-matrix.result == 'failure' ||
+         needs.download-apks.result == 'failure' ||
          needs.build-apps.result == 'failure' ||
          needs.create-release.result == 'failure')
       }}
@@ -721,6 +809,7 @@ jobs:
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           TOOLS_RESULT: ${{ needs.download-tools.result }}
           MATRIX_RESULT: ${{ needs.prepare-matrix.result }}
+          DOWNLOAD_RESULT: ${{ needs.download-apks.result }}
           BUILD_RESULT: ${{ needs.build-apps.result }}
           RELEASE_RESULT: ${{ needs.create-release.result }}
         run: |
@@ -733,6 +822,7 @@ jobs:
           ## Job Status Summary
           - **Download Tools**: ${TOOLS_RESULT}
           - **Prepare Matrix**: ${MATRIX_RESULT}
+          - **Download APKs**: ${DOWNLOAD_RESULT}
           - **Build Apps**: ${BUILD_RESULT}
           - **Create Release**: ${RELEASE_RESULT}
 
