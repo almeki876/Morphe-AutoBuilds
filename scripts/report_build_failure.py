@@ -81,6 +81,35 @@ def _issue_number(title: str) -> str | None:
     return None
 
 
+def _open_issues(search: str) -> list[dict]:
+    result = subprocess.run(
+        ["gh", "issue", "list", "--state", "open", "--search", search,
+         "--json", "number,title"],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    value = json.loads(result.stdout or "[]")
+    return value if isinstance(value, list) else []
+
+
+def _issue_body(number: str) -> str:
+    result = subprocess.run(
+        ["gh", "issue", "view", number, "--json", "body", "--jq", ".body"],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    return result.stdout
+
+
+def _same_target(body: str, app: str, source_name: str) -> bool:
+    return (
+        f"- **App:** `{app}`" in body
+        and f"- **Patch source:** `{source_name}`" in body
+    )
+
+
 def _publish(title: str, body: str) -> None:
     body_path = Path("build-failure-issue.md")
     body_path.write_text(body, encoding="utf-8")
@@ -97,6 +126,80 @@ def _publish(title: str, body: str) -> None:
         check=True,
     )
     print(f"Created issue: {title}")
+
+
+def _feature_body(
+    report: dict,
+    status: dict[str, str],
+    patch: dict,
+) -> str:
+    app = str(report.get("app_name") or status.get("app"))
+    source = str(report.get("source_name") or status.get("source"))
+    version = report.get("version") or _version(
+        status, Path("."), app, str(report.get("source") or status.get("source"))
+    )
+    log = status.get("log", "No raw log excerpt was captured.")[-16000:]
+    return f"""# Feature patch failure
+
+- **App:** `{app}`
+- **Package:** `{configured_package(app) or 'unknown'}`
+- **Patch source:** `{source}`
+- **Failed patch feature:** `{patch.get('name', 'unknown')}`
+- **APK version:** `{version}`
+- **Workflow run:** {status.get('run', 'unknown')}
+
+## Required follow-up
+
+This patch was temporarily disabled or could not be selected so the build could complete, but it is intended to be applied. This is a feature failure, not a permanent waiver. Restore the patch after the upstream patch or APK compatibility problem is fixed.
+
+## Reason
+
+{patch.get('reason', 'The requested patch was not applied.')}
+
+## Raw build log
+
+```text
+{log}
+```
+"""
+
+
+def _close_related(prefix: str, app: str, source_name: str, message: str) -> None:
+    for issue in _open_issues(f"{prefix} {app} in:title"):
+        number = str(issue.get("number"))
+        title = str(issue.get("title") or "")
+        if not title.startswith(prefix) or not _same_target(
+            _issue_body(number), app, source_name
+        ):
+            continue
+        subprocess.run(
+            ["gh", "issue", "close", number, "--comment", message],
+            check=True,
+        )
+        print(f"Closed issue #{number}: {title}")
+
+
+def _manage_feature_lifecycle(
+    report: dict,
+    status: dict[str, str],
+) -> None:
+    app = str(report.get("app_name") or status.get("app"))
+    source_name = str(report.get("source_name") or status.get("source"))
+    failures = report.get("feature_failures") or []
+    if failures:
+        for patch in failures:
+            patch_name = str(patch.get("name") or "unknown")
+            title = f"[Feature Failure] {app} - {patch_name}"
+            _publish(title, _feature_body(report, status, patch))
+        return
+
+    if report.get("fully_applied") is True:
+        message = (
+            f"CI verified that all requested patches are applied for {app} "
+            f"with source {source_name}. Closing this resolved tracking issue."
+        )
+        _close_related("[Feature Failure]", app, source_name, message)
+        _close_related("[Build Failure]", app, source_name, message)
 
 
 def _body(status: dict[str, str], report_root: Path) -> str:
@@ -146,6 +249,20 @@ def main() -> int:
         phase = status.get("phase", "Build")
         title = f"[Build Failure] {status['app']} - {phase}"
         _publish(title, _body(status, args.report_root))
+
+    status_by_target = {
+        (item.get("app"), item.get("source")): item
+        for item in (_read_status(path) for path in statuses)
+    }
+    for path in sorted(args.report_root.glob("*.json")):
+        try:
+            report = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            continue
+        if not isinstance(report, dict) or "app_name" not in report:
+            continue
+        key = (report.get("app_name"), report.get("source"))
+        _manage_feature_lifecycle(report, status_by_target.get(key, {}))
     print(f"Processed {len(failures)} failed app phase(s).")
     return 0
 

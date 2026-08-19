@@ -154,7 +154,7 @@ def render(
         ])
         for report in reports:
             applied = report.get("applied_patches") or []
-            excluded = report.get("excluded_patches") or []
+            excluded = report.get("feature_failures") or report.get("excluded_patches") or []
             applied_text = ", ".join(f"`{_cell(item)}`" for item in applied) or "-"
             excluded_text = ", ".join(
                 f"`{_cell(item.get('name'))}` ({_cell(item.get('reason'))})"

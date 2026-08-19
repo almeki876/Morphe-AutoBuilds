@@ -786,28 +786,47 @@ def _write_build_report(
     source_name: str,
     enables: list[str],
     disables: list[str],
+    patch_config: PatchConfig,
     status: str,
 ) -> None:
     """Persist patch selection for the workflow's human-readable summary."""
+    applied_patches = [
+        enables[index + 1]
+        for index in range(0, len(enables), 2)
+        if index + 1 < len(enables)
+    ]
+    excluded_patches = [
+        {
+            "name": disables[index + 1],
+            "reason": "explicitly disabled in my-patch-config.json or patches allowlist",
+        }
+        for index in range(0, len(disables), 2)
+        if index + 1 < len(disables)
+    ]
+    requested_patches = sorted(
+        set(patch_config.force_enable)
+        | {option.patch for option in patch_config.options}
+    )
+    missing_requested = [
+        {
+            "name": name,
+            "reason": "requested by force_enable/options but not selected from the patch bundle",
+        }
+        for name in requested_patches
+        if name not in applied_patches and name not in {item["name"] for item in excluded_patches}
+    ]
+    feature_failures = excluded_patches + missing_requested
     report = {
         "app_name": app_name,
         "source": source,
         "source_name": source_name,
         "version": version,
         "status": status,
-        "applied_patches": [
-            enables[index + 1]
-            for index in range(0, len(enables), 2)
-            if index + 1 < len(enables)
-        ],
-        "excluded_patches": [
-            {
-                "name": disables[index + 1],
-                "reason": "explicitly disabled in my-patch-config.json or patches allowlist",
-            }
-            for index in range(0, len(disables), 2)
-            if index + 1 < len(disables)
-        ],
+        "requested_patches": requested_patches,
+        "applied_patches": applied_patches,
+        "excluded_patches": excluded_patches,
+        "feature_failures": feature_failures,
+        "fully_applied": status == "success" and not feature_failures,
     }
     path = Path("build-metadata") / "build-report.json"
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -1016,6 +1035,7 @@ def run_build(app_name: str, source: str, arch: str = "universal") -> str:
         source_name,
         enables,
         disables,
+        patch_config,
         "patching",
     )
 
@@ -1060,6 +1080,7 @@ def run_build(app_name: str, source: str, arch: str = "universal") -> str:
         source_name,
         enables,
         disables,
+        patch_config,
         "success",
     )
 

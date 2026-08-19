@@ -360,8 +360,8 @@ jobs:
             echo "traceback_or_error_tail<<EOF"
             if [ -f download.log ]; then tail -n 120 download.log; else echo "Download step did not start."; fi
             echo "EOF"
-          } > "download-status/${{ matrix.app_name }}-${{ matrix.source }}.txt"
-          cat "download-status/${{ matrix.app_name }}-${{ matrix.source }}.txt" >> "$GITHUB_STEP_SUMMARY"
+          } > "download-status/${{ matrix.app_name }}-${{ matrix.source }}-download.txt"
+          cat "download-status/${{ matrix.app_name }}-${{ matrix.source }}-download.txt" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload Download Result
         if: always()
@@ -480,19 +480,19 @@ jobs:
             echo "phase=Patch"
             echo "status=${{ steps.build-apk.outcome }}"
             echo "run=${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-          } > "build-status/${{ matrix.app_name }}-${{ matrix.source }}.txt"
+          } > "build-status/${{ matrix.app_name }}-${{ matrix.source }}-build.txt"
           if [ -f build.log ]; then
             {
               echo ""
               echo "traceback_or_error_tail<<EOF"
               tail -n 80 build.log
               echo "EOF"
-            } >> "build-status/${{ matrix.app_name }}-${{ matrix.source }}.txt"
+            } >> "build-status/${{ matrix.app_name }}-${{ matrix.source }}-build.txt"
           fi
           if [ -f build-metadata/build-report.json ]; then
             cp build-metadata/build-report.json "build-status/${{ matrix.app_name }}-${{ matrix.source }}.json"
           fi
-          cat "build-status/${{ matrix.app_name }}-${{ matrix.source }}.txt" >> "$GITHUB_STEP_SUMMARY"
+          cat "build-status/${{ matrix.app_name }}-${{ matrix.source }}-build.txt" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
           echo "### Patch application details" >> "$GITHUB_STEP_SUMMARY"
           if [ -f build-metadata/build-report.json ]; then
@@ -504,7 +504,7 @@ jobs:
               ((.applied_patches // [])[] | "- `" + . + "`"),
               "",
               "**Excluded patches**",
-              ((.excluded_patches // [])[] | "- `" + .name + "`: " + .reason)
+              ((.feature_failures // .excluded_patches // [])[] | "- `" + .name + "`: " + .reason)
             ' build-metadata/build-report.json >> "$GITHUB_STEP_SUMMARY"
           else
             echo "- No patch report was produced before the failure." >> "$GITHUB_STEP_SUMMARY"
@@ -572,6 +572,7 @@ jobs:
         run: pip install -r requirements.txt
 
       - name: Download Build Failure Results
+        continue-on-error: true
         uses: actions/download-artifact@v8
         with:
           path: failure-results
