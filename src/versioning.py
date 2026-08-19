@@ -149,3 +149,28 @@ def pinned_candidate(config: dict) -> VersionCandidate | None:
     if not name:
         return None
     return VersionCandidate(name=name, code=code)
+
+
+def configured_fallback_candidates(config: dict) -> list[VersionCandidate]:
+    """Read explicitly approved older APK versions from provider config."""
+    raw_values = config.get("fallback_versions") or []
+    if not isinstance(raw_values, list):
+        raise ValueError("fallback_versions must be a list")
+
+    candidates: list[VersionCandidate] = []
+    for value in raw_values:
+        if isinstance(value, str):
+            candidates.append(VersionCandidate(name=value))
+        elif isinstance(value, dict) and value.get("name"):
+            candidates.append(
+                VersionCandidate(
+                    name=str(value["name"]),
+                    code=str(value["code"]) if value.get("code") else None,
+                )
+            )
+        else:
+            raise ValueError(
+                "fallback_versions entries must be version strings or "
+                "objects with a name"
+            )
+    return candidates

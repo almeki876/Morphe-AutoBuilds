@@ -6,7 +6,11 @@ import time
 from pathlib import Path
 from src import apk_cache, provenance, providers, utils
 from src.downloads import normalize_download
-from src.versioning import VersionCandidate, pinned_candidate
+from src.versioning import (
+    VersionCandidate,
+    configured_fallback_candidates,
+    pinned_candidate,
+)
 
 
 def remove_apk_origin(app_name: str, arch: str) -> None:
@@ -327,6 +331,7 @@ def download_platform(
 
         pinned = pinned_candidate(config)
         candidates: list[VersionCandidate] = [pinned] if pinned else []
+        configured_fallbacks = configured_fallback_candidates(config)
         if not candidates:
             if platform == "github":
                 # GitHub releases carry the version in the tag — skip CLI invocation
@@ -348,6 +353,7 @@ def download_platform(
                         config["package"], cli, patches
                     )
                 )
+        candidates.extend(configured_fallbacks)
         platform_module = providers.MODULES[platform]
 
         if not candidates:

@@ -209,6 +209,29 @@ def _validate_provider_configs(validation: Validation) -> None:
         package = data.get("package")
         if isinstance(package, str) and not PACKAGE_RE.fullmatch(package):
             validation.error(f"{relative}: invalid Android package ID {package!r}")
+        fallback_versions = data.get("fallback_versions")
+        if fallback_versions is not None:
+            if not isinstance(fallback_versions, list) or not fallback_versions:
+                validation.error(f"{relative}: fallback_versions must be a non-empty array")
+            else:
+                for index, fallback in enumerate(fallback_versions):
+                    valid_string = isinstance(fallback, str) and bool(fallback.strip())
+                    valid_object = (
+                        isinstance(fallback, dict)
+                        and isinstance(fallback.get("name"), str)
+                        and bool(fallback["name"].strip())
+                        and (
+                            "code" not in fallback
+                            or (
+                                isinstance(fallback["code"], (str, int))
+                                and str(fallback["code"]).isdigit()
+                            )
+                        )
+                    )
+                    if not valid_string and not valid_object:
+                        validation.error(
+                            f"{relative}.fallback_versions[{index}] must contain a version name"
+                        )
         if data.get("exclusive") is True and data.get("primary") is not True:
             validation.error(f"{relative}: exclusive requires primary=true")
         if path.parent.name == "github":

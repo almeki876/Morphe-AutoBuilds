@@ -287,7 +287,6 @@ jobs:
           UPDATED_APPS: ${{ github.event.inputs.updated_apps }}
           APK_UPDATED_APPS: ${{ github.event.inputs.apk_updated_apps }}
         run: |
-          # env: + run: is valid; env: + uses: is not (Actions parser error).
           python3 scripts/prepare_matrix.py
 
   build-apps:
@@ -304,6 +303,7 @@ jobs:
       max-parallel: 2
       matrix:
         include: ${{ fromJson(needs.prepare-matrix.outputs.matrix) }}
+    continue-on-error: true
 
     steps:
       - name: Checkout Repository
@@ -336,6 +336,7 @@ jobs:
           pip install -r requirements.txt
 
       - name: Build APK
+        id: build-apk
         env:
           APP_NAME: ${{ matrix.app_name }}
           SOURCE: ${{ matrix.source }}
@@ -346,12 +347,32 @@ jobs:
           APK_VERSION_CANDIDATES: '5'
           APKMIRROR_REQUEST_INTERVAL_SECONDS: '3.5'
           BASE_APK_CACHE: 'true'
-          BASE_APK_CACHE_TAG: 'base-apk-cache-v1'
+          BASE_APK_CACHE_TAG: 'base-apk-cache-v2'
         run: |
           echo "Building ${{ matrix.app_name }} with ${{ matrix.source_label }}..."
           # 同時に開始した2ジョブも配布サイトへ同時着弾しないよう分散する。
           sleep $((15 + RANDOM % 31))
           python3 -m src
+
+      - name: Record Build Result
+        if: always()
+        run: |
+          mkdir -p build-status
+          {
+            echo "app=${{ matrix.app_name }}"
+            echo "source=${{ matrix.source }}"
+            echo "status=${{ steps.build-apk.outcome }}"
+            echo "run=${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          } > "build-status/${{ matrix.app_name }}-${{ matrix.source }}.txt"
+          cat "build-status/${{ matrix.app_name }}-${{ matrix.source }}.txt" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload Build Result
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: build-status-${{ matrix.app_name }}-${{ matrix.source }}
+          path: build-status/*.txt
+          retention-days: 7
 
       - name: Upload Verified Base APK Cache Candidate
         if: success() && hashFiles('base-apk-cache-out/*') != ''
@@ -408,7 +429,7 @@ jobs:
         if: steps.candidates.outcome == 'success'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          BASE_APK_CACHE_TAG: 'base-apk-cache-v1'
+          BASE_APK_CACHE_TAG: 'base-apk-cache-v2'
           BASE_APK_CACHE_KEEP: '10'
         run: |
           pip install -r requirements.txt
@@ -446,6 +467,15 @@ jobs:
           path: ./all-apks
           pattern: apk-*
 
+      - name: Download Build Results
+        if: always()
+        continue-on-error: true
+        uses: actions/download-artifact@v8
+        with:
+          path: ./build-results
+          pattern: build-status-*
+          merge-multiple: true
+
 
       - name: Collect All APKs
         run: |
@@ -454,6 +484,12 @@ jobs:
           [ -d ./all-apks ] && find ./all-apks -name "*.apk" -exec cp {} ./release-apks/ \; || true
           echo "APKs in release-apks:"
           ls -la ./release-apks/ 2>/dev/null || echo "(none)"
+          echo "## Build results" >> "$GITHUB_STEP_SUMMARY"
+          if [ -d ./build-results ] && find ./build-results -name '*.txt' -print -quit | grep -q .; then
+            cat ./build-results/*.txt >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "No per-app build result artifacts were found." >> "$GITHUB_STEP_SUMMARY"
+          fi
 
       - name: Download Unmodified Base APKs
         uses: actions/download-artifact@v8
@@ -608,6 +644,24 @@ jobs:
         with:
           python-version: '3.11'
           cache: pip
+
+      - name: Verify Every Matrix Build Succeeded
+        uses: actions/download-artifact@v8
+        with:
+          path: ./build-results
+          pattern: build-status-*
+          merge-multiple: true
+
+      - name: Refuse Partial State Persistence
+        run: |
+          if [ ! -d ./build-results ] || ! find ./build-results -name '*.txt' -print -quit | grep -q .; then
+            echo "::error::Per-app build results are missing; refusing to advance successful state."
+            exit 1
+          fi
+          if grep -R -E '^status=(failure|cancelled|skipped)$' ./build-results; then
+            echo "::error::At least one matrix build failed; refusing to advance successful state."
+            exit 1
+          fi
 
       - name: Save Resolved Patch and APK Versions
         env:
