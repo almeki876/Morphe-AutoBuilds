@@ -498,7 +498,7 @@ jobs:
           if [ -f build-metadata/build-report.json ]; then
             jq -r '
               "- **Patch source:** `" + (.source_name // .source) + "`",
-              "- **Status:** `" + .status + "`",
+              "- **Status:** `" + (.lifecycle_status // .status) + "`",
               "",
               "**Applied patches**",
               ((.applied_patches // [])[] | "- `" + . + "`"),

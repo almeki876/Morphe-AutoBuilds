@@ -164,7 +164,8 @@ def render(
             lines.append(
                 f"| {_cell(report.get('app_name'))} | "
                 f"{_cell(report.get('source_name') or _source_label(str(report.get('source') or '')))} | "
-                f"{_cell(report.get('status'))} | {applied_text} | {excluded_text} |"
+                f"{_cell(report.get('lifecycle_status') or report.get('status'))} | "
+                f"{applied_text} | {excluded_text} |"
             )
 
     if failure_logs:

@@ -816,12 +816,21 @@ def _write_build_report(
         if name not in applied_patches and name not in {item["name"] for item in excluded_patches}
     ]
     feature_failures = excluded_patches + missing_requested
+    lifecycle_status = (
+        "success_full"
+        if status == "success" and not feature_failures
+        else "success_partial"
+        if status == "success"
+        else "failure"
+    )
     report = {
         "app_name": app_name,
         "source": source,
+        "patch_source": source_name,
         "source_name": source_name,
         "version": version,
         "status": status,
+        "lifecycle_status": lifecycle_status,
         "requested_patches": requested_patches,
         "requested_options": [
             {"patch": option.patch, "key": option.key, "value": option.value}
@@ -829,6 +838,7 @@ def _write_build_report(
         ],
         "applied_patches": applied_patches,
         "excluded_patches": excluded_patches,
+        "disabled_patches": [item["name"] for item in excluded_patches],
         "feature_failures": feature_failures,
         "fully_applied": status == "success" and not feature_failures,
     }
