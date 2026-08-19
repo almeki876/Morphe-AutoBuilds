@@ -83,6 +83,7 @@ for app in apps:
 
 github_output.write(f"any_apk_updated={str(any_apk_updated).lower()}\n")
 github_output.write(f"apk_updated_apps={json.dumps(apk_updated_apps)}\n")
+github_output.write(f"updated_apps={','.join(apk_updated_apps)}\n")
 github_output.write(
     f"apk_version_health_ok={str(not resolution_failures).lower()}\n"
 )

@@ -94,6 +94,11 @@ updated_sources = {
 }
 if 'anddea' in updated_sources:
     updated_sources.add('revanced-anddea')
+updated_apps = {
+    app.strip()
+    for app in os.environ.get('UPDATED_APPS', '').split(',')
+    if app.strip()
+}
 
 def should_build_item(item):
     source = item['source']
@@ -116,6 +121,8 @@ if build_all_sources:
     matrix = all_items
 elif updated_sources:
     matrix = [i for i in all_items if i['source'] in updated_sources]
+elif updated_apps:
+    matrix = [i for i in all_items if i['app_name'] in updated_apps]
 else:
     matrix = all_items if all_true else [i for i in all_items if should_build_item(i)]
 for item in matrix:

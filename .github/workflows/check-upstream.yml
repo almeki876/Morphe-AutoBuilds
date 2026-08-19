@@ -158,6 +158,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           APK_UPDATED_APPS: ${{ steps.apkver.outputs.apk_updated_apps }}
           UPDATED_SOURCES: ${{ steps.all_sources.outputs.updated_sources }}
+          UPDATED_APPS: ${{ steps.apkver.outputs.updated_apps }}
         run: |
           echo "Triggering build workflow..."
 
@@ -219,12 +220,13 @@ jobs:
             -f yuzu_force_build="$yuzu_force" \
             -f dropped_force_build="$dropped_force" \
             -f updated_sources="$updated_sources" \
+            -f updated_apps="$UPDATED_APPS" \
             -f apk_updated_apps="${APK_UPDATED_APPS:-[]}" \
 
           echo "Build workflow triggered"
 
       - name: Log - No Updates Found
-        if: steps.compare.outputs.any_updated == 'false' && steps.apkver.outputs.any_apk_updated == 'false'
+        if: steps.compare.outputs.any_updated == 'false' && steps.all_sources.outputs.any_updated == 'false' && steps.apkver.outputs.any_apk_updated == 'false'
         run: |
           echo "No updates found across all sources. Skipping build."
           cat last-tags.json 2>/dev/null || echo "(last-tags.json not yet created)"

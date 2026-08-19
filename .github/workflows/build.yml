@@ -107,6 +107,10 @@ on:
         description: 'Comma-separated patch sources to build incrementally'
         required: false
         default: ''
+      updated_apps:
+        description: 'Comma-separated apps whose base APK was updated'
+        required: false
+        default: ''
 
 jobs:
   download-tools:
@@ -280,6 +284,7 @@ jobs:
           FORCE_DROPPED: ${{ github.event.inputs.dropped_force_build }}
           BUILD_ALL_SOURCES: ${{ github.event.inputs.build_all_sources }}
           UPDATED_SOURCES: ${{ github.event.inputs.updated_sources }}
+          UPDATED_APPS: ${{ github.event.inputs.updated_apps }}
           APK_UPDATED_APPS: ${{ github.event.inputs.apk_updated_apps }}
         run: |
           # env: + run: is valid; env: + uses: is not (Actions parser error).
