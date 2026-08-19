@@ -34,7 +34,7 @@ The current configuration builds the following combinations:
 | --- | --- |
 | [Morphe (Official)](https://github.com/MorpheApp/morphe-patches) | YouTube, YouTube Music |
 | [Anddea](https://github.com/anddea/revanced-patches) | YouTube, YouTube Music |
-| [Hoo (rushiranpise)](https://github.com/rushiranpise/morphe-patches) | 1.1.1.1, AccuBattery, AdGuard, Adobe Scan, Amazon Shopping, Call Recorder, CamScanner, Countdown Widget, Crunchyroll, Duolingo, Excel, File Manager, GitHub, ibis Paint X, Icon Packer, Kahoot, KineMaster, Kinestop, MEGA, Ninja VPN, Prime Video, SD Maid SE, Smart Launcher, SoundCloud, Speedtest, Windscribe VPN, Windy, Word, WPS Office, Xodo, XRecorder, Yuucho Tuucho, Yuucho Ninsho |
+| [rushiranpise](https://github.com/rushiranpise/morphe-patches) | 1.1.1.1, AccuBattery, AdGuard, Adobe Scan, Amazon Shopping, Call Recorder, CamScanner, Countdown Widget, Crunchyroll, Duolingo, Excel, File Manager, GitHub, ibis Paint X, Icon Packer, Kahoot, KineMaster, Kinestop, MEGA, Ninja VPN, Prime Video, SD Maid SE, Smart Launcher, SoundCloud, Speedtest, Windscribe VPN, Windy, Word, WPS Office, Xodo, XRecorder, Yuucho Tuucho, Yuucho Ninsho |
 | [Hoo-dles](https://github.com/hoo-dles/morphe-patches) | Lightroom Mobile |
 | [RookieEnough](https://github.com/RookieEnough/De-Vanced) | Amazon Music, Disney+, Google News, Google Photos, Google Recorder, Photomath, Adobe Photoshop Mix, Pixiv, Tumblr, Viber |
 | [ajstrick81](https://github.com/ajstrick81/morphe-androidtv-patches) | Disney+ (Android TV), Netflix, Prime Video (Android TV), Twitch (Android TV) |
