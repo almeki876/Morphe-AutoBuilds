@@ -317,6 +317,12 @@ jobs:
         with:
           python-version: 3.11
 
+      - name: Setup Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
       - name: Install Dependencies
         run: pip install -r requirements.txt
 
