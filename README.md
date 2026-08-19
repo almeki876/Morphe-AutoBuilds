@@ -52,9 +52,6 @@ APKファイル名には、アプリ名、対象アーキテクチャ、元APK�
 | [Fluffy (rabilrbl)](https://github.com/rabilrbl/fluffy-patches) | Alarmy |
 | [Quantro](https://github.com/Quantro100/Morphe-patches) | AliExpress |
 | [Lain (kiraio-moe)](https://github.com/kiraio-moe/Lain-Patches) | iLovePDF |
-| [Dropped-Patches](https://github.com/indrastorms/Dropped-Patches) | *(ワークフロー基盤のみ。現在のビルド設定にはエントリなし)* |
-| [Tosox](https://github.com/Tosox/revanced-patches) | *(ワークフロー基盤のみ。現在のビルド設定にはエントリなし)* |
-| [YuzuMikan404](https://github.com/YuzuMikan404/Yuucho-Tuucho-and-Ninsho) | ゆうちょ通帳、ゆうちょ認証 *(元APK取得元)* |
 
 対象やパッチ内容はアップストリームの変更に応じて変わることがあります。実際に適用された内容は、各リリースとGitHub Actionsのログを確認してください。
 

@@ -52,9 +52,6 @@ The current configuration builds the following combinations:
 | [Fluffy (rabilrbl)](https://github.com/rabilrbl/fluffy-patches) | Alarmy |
 | [Quantro](https://github.com/Quantro100/Morphe-patches) | AliExpress |
 | [Lain (kiraio-moe)](https://github.com/kiraio-moe/Lain-Patches) | iLovePDF |
-| [Dropped-Patches](https://github.com/indrastorms/Dropped-Patches) | *(Workflow infrastructure only; no build entries in current config)* |
-| [Tosox](https://github.com/Tosox/revanced-patches) | *(Workflow infrastructure only; no build entries in current config)* |
-| [YuzuMikan404](https://github.com/YuzuMikan404/Yuucho-Tuucho-and-Ninsho) | Yuucho Tuucho, Yuucho Ninsho *(Base APK source)* |
 
 Targets and applied patches may change over time according to upstream updates. Please inspect individual release notes and GitHub Actions logs for exact details of applied patches.
 
