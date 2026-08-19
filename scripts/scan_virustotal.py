@@ -44,6 +44,9 @@ def _client(api_key: str) -> VirusTotalClient:
         poll_interval=float(os.environ.get("VT_POLL_INTERVAL_SECONDS", "30")),
         analysis_timeout=float(os.environ.get("VT_ANALYSIS_TIMEOUT_SECONDS", "2700")),
         max_retries=int(os.environ.get("VT_MAX_RETRIES", "6")),
+        max_analysis_age_days=float(
+            os.environ.get("VT_MAX_ANALYSIS_AGE_DAYS", "90")
+        ),
     )
 
 

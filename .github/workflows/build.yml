@@ -421,6 +421,7 @@ jobs:
           VT_POLL_INTERVAL_SECONDS: '30'
           VT_ANALYSIS_TIMEOUT_SECONDS: '2700'
           VT_MAX_RETRIES: '6'
+          VT_MAX_ANALYSIS_AGE_DAYS: '90'
         run: |
           pip install -r requirements.txt
           python3 -m scripts.scan_virustotal \

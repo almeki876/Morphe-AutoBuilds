@@ -8,6 +8,7 @@ detection prevents the release job from continuing.
 from __future__ import annotations
 
 import hashlib
+import os
 import threading
 import time
 from dataclasses import dataclass
@@ -21,10 +22,26 @@ API_BASE = "https://www.virustotal.com/api/v3"
 SMALL_UPLOAD_LIMIT = 32 * 1024 * 1024
 MAX_UPLOAD_SIZE = 650 * 1024 * 1024
 RETRYABLE_STATUS_CODES = {408, 424, 429, 500, 502, 503, 504}
+LOW_CONFIDENCE_ENGINES = {
+    "MaxSecure",
+    "Gridinsoft",
+}
+MAJOR_ENGINES = {
+    "Google",
+    "Microsoft",
+    "Kaspersky",
+    "ESET-NOD32",
+    "BitDefender",
+    "Sophos",
+}
 
 
 class VirusTotalError(RuntimeError):
     """Raised when an APK cannot be conclusively scanned."""
+
+
+class VirusTotalAnalysisTimeout(VirusTotalError):
+    """Raised when a queued VirusTotal analysis does not finish in time."""
 
 
 @dataclass(frozen=True)
@@ -44,6 +61,8 @@ class ScanResult:
     method: str
     engines: dict[str, dict[str, object]]
     permalink: str
+    last_analysis_date: int | None
+    reanalyzed: bool
 
 
 class VirusTotalClient:
@@ -55,6 +74,7 @@ class VirusTotalClient:
         poll_interval: float,
         analysis_timeout: float,
         max_retries: int,
+        max_analysis_age_days: float = 90,
     ) -> None:
         self.session = requests.Session()
         self.headers = {"x-apikey": api_key, "accept": "application/json"}
@@ -62,6 +82,7 @@ class VirusTotalClient:
         self.poll_interval = poll_interval
         self.analysis_timeout = analysis_timeout
         self.max_retries = max_retries
+        self.max_analysis_age_seconds = max(0.0, max_analysis_age_days) * 86400
         self._last_request = 0.0
         self._rate_limit_lock = threading.Lock()
 
@@ -209,6 +230,8 @@ class VirusTotalClient:
         dict[str, int],
         dict[str, dict[str, object]],
         str,
+        int | None,
+        bool,
     ]:
         report_url = f"{API_BASE}/files/{quote(sha256)}"
         response = self.request("GET", report_url, expected=(200, 404))
@@ -221,12 +244,39 @@ class VirusTotalClient:
                     attributes,
                     "last_analysis_results",
                 )
+                raw_date = attributes.get("last_analysis_date")
+                last_analysis_date = (
+                    int(raw_date) if isinstance(raw_date, (int, float)) else None
+                )
+                malware_detected = stats.get("malicious", 0) > 0
+                is_stale = (
+                    malware_detected
+                    and (
+                    last_analysis_date is None
+                    or time.time() - last_analysis_date
+                    > self.max_analysis_age_seconds
+                    )
+                )
+                if is_stale:
+                    print(
+                        f"Existing VirusTotal result for {path.name} is older than "
+                        f"{self.max_analysis_age_seconds / 86400:.0f} days; "
+                        "requesting a fresh analysis.",
+                        flush=True,
+                    )
+                    response = self.request("POST", f"{report_url}/analyse")
+                    analysis_id = str(response.json().get("data", {}).get("id") or "")
+                    if not analysis_id:
+                        raise VirusTotalError(
+                            f"VirusTotal did not return an analysis ID for {path.name}"
+                        )
+                    return analysis_id, stats, engines, "reanalyzed", last_analysis_date, True
                 print(
                     f"Using existing VirusTotal result for {path.name} "
                     f"(SHA-256 {sha256[:12]}...); no upload required.",
                     flush=True,
                 )
-                return None, stats, engines, "hash lookup"
+                return None, stats, engines, "hash lookup", last_analysis_date, False
             print(f"Requesting a fresh analysis for {path.name}...", flush=True)
             response = self.request("POST", f"{report_url}/analyse")
             analysis_id = str(response.json().get("data", {}).get("id") or "")
@@ -234,18 +284,18 @@ class VirusTotalClient:
                 raise VirusTotalError(
                     f"VirusTotal did not return an analysis ID for {path.name}"
                 )
-            return analysis_id, {}, {}, "reanalyzed"
+            return analysis_id, {}, {}, "reanalyzed", None, True
         if response.status_code != 404:
             raise VirusTotalError(
                 f"Could not check {path.name}: {self._error_message(response)}"
             )
-        return self._start_upload(path), {}, {}, "uploaded"
+        return self._start_upload(path), {}, {}, "uploaded", None, False
 
     def wait_for_analysis(
         self,
         analysis_id: str,
         filename: str,
-    ) -> tuple[dict[str, int], dict[str, dict[str, object]]]:
+    ) -> tuple[dict[str, int], dict[str, dict[str, object]], int | None]:
         deadline = time.monotonic() + self.analysis_timeout
         encoded_id = quote(analysis_id, safe="")
         while time.monotonic() < deadline:
@@ -264,7 +314,11 @@ class VirusTotalClient:
                     if isinstance(value, (int, float))
                 }
                 engines = self._engine_results(attributes, "results")
-                return stats, engines
+                raw_date = attributes.get("date")
+                completed_date = (
+                    int(raw_date) if isinstance(raw_date, (int, float)) else None
+                )
+                return stats, engines, completed_date
             if status not in {"queued", "in-progress"}:
                 raise VirusTotalError(
                     f"Unexpected VirusTotal analysis status for {filename}: {status!r}"
@@ -274,16 +328,33 @@ class VirusTotalClient:
                 flush=True,
             )
             time.sleep(self.poll_interval)
-        raise VirusTotalError(
+        raise VirusTotalAnalysisTimeout(
             f"VirusTotal analysis timed out after "
             f"{self.analysis_timeout / 60:.0f} minutes for {filename}"
         )
 
     def scan(self, path: Path) -> ScanResult:
         sha256 = sha256_file(path)
-        analysis_id, stats, engines, method = self.start_analysis(path, sha256)
+        analysis_id, stats, engines, method, last_analysis_date, reanalyzed = (
+            self.start_analysis(path, sha256)
+        )
         if analysis_id:
-            stats, engines = self.wait_for_analysis(analysis_id, path.name)
+            try:
+                stats, engines, completed_date = self.wait_for_analysis(
+                    analysis_id, path.name
+                )
+                last_analysis_date = completed_date or int(time.time())
+            except VirusTotalAnalysisTimeout as error:
+                if method == "reanalyzed" and stats:
+                    print(
+                        f"::warning::VirusTotal analysis for {path.name} is still "
+                        f"in progress; using the previous result temporarily: {error}",
+                        flush=True,
+                    )
+                    method = "stale fallback"
+                    reanalyzed = False
+                else:
+                    raise
         malicious = stats.get("malicious", 0)
         suspicious = stats.get("suspicious", 0)
         completed_engines = (
@@ -296,7 +367,35 @@ class VirusTotalClient:
             raise VirusTotalError(
                 f"VirusTotal returned no completed engine verdicts for {path.name}"
             )
-        verdict = "clean" if malicious == 0 and suspicious == 0 else "unsafe"
+        detected_engines = {
+            engine
+            for engine, details in engines.items()
+            if details.get("category") in {"malicious", "suspicious"}
+        }
+        only_low_confidence_malicious = (
+            malicious == 1
+            and suspicious == 0
+            and len(detected_engines) == 1
+            and next(iter(detected_engines)) in LOW_CONFIDENCE_ENGINES
+        )
+        if only_low_confidence_malicious:
+            print(
+                f"::warning::{path.name}: single low-confidence VirusTotal "
+                f"detection ({next(iter(detected_engines))}); allowing release.",
+                flush=True,
+            )
+        major_detection = any(
+            engine in MAJOR_ENGINES
+            for engine in detected_engines
+            if engines[engine].get("category") == "malicious"
+        )
+        verdict = (
+            "clean"
+            if suspicious == 0 and (malicious == 0 or only_low_confidence_malicious)
+            else "unsafe"
+        )
+        if major_detection:
+            verdict = "unsafe"
         return ScanResult(
             file=path.name,
             sha256=sha256,
@@ -314,6 +413,8 @@ class VirusTotalClient:
             method=method,
             engines=engines,
             permalink=f"https://www.virustotal.com/gui/file/{sha256}/detection",
+            last_analysis_date=last_analysis_date,
+            reanalyzed=reanalyzed,
         )
 
 
@@ -332,12 +433,12 @@ def markdown_report(results: list[ScanResult]) -> str:
         "",
         (
             "Each file was checked by SHA-256 first and uploaded only when VirusTotal "
-            "had no existing result. Any `malicious` or `suspicious` detection "
-            "blocks the release."
+            "had no recent existing result. Suspicious detections and confirmed "
+            "malicious detections block the release."
         ),
         "",
-        "| APK | SHA-256 | Method | Malicious | Suspicious | Undetected | Result |",
-        "| --- | --- | --- | ---: | ---: | ---: | --- |",
+        "| APK | SHA-256 | Method | Last analysis (UTC) | Reanalyzed | Malicious | Suspicious | Undetected | Result |",
+        "| --- | --- | --- | --- | --- | ---: | ---: | ---: | --- |",
     ]
     for result in results:
         if result.verdict == "clean":
@@ -349,6 +450,8 @@ def markdown_report(results: list[ScanResult]) -> str:
             f"| {escaped_file} | "
             f"[`{result.sha256[:12]}…`]({result.permalink}) | "
             f"{result.method} | "
+            f"{time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime(result.last_analysis_date)) if result.last_analysis_date else 'unknown'} | "
+            f"{str(result.reanalyzed).lower()} | "
             f"{result.malicious} | {result.suspicious} | "
             f"{result.undetected} | {label} |"
         )
