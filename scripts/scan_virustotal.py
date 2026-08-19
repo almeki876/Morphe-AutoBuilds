@@ -190,8 +190,12 @@ def main() -> int:
         if path.is_file() and path.suffix.casefold() in supported_suffixes
     )
     if not apk_files:
-        print("::error::No APK files were found for VirusTotal scanning.", file=sys.stderr)
-        return 2
+        print(
+            "::warning::No APK files were produced; skipping VirusTotal scanning "
+            "because the build failure is reported separately."
+        )
+        _write_reports(args.markdown, args.json, [], [], args.title)
+        return 0
 
     def save_progress(
         current_results: list[ScanResult],

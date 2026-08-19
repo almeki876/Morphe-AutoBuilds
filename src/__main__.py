@@ -512,6 +512,7 @@ def _patch_morphe(
             "-jar", str(cli),
             "patch",
             "--force",
+            "--continue-on-error",
             *purge_flag,
             "-p", str(bundle),
             f"--out={output_apk}",
@@ -607,6 +608,7 @@ def _patch_revanced(
     cmd = [
         "java", "-jar", str(cli),
         "patch",
+        "--continue-on-error",
         bundle_flag, str(bundle),
         "--out", str(output_apk),
         *exclusive,
@@ -638,6 +640,7 @@ def _patch_legacy(
     cmd = [
         "java", "-jar", str(cli),
         "patch", "--patches", str(bundle),
+        "--continue-on-error",
         "--out", str(output_apk),
         *disables, *enables,
         *option_flags,
