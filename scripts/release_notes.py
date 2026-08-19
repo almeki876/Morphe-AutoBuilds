@@ -41,6 +41,8 @@ SOURCES = (
     Source("LAIN", "Lain-Patches", "https://github.com/kiraio-moe/Lain-Patches", "iLovePDF"),
 )
 
+MAX_RELEASE_NOTES_LENGTH = 120_000
+
 
 
 def _enabled(name: str) -> bool:
@@ -81,6 +83,13 @@ def render() -> str:
     return "\n".join(lines) + "\n"
 
 
+def _fit_release_notes(text: str) -> str:
+    if len(text) <= MAX_RELEASE_NOTES_LENGTH:
+        return text
+    suffix = "\n\n[Additional release details omitted to fit GitHub's release-notes limit.]\n"
+    return text[: MAX_RELEASE_NOTES_LENGTH - len(suffix)] + suffix
+
+
 def main() -> None:
     output = Path(os.environ.get("RELEASE_NOTES_PATH", "release_notes.md"))
     parts = [render()]
@@ -91,7 +100,7 @@ def main() -> None:
         path = Path(name)
         if path.is_file() and path.stat().st_size:
             parts.append(path.read_text(encoding="utf-8"))
-    output.write_text("".join(parts), encoding="utf-8")
+    output.write_text(_fit_release_notes("".join(parts)), encoding="utf-8")
     print(f"Release notes generated: {output}")
 
 
