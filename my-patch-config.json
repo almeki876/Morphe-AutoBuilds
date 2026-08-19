@@ -503,7 +503,7 @@
     },
     {
       "app_name": "amazon-shopping",
-      "source": "rushiranpise",
+      "source": "rookie",
       "disable": [],
       "force_enable": [
         "Dark mode",
