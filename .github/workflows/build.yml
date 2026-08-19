@@ -825,10 +825,12 @@ jobs:
 
           gh release create "$release_tag" \
             --title "$release_title" \
-            --notes-file release_notes.md \
-            ./release-apks/*.apk
+            --notes-file release_notes.md
 
-          echo "Release created successfully!"
+          find ./release-apks -name '*.apk' -print0 \
+            | xargs -0 -r -P 8 -I {} gh release upload "$release_tag" "{}"
+
+          echo "Release created and APK assets uploaded successfully!"
           echo "Release URL: https://github.com/${{ github.repository }}/releases/tag/$release_tag"
 
       - name: Display Release Summary
