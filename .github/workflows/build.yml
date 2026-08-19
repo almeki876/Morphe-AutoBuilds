@@ -381,6 +381,64 @@ jobs:
             build-metadata/apk-sources.json
           retention-days: 1
 
+      - name: Upload Unmodified Base APK for VirusTotal
+        if: success()
+        uses: actions/upload-artifact@v7
+        with:
+          name: base-scan-${{ matrix.app_name }}-${{ matrix.source }}
+          path: base-apk-scan-out/*
+          retention-days: 1
+
+  scan-base-apks:
+    name: Scan Base APKs with VirusTotal
+    needs: [download-apks]
+    if: ${{ !cancelled() && needs.download-apks.result != 'skipped' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v7
+
+      - name: Setup Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: 3.11
+
+      - name: Download Unmodified Base APKs
+        uses: actions/download-artifact@v8
+        with:
+          path: ./base-apks
+          pattern: base-scan-*
+          merge-multiple: true
+
+      - name: Scan Unmodified Base APKs with VirusTotal
+        env:
+          VIRUSTOTAL_API_KEY: ${{ secrets.VIRUSTOTAL_API_KEY }}
+          VT_REQUEST_INTERVAL_SECONDS: '16'
+          VT_POLL_INTERVAL_SECONDS: '30'
+          VT_ANALYSIS_TIMEOUT_SECONDS: '2700'
+          VT_MAX_RETRIES: '6'
+        run: |
+          pip install -r requirements.txt
+          python3 -m scripts.scan_virustotal \
+            --directory ./base-apks \
+            --title "VirusTotal base APK scan results (before patching)" \
+            --markdown ./virustotal_base_results.md \
+            --json ./virustotal_base_results.json
+
+      - name: Upload VirusTotal Report
+        if: always() && hashFiles('virustotal_base_results.*') != ''
+        uses: actions/upload-artifact@v7
+        with:
+          name: virustotal-report
+          path: |
+            virustotal_base_results.md
+            virustotal_base_results.json
+          retention-days: 30
+
   build-apps:
     name: Build ${{ matrix.app_name }} with ${{ matrix.source_label }}
     needs: [download-tools, prepare-matrix, download-apks]
@@ -533,14 +591,6 @@ jobs:
           path: base-apk-cache-out/*
           retention-days: 1
 
-      - name: Upload Unmodified Base APK for VirusTotal
-        if: success() && hashFiles('base-apk-scan-out/*') != ''
-        uses: actions/upload-artifact@v7
-        with:
-          name: base-apk-scan-${{ matrix.app_name }}-${{ matrix.source }}
-          path: base-apk-scan-out/*
-          retention-days: 1
-
       - name: Upload APK Artifact
         if: success()
         uses: actions/upload-artifact@v7
@@ -623,7 +673,7 @@ jobs:
 
   create-release:
     name: Create Integrated Release
-    needs: [download-tools, prepare-matrix, build-apps]
+    needs: [download-tools, prepare-matrix, build-apps, scan-base-apks]
     runs-on: ubuntu-latest
     timeout-minutes: 300
     # build-apps の一部失敗時は成功分をリリースできるよう起動するが、
@@ -633,7 +683,8 @@ jobs:
         !cancelled() &&
         needs.download-tools.result == 'success' &&
         needs.prepare-matrix.result == 'success' &&
-        needs.build-apps.result != 'skipped'
+        needs.build-apps.result != 'skipped' &&
+        needs.scan-base-apks.result == 'success'
       }}
     permissions:
       contents: write
@@ -677,12 +728,11 @@ jobs:
             echo "No per-app build result artifacts were found." >> "$GITHUB_STEP_SUMMARY"
           fi
 
-      - name: Download Unmodified Base APKs
+      - name: Download VirusTotal Report
         uses: actions/download-artifact@v8
         with:
-          path: ./base-apks
-          pattern: base-apk-scan-*
-          merge-multiple: true
+          path: .
+          name: virustotal-report
 
       - name: Check if Any APKs Were Built
         id: check-apks
@@ -700,33 +750,6 @@ jobs:
           fi
 
           python3 -m scripts.release_metadata
-
-      - name: Scan Unmodified Base APKs with VirusTotal
-        if: steps.check-apks.outputs.skip_release == 'false'
-        env:
-          VIRUSTOTAL_API_KEY: ${{ secrets.VIRUSTOTAL_API_KEY }}
-          # Public APIの上限（4 requests/minute）を超えない間隔。
-          VT_REQUEST_INTERVAL_SECONDS: '16'
-          VT_POLL_INTERVAL_SECONDS: '30'
-          VT_ANALYSIS_TIMEOUT_SECONDS: '2700'
-          VT_MAX_RETRIES: '6'
-        run: |
-          pip install -r requirements.txt
-          python3 -m scripts.scan_virustotal \
-            --directory ./base-apks \
-            --title "VirusTotal base APK scan results (before patching)" \
-            --markdown ./virustotal_base_results.md \
-            --json ./virustotal_base_results.json
-
-      - name: Preserve VirusTotal Report
-        if: always() && hashFiles('virustotal_base_results.*') != ''
-        uses: actions/upload-artifact@v7
-        with:
-          name: virustotal-report
-          path: |
-            virustotal_base_results.md
-            virustotal_base_results.json
-          retention-days: 30
 
       - name: Add VirusTotal Report to Job Summary
         if: always() && hashFiles('virustotal_base_results.md') != ''
@@ -877,10 +900,11 @@ jobs:
 
   handle-build-failure:
     name: Open or Update Build Failure Issue
-    needs: [download-tools, prepare-matrix, download-apks, build-apps, create-release]
+    needs: [download-tools, prepare-matrix, download-apks, build-apps, create-release, report-build-failures]
     if: >-
       ${{
         always() &&
+        needs.report-build-failures.result != 'success' &&
         (needs.download-tools.result == 'failure' ||
          needs.prepare-matrix.result == 'failure' ||
          needs.download-apks.result == 'failure' ||
@@ -903,6 +927,7 @@ jobs:
           DOWNLOAD_RESULT: ${{ needs.download-apks.result }}
           BUILD_RESULT: ${{ needs.build-apps.result }}
           RELEASE_RESULT: ${{ needs.create-release.result }}
+          REPORT_RESULT: ${{ needs.report-build-failures.result }}
         run: |
           title="Automated APK build workflow failed"
           cat <<EOF > build-failure-issue.md
@@ -916,6 +941,7 @@ jobs:
           - **Download APKs**: ${DOWNLOAD_RESULT}
           - **Build Apps**: ${BUILD_RESULT}
           - **Create Release**: ${RELEASE_RESULT}
+          - **Detailed Reporter**: ${REPORT_RESULT}
 
           **Workflow Run**: ${RUN_URL}
           EOF

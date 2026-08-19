@@ -6,9 +6,16 @@ import argparse
 import json
 import re
 import subprocess
+import sys
+from datetime import datetime, timezone
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
 from src.providers import configured_package
+
+
+DRY_RUN = False
 
 
 VERSION_PATTERNS = (
@@ -26,7 +33,10 @@ def _read_status(path: Path) -> dict[str, str]:
             values[key] = value
     marker = "traceback_or_error_tail<<EOF"
     if marker in text:
-        values["log"] = text.split(marker, 1)[1].split("\nEOF", 1)[0].strip()
+        captured = text.split(marker, 1)[1].split("\nEOF", 1)[0].strip()
+        values["log"] = captured or text[-16000:].strip()
+    else:
+        values["log"] = text[-16000:].strip()
     return values
 
 
@@ -81,6 +91,20 @@ def _issue_number(title: str) -> str | None:
     return None
 
 
+def _failure_summary(log: str) -> str:
+    patterns = (
+        r"(?:FAILED|ERROR|FATAL):\s*(.+)",
+        r"(?:Error|Exception):\s*(.+)",
+    )
+    for pattern in patterns:
+        match = re.search(pattern, log, re.IGNORECASE)
+        if match:
+            summary = re.sub(r"\s+", " ", match.group(1)).strip()
+            if summary:
+                return summary[:100]
+    return "unspecified error"
+
+
 def _open_issues(search: str) -> list[dict]:
     result = subprocess.run(
         ["gh", "issue", "list", "--state", "open", "--search", search,
@@ -111,6 +135,9 @@ def _same_target(body: str, app: str, source_name: str) -> bool:
 
 
 def _publish(title: str, body: str) -> None:
+    if DRY_RUN:
+        print(f"\n--- DRY RUN: {title} ---\n{body}\n--- END DRY RUN ---")
+        return
     body_path = Path("build-failure-issue.md")
     body_path.write_text(body, encoding="utf-8")
     existing = _issue_number(title)
@@ -175,6 +202,8 @@ This patch was temporarily disabled or could not be selected so the build could 
 
 
 def _close_related(prefix: str, app: str, source_name: str, message: str) -> None:
+    if DRY_RUN:
+        return
     for issue in _open_issues(f"{prefix} {app} in:title"):
         number = str(issue.get("number"))
         title = str(issue.get("title") or "")
@@ -199,7 +228,11 @@ def _manage_feature_lifecycle(
     if failures:
         for patch in failures:
             patch_name = str(patch.get("name") or "unknown")
-            title = f"[Feature Failure] {app} - {patch_name}"
+            version = report.get("version") or _version(
+                status, Path("."), app, str(report.get("source") or status.get("source"))
+            )
+            source = str(report.get("source_name") or status.get("source"))
+            title = f"[Feature Failure] {app} - {source} - v{version} - {patch_name}"
             _publish(title, _feature_body(report, status, patch))
         return
 
@@ -221,6 +254,16 @@ def _body(status: dict[str, str], report_root: Path) -> str:
     report = _report(report_root, app, source)
     source_name = status.get("source_name") or report.get("source_name") or source
     log = status.get("log", "No raw log excerpt was captured.")[-12000:]
+    skipped = report.get("excluded_patches") or report.get("feature_failures") or []
+    skipped_lines = []
+    for item in skipped:
+        if isinstance(item, dict):
+            name = item.get("name", "unknown")
+            reason = item.get("reason", "excluded by configuration or patch defaults")
+            skipped_lines.append(f"- `{name}`: {reason}")
+        else:
+            skipped_lines.append(f"- `{item}`")
+    skipped_text = "\n".join(skipped_lines) or "- None recorded"
     return f"""# Build failure report
 
 - **App:** `{app}`
@@ -228,6 +271,7 @@ def _body(status: dict[str, str], report_root: Path) -> str:
 - **Patch source:** `{source_name}`
 - **Phase:** `{phase}`
 - **Attempted APK version:** `{version}`
+- **Occurred at (UTC):** `{datetime.now(timezone.utc).isoformat()}`
 - **Workflow run:** {status.get('run', 'unknown')}
 
 ## Hypothesis
@@ -240,15 +284,35 @@ def _body(status: dict[str, str], report_root: Path) -> str:
 {log}
 ```
 
-This issue is updated instead of duplicated when the same app and phase fail again.
+## Skipped or excluded patches
+
+{skipped_text}
+
+This issue is updated instead of duplicated when the same app, source, version, phase, and failure summary recur.
 """
 
 
+def _failure_title(status: dict[str, str], report_root: Path) -> str:
+    app = status["app"]
+    source = status.get("source", "unknown")
+    phase = status.get("phase", "Build")
+    version = _version(status, report_root, app, source)
+    summary = _failure_summary(status.get("log", ""))
+    return f"[Build Failure] {app} - {source} - {phase} - v{version} - {summary}"
+
+
 def main() -> int:
+    global DRY_RUN
     parser = argparse.ArgumentParser()
     parser.add_argument("--directory", type=Path, default=Path("failure-results"))
     parser.add_argument("--report-root", type=Path, default=Path("failure-results"))
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Render issue updates without calling GitHub CLI.",
+    )
     args = parser.parse_args()
+    DRY_RUN = args.dry_run
     statuses = sorted(args.directory.rglob("*.txt"))
     failures = []
     for path in statuses:
@@ -257,7 +321,7 @@ def main() -> int:
             failures.append(status)
     for status in failures:
         phase = status.get("phase", "Build")
-        title = f"[Build Failure] {status['app']} - {phase}"
+        title = _failure_title(status, args.report_root)
         _publish(title, _body(status, args.report_root))
 
     status_by_target = {

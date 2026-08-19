@@ -84,6 +84,10 @@ def main() -> None:
     output_dir.mkdir(parents=True, exist_ok=True)
     target = output_dir / f"{app_name}-{source}-{arch}{input_apk.suffix.lower()}"
     shutil.copy2(input_apk, target)
+    scan_dir = Path("base-apk-scan-out")
+    scan_dir.mkdir(parents=True, exist_ok=True)
+    scan_target = scan_dir / f"{app_name}-{source}-{arch}{input_apk.suffix.lower()}"
+    shutil.copy2(input_apk, scan_target)
     metadata_path = Path("build-metadata/apk-sources.json")
     metadata_path.parent.mkdir(parents=True, exist_ok=True)
     metadata = json.loads(metadata_path.read_text(encoding="utf-8")) if metadata_path.exists() else []
