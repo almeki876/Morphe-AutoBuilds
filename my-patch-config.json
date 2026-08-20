@@ -237,13 +237,7 @@
     {
       "app_name": "youtube-music",
       "source": "morphe",
-      "options": [
-        {
-          "patch": "Theme",
-          "key": "darkThemeBackgroundColor",
-          "value": "@android:color/black"
-        }
-      ],
+      "options": [],
       "disable": [],
       "force_enable": [
         "AddResourcesPatch"
