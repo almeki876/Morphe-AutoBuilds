@@ -1,6 +1,7 @@
 {
   "org": "adobe",
   "name": "lightroom",
+  "release_prefix": "lightroom-photo-video-editor",
   "type": "APK",
   "arch": "arm64-v8a",
   "dpi": "nodpi",
