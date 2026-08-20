@@ -10,18 +10,51 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-
-from src.providers import configured_package
-
-
 DRY_RUN = False
+CONFIG_SOURCE_PRIORITY = (
+    "apkmirror",
+    "apkpure",
+    "uptodown",
+    "aptoide",
+    "github",
+)
 
 
 VERSION_PATTERNS = (
     re.compile(r"compatible version\s+([^\s]+)", re.IGNORECASE),
     re.compile(r"(?:version|v)[=:\s]+([0-9][^\s,)]*)", re.IGNORECASE),
 )
+
+
+def _configured_package(app_name: str) -> str | None:
+    """Return the package ID from the app configs without importing src."""
+    config_paths = [
+        Path("apps") / provider / f"{app_name}.json"
+        for provider in CONFIG_SOURCE_PRIORITY
+    ]
+    config_paths.extend(
+        path
+        for path in sorted(Path("apps").rglob("*.json"))
+        if path not in config_paths and path.stem == app_name
+    )
+
+    found: list[tuple[Path, str]] = []
+    for config_path in config_paths:
+        try:
+            config = json.loads(config_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            continue
+        if not isinstance(config, dict):
+            continue
+        package = config.get("package") or config.get("package_id")
+        if package:
+            found.append((config_path, str(package)))
+
+    packages = {package for _, package in found}
+    if len(packages) > 1:
+        details = ", ".join(f"{path}={package}" for path, package in found)
+        raise ValueError(f"conflicting package IDs for {app_name}: {details}")
+    return found[0][1] if found else None
 
 
 def _read_status(path: Path) -> dict[str, str]:
@@ -190,7 +223,7 @@ def _feature_body(
     return f"""# Feature patch failure
 
 - **App:** `{app}`
-- **Package:** `{configured_package(app) or 'unknown'}`
+- **Package:** `{_configured_package(app) or 'unknown'}`
 - **Patch source:** `{source}`
 - **Failed patch feature:** `{patch.get('name', 'unknown')}`
 - **APK version:** `{version}`
@@ -262,7 +295,7 @@ def _manage_feature_lifecycle(
 
 def _partial_patch_body(report: dict, status: dict[str, str]) -> str:
     app = str(report.get("app_name") or status.get("app") or "unknown")
-    package = configured_package(app) or "unknown"
+    package = _configured_package(app) or "unknown"
     source = str(report.get("source") or status.get("source") or "unknown")
     source_url = str(report.get("patch_source_url") or _patch_source_url(source))
     failed = [str(item) for item in report.get("failed_patches", []) if str(item).strip()]
@@ -308,7 +341,7 @@ def _body(status: dict[str, str], report_root: Path) -> str:
     app = status["app"]
     source = status["source"]
     phase = status.get("phase", "Build")
-    package = configured_package(app) or "unknown"
+    package = _configured_package(app) or "unknown"
     version = _version(status, report_root, app, source)
     report = _report(report_root, app, source)
     source_name = status.get("source_name") or report.get("source_name") or source
