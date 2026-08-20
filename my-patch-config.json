@@ -238,10 +238,7 @@
       "app_name": "youtube-music",
       "source": "morphe",
       "options": [],
-      "disable": [],
-      "force_enable": [
-        "AddResourcesPatch"
-      ]
+      "disable": []
     },
     {
       "app_name": "youtube-music",
