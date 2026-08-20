@@ -1022,13 +1022,15 @@ def run_build(app_name: str, source: str, arch: str = "universal") -> str:
         exit(1)
     preloaded_apk = getenv("PRE_DOWNLOADED_APK")
     if preloaded_apk:
-        input_apk = Path(preloaded_apk)
+        preloaded_source = Path(preloaded_apk)
         version = getenv("PRE_DOWNLOADED_VERSION")
-        if not input_apk.is_file() or not version:
+        if not preloaded_source.is_file() or not version:
             raise BuildFailure(
                 "APK_DOWNLOAD_FAILED",
                 "pre-downloaded APK or version is invalid",
             )
+        input_apk = Path(f".build-input-{arch}{preloaded_source.suffix}")
+        shutil.copy2(preloaded_source, input_apk)
         logging.info("✅ Using pre-downloaded APK input: %s", input_apk)
     else:
         compatible_versions = utils.get_supported_version_candidates(

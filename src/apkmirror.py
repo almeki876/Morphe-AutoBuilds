@@ -157,7 +157,8 @@ def _configured_release_url(version: str, config: dict) -> str | None:
     name = config.get("name")
     if not org or not name:
         return None
-    release_slug = f"{name}-{_version_slug(version)}-release"
+    release_prefix = str(config.get("release_prefix") or name).strip("-")
+    release_slug = f"{release_prefix}-{_version_slug(version)}-release"
     return f"{BASE_URL}/apk/{org}/{name}/{release_slug}/"
 
 
@@ -275,6 +276,15 @@ def _score_release_link(link: tuple[str, str], config: dict) -> int:
 
 
 def _discover_release(version: str, app_name: str, config: dict) -> str | None:
+    if config.get("release_prefix"):
+        for release_version in _release_version_candidates(version):
+            configured_release = _configured_release_url(release_version, config)
+            if configured_release:
+                direct = _validated_release_url(configured_release, version, config)
+                if direct:
+                    logging.info("APKMirror release resolved directly: %s", direct)
+                    return direct
+
     configured_url = _configured_app_url(config)
     if configured_url:
         discovered = _discovery_page(configured_url)
@@ -295,7 +305,11 @@ def _discover_release(version: str, app_name: str, config: dict) -> str | None:
     # title/version-code segments (for example Nova Launcher).
     for release_version in _release_version_candidates(version):
         configured_release = _configured_release_url(release_version, config)
-        if configured_release and not _DISCOVERY_BLOCKED:
+        if (
+            configured_release
+            and not config.get("release_prefix")
+            and not _DISCOVERY_BLOCKED
+        ):
             direct = _validated_release_url(configured_release, version, config)
             if direct:
                 logging.info("APKMirror release resolved directly: %s", direct)
