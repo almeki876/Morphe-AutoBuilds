@@ -28,6 +28,15 @@ def _entry_matches(entry: dict, version: str) -> bool:
     }
 
 
+def _entry_matches_candidate(entry: dict, candidate: VersionCandidate) -> bool:
+    identity = _entry_candidate(entry)
+    if identity is None:
+        return candidate.code is None and candidate.name == str(
+            entry.get("version", "")
+        )
+    return candidate.matches(identity.name, identity.code)
+
+
 def get_latest_version(app_name: str, config: dict) -> str:
     # Generate all possible Uptodown names
     possible_names = generate_possible_uptodown_names(config)
@@ -73,7 +82,13 @@ def get_latest_version(app_name: str, config: dict) -> str:
     logging.error(f"Could not find Uptodown page for {app_name}")
     return None
 
-def get_download_link(version: str, app_name: str, config: dict) -> str:
+def get_download_link(
+    version: str,
+    app_name: str,
+    config: dict,
+    *,
+    candidate: VersionCandidate | None = None,
+) -> str:
     # Generate all possible Uptodown names
     possible_names = generate_possible_uptodown_names(config)
     
@@ -100,7 +115,11 @@ def get_download_link(version: str, app_name: str, config: dict) -> str:
                     break
                     
                 for entry in version_data:
-                    if _entry_matches(entry, version):
+                    if (
+                        _entry_matches_candidate(entry, candidate)
+                        if candidate is not None
+                        else _entry_matches(entry, version)
+                    ):
                         version_url_parts = entry["versionURL"]
                         version_url = f"{version_url_parts['url']}/{version_url_parts['extraURL']}/{version_url_parts['versionID']}"
                         version_page = utils.cf_aware_get(version_url)
@@ -148,7 +167,7 @@ def get_download_link_for_candidate(
     errors: list[str] = []
     for alias in candidate.aliases("uptodown"):
         try:
-            link = get_download_link(alias, app_name, config)
+            link = get_download_link(alias, app_name, config, candidate=candidate)
             if link:
                 return link
         except Exception as error:

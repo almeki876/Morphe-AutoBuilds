@@ -51,6 +51,15 @@ class VersionCandidate:
             return f"{self.code} ({self.name})"
         return self.name
 
+    def matches(self, name: str, code: str | None = None) -> bool:
+        """Return whether a provider result is the same release identity."""
+        normalized_name = str(name).strip()
+        if normalized_name not in self.aliases(""):
+            return False
+        if self.code is None:
+            return True
+        return code is not None and str(code).strip() == self.code
+
     def aliases(self, provider: str) -> tuple[str, ...]:
         """Return exact-match aliases in the order preferred by a provider."""
         name = self.name

@@ -27,6 +27,7 @@ def download_resource(
     retries: int | None = None,
     referer: str = None,
     headers: dict | None = None,
+    validate_apk: bool = False,
 ) -> Path:
     if not isinstance(url, str) or not url.strip():
         raise ValueError("download URL must be a non-empty string")
@@ -84,6 +85,12 @@ def download_resource(
                 raise IOError(
                     f"incomplete download from {safe_final_url}: "
                     f"expected {total_size} bytes, received {downloaded_size}"
+                )
+
+            if validate_apk and not apk_cache.is_valid_apk_archive(part_path):
+                raise IOError(
+                    f"downloaded response is not a valid APK archive from "
+                    f"{safe_final_url}"
                 )
 
             part_path.replace(filepath)
@@ -312,7 +319,7 @@ def download_platform(
                         )
                         return cached, version
 
-                filepath = download_resource(direct_url)
+                filepath = download_resource(direct_url, validate_apk=True)
                 if not apk_cache.is_valid_apk_archive(filepath):
                     filepath.unlink(missing_ok=True)
                     raise ValueError("direct_url returned a non-APK response")
@@ -446,6 +453,7 @@ def download_platform(
                         None if "Referer" in download_spec.headers else referer
                     ),
                     headers=download_spec.headers,
+                    validate_apk=True,
                 )
                 if not apk_cache.is_valid_apk_archive(filepath):
                     filepath.unlink(missing_ok=True)

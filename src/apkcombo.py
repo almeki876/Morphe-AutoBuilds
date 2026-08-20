@@ -99,11 +99,10 @@ def get_download_link_for_candidate(
 ) -> str | None:
     response = _versions_page(app_name, config)
     soup = BeautifulSoup(response.content, "html.parser")
-    aliases = set(candidate.aliases("apkcombo"))
     version_anchor = None
     for anchor in _version_anchors(soup):
         identity = _anchor_candidate(anchor)
-        if identity and aliases.intersection({identity.name, identity.code}):
+        if identity and candidate.matches(identity.name, identity.code):
             version_anchor = anchor
             break
     if version_anchor is None:

@@ -154,6 +154,7 @@ def main() -> int:
                     name=str(target),
                     referer=None if "Referer" in download_spec.headers else referer,
                     headers=download_spec.headers,
+                    validate_apk=True,
                 )
                 if not apk_cache.is_valid_apk_archive(path):
                     raise ValueError("downloaded file is not a valid APK archive")

@@ -135,6 +135,8 @@ def cf_aware_get(url: str, retries: int | None = None, **kwargs):
                 challenge_hostname = (
                     urlparse(response.url).hostname or hostname
                 ).casefold()
+                if hostname:
+                    _BLOCKED_HOSTS.add(hostname)
                 if challenge_hostname:
                     _BLOCKED_HOSTS.add(challenge_hostname)
                 status = response.status_code
@@ -144,15 +146,17 @@ def cf_aware_get(url: str, retries: int | None = None, **kwargs):
                     f"interactive bot protection returned HTTP {status} "
                     f"for {challenge_url}"
                 )
-            if response.status_code == 403 and hostname in {
-                "www.apkmirror.com",
-                "apkcombo.com",
-                "apkpure.com",
-            }:
-                _BLOCKED_HOSTS.add(hostname)
+            if response.status_code == 403:
+                blocked_hostname = (
+                    urlparse(response.url).hostname or hostname
+                ).casefold()
+                if hostname:
+                    _BLOCKED_HOSTS.add(hostname)
+                if blocked_hostname:
+                    _BLOCKED_HOSTS.add(blocked_hostname)
                 response.close()
                 raise BotProtectionError(
-                    f"HTTP 403 blocked automated requests to {hostname}"
+                    f"HTTP 403 blocked automated requests to {blocked_hostname}"
                 )
 
             if (

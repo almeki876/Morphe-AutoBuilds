@@ -164,10 +164,18 @@ def _direct_download_for_candidate(
         url = _direct_endpoint(package, archive_type, **query)
         try:
             filename = _probe_direct_endpoint(url)
-            if not candidate.code and not any(
-                alias.casefold() in filename.casefold()
+            filename_casefold = filename.casefold()
+            aliases_in_filename = any(
+                alias.casefold() in filename_casefold
                 for alias in candidate.aliases("apkpure")
-            ):
+            )
+            if candidate.code and candidate.code not in filename:
+                errors.append(
+                    f"{archive_type}: version code {candidate.code} absent from "
+                    f"filename {filename}"
+                )
+                continue
+            if not aliases_in_filename:
                 errors.append(f"{archive_type}: incompatible filename {filename}")
                 continue
             logging.info(

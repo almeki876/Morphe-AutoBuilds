@@ -18,7 +18,7 @@ from bs4 import BeautifulSoup
 
 from src import utils
 from src.downloads import DownloadSpec
-from src.versioning import remember_version_code
+from src.versioning import VersionCandidate, remember_version_code
 
 
 BASE_URL = "https://www.apkmirror.com"
@@ -372,6 +372,7 @@ def _select_variant(
     version: str,
     config: dict,
     target_arch: str,
+    candidate: VersionCandidate | None = None,
 ) -> str | None:
     candidates: list[tuple[int, str, str]] = []
     for row in soup.select("div.table-row"):
@@ -393,6 +394,13 @@ def _select_variant(
     candidates.sort(key=lambda item: item[0], reverse=True)
     score, url, description = candidates[0]
     version_codes = re.findall(r"\b\d{5,}\b", description)
+    if candidate and candidate.code and candidate.code not in version_codes:
+        logging.warning(
+            "APKMirror variant versionCode mismatch: requested %s, found %s",
+            candidate.describe(),
+            ", ".join(version_codes) or "none",
+        )
+        return None
     package = str(config.get("package") or "")
     if package and version_codes:
         remember_version_code(package, version, version_codes[0])
@@ -451,7 +459,21 @@ def get_download_link(
     config: dict,
     arch: str | None = None,
 ) -> DownloadSpec | None:
-    clean_version = _clean_version(version)
+    return get_download_link_for_candidate(
+        VersionCandidate(name=_clean_version(version)),
+        app_name,
+        config,
+        arch=arch,
+    )
+
+
+def get_download_link_for_candidate(
+    candidate: VersionCandidate,
+    app_name: str,
+    config: dict,
+    arch: str | None = None,
+) -> DownloadSpec | None:
+    clean_version = _clean_version(candidate.name)
     release_url = _discover_release(clean_version, app_name, config)
     if not release_url:
         logging.warning(
@@ -469,7 +491,13 @@ def get_download_link(
                 f"release package does not match requested package '{package}'"
             )
         target_arch = arch or config.get("arch", "universal")
-        variant_url = _select_variant(soup, clean_version, config, target_arch)
+        variant_url = _select_variant(
+            soup,
+            clean_version,
+            config,
+            target_arch,
+            candidate=candidate,
+        )
         if not variant_url:
             raise ValueError("release contains no compatible downloadable variant")
         return _final_download_link(variant_url)
