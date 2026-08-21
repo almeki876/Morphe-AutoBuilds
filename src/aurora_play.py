@@ -10,22 +10,27 @@ package/version identity before accepting or caching the result.
 from __future__ import annotations
 
 import importlib.util
+import json
 import logging
 import os
 import shutil
 import subprocess
 import sys
 import tempfile
+import time
 import zipfile
 from pathlib import Path
 
 from src.versioning import VersionCandidate
 
-# gplaydl 4.x removed the anonymous shared-token path. requirements.txt pins
-# 2.1.7 intentionally because that release still uses Aurora's anonymous token
-# dispenser by default.
 GPLAYDL_MODULE = "gplaydl"
 DEFAULT_GPLAY_ARCH = "arm64"
+DEFAULT_AURORA_DISPENSER = "https://auroraoss.com/api/auth"
+AURORA_USER_AGENTS = (
+    "com.aurora.store-4.8.4-76",
+    "com.aurora.store-4.8.3-75",
+    "com.aurora.store-4.6.1-70",
+)
 
 # Apps that are intentionally distributed from an upstream GitHub release
 # rather than Google Play. Keep this list narrow and explicit.
@@ -68,6 +73,64 @@ def _ensure_downloader() -> list[str]:
     return [sys.executable, "-m", GPLAYDL_MODULE]
 
 
+def _refresh_anonymous_auth(arch: str) -> None:
+    """Mint and cache an anonymous Aurora token using current Store UAs.
+
+    gplaydl 2.1.7 hard-codes an older Aurora Store user-agent. Aurora's token
+    dispenser can reject stale clients, so try the current stable identifiers
+    first while still using gplaydl's checked-in device profiles and cache
+    format. No Google account or repository secret is used.
+    """
+    import httpx
+    from gplaydl.profiles import FALLBACK_PROFILE, get_priority_profiles
+
+    profiles = get_priority_profiles(arch) or [("fallback", FALLBACK_PROFILE)]
+    dispenser = os.getenv("AURORA_DISPENSER_URL", DEFAULT_AURORA_DISPENSER)
+    attempts: list[str] = []
+
+    for user_agent in AURORA_USER_AGENTS:
+        headers = {
+            "User-Agent": user_agent,
+            "Content-Type": "application/json",
+        }
+        for profile_name, profile in profiles:
+            try:
+                response = httpx.post(
+                    dispenser,
+                    json=profile,
+                    headers=headers,
+                    timeout=30,
+                    follow_redirects=True,
+                )
+            except Exception as exc:
+                attempts.append(f"{user_agent}/{profile_name}: {type(exc).__name__}")
+                continue
+
+            attempts.append(f"{user_agent}/{profile_name}: HTTP {response.status_code}")
+            if response.status_code != 200:
+                continue
+            try:
+                data = response.json()
+            except Exception:
+                continue
+            if not data.get("authToken"):
+                continue
+
+            config_dir = Path.home() / ".config" / "gplaydl"
+            config_dir.mkdir(parents=True, exist_ok=True)
+            data["_cached_at"] = time.time()
+            auth_path = config_dir / f"auth-{arch}.json"
+            auth_path.write_text(json.dumps(data))
+            logging.info(
+                "🌌 Anonymous Google Play auth succeeded with Aurora client %s",
+                user_agent,
+            )
+            return
+
+    summary = "; ".join(attempts[-12:])
+    raise RuntimeError(f"Aurora anonymous auth rejected all profiles: {summary}")
+
+
 def _package_apks(apk_files: list[Path], package: str, output_dir: Path) -> Path:
     """Return one patcher-compatible input containing all Play-delivered APKs."""
     if not apk_files:
@@ -105,17 +168,11 @@ def download_candidate(
     cli = _ensure_downloader()
     arch = os.getenv("GPLAY_ARCH", DEFAULT_GPLAY_ARCH)
 
-    # Never pass repository Google credentials here. The pinned 2.x client
-    # intentionally uses its anonymous Aurora-compatible token flow.
     env = os.environ.copy()
     env.pop("GPLAYDL_API_KEY", None)
     env["GPLAYDL_NO_BANNER"] = "1"
 
-    # gplaydl 2.x requires an explicit auth step before the first download.
-    auth = _run([*cli, "auth", "--arch", arch], env=env)
-    if auth.returncode != 0:
-        tail = "\n".join((auth.stdout or "").splitlines()[-35:])
-        raise RuntimeError(f"gplaydl anonymous auth failed: {tail}")
+    _refresh_anonymous_auth(arch)
 
     with tempfile.TemporaryDirectory(prefix="google-play-", dir=output_dir) as tmp:
         downloads = Path(tmp) / "downloads"
@@ -130,7 +187,6 @@ def download_candidate(
             arch,
         ]
 
-        # gplaydl 2.x uses -v for an exact Play versionCode.
         if candidate and candidate.code:
             command.extend(["-v", str(candidate.code)])
             logging.info(
