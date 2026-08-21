@@ -159,8 +159,8 @@ jobs:
           GPLAY_EMAIL: ${{ secrets.GPLAY_EMAIL }}
           GPLAY_AAS_TOKEN: ${{ secrets.GPLAY_AAS_TOKEN }}
           GPLAY_AUTH_TOKEN: ${{ secrets.GPLAY_AUTH_TOKEN }}
-          GPLAY_DISPENSER_URLS: ${{ vars.GPLAY_DISPENSER_URLS }}
-          GPLAY_DISPENSER_URL: ${{ vars.GPLAY_DISPENSER_URL }}
+          GPLAY_DISPENSER_URLS: ${{ secrets.GPLAY_DISPENSER_URLS || vars.GPLAY_DISPENSER_URLS }}
+          GPLAY_DISPENSER_URL: ${{ secrets.GPLAY_DISPENSER_URL || vars.GPLAY_DISPENSER_URL }}
           GPLAYDL_API_KEY: ${{ secrets.GPLAYDL_API_KEY }}
           AURORA_DISPENSER_URL: ${{ vars.AURORA_DISPENSER_URL }}
           HTTP_RETRIES: '4'
