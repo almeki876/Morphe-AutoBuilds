@@ -60,6 +60,40 @@ class UptodownTests(unittest.TestCase):
         self.assertEqual(api_get.call_args_list[2].args[0], "/apps/12345/file/67890/downloadUrl?update=0")
 
     @mock.patch("src.uptodown._api_get")
+    def test_api_search_fallback_requires_exact_package(self, api_get: mock.Mock) -> None:
+        by_package = mock.Mock(status_code=404)
+        search = mock.Mock(status_code=200)
+        search.json.return_value = {
+            "data": [
+                {"appID": 111, "packageName": "com.amazon.mShop.android.shopping.beta"},
+                {"appID": 222, "packageName": "com.amazon.mShop.android.shopping"},
+            ]
+        }
+        api_get.side_effect = [by_package, search]
+
+        app_id = uptodown._api_app_id("com.amazon.mShop.android.shopping")
+
+        self.assertEqual(app_id, 222)
+        self.assertEqual(
+            api_get.call_args_list[1].args[0],
+            "/v2/apps/search/com.amazon.mShop.android.shopping?page[limit]=5&page[offset]=0",
+        )
+
+    @mock.patch("src.uptodown._api_get")
+    def test_api_search_fallback_rejects_near_package(self, api_get: mock.Mock) -> None:
+        by_package = mock.Mock(status_code=200)
+        by_package.json.return_value = {"data": {}}
+        search = mock.Mock(status_code=200)
+        search.json.return_value = {
+            "data": [
+                {"appID": 111, "packagename": "com.amazon.mShop.android.shopping.beta"}
+            ]
+        }
+        api_get.side_effect = [by_package, search]
+
+        self.assertIsNone(uptodown._api_app_id("com.amazon.mShop.android.shopping"))
+
+    @mock.patch("src.uptodown._api_get")
     def test_api_does_not_substitute_nearby_version(self, api_get: mock.Mock) -> None:
         app_response = mock.Mock(status_code=200)
         app_response.json.return_value = {"data": {"appID": 12345}}
