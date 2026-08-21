@@ -9,6 +9,7 @@ flow; fall back to the legacy resolver only if that exact flow fails.
 from __future__ import annotations
 
 import logging
+import re
 
 from bs4 import BeautifulSoup
 
@@ -26,6 +27,7 @@ _UPTODOWN_HOST_TEMPLATES = (
     "{slug}.de.uptodown.com",
     "{slug}.uptodown.com",
 )
+_POST_DOWNLOAD_RE = re.compile(r"/android/post-download/([^'\"\s?#]+)")
 
 
 def _page_matches_candidate(soup: BeautifulSoup, candidate: VersionCandidate) -> bool:
@@ -59,6 +61,34 @@ def _configured_slugs(config: dict) -> list[str]:
     if configured:
         return [configured]
     return [str(slug) for slug in legacy.generate_possible_uptodown_names(config)]
+
+
+def _post_download_token(variant) -> str | None:
+    """Read the modern post-download token embedded in one variant card."""
+    match = _POST_DOWNLOAD_RE.search(str(variant))
+    return match.group(1) if match else None
+
+
+def _direct_from_post_download(base_url: str, token: str) -> str | None:
+    """Resolve one modern Uptodown post-download token to the CDN URL."""
+    response = utils.cf_aware_get(f"{base_url}/post-download/{token}")
+    logging.info(
+        "Uptodown post-download status=%s via %s",
+        response.status_code,
+        utils.safe_url_for_log(base_url),
+    )
+    if response.status_code != 200:
+        return None
+    soup = BeautifulSoup(response.content, "html.parser")
+    node = soup.select_one(".post-download[data-url]")
+    if not node:
+        # Some frontends still expose the same token on the legacy button.
+        node = soup.select_one("#detail-download-button[data-url]")
+    data_url = str(node.get("data-url", "")).strip() if node else ""
+    if not data_url:
+        logging.info("Uptodown post-download response had no direct data-url")
+        return None
+    return f"https://dw.uptodown.com/dwn/{data_url}"
 
 
 def _direct_link_from_variants(
@@ -140,7 +170,7 @@ def _direct_link_from_variants(
                 content = payload.get("content", "") if isinstance(payload, dict) else ""
                 files_soup = BeautifulSoup(str(content), "html.parser")
 
-                file_ids: list[tuple[str, bool]] = []
+                file_ids: list[tuple[str, bool, str | None]] = []
                 for variant in files_soup.select(".variant"):
                     report = variant.select_one(".v-report[data-file-id]")
                     if not report:
@@ -153,7 +183,7 @@ def _direct_link_from_variants(
                         file_type
                         and file_type.get_text(" ", strip=True).casefold() == "xapk"
                     )
-                    file_ids.append((file_id, is_xapk))
+                    file_ids.append((file_id, is_xapk, _post_download_token(variant)))
 
                 logging.info(
                     "Uptodown All variants found %d file candidates for %s via %s",
@@ -162,7 +192,31 @@ def _direct_link_from_variants(
                     utils.safe_url_for_log(base_url),
                 )
                 file_ids.sort(key=lambda item: item[1], reverse=True)
-                for file_id, is_xapk in file_ids:
+                for file_id, is_xapk, post_token in file_ids:
+                    if post_token:
+                        try:
+                            direct = _direct_from_post_download(base_url, post_token)
+                        except Exception as error:
+                            logging.info(
+                                "Uptodown post-download failed for %s file %s: %s",
+                                app_name,
+                                file_id,
+                                utils.safe_text_for_log(error),
+                            )
+                            direct = None
+                        if direct:
+                            logging.info(
+                                "✓ Uptodown All variants resolved %s %s "
+                                "through post-download (file %s via %s)",
+                                app_name,
+                                candidate.describe(),
+                                file_id,
+                                utils.safe_url_for_log(base_url),
+                            )
+                            return direct
+
+                    # Older/current alternate layouts expose the CDN token on a
+                    # concrete /download/<file-id> page. Retain that fallback.
                     suffixes = ("-x", "") if is_xapk else ("", "-x")
                     for suffix in suffixes:
                         variant_page = f"{base_url}/download/{file_id}{suffix}"
