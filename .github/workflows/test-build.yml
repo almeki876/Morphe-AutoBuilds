@@ -17,6 +17,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           gh workflow run build.yml \
+            --repo "$GITHUB_REPOSITORY" \
             -f build_all_sources="true" \
             -f updated_sources="" \
             -f updated_apps="" \
