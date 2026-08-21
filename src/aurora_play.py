@@ -23,6 +23,14 @@ GPLAYDL_PROJECT = Path("tools/gplaydl/pom.xml")
 GPLAYDL_JAR = Path("tools/gplaydl/target/gplaydl-1.0-SNAPSHOT-all.jar")
 DEFAULT_AURORA_USER_AGENT = "com.aurora.store-4.8.4-76"
 
+# Apps that are intentionally distributed from an upstream GitHub release
+# rather than Google Play. Keep this list narrow and explicit.
+GITHUB_ONLY_PACKAGES = frozenset({"com.adguard.android"})
+
+
+class GooglePlayDisabled(RuntimeError):
+    """Raised when repository policy forbids Google Play for an app."""
+
 
 def _run(
     command: list[str],
@@ -86,6 +94,11 @@ def download_candidate(
     output_dir: Path | None = None,
 ) -> Path:
     """Download a Play release, purchasing ``candidate.code`` when known."""
+    if package in GITHUB_ONLY_PACKAGES:
+        raise GooglePlayDisabled(
+            f"Google Play is disabled by repository policy for {package}; use GitHub"
+        )
+
     output_dir = output_dir or Path(".")
     output_dir.mkdir(parents=True, exist_ok=True)
     jar = _ensure_downloader()
