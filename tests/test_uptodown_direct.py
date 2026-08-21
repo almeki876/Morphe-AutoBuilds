@@ -61,6 +61,58 @@ class UptodownDirectTests(unittest.TestCase):
             "https://amazon-shopping.en.uptodown.com/android/download/777-x"
         )
 
+    @mock.patch("src.uptodown_direct.legacy._download_url_from_page")
+    @mock.patch("src.uptodown_direct.utils.cf_aware_get")
+    def test_all_variants_resolves_modern_post_download_flow(
+        self,
+        cf_aware_get: mock.Mock,
+        download_url_from_page: mock.Mock,
+    ) -> None:
+        download_page = mock.Mock(status_code=200)
+        download_page.content = b"""
+            <html>
+              <head><title>Download Amazon Shopping 32.13.2.100 for Android | Uptodown</title></head>
+              <body>
+                <h1 id='detail-app-name' data-code='12345'>Amazon Shopping</h1>
+                <div class='version'>32.13.2.100</div>
+                <button class='button variants' data-version='9988'>All variants</button>
+              </body>
+            </html>
+        """
+        files = mock.Mock(status_code=200)
+        files.json.return_value = {
+            "content": """
+                <div class='variant' onclick=\"go('/android/post-download/modern-token')\">
+                  <div class='v-file'><span>xapk</span></div>
+                  <div class='v-report' data-file-id='777'></div>
+                </div>
+            """
+        }
+        post_download = mock.Mock(status_code=200)
+        post_download.content = b"""
+            <div class='post-download' data-url='exact-modern-cdn-token'></div>
+        """
+        cf_aware_get.side_effect = [download_page, files, post_download]
+
+        link = uptodown_direct._direct_link_from_variants(
+            VersionCandidate(name="32.13.2.100"),
+            "amazon-shopping",
+            {
+                "name": "amazon-shopping",
+                "package": "com.amazon.mShop.android.shopping",
+            },
+        )
+
+        self.assertEqual(
+            link,
+            "https://dw.uptodown.com/dwn/exact-modern-cdn-token",
+        )
+        self.assertEqual(
+            cf_aware_get.call_args_list[2].args[0],
+            "https://amazon-shopping.en.uptodown.com/android/post-download/modern-token",
+        )
+        download_url_from_page.assert_not_called()
+
     @mock.patch(
         "src.uptodown_direct.legacy.get_download_link_for_candidate",
         return_value="https://legacy.example/exact",
