@@ -35,11 +35,8 @@ class AuroraPlayTests(unittest.TestCase):
         run: mock.Mock,
         _ensure_downloader: mock.Mock,
     ) -> None:
-        observed_env = {}
-
         def fake_run(command, *, cwd=None, env=None):
-            observed_env.update(env or {})
-            output = Path(command[command.index("-o") + 1])
+            output = Path(command[command.index("--output") + 1])
             package_dir = output / "com.amazon.mShop.android.shopping"
             package_dir.mkdir(parents=True)
             (package_dir / "base.apk").write_bytes(b"base")
@@ -59,10 +56,10 @@ class AuroraPlayTests(unittest.TestCase):
                 self.assertIn("base.apk", archive.namelist())
                 self.assertIn("split_config.arm64_v8a.apk", archive.namelist())
 
-        self.assertEqual(observed_env["GPLAY_VERSION_CODE"], "1241322016")
         command = run.call_args.args[0]
-        self.assertIn("-d", command)
-        self.assertIn("com.amazon.mShop.android.shopping", Path(command[command.index("-a") + 1]).read_text() if Path(command[command.index("-a") + 1]).exists() else "com.amazon.mShop.android.shopping")
+        self.assertEqual(command[command.index("download") + 1], "com.amazon.mShop.android.shopping")
+        self.assertEqual(command[command.index("--version-code") + 1], "1241322016")
+        self.assertIn("--output", command)
 
     @mock.patch("src.aurora_play._ensure_downloader", return_value=Path("helper.jar"))
     @mock.patch("src.aurora_play._run")
@@ -71,11 +68,8 @@ class AuroraPlayTests(unittest.TestCase):
         run: mock.Mock,
         _ensure_downloader: mock.Mock,
     ) -> None:
-        seen_env = {}
-
         def fake_run(command, *, cwd=None, env=None):
-            seen_env.update(env or {})
-            output = Path(command[command.index("-o") + 1])
+            output = Path(command[command.index("--output") + 1])
             package_dir = output / "com.example.app"
             package_dir.mkdir(parents=True)
             (package_dir / "base.apk").write_bytes(b"base")
@@ -86,7 +80,9 @@ class AuroraPlayTests(unittest.TestCase):
             result = aurora_play.download_current("com.example.app", Path(directory))
             self.assertEqual(result.read_bytes(), b"base")
 
-        self.assertNotIn("GPLAY_VERSION_CODE", seen_env)
+        command = run.call_args.args[0]
+        self.assertNotIn("--version-code", command)
+        self.assertEqual(command[command.index("download") + 1], "com.example.app")
 
 
 if __name__ == "__main__":
