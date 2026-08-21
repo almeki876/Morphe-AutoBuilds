@@ -80,15 +80,35 @@ def _api_get(path: str):
     )
 
 
+def _payload_shape(payload) -> str:
+    """Describe API structure without logging response values."""
+    if isinstance(payload, dict):
+        return "dict keys=" + ",".join(sorted(str(key) for key in payload.keys()))
+    if isinstance(payload, list):
+        return f"list len={len(payload)}"
+    return type(payload).__name__
+
+
 def _api_app_id(package: str) -> int | str | None:
     """Resolve an Uptodown app id without accepting a near package match."""
     response = _api_get(f"/apps/byPackagename/{package}")
+    logging.info(
+        "Uptodown API byPackagename status=%s package=%s",
+        response.status_code,
+        package,
+    )
     if response.status_code == 200:
         payload = response.json()
+        logging.info("Uptodown API byPackagename payload=%s", _payload_shape(payload))
         app = payload.get("data", payload) if isinstance(payload, dict) else None
         if isinstance(app, dict):
+            logging.info(
+                "Uptodown API byPackagename data keys=%s",
+                ",".join(sorted(str(key) for key in app.keys())),
+            )
             app_id = app.get("appID") or app.get("id")
             if app_id:
+                logging.info("Uptodown API resolved app id from package endpoint")
                 return app_id
 
     # The maintained justapk provider uses the package search endpoint when
@@ -97,15 +117,30 @@ def _api_app_id(package: str) -> int | str | None:
     response = _api_get(
         f"/v2/apps/search/{package}?page[limit]=5&page[offset]=0"
     )
+    logging.info(
+        "Uptodown API package search status=%s package=%s",
+        response.status_code,
+        package,
+    )
     if response.status_code != 200:
         return None
     payload = response.json()
+    logging.info("Uptodown API package search payload=%s", _payload_shape(payload))
     entries = payload.get("data", []) if isinstance(payload, dict) else []
     if isinstance(entries, dict):
+        logging.info(
+            "Uptodown API package search data keys=%s",
+            ",".join(sorted(str(key) for key in entries.keys())),
+        )
         entries = entries.get("results", entries.get("items", []))
     if not isinstance(entries, list):
+        logging.info(
+            "Uptodown API package search entries type=%s",
+            type(entries).__name__,
+        )
         return None
 
+    logging.info("Uptodown API package search entries=%d", len(entries))
     for entry in entries:
         if not isinstance(entry, dict):
             continue
@@ -114,7 +149,9 @@ def _api_app_id(package: str) -> int | str | None:
             continue
         app_id = entry.get("appID") or entry.get("id")
         if app_id:
+            logging.info("Uptodown API package search found exact package match")
             return app_id
+    logging.info("Uptodown API package search found no exact package match")
     return None
 
 
@@ -133,19 +170,31 @@ def _api_download_link_for_candidate(
 
     app_id = _api_app_id(package)
     if not app_id:
+        logging.info("Uptodown API could not resolve app id for %s", package)
         return None
 
     response = _api_get(
         f"/v3/app/{app_id}/device/1/compatible/versions"
         "?page[limit]=50&page[offset]=0"
     )
+    logging.info(
+        "Uptodown API compatible versions status=%s package=%s",
+        response.status_code,
+        package,
+    )
     if response.status_code != 200:
         return None
     payload = response.json()
+    logging.info("Uptodown API compatible versions payload=%s", _payload_shape(payload))
     versions = payload.get("data", []) if isinstance(payload, dict) else []
     if not isinstance(versions, list):
+        logging.info(
+            "Uptodown API compatible versions data type=%s",
+            type(versions).__name__,
+        )
         return None
 
+    logging.info("Uptodown API compatible versions entries=%d", len(versions))
     target = next(
         (
             entry
@@ -155,19 +204,43 @@ def _api_download_link_for_candidate(
         None,
     )
     if target is None:
+        visible = [
+            str(entry.get("version", ""))
+            for entry in versions[:10]
+            if isinstance(entry, dict)
+        ]
+        logging.info(
+            "Uptodown API candidate %s not found; first versions=%s",
+            candidate.describe(),
+            ",".join(visible),
+        )
         return None
 
     file_id = target.get("fileID") or target.get("fileid")
     if not file_id:
+        logging.info(
+            "Uptodown API matched candidate but file id missing; keys=%s",
+            ",".join(sorted(str(key) for key in target.keys())),
+        )
         return None
 
     response = _api_get(f"/apps/{app_id}/file/{file_id}/downloadUrl?update=0")
+    logging.info(
+        "Uptodown API download URL status=%s package=%s",
+        response.status_code,
+        package,
+    )
     if response.status_code != 200:
         return None
     payload = response.json()
+    logging.info("Uptodown API download URL payload=%s", _payload_shape(payload))
     data = payload.get("data", {}) if isinstance(payload, dict) else {}
     link = data.get("downloadURL") if isinstance(data, dict) else None
     if not link:
+        logging.info(
+            "Uptodown API download URL missing; data=%s",
+            _payload_shape(data),
+        )
         return None
 
     logging.info(
