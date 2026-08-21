@@ -80,6 +80,44 @@ def _api_get(path: str):
     )
 
 
+def _api_app_id(package: str) -> int | str | None:
+    """Resolve an Uptodown app id without accepting a near package match."""
+    response = _api_get(f"/apps/byPackagename/{package}")
+    if response.status_code == 200:
+        payload = response.json()
+        app = payload.get("data", payload) if isinstance(payload, dict) else None
+        if isinstance(app, dict):
+            app_id = app.get("appID") or app.get("id")
+            if app_id:
+                return app_id
+
+    # The maintained justapk provider uses the package search endpoint when
+    # byPackagename does not return an id. Require an exact package match so a
+    # similarly named app can never be substituted.
+    response = _api_get(
+        f"/v2/apps/search/{package}?page[limit]=5&page[offset]=0"
+    )
+    if response.status_code != 200:
+        return None
+    payload = response.json()
+    entries = payload.get("data", []) if isinstance(payload, dict) else []
+    if isinstance(entries, dict):
+        entries = entries.get("results", entries.get("items", []))
+    if not isinstance(entries, list):
+        return None
+
+    for entry in entries:
+        if not isinstance(entry, dict):
+            continue
+        entry_package = entry.get("packageName") or entry.get("packagename")
+        if str(entry_package or "") != package:
+            continue
+        app_id = entry.get("appID") or entry.get("id")
+        if app_id:
+            return app_id
+    return None
+
+
 def _api_download_link_for_candidate(
     package: str, candidate: VersionCandidate
 ) -> str | None:
@@ -93,14 +131,7 @@ def _api_download_link_for_candidate(
     if not package:
         return None
 
-    response = _api_get(f"/apps/byPackagename/{package}")
-    if response.status_code != 200:
-        return None
-    payload = response.json()
-    app = payload.get("data", payload)
-    if not isinstance(app, dict):
-        return None
-    app_id = app.get("appID") or app.get("id")
+    app_id = _api_app_id(package)
     if not app_id:
         return None
 
