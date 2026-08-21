@@ -11,7 +11,8 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from src import apk_cache, downloader, providers, utils
+from src import apk_cache, apk_identity, downloader, providers, utils
+from src.versioning import VersionCandidate, pinned_candidate
 
 
 def _find_tools(source: str) -> tuple[list[Path], Path, Path]:
@@ -36,13 +37,63 @@ def _find_tools(source: str) -> tuple[list[Path], Path, Path]:
     return files, cli, bundle
 
 
+def _expected_candidate(
+    app_name: str,
+    platform: str,
+    version: str,
+    candidates: list[VersionCandidate],
+) -> VersionCandidate:
+    """Recover the release identity that caused the provider/cache lookup."""
+    config = providers.load_config(app_name, platform) or {}
+    pinned = pinned_candidate(config)
+    if pinned and pinned.canonical == version:
+        return pinned
+    return next(
+        (candidate for candidate in candidates if candidate.canonical == version),
+        VersionCandidate(name=version),
+    )
+
+
+def _new_cache_entries(before: set[Path]) -> set[Path]:
+    if not apk_cache.CACHE_DIR.is_dir():
+        return set()
+    return {
+        path for path in apk_cache.CACHE_DIR.iterdir()
+        if path.is_file() and path not in before
+    }
+
+
+def _cache_snapshot() -> set[Path]:
+    if not apk_cache.CACHE_DIR.is_dir():
+        return set()
+    return {path for path in apk_cache.CACHE_DIR.iterdir() if path.is_file()}
+
+
+def _validate_downloaded_identity(
+    input_apk: Path,
+    package: str,
+    candidate: VersionCandidate,
+) -> None:
+    """Reject APKs whose actual manifest identity differs from selection."""
+    identity = apk_identity.validate_identity(input_apk, package, candidate)
+    logging.info(
+        "🪪 Verified APK identity: package=%s versionName=%s versionCode=%s",
+        identity.package_name,
+        identity.version_name,
+        identity.version_code or "unknown",
+    )
+
+
 def _download(app_name: str, source: str, arch: str) -> tuple[Path, str]:
     package = providers.configured_package(app_name)
     if not package:
         raise RuntimeError(f"No package ID configured for {app_name}")
     _, cli, bundle = _find_tools(source)
     candidates = utils.get_supported_version_candidates(package, str(cli), str(bundle))
+    identity_errors: list[str] = []
+
     for platform in providers.download_priority(app_name):
+        cache_before = _cache_snapshot()
         input_apk, version = downloader.download_platform(
             app_name,
             platform,
@@ -51,16 +102,51 @@ def _download(app_name: str, source: str, arch: str) -> tuple[Path, str]:
             arch,
             version_candidates=candidates,
         )
-        if input_apk:
-            return input_apk, str(version)
+        if not input_apk:
+            continue
+
+        version = str(version)
+        candidate = _expected_candidate(app_name, platform, version, candidates)
+        try:
+            _validate_downloaded_identity(input_apk, package, candidate)
+        except apk_identity.ApkIdentityError as error:
+            identity_errors.append(f"{platform}: {error}")
+            logging.error(
+                "❌ %s: rejecting mislabeled APK for %s: %s",
+                platform,
+                app_name,
+                error,
+            )
+            input_apk.unlink(missing_ok=True)
+            downloader.remove_apk_origin(app_name, arch)
+            # download_platform stages provider results before returning. If
+            # identity validation rejects that result, remove only files newly
+            # staged by this provider attempt so the bad label cannot poison
+            # the durable cache upload.
+            for staged in _new_cache_entries(cache_before):
+                staged.unlink(missing_ok=True)
+            continue
+        return input_apk, version
 
     version = next((candidate.canonical for candidate in candidates), None)
     if not version:
-        raise RuntimeError(f"Could not resolve a fallback version for {app_name}")
+        suffix = f" Identity errors: {'; '.join(identity_errors)}" if identity_errors else ""
+        raise RuntimeError(f"Could not resolve a fallback version for {app_name}.{suffix}")
     input_apk = downloader.download_with_fallback_chain(package, version, Path("."))
     if not apk_cache.is_valid_apk_archive(input_apk):
         input_apk.unlink(missing_ok=True)
         raise RuntimeError("fallback chain returned HTML or a corrupt APK archive")
+
+    fallback_candidate = next(
+        (candidate for candidate in candidates if candidate.canonical == version),
+        VersionCandidate(name=version),
+    )
+    try:
+        _validate_downloaded_identity(input_apk, package, fallback_candidate)
+    except apk_identity.ApkIdentityError as error:
+        input_apk.unlink(missing_ok=True)
+        raise RuntimeError(f"fallback chain returned mismatched APK identity: {error}") from error
+
     apk_cache.stage(input_apk, package, version, "fallback-chain")
     from src import provenance
 
