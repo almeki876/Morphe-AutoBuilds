@@ -107,6 +107,7 @@ class PatchConfig:
     options: list[PatchOption] = field(default_factory=list)
     disable: list[str] = field(default_factory=list)
     force_enable: list[str] = field(default_factory=list)
+    required: list[str] = field(default_factory=list)
 
     @classmethod
     def from_dict(cls, d: dict) -> "PatchConfig":
@@ -122,7 +123,15 @@ class PatchConfig:
         ]
         disable = d.get("disable") or []
         force_enable = d.get("force_enable") or []
-        return cls(app_name=d["app_name"], source=d["source"], options=options, disable=disable, force_enable=force_enable)
+        required = d.get("required") or d.get("required_patches") or []
+        return cls(
+            app_name=d["app_name"],
+            source=d["source"],
+            options=options,
+            disable=disable,
+            force_enable=force_enable,
+            required=required,
+        )
 
 
 def _load_patch_config(app_name: str, source: str) -> PatchConfig:
@@ -832,12 +841,16 @@ def _write_build_report(
     error_category: str | None = None,
     error_summary: str | None = None,
     failed_patches: list[str] | None = None,
+    required_patches: list[str] | None = None,
 ) -> None:
     """Persist patch selection for the workflow's human-readable summary."""
+    failed_patches = list(dict.fromkeys(failed_patches or []))
+    required_patches = list(dict.fromkeys(required_patches or []))
     applied_patches = [
         enables[index + 1]
         for index in range(0, len(enables), 2)
         if index + 1 < len(enables)
+        and enables[index + 1] not in failed_patches
     ]
     excluded_patches = [
         {
@@ -860,7 +873,10 @@ def _write_build_report(
         if name not in applied_patches and name not in {item["name"] for item in excluded_patches}
     ]
     feature_failures = excluded_patches + missing_requested
-    failed_patches = list(dict.fromkeys(failed_patches or []))
+    required_failures = [
+        name for name in required_patches
+        if name not in applied_patches
+    ]
     lifecycle_status = (
         "success_full"
         if status == "success" and not feature_failures and not failed_patches
@@ -886,6 +902,9 @@ def _write_build_report(
         "disabled_patches": [item["name"] for item in excluded_patches],
         "feature_failures": feature_failures,
         "failed_patches": failed_patches,
+        "required_patches": required_patches,
+        "required_failures": required_failures,
+        "required_patches_satisfied": not required_failures,
         "fully_applied": status == "success" and not feature_failures and not failed_patches,
         "error_category": error_category,
         "error_summary": error_summary,
@@ -1212,6 +1231,36 @@ def run_build(app_name: str, source: str, arch: str = "universal") -> str:
         ", ".join(sorted(output_abis)) or "none",
     )
     logging.info("[SIZE] patched: %d bytes (%s)", output_apk.stat().st_size, output_apk.name)
+    failed_patches = patch_failure_parser.result()
+    enabled_names = {
+        enables[index + 1]
+        for index in range(0, len(enables), 2)
+        if index + 1 < len(enables)
+    }
+    required_failures = [
+        name for name in patch_config.required
+        if name in failed_patches or name not in enabled_names
+    ]
+    if required_failures:
+        summary = (
+            "Required patch failed or was not selected: "
+            + ", ".join(required_failures)
+        )
+        _write_build_report(
+            app_name,
+            source,
+            version,
+            source_name,
+            enables,
+            disables,
+            patch_config,
+            "failure",
+            error_category="REQUIRED_PATCH_FAILED",
+            error_summary=summary,
+            failed_patches=failed_patches,
+            required_patches=patch_config.required,
+        )
+        raise BuildFailure("REQUIRED_PATCH_FAILED", summary)
     output_size = output_apk.stat().st_size
     if prepared_size and output_size / prepared_size < 0.25:
         logging.warning(
@@ -1246,7 +1295,8 @@ def run_build(app_name: str, source: str, arch: str = "universal") -> str:
         disables,
         patch_config,
         "success",
-        failed_patches=patch_failure_parser.result(),
+        failed_patches=failed_patches,
+        required_patches=patch_config.required,
     )
 
     print(f"✅ APK built: {signed_apk.name}")

@@ -165,6 +165,7 @@ def _validate_patch_config(
                 option_keys.add(option_key)
         _string_list(entry.get("disable"), "disable", context, validation)
         _string_list(entry.get("force_enable"), "force_enable", context, validation)
+        _string_list(entry.get("required"), "required", context, validation)
     return pairs
 
 

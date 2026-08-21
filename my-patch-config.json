@@ -405,6 +405,9 @@
       "app_name": "proton-vpn",
       "source": "paresh",
       "disable": [],
+      "required": [
+        "Proton VPN Premium"
+      ],
       "force_enable": [
         "Disable telemetry",
         "Proton VPN Premium"

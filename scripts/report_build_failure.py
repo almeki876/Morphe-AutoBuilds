@@ -112,12 +112,20 @@ def _hypothesis(log: str, phase: str) -> str:
     lowered = log.casefold()
     if "403" in lowered or "429" in lowered or "bot protection" in lowered:
         return "APK provider rate limiting or bot protection prevented the download."
-    if "fingerprint mismatch" in lowered or "severe" in lowered and "fingerprint" in lowered:
-        return "The requested APK version likely does not match the patch or package fingerprint."
     if "404" in lowered or "no download link" in lowered:
         return "The provider or upstream release may have removed or renamed the requested asset."
+    if "fingerprint mismatch" in lowered or "failed to match the fingerprint" in lowered:
+        return (
+            "Patch fingerprint mismatch detected. Possible causes include an "
+            "unsupported upstream patch, wrong APK variant or versionCode, an "
+            "incomplete split bundle, or APK preparation failure."
+        )
     if phase.casefold() in {"patch", "build"} and "patch" in lowered:
-        return "The patch bundle and APK may be incompatible, or an upstream patch regression occurred."
+        return (
+            "The patch bundle and APK may be incompatible, or the APK may be "
+            "the wrong variant or incomplete split bundle; inspect preparation "
+            "metadata before assigning the cause to upstream."
+        )
     if "apksigner" in lowered or "signing" in lowered:
         return "APK signing or keystore/tool compatibility failed."
     return "The failure needs inspection of the attached raw log excerpt."
