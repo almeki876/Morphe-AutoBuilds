@@ -2,13 +2,9 @@ name: Trigger Test Build All (Release)
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - main
 
 jobs:
   trigger-build:
-    if: github.event_name == 'workflow_dispatch' || github.event.head_commit.message == 'chore: dispatch Test Build All'
     name: Trigger Full Build and Release Workflow
     runs-on: ubuntu-latest
     permissions:
