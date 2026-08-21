@@ -340,7 +340,6 @@ jobs:
         env:
           APP_NAME: ${{ matrix.app_name }}
           SOURCE: ${{ matrix.source }}
-          ARCH: arm64-v8a
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           HTTP_RETRIES: '4'
           HTTP_RETRY_BASE_SECONDS: '5'

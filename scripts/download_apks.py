@@ -75,10 +75,22 @@ def _download(app_name: str, source: str, arch: str) -> tuple[Path, str]:
     return input_apk, version
 
 
+def _configured_arch(app_name: str, source: str) -> str:
+    config = json.loads(Path("arch-config.json").read_text(encoding="utf-8"))
+    for entry in config:
+        if entry.get("app_name") == app_name and entry.get("source") == source:
+            arches = entry.get("arches") or entry.get("arch")
+            if isinstance(arches, str):
+                return arches
+            if isinstance(arches, list) and arches:
+                return str(arches[0])
+    return "universal"
+
+
 def main() -> None:
     app_name = os.environ["APP_NAME"]
     source = os.environ["SOURCE"]
-    arch = os.environ.get("ARCH", "universal")
+    arch = os.environ.get("ARCH") or _configured_arch(app_name, source)
     input_apk, version = _download(app_name, source, arch)
     output_dir = Path("base-apk-input")
     output_dir.mkdir(parents=True, exist_ok=True)

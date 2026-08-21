@@ -63,7 +63,7 @@ from pathlib import Path
 from sys import exit
 from typing import Any, Callable
 
-from src import apk_cache, cli_compat, downloader, provenance, providers, utils
+from src import apk_cache, apk_validation, cli_compat, downloader, provenance, providers, utils
 
 
 # ---------------------------------------------------------------------------
@@ -1105,6 +1105,9 @@ def run_build(app_name: str, source: str, arch: str = "universal") -> str:
             f"could not download or validate APK for {app_name} from any provider",
         )
 
+    downloaded_size = input_apk.stat().st_size
+    logging.info("[SIZE] downloaded: %d bytes (%s)", downloaded_size, input_apk.name)
+
     # Preserve the provider payload before split merging, architecture stripping,
     # repair, patching, or signing changes any byte. VirusTotal scans this
     # unmodified download in the release job.
@@ -1116,7 +1119,24 @@ def run_build(app_name: str, source: str, arch: str = "universal") -> str:
 
     # ── 6. Strip native libs ─────────────────────────────────────────────────
     logging.info("Processing APK for '%s' architecture…", arch)
+    try:
+        input_abis = apk_validation.validate_apk(input_apk, expected_abi=arch)
+    except apk_validation.ApkValidationError as error:
+        raise BuildFailure("APK_VALIDATION_FAILED", str(error)) from error
+    logging.info(
+        "Validated input APK: %s bytes (ABIs: %s)",
+        input_apk.stat().st_size,
+        ", ".join(sorted(input_abis)) or "none",
+    )
     _strip_libs(input_apk, arch)
+    try:
+        apk_validation.validate_apk(input_apk, expected_abi=arch)
+    except apk_validation.ApkValidationError as error:
+        raise BuildFailure(
+            "APK_VALIDATION_FAILED",
+            f"architecture filtering invalidated input APK: {error}",
+        ) from error
+    logging.info("[SIZE] prepared: %d bytes (%s)", input_apk.stat().st_size, input_apk.name)
 
     # ── 7. Build patch selection (dynamic from patches-list.json) ───────────
     enables, disables = _build_patch_flags(
@@ -1181,6 +1201,27 @@ def run_build(app_name: str, source: str, arch: str = "universal") -> str:
         )
         raise BuildFailure("PATCH_APPLY_FAILED", "patch CLI did not produce an APK")
 
+    try:
+        output_abis = apk_validation.validate_apk(output_apk, expected_abi=arch)
+    except apk_validation.ApkValidationError as error:
+        raise BuildFailure("APK_VALIDATION_FAILED", str(error)) from error
+    logging.info(
+        "Validated patched APK: %s bytes (ABIs: %s)",
+        output_apk.stat().st_size,
+        ", ".join(sorted(output_abis)) or "none",
+    )
+    logging.info("[SIZE] patched: %d bytes (%s)", output_apk.stat().st_size, output_apk.name)
+    input_size = input_apk.stat().st_size
+    output_size = output_apk.stat().st_size
+    if input_size and output_size / input_size < 0.25:
+        logging.warning(
+            "Patched APK is only %.1f%% of the filtered input size (%d -> %d bytes); "
+            "review the patch output carefully",
+            output_size / input_size * 100,
+            input_size,
+            output_size,
+        )
+
     # ── 10. Sign ─────────────────────────────────────────────────────────────
     signed_apk = Path(f"{app_name}-{arch}-{source_name}-v{version}.apk")
     _sign_apk(output_apk, signed_apk, app_name)
@@ -1189,6 +1230,12 @@ def run_build(app_name: str, source: str, arch: str = "universal") -> str:
     if not signed_apk.exists():
         logging.error("❌ FATAL: Signed APK was not produced for '%s'.", app_name)
         raise BuildFailure("PATCH_APPLY_FAILED", "APK signing did not produce the signed APK")
+
+    try:
+        apk_validation.validate_apk(signed_apk, expected_abi=arch)
+    except apk_validation.ApkValidationError as error:
+        raise BuildFailure("APK_VALIDATION_FAILED", str(error)) from error
+    logging.info("[SIZE] signed: %d bytes (%s)", signed_apk.stat().st_size, signed_apk.name)
 
     _write_build_report(
         app_name,
