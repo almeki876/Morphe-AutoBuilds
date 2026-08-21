@@ -1,8 +1,9 @@
 package gplaydl
 
-import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
@@ -10,7 +11,6 @@ import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import java.util.Properties
 
-@Serializable
 data class DispenserAuth(
     val email: String,
     val authToken: String,
@@ -40,11 +40,13 @@ class AnonymousAuthClient(
             if (!response.isSuccessful) {
                 error("Aurora dispenser failed: HTTP ${response.code}: $responseBody")
             }
-            val auth = json.decodeFromString<DispenserAuth>(responseBody)
-            require(auth.email.isNotBlank() && auth.authToken.isNotBlank()) {
+            val objectValue = json.parseToJsonElement(responseBody).jsonObject
+            val email = objectValue["email"]?.jsonPrimitive?.content.orEmpty()
+            val authToken = objectValue["authToken"]?.jsonPrimitive?.content.orEmpty()
+            require(email.isNotBlank() && authToken.isNotBlank()) {
                 "Aurora dispenser returned incomplete credentials"
             }
-            return auth
+            return DispenserAuth(email = email, authToken = authToken)
         }
     }
 }
