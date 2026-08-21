@@ -9,6 +9,7 @@ import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
+import java.net.URI
 import java.util.Properties
 
 data class DispenserAuth(
@@ -39,7 +40,13 @@ class AnonymousAuthClient(
         client.newCall(request).execute().use { response ->
             val responseBody = response.body?.string().orEmpty()
             if (!response.isSuccessful) {
-                error("Aurora dispenser failed: HTTP ${response.code}: $responseBody")
+                // Never propagate a dispenser response body into CI logs. A
+                // custom endpoint could include tokens, account details, or a
+                // large Cloudflare challenge document in its error response.
+                val host = runCatching { URI(dispenserUrl).host }.getOrNull()
+                    ?.takeIf { it.isNotBlank() }
+                    ?: "configured dispenser"
+                error("Aurora dispenser failed: HTTP ${response.code} from $host")
             }
             val objectValue = json.parseToJsonElement(responseBody).jsonObject
             val email = objectValue["email"]?.jsonPrimitive?.content.orEmpty()
