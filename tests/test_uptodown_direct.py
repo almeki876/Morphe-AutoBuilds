@@ -10,13 +10,8 @@ from src.versioning import VersionCandidate
 class UptodownDirectTests(unittest.TestCase):
     @mock.patch("src.uptodown_direct.legacy._download_url_from_page")
     @mock.patch("src.uptodown_direct.utils.cf_aware_get")
-    @mock.patch(
-        "src.uptodown_direct.legacy.generate_possible_uptodown_names",
-        return_value=["amazon-shopping"],
-    )
     def test_all_variants_resolves_exact_xapk(
         self,
-        _names: mock.Mock,
         cf_aware_get: mock.Mock,
         download_url_from_page: mock.Mock,
     ) -> None:
@@ -66,38 +61,81 @@ class UptodownDirectTests(unittest.TestCase):
             "https://amazon-shopping.en.uptodown.com/android/download/777-x"
         )
 
-    @mock.patch("src.uptodown_direct._direct_link_from_variants")
     @mock.patch(
         "src.uptodown_direct.legacy.get_download_link_for_candidate",
-        return_value=None,
+        return_value="https://legacy.example/exact",
     )
-    def test_candidate_falls_back_to_all_variants(
+    @mock.patch("src.uptodown_direct._direct_link_from_variants")
+    def test_candidate_prefers_all_variants_for_configured_slug(
         self,
-        legacy_resolver: mock.Mock,
         variants_resolver: mock.Mock,
+        legacy_resolver: mock.Mock,
     ) -> None:
         candidate = VersionCandidate(name="32.13.2.100")
         variants_resolver.return_value = "https://dw.uptodown.com/dwn/exact"
+        config = {
+            "name": "amazon-shopping",
+            "package": "com.amazon.mShop.android.shopping",
+        }
 
         link = uptodown_direct.get_download_link_for_candidate(
             candidate,
             "amazon-shopping",
-            {
-                "name": "amazon-shopping",
-                "package": "com.amazon.mShop.android.shopping",
-            },
+            config,
         )
 
         self.assertEqual(link, "https://dw.uptodown.com/dwn/exact")
+        variants_resolver.assert_called_once_with(
+            candidate,
+            "amazon-shopping",
+            config,
+        )
+        legacy_resolver.assert_not_called()
+
+    @mock.patch(
+        "src.uptodown_direct.legacy.get_download_link_for_candidate",
+        return_value="https://legacy.example/exact",
+    )
+    @mock.patch("src.uptodown_direct._direct_link_from_variants", return_value=None)
+    def test_candidate_uses_legacy_after_direct_failure(
+        self,
+        variants_resolver: mock.Mock,
+        legacy_resolver: mock.Mock,
+    ) -> None:
+        candidate = VersionCandidate(name="32.13.2.100")
+        config = {
+            "name": "amazon-shopping",
+            "package": "com.amazon.mShop.android.shopping",
+        }
+
+        link = uptodown_direct.get_download_link_for_candidate(
+            candidate,
+            "amazon-shopping",
+            config,
+        )
+
+        self.assertEqual(link, "https://legacy.example/exact")
+        variants_resolver.assert_called_once_with(
+            candidate,
+            "amazon-shopping",
+            config,
+        )
         legacy_resolver.assert_called_once_with(
             candidate,
             "amazon-shopping",
-            {
-                "name": "amazon-shopping",
-                "package": "com.amazon.mShop.android.shopping",
-            },
+            config,
         )
-        variants_resolver.assert_called_once()
+
+    def test_configured_slug_avoids_generic_guesses(self) -> None:
+        self.assertEqual(
+            uptodown_direct._configured_slugs(
+                {
+                    "name": "amazon-shopping",
+                    "package": "com.amazon.mShop.android.shopping",
+                }
+            ),
+            ["amazon-shopping"],
+        )
 
 
 if __name__ == "__main__":
