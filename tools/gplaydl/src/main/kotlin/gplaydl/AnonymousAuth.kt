@@ -17,44 +17,79 @@ data class DispenserAuth(
     val authToken: String,
 )
 
+data class AnonymousLogin(
+    val auth: DispenserAuth,
+    val properties: Properties,
+    val profileName: String,
+    val dispenserHost: String,
+)
+
 class AnonymousAuthClient(
-    private val dispenserUrl: String,
+    private val dispenserUrls: List<String>,
     private val client: OkHttpClient = OkHttpClient(),
     private val userAgent: String = "com.aurora.store-4.8.4-76",
+    private val apiKey: String? = null,
 ) {
     private val json = Json { ignoreUnknownKeys = true }
 
-    fun login(properties: Properties): DispenserAuth {
-        require(dispenserUrl.isNotBlank()) { "custom Aurora dispenser URL is required" }
-        val payload = buildJsonObject {
-            properties.stringPropertyNames().forEach { key ->
-                put(key, properties.getProperty(key))
-            }
-        }
-        val request = Request.Builder()
-            .url(dispenserUrl)
-            .header("User-Agent", userAgent)
-            .post(payload.toString().toRequestBody("application/json".toMediaType()))
-            .build()
+    fun login(propertyCandidates: List<Pair<String, Properties>>): AnonymousLogin {
+        require(dispenserUrls.isNotEmpty()) { "at least one anonymous dispenser URL is required" }
+        require(propertyCandidates.isNotEmpty()) { "at least one Android device profile is required" }
 
-        client.newCall(request).execute().use { response ->
-            val responseBody = response.body?.string().orEmpty()
-            if (!response.isSuccessful) {
-                // Never propagate a dispenser response body into CI logs. A
-                // custom endpoint could include tokens, account details, or a
-                // large Cloudflare challenge document in its error response.
-                val host = runCatching { URI(dispenserUrl).host }.getOrNull()
-                    ?.takeIf { it.isNotBlank() }
-                    ?: "configured dispenser"
-                error("Aurora dispenser failed: HTTP ${response.code} from $host")
+        val failures = linkedSetOf<String>()
+        for (dispenserUrl in dispenserUrls.distinct()) {
+            require(dispenserUrl.isNotBlank()) { "anonymous dispenser URL must not be blank" }
+            val host = runCatching { URI(dispenserUrl).host }.getOrNull()
+                ?.takeIf { it.isNotBlank() }
+                ?: "configured dispenser"
+
+            for ((profileName, properties) in propertyCandidates) {
+                val payload = buildJsonObject {
+                    properties.stringPropertyNames().forEach { key ->
+                        put(key, properties.getProperty(key))
+                    }
+                }
+                val requestBuilder = Request.Builder()
+                    .url(dispenserUrl)
+                    .header("User-Agent", userAgent)
+                    .post(payload.toString().toRequestBody("application/json".toMediaType()))
+                apiKey?.trim()?.takeIf { it.isNotBlank() }?.let {
+                    requestBuilder.header("X-Api-Key", it)
+                }
+
+                try {
+                    client.newCall(requestBuilder.build()).execute().use { response ->
+                        val responseBody = response.body?.string().orEmpty()
+                        if (!response.isSuccessful) {
+                            failures += "$host HTTP ${response.code}"
+                            // 401/403 are caller/server policy failures. A different device
+                            // profile cannot repair them, so move to the next dispenser.
+                            if (response.code == 401 || response.code == 403) break
+                            continue
+                        }
+
+                        val objectValue = json.parseToJsonElement(responseBody).jsonObject
+                        val email = objectValue["email"]?.jsonPrimitive?.content.orEmpty()
+                        val authToken = objectValue["authToken"]?.jsonPrimitive?.content.orEmpty()
+                        if (email.isNotBlank() && authToken.isNotBlank()) {
+                            return AnonymousLogin(
+                                auth = DispenserAuth(email = email, authToken = authToken),
+                                properties = properties,
+                                profileName = profileName,
+                                dispenserHost = host,
+                            )
+                        }
+                        failures += "$host incomplete credentials"
+                    }
+                } catch (exception: Exception) {
+                    failures += "$host ${exception::class.simpleName ?: "request failure"}"
+                }
             }
-            val objectValue = json.parseToJsonElement(responseBody).jsonObject
-            val email = objectValue["email"]?.jsonPrimitive?.content.orEmpty()
-            val authToken = objectValue["authToken"]?.jsonPrimitive?.content.orEmpty()
-            require(email.isNotBlank() && authToken.isNotBlank()) {
-                "Aurora dispenser returned incomplete credentials"
-            }
-            return DispenserAuth(email = email, authToken = authToken)
         }
+
+        error(
+            "Anonymous Google Play authentication failed: " +
+                failures.take(8).joinToString("; ").ifBlank { "no dispenser accepted a device profile" }
+        )
     }
 }
