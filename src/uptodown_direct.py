@@ -2,8 +2,8 @@
 
 Uptodown's current download page can advertise the exact release while its
 primary Download action points at the Uptodown installer rather than the XAPK.
-When the legacy eAPI/public-page resolver cannot produce a direct file URL,
-resolve the release through the site's All variants flow instead.
+When an explicit Uptodown slug is configured, prefer the public All variants
+flow; fall back to the legacy resolver only if that exact flow fails.
 """
 
 from __future__ import annotations
@@ -54,13 +54,7 @@ def _base_urls(slug: str) -> list[str]:
 
 
 def _configured_slugs(config: dict) -> list[str]:
-    """Use the explicit Uptodown slug when one is configured.
-
-    The generic legacy name generator can produce dozens of guesses. That is
-    useful only when the repository has no known slug; once a config explicitly
-    names the Uptodown app, probing guesses adds latency and can trigger rate
-    limiting without improving correctness.
-    """
+    """Use the explicit Uptodown slug when one is configured."""
     configured = str(config.get("name") or "").strip()
     if configured:
         return [configured]
@@ -103,8 +97,6 @@ def _direct_link_from_variants(
                 )
                 data_version = variants.get("data-version") if variants else None
 
-                # Some layouts keep data-code on the versions page instead of the
-                # current download page. Do not infer it from a near package/slug.
                 if not data_code:
                     versions_response = utils.cf_aware_get(f"{base_url}/versions")
                     logging.info(
@@ -169,8 +161,6 @@ def _direct_link_from_variants(
                     app_name,
                     utils.safe_url_for_log(base_url),
                 )
-                # Prefer the XAPK variant because the verified Amazon Shopping
-                # 32.13.2.100 artifact is published by Uptodown as XAPK.
                 file_ids.sort(key=lambda item: item[1], reverse=True)
                 for file_id, is_xapk in file_ids:
                     suffixes = ("-x", "") if is_xapk else ("", "-x")
@@ -205,6 +195,23 @@ def _direct_link_from_variants(
     return None
 
 
+def _legacy_candidate_link(
+    candidate: VersionCandidate,
+    app_name: str,
+    config: dict,
+) -> str | None:
+    try:
+        return legacy.get_download_link_for_candidate(candidate, app_name, config)
+    except Exception as error:
+        logging.info(
+            "Legacy Uptodown resolver failed for %s %s: %s",
+            app_name,
+            candidate.describe(),
+            utils.safe_text_for_log(error),
+        )
+        return None
+
+
 def get_latest_version(app_name: str, config: dict) -> str:
     return legacy.get_latest_version(app_name, config)
 
@@ -217,6 +224,10 @@ def get_download_link(
     candidate: VersionCandidate | None = None,
 ) -> str | None:
     requested = candidate or VersionCandidate(name=version)
+    if config.get("name"):
+        direct = _direct_link_from_variants(requested, app_name, config)
+        if direct:
+            return direct
     link = legacy.get_download_link(
         version,
         app_name,
@@ -225,7 +236,9 @@ def get_download_link(
     )
     if link:
         return link
-    return _direct_link_from_variants(requested, app_name, config)
+    if not config.get("name"):
+        return _direct_link_from_variants(requested, app_name, config)
+    return None
 
 
 def get_download_link_for_candidate(
@@ -233,21 +246,18 @@ def get_download_link_for_candidate(
     app_name: str,
     config: dict,
 ) -> str | None:
-    # Call legacy once for the complete candidate so aliases do not multiply
-    # expensive network attempts before trying the public variants fallback.
-    try:
-        link = legacy.get_download_link_for_candidate(candidate, app_name, config)
-    except Exception as error:
-        logging.info(
-            "Legacy Uptodown resolver failed for %s %s: %s",
-            app_name,
-            candidate.describe(),
-            utils.safe_text_for_log(error),
-        )
-        link = None
+    # A configured slug is direct evidence of the intended Uptodown listing.
+    # Try that exact public All variants route before generic legacy guesses.
+    if config.get("name"):
+        direct = _direct_link_from_variants(candidate, app_name, config)
+        if direct:
+            return direct
+    link = _legacy_candidate_link(candidate, app_name, config)
     if link:
         return link
-    return _direct_link_from_variants(candidate, app_name, config)
+    if not config.get("name"):
+        return _direct_link_from_variants(candidate, app_name, config)
+    return None
 
 
 def generate_possible_uptodown_names(config: dict) -> list:
