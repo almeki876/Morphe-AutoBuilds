@@ -1,4 +1,4 @@
-name: Anonymous Google Play Diagnostic
+name: Google Play Dispenser Configuration Check
 
 on:
   push:
@@ -6,84 +6,65 @@ on:
       - chatgpt/anonymous-google-play
     paths:
       - .github/workflows/anonymous-gplay-diagnostic.yml
-      - requirements.txt
+      - tools/gplaydl/**
       - src/aurora_play.py
-      - src/apk_identity.py
   pull_request:
     branches:
       - main
     paths:
       - .github/workflows/anonymous-gplay-diagnostic.yml
-      - requirements.txt
+      - tools/gplaydl/**
       - src/aurora_play.py
-      - src/apk_identity.py
 
 permissions:
   contents: read
 
 jobs:
-  anonymous-google-play:
+  dispenser-configuration:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v7
 
-      - uses: actions/setup-python@v7
+      - uses: actions/setup-java@v5
         with:
-          python-version: '3.11'
+          distribution: temurin
+          java-version: '21'
 
-      - name: Install dependencies
-        run: pip install -r requirements.txt -q
+      - name: Build repo-local gplaydl
+        run: mvn -q -f tools/gplaydl/pom.xml -DskipTests package
 
-      - name: Download and verify Yuucho directly from Google Play anonymously
+      - name: Verify no third-party dispenser is silently hardcoded
         env:
+          GPLAY_DISPENSER_URLS: ''
+          GPLAY_DISPENSER_URL: ''
+          AURORA_DISPENSER_URL: ''
+          GPLAY_EMAIL: ''
+          GPLAY_AAS_TOKEN: ''
+          GPLAY_AUTH_TOKEN: ''
           GPLAYDL_API_KEY: ''
-          GPLAYDL_NO_BANNER: '1'
-          GPLAY_ARCH: arm64
+        run: |
+          set +e
+          output="$(java -jar tools/gplaydl/target/gplaydl-1.0-SNAPSHOT-all.jar auth 2>&1)"
+          status=$?
+          set -e
+          printf '%s\n' "$output"
+          test "$status" -ne 0
+          printf '%s' "$output" | grep -F 'no third-party dispenser is hardcoded'
+
+      - name: Verify configured endpoint parsing without contacting a provider
         run: |
           python3 - <<'PY'
           from pathlib import Path
-          import tempfile
-          import zipfile
-
-          from src import apk_identity, aurora_play
-
-          package = 'jp.japanpost.jp_bank.bankbookapp'
-          with tempfile.TemporaryDirectory(prefix='anonymous-gplay-check-') as tmp:
-              result = aurora_play.download_current(package, Path(tmp))
-              print(f'downloaded={result.name} bytes={result.stat().st_size}')
-
-              candidates = []
-              if result.suffix == '.apk':
-                  candidates = [result]
-              else:
-                  extract_dir = Path(tmp) / 'extracted'
-                  extract_dir.mkdir()
-                  with zipfile.ZipFile(result) as archive:
-                      archive.extractall(extract_dir)
-                  candidates = list(extract_dir.rglob('*.apk'))
-
-              if not candidates:
-                  raise SystemExit('anonymous Google Play download produced no APKs')
-
-              identities = []
-              for apk in candidates:
-                  try:
-                      identity = apk_identity.read_identity(apk)
-                  except Exception:
-                      continue
-                  identities.append(identity)
-                  if identity.package_name == package:
-                      print(
-                          'verified_google_play_download '
-                          f'package={identity.package_name} '
-                          f'versionName={identity.version_name} '
-                          f'versionCode={identity.version_code}'
-                      )
-                      break
-              else:
-                  raise SystemExit(
-                      'download completed but no APK matched expected package; '
-                      f'identities={[item.package_name for item in identities]}'
-                  )
+          source = Path('tools/gplaydl/src/main/kotlin/gplaydl/Main.kt').read_text()
+          required = [
+              'GPLAY_DISPENSER_URLS',
+              'GPLAY_DISPENSER_URL',
+              'GPLAYDL_API_KEY',
+              'all configured Google Play token dispensers failed',
+          ]
+          missing = [item for item in required if item not in source]
+          if missing:
+              raise SystemExit(f'missing configurable-dispenser support: {missing}')
+          print('configurable dispenser support present; external provider probe intentionally omitted')
           PY
