@@ -41,3 +41,9 @@ bucket_name = os.getenv('BUCKET_NAME')
 # APKmirror base url
 base_url = "https://www.apkmirror.com"
 gh = Github(auth=Auth.Token(github_token)) if github_token else Github()
+
+# Gboard is the only normal-build exception that combines multiple Morphe
+# bundles on one APK.  Install its command adapter after package globals are
+# initialized so src.utils can import this module without a circular init race.
+from src import gboard_multi as _gboard_multi
+_gboard_multi.install()
