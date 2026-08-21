@@ -1,0 +1,27 @@
+name: PR Targeted Build Verification
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - .github/workflows/pr-targeted-build-verification.yml
+
+permissions:
+  actions: write
+  contents: read
+
+jobs:
+  dispatch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Dispatch unresolved app builds on this branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          REF: ${{ github.head_ref }}
+        run: |
+          gh workflow run build.yml \
+            --repo "$REPO" \
+            --ref "$REF" \
+            -f updated_apps='adobe-scan,brave-beta,brave-nightly,disney-plus,gboard,proton-vpn,amazon-music,amazon-shopping,tumblr'

@@ -11,8 +11,17 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from src import apk_cache, apk_identity, downloader, providers, utils
+from src import apk_cache, apk_identity, aurora_play, downloader, providers, utils
 from src.versioning import VersionCandidate, pinned_candidate
+
+# Yuucho apps intentionally track the current Google Play release. Their GitHub
+# configs remain as a fallback only when Google Play cannot serve the app.
+CURRENT_PLAY_PACKAGES = frozenset(
+    {
+        "jp.japanpost.jp_bank.FIDOapp",
+        "jp.japanpost.jp_bank.bankbookapp",
+    }
+)
 
 
 def _find_tools(source: str) -> tuple[list[Path], Path, Path]:
@@ -54,6 +63,33 @@ def _expected_candidate(
     )
 
 
+def _preferred_play_candidate(
+    app_name: str,
+    package: str,
+    candidates: list[VersionCandidate],
+) -> VersionCandidate | None:
+    """Choose the release Play should try without guessing a versionCode.
+
+    Yuucho explicitly tracks the current Play release. For other apps patch-
+    bundle compatibility wins. If the bundle is unpinned/Any, retain an
+    explicit app-level pin when one exists. Otherwise ``None`` means current
+    Google Play release.
+    """
+    if package in CURRENT_PLAY_PACKAGES:
+        return None
+    if candidates:
+        return candidates[0]
+    for platform in providers.download_priority(app_name):
+        try:
+            config = providers.load_config(app_name, platform) or {}
+        except Exception:
+            continue
+        pinned = pinned_candidate(config)
+        if pinned:
+            return pinned
+    return None
+
+
 def _new_cache_entries(before: set[Path]) -> set[Path]:
     if not apk_cache.CACHE_DIR.is_dir():
         return set()
@@ -72,8 +108,8 @@ def _cache_snapshot() -> set[Path]:
 def _validate_downloaded_identity(
     input_apk: Path,
     package: str,
-    candidate: VersionCandidate,
-) -> None:
+    candidate: VersionCandidate | None,
+) -> apk_identity.ApkIdentity:
     """Reject APKs whose actual manifest identity differs from selection."""
     identity = apk_identity.validate_identity(input_apk, package, candidate)
     logging.info(
@@ -81,6 +117,27 @@ def _validate_downloaded_identity(
         identity.package_name,
         identity.version_name,
         identity.version_code or "unknown",
+    )
+    return identity
+
+
+def _record_play_download(
+    app_name: str,
+    package: str,
+    arch: str,
+    input_apk: Path,
+    version: str,
+) -> None:
+    apk_cache.stage(input_apk, package, version, "aurora-google-play")
+    from src import provenance
+
+    provenance.record(
+        app_name,
+        version,
+        "aurora-google-play",
+        input_apk,
+        arch,
+        config={"package": package},
     )
 
 
@@ -91,6 +148,51 @@ def _download(app_name: str, source: str, arch: str) -> tuple[Path, str]:
     _, cli, bundle = _find_tools(source)
     candidates = utils.get_supported_version_candidates(package, str(cli), str(bundle))
     identity_errors: list[str] = []
+
+    # Google Play is the preferred origin for every app except explicit
+    # GitHub-only packages such as AdGuard. Aurora/GPlayApi asks Google Play for
+    # the base APK and all required split APKs. If the requested release has a
+    # known versionCode it is supplied to PurchaseHelper directly; otherwise
+    # Play's current AppDetails versionCode is used.
+    play_enabled = aurora_play.google_play_enabled(package)
+    if play_enabled:
+        play_candidate = _preferred_play_candidate(app_name, package, candidates)
+        play_input: Path | None = None
+        try:
+            play_input = aurora_play.download_candidate(package, play_candidate, Path("."))
+            if not apk_cache.is_valid_apk_archive(play_input):
+                play_input.unlink(missing_ok=True)
+                raise RuntimeError("Google Play returned a corrupt APK archive")
+            identity = _validate_downloaded_identity(play_input, package, play_candidate)
+            version = identity.version_name
+            _record_play_download(app_name, package, arch, play_input, version)
+            logging.info("✅ Google Play selected as APK origin for %s v%s", app_name, version)
+            return play_input, version
+        except apk_identity.ApkIdentityError as error:
+            if play_input is not None:
+                play_input.unlink(missing_ok=True)
+            identity_errors.append(f"aurora-google-play: {error}")
+            logging.warning(
+                "⚠️  Google Play release does not match the requested release for %s: %s; "
+                "trying configured providers",
+                app_name,
+                error,
+            )
+        except Exception as error:
+            if play_input is not None:
+                play_input.unlink(missing_ok=True)
+            logging.warning(
+                "⚠️  Google Play first-choice download failed for %s: %s: %s; "
+                "trying configured providers",
+                app_name,
+                type(error).__name__,
+                error,
+            )
+    else:
+        logging.info(
+            "⏭️  Google Play disabled by repository policy for %s; using configured provider only",
+            app_name,
+        )
 
     for platform in providers.download_priority(app_name):
         cache_before = _cache_snapshot()
@@ -128,37 +230,76 @@ def _download(app_name: str, source: str, arch: str) -> tuple[Path, str]:
             continue
         return input_apk, version
 
+    # A GitHub-only app must never fall through to justapk/apkeep or any other
+    # third-party mirror if its configured GitHub release is unavailable.
+    if not play_enabled:
+        suffix = f" Identity errors: {'; '.join(identity_errors)}" if identity_errors else ""
+        raise RuntimeError(
+            f"Configured GitHub-only provider failed for {app_name}; refusing mirror fallback.{suffix}"
+        )
+
     version = next((candidate.canonical for candidate in candidates), None)
     if not version:
         suffix = f" Identity errors: {'; '.join(identity_errors)}" if identity_errors else ""
         raise RuntimeError(f"Could not resolve a fallback version for {app_name}.{suffix}")
-    input_apk = downloader.download_with_fallback_chain(package, version, Path("."))
-    if not apk_cache.is_valid_apk_archive(input_apk):
-        input_apk.unlink(missing_ok=True)
-        raise RuntimeError("fallback chain returned HTML or a corrupt APK archive")
 
     fallback_candidate = next(
         (candidate for candidate in candidates if candidate.canonical == version),
         VersionCandidate(name=version),
     )
-    try:
-        _validate_downloaded_identity(input_apk, package, fallback_candidate)
-    except apk_identity.ApkIdentityError as error:
-        input_apk.unlink(missing_ok=True)
-        raise RuntimeError(f"fallback chain returned mismatched APK identity: {error}") from error
+    fallback_errors: list[str] = []
+    for fallback_name, fallback_downloader in (
+        ("justapk", downloader.download_with_justapk),
+        ("apkeep", downloader.download_with_apkeep),
+    ):
+        input_apk: Path | None = None
+        try:
+            input_apk = fallback_downloader(package, version, Path("."))
+            if not apk_cache.is_valid_apk_archive(input_apk):
+                input_apk.unlink(missing_ok=True)
+                raise RuntimeError("returned HTML or a corrupt APK archive")
+            _validate_downloaded_identity(input_apk, package, fallback_candidate)
+        except apk_identity.ApkIdentityError as error:
+            if input_apk is not None:
+                input_apk.unlink(missing_ok=True)
+            identity_errors.append(f"{fallback_name}: {error}")
+            fallback_errors.append(f"{fallback_name}: {error}")
+            logging.warning(
+                "⚠️  %s fallback returned a mismatched APK for %s: %s",
+                fallback_name,
+                app_name,
+                error,
+            )
+            continue
+        except Exception as error:
+            if input_apk is not None:
+                input_apk.unlink(missing_ok=True)
+            fallback_errors.append(
+                f"{fallback_name}: {type(error).__name__}: {error}"
+            )
+            logging.warning(
+                "⚠️  %s fallback failed for %s: %s",
+                fallback_name,
+                app_name,
+                error,
+            )
+            continue
 
-    apk_cache.stage(input_apk, package, version, "fallback-chain")
-    from src import provenance
+        apk_cache.stage(input_apk, package, version, fallback_name)
+        from src import provenance
 
-    provenance.record(
-        app_name,
-        version,
-        "fallback-chain",
-        input_apk,
-        arch,
-        config={"package": package},
-    )
-    return input_apk, version
+        provenance.record(
+            app_name,
+            version,
+            fallback_name,
+            input_apk,
+            arch,
+            config={"package": package},
+        )
+        return input_apk, version
+
+    detail = "; ".join(fallback_errors)
+    raise RuntimeError(f"all non-browser fallbacks failed for {app_name}: {detail}")
 
 
 def _configured_arch(app_name: str, source: str) -> str:

@@ -192,23 +192,13 @@ jobs:
           echo "  dropped: $dropped_resolved"
           echo "Cache key: ${cache_key}"
 
-      # ---------------------------------------------------------------
-      # 2. キャッシュを先に確認する（ヒットすればダウンロードをスキップ）
-      # ---------------------------------------------------------------
       - name: Restore Cached Tools
         id: cache-restore
-        # Restore専用Actionを使う。actions/cacheの通常Actionはpost処理で自動保存するため、
-        # 下の明示的なcache/saveと二重保存になり、reserve競合を起こす。
         uses: actions/cache/restore@v6
         with:
           path: tools/
           key: ${{ steps.resolve-tags.outputs.cache-key }}
 
-      # ---------------------------------------------------------------
-      # 3. キャッシュミス時のみダウンロードする
-      #    解決済みタグを SOURCE_TAG_* として渡すことで
-      #    download_all_tools.py が正しいバージョンを取得する
-      # ---------------------------------------------------------------
       - name: Setup Python
         if: steps.cache-restore.outputs.cache-hit != 'true'
         uses: actions/setup-python@v7
@@ -226,7 +216,6 @@ jobs:
           UPD_TOSOX:    ${{ github.event.inputs.tosox_updated }}
           UPD_YUZU:     ${{ github.event.inputs.yuzu_updated }}
           UPD_DROPPED:  ${{ github.event.inputs.dropped_updated }}
-          # 解決済みの具体的なタグを渡す（"latest" は渡さない）
           SOURCE_TAG_MORPHE:          ${{ steps.resolve-tags.outputs.morphe_resolved }}
           SOURCE_TAG_ANDDEA:          ${{ steps.resolve-tags.outputs.anddea_resolved }}
           SOURCE_TAG_REVANCED_ANDDEA: ${{ steps.resolve-tags.outputs.anddea_resolved }}
@@ -240,10 +229,6 @@ jobs:
           pip install -r requirements.txt -q
           python3 scripts/download_all_tools.py
 
-      # ---------------------------------------------------------------
-      # 4. ダウンロード済みの tools/ をキャッシュに保存する
-      #    キャッシュミス時のみ保存が走る（actions/cache の仕様）
-      # ---------------------------------------------------------------
       - name: Save Cached Tools
         if: steps.cache-restore.outputs.cache-hit != 'true'
         uses: actions/cache/save@v6
@@ -254,9 +239,6 @@ jobs:
   prepare-matrix:
     name: Prepare Build Matrix
     runs-on: ubuntu-latest
-    # download-tools の後に実行することで、同一リポジトリへの並列 checkout を防ぐ。
-    # 並列 checkout は GitHub の secondary rate limit を引き起こし
-    # "Your account is suspended" エラーの原因になる。
     needs: [download-tools]
     outputs:
       matrix: ${{ steps.read-matrix.outputs.matrix }}
@@ -341,6 +323,10 @@ jobs:
           APP_NAME: ${{ matrix.app_name }}
           SOURCE: ${{ matrix.source }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GPLAY_EMAIL: ${{ secrets.GPLAY_EMAIL }}
+          GPLAY_AAS_TOKEN: ${{ secrets.GPLAY_AAS_TOKEN }}
+          GPLAY_AUTH_TOKEN: ${{ secrets.GPLAY_AUTH_TOKEN }}
+          AURORA_DISPENSER_URL: ${{ vars.AURORA_DISPENSER_URL }}
           HTTP_RETRIES: '4'
           HTTP_RETRY_BASE_SECONDS: '5'
           HTTP_RETRY_MAX_SECONDS: '60'
@@ -425,8 +411,6 @@ jobs:
       - name: Scan Unmodified Base APKs with VirusTotal
         env:
           VIRUSTOTAL_API_KEY: ${{ secrets.VIRUSTOTAL_API_KEY }}
-          # Keep uploads and analysis polling highly concurrent while retaining
-          # a client-wide request interval to protect the VirusTotal API quota.
           VT_WORKERS: '32'
           VT_REQUEST_INTERVAL_SECONDS: '8'
           VT_POLL_INTERVAL_SECONDS: '30'
@@ -460,7 +444,6 @@ jobs:
       contents: write
     strategy:
       fail-fast: false
-      # ダウンロードは前段の専用Matrixで完了しているため、CPUパッチを並列化する。
       max-parallel: 12
       matrix:
         include: ${{ fromJson(needs.prepare-matrix.outputs.matrix) }}
@@ -482,10 +465,6 @@ jobs:
         with:
           python-version: 3.11
 
-      # ReVanced/Morphe CLI jarはclass file version 65 (Java 21)でビルドされている。
-      # ubuntu-latestランナーのデフォルトJDKに依存すると、GitHub側やCLI側の
-      # 都合でJavaのメジャーバージョンが上がった際に
-      # "UnsupportedClassVersionError" で全ビルドが壊れる。明示的に固定する。
       - name: Setup Java
         uses: actions/setup-java@v5
         with:
@@ -715,8 +694,6 @@ jobs:
     needs: [download-tools, prepare-matrix, build-apps, scan-base-apks]
     runs-on: ubuntu-latest
     timeout-minutes: 300
-    # build-apps の一部失敗時は成功分をリリースできるよう起動するが、
-    # ツール取得や matrix 準備の失敗時は成果物が存在し得ないため起動しない。
     if: >-
       ${{
         !cancelled() &&
@@ -751,7 +728,6 @@ jobs:
           path: ./build-results
           pattern: build-status-*
           merge-multiple: true
-
 
       - name: Collect All APKs
         run: |
@@ -843,8 +819,6 @@ jobs:
           fi
 
           echo "Creating release: $release_tag"
-
-          # Delete existing release/tag with the same name if it exists, then recreate
           gh release delete "$release_tag" --yes 2>/dev/null || true
           git push --delete origin "refs/tags/$release_tag" 2>/dev/null || true
 
@@ -994,4 +968,3 @@ jobs:
           else
             gh issue create --title "$title" --body-file build-failure-issue.md --label "bug"
           fi
-

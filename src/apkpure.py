@@ -39,8 +39,6 @@ def _resolve_apkpure_slug(app_name: str, config: dict) -> str | None:
             logging.debug(f"APKPure slug search returned {resp.status_code} for {app_name}")
             return None
         soup = BeautifulSoup(resp.content, "html.parser")
-        # 検索結果の最初のアプリリンクからスラッグを抽出
-        # 例: /protonvpn/ch.protonvpn.android → "protonvpn"
         for a in soup.find_all('a', href=True):
             href = a['href']
             parts = href.strip('/').split('/')
@@ -118,7 +116,6 @@ def get_latest_version(app_name: str, config: dict) -> str | None:
     try:
         response = utils.cf_aware_get(url, headers=HEADERS, timeout=TIMEOUT)
 
-        # 410 Gone: スラッグが変更された可能性があるためパッケージIDで再検索
         if response.status_code == 410:
             logging.warning(
                 f"APKPure returned 410 for {app_name} (slug: {config['name']}). "
@@ -169,12 +166,12 @@ def _direct_download_for_candidate(
                 alias.casefold() in filename_casefold
                 for alias in candidate.aliases("apkpure")
             )
-            if candidate.code and candidate.code not in filename:
-                errors.append(
-                    f"{archive_type}: version code {candidate.code} absent from "
-                    f"filename {filename}"
-                )
-                continue
+            # APKPure's versionCode endpoint commonly returns a filename that
+            # contains only versionName (for example 26.08.01), not the numeric
+            # versionCode used in the request. Treat either known alias as the
+            # same release here; the downloaded manifest is still validated
+            # afterwards against package/version/versionCode, so a mislabeled
+            # response cannot pass the final provenance guard.
             if not aliases_in_filename:
                 errors.append(f"{archive_type}: incompatible filename {filename}")
                 continue
@@ -185,7 +182,6 @@ def _direct_download_for_candidate(
                 app_name,
                 filename,
             )
-            # Return the stable package endpoint, not the expiring signed redirect.
             return url
         except Exception as error:
             errors.append(f"{archive_type}: {error}")

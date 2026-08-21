@@ -1,9 +1,9 @@
 {
     "org": "disney",
     "name": "disney",
-    "type": "APK",
+    "type": "BUNDLE",
     "arch": "universal",
     "dpi": "nodpi",
     "package": "com.disney.disneyplus",
-    "version": ""
+    "version": "26.12.1+rc1-2026.07.15"
 }

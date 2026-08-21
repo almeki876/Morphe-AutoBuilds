@@ -6,6 +6,7 @@
     "asset_pattern": "adguard-{version}.apk",
     "primary": true,
     "exclusive": true,
+    "google_play": false,
     "cache": false,
     "package": "com.adguard.android",
     "version": ""

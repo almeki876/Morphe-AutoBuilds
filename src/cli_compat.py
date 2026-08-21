@@ -84,8 +84,8 @@ def is_nested_arggroup_syntax(cli: Path) -> bool:
 @lru_cache(maxsize=None)
 def _help_text(cli: str, subcommand: str) -> str:
     """Run `java -jar <cli> <subcommand> --help` once per (cli, subcommand)
-    and cache the result. Never raises — an empty string means "couldn't
-    probe", and callers should fall back to their old default behaviour.
+    and cache the result. Never raises — an empty string means the optional
+    flag support could not be established.
     """
     try:
         output = utils.run_process(
@@ -99,18 +99,24 @@ def _help_text(cli: str, subcommand: str) -> str:
 
 
 def supports_flag(cli: Path, subcommand: str, flag: str) -> bool:
-    """Check whether `flag` (e.g. "--purge") is a recognized option of
-    `subcommand` (e.g. "patch") for this CLI jar, by reading its --help.
+    """Return True only when the CLI's own help confirms an optional flag.
 
-    If the probe fails for any reason (older CLI without --help, network
-    hiccup, unexpected format, ...), returns True so behaviour matches the
-    pre-existing "just pass the flag and hope" default — this function only
-    ever *removes* flags it can positively confirm are gone, it never
-    invents new failure modes.
+    Optional compatibility flags must fail closed. If the help probe cannot
+    establish support, omitting the flag preserves the CLI's default behaviour
+    and avoids turning a probe failure into an `Unknown option` build failure.
+    This is especially important for flags such as Morphe's historical
+    `--purge`, whose behaviour is now the default and whose old spelling is no
+    longer accepted by current releases.
     """
     text = _help_text(str(cli), subcommand)
     if not text:
-        return True
+        logging.warning(
+            "⚠️  Could not confirm optional flag %s for '%s %s'; omitting it",
+            flag,
+            cli,
+            subcommand,
+        )
+        return False
     return flag in text
 
 

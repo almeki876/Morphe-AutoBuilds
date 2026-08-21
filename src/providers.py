@@ -12,7 +12,8 @@ import logging
 from pathlib import Path
 from types import ModuleType
 
-from src import apkcombo, apkmirror, apkpure, aptoide, github, softonic, uptodown
+from src import apkcombo, apkmirror_latest, apkpure, aptoide, github, softonic
+from src import uptodown_direct as uptodown
 
 
 DOWNLOAD_PRIORITY = (
@@ -28,7 +29,7 @@ PRIMARY_PROVIDER_KEY = "primary"
 
 MODULES: dict[str, ModuleType] = {
     "github": github,
-    "apkmirror": apkmirror,
+    "apkmirror": apkmirror_latest,
     "apkpure": apkpure,
     "uptodown": uptodown,
     "softonic": softonic,

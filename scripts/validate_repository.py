@@ -25,6 +25,21 @@ KNOWN_PROVIDERS = {
     "aptoide",
     "apkcombo",
 }
+# Normal apps must follow the patch bundle's current default/recommended set.
+# These are deliberate exceptions with app-specific patch-selection semantics:
+# YouTube/YouTube Music carry user customizations, Gboard combines overlapping
+# sources, and Yuucho intentionally enables the non-default Hide ADB patch.
+EXPLICIT_PATCH_SELECTION_EXCEPTIONS = {
+    ("youtube", "morphe"),
+    ("youtube", "revanced-anddea"),
+    ("youtube-music", "morphe"),
+    ("youtube-music", "revanced-anddea"),
+    ("gboard", "jason"),
+    ("gboard", "adobo"),
+    ("gboard", "morning-entree"),
+    ("yuucho-tsucho", "rushiranpise"),
+    ("yuucho-ninsho", "rushiranpise"),
+}
 PACKAGE_RE = re.compile(r"^[A-Za-z0-9_]+(?:\.[A-Za-z0-9_]+)+$")
 
 
@@ -164,8 +179,15 @@ def _validate_patch_config(
                     )
                 option_keys.add(option_key)
         _string_list(entry.get("disable"), "disable", context, validation)
-        _string_list(entry.get("force_enable"), "force_enable", context, validation)
+        force_enable = _string_list(
+            entry.get("force_enable"), "force_enable", context, validation
+        )
         _string_list(entry.get("required"), "required", context, validation)
+        if force_enable and pair not in EXPLICIT_PATCH_SELECTION_EXCEPTIONS:
+            validation.error(
+                f"{context}.force_enable is not allowed for normal apps; "
+                "follow the upstream bundle defaults instead"
+            )
     return pairs
 
 
