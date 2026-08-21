@@ -1,8 +1,22 @@
+import hashlib
 import logging
 import re
+from datetime import datetime, timezone
+
+from bs4 import BeautifulSoup
+
 from src import utils
 from src.versioning import VersionCandidate, parse_candidate
-from bs4 import BeautifulSoup
+
+
+_API_BASE = "https://www.uptodown.app/eapi"
+# Reverse-engineered by the maintained justapk Uptodown provider from the
+# Uptodown Android client. Keep this isolated so failures fall back to the
+# existing public-page discovery path.
+_APIKEY_SECRET = "$(=a%·!45J&S"
+_DALVIK_UA = (
+    "Dalvik/2.1.0 (Linux; U; Android 14; SM-G955F Build/AP2A.240805.005)"
+)
 
 
 def _natural_version_key(version: str) -> tuple:
@@ -37,6 +51,103 @@ def _entry_matches_candidate(entry: dict, candidate: VersionCandidate) -> bool:
     return candidate.matches(identity.name, identity.code)
 
 
+def _generate_api_key(now: datetime | None = None) -> str:
+    """Generate Uptodown Android client's hourly API key."""
+    now = now or datetime.now(timezone.utc)
+    if now.tzinfo is None:
+        now = now.replace(tzinfo=timezone.utc)
+    now = now.astimezone(timezone.utc)
+    epoch_ms = int(now.timestamp() * 1000)
+    offset_ms = now.minute * 60000 + now.second * 1000 + now.microsecond // 1000
+    hour_epoch = (epoch_ms - offset_ms) // 1000
+    raw = _APIKEY_SECRET + str(hour_epoch)
+    return hashlib.sha256(raw.encode("utf-8")).hexdigest()
+
+
+def _api_headers() -> dict[str, str]:
+    return {
+        "User-Agent": _DALVIK_UA,
+        "Identificador": "Uptodown_Android",
+        "Identificador-Version": "707",
+        "APIKEY": _generate_api_key(),
+    }
+
+
+def _api_get(path: str):
+    return utils.cf_aware_get(
+        f"{_API_BASE}{path}",
+        headers=_api_headers(),
+    )
+
+
+def _api_download_link_for_candidate(
+    package: str, candidate: VersionCandidate
+) -> str | None:
+    """Resolve an exact package/version through Uptodown's current eAPI.
+
+    The API is package-addressed, so unlike HTML slug discovery it can prove we
+    are looking at the requested application before selecting a release. The
+    caller still performs the repository's normal manifest identity validation
+    after download.
+    """
+    if not package:
+        return None
+
+    response = _api_get(f"/apps/byPackagename/{package}")
+    if response.status_code != 200:
+        return None
+    payload = response.json()
+    app = payload.get("data", payload)
+    if not isinstance(app, dict):
+        return None
+    app_id = app.get("appID") or app.get("id")
+    if not app_id:
+        return None
+
+    response = _api_get(
+        f"/v3/app/{app_id}/device/1/compatible/versions"
+        "?page[limit]=50&page[offset]=0"
+    )
+    if response.status_code != 200:
+        return None
+    payload = response.json()
+    versions = payload.get("data", []) if isinstance(payload, dict) else []
+    if not isinstance(versions, list):
+        return None
+
+    target = next(
+        (
+            entry
+            for entry in versions
+            if isinstance(entry, dict) and _entry_matches_candidate(entry, candidate)
+        ),
+        None,
+    )
+    if target is None:
+        return None
+
+    file_id = target.get("fileID") or target.get("fileid")
+    if not file_id:
+        return None
+
+    response = _api_get(f"/apps/{app_id}/file/{file_id}/downloadUrl?update=0")
+    if response.status_code != 200:
+        return None
+    payload = response.json()
+    data = payload.get("data", {}) if isinstance(payload, dict) else {}
+    link = data.get("downloadURL") if isinstance(data, dict) else None
+    if not link:
+        return None
+
+    logging.info(
+        "✓ Uptodown API resolved %s %s (file %s)",
+        package,
+        candidate.describe(),
+        file_id,
+    )
+    return str(link)
+
+
 def _download_url_from_page(page_url: str) -> str | None:
     """Resolve Uptodown's direct file URL from a concrete download page."""
     response = utils.cf_aware_get(page_url)
@@ -61,14 +172,7 @@ def _download_url_from_page(page_url: str) -> str | None:
 def _download_page_matches_candidate(
     page_url: str, candidate: VersionCandidate
 ) -> bool:
-    """Check the current download page's primary metadata for a release.
-
-    Uptodown's current HTML can omit the old ``#versions-items-list .version``
-    selector even though the download page still identifies the current release
-    in its title/primary metadata. Only primary metadata is inspected so an
-    older release merely mentioned in the page's archive list is not mistaken
-    for the current download.
-    """
+    """Check the current download page's primary metadata for a release."""
     response = utils.cf_aware_get(page_url)
     if response.status_code != 200:
         return False
@@ -141,20 +245,28 @@ def get_download_link(
     *,
     candidate: VersionCandidate | None = None,
 ) -> str:
+    requested = candidate or VersionCandidate(name=version)
+    package = str(config.get("package", ""))
+
+    try:
+        api_link = _api_download_link_for_candidate(package, requested)
+        if api_link:
+            return api_link
+    except Exception as error:
+        logging.info(
+            "Uptodown API lookup failed for %s %s; falling back to public pages: %s",
+            app_name,
+            requested.describe(),
+            utils.safe_text_for_log(error),
+        )
+
     possible_names = generate_possible_uptodown_names(config)
     logging.info(f"Searching {len(possible_names)} possible Uptodown names for {app_name} v{version}")
 
     for uptodown_name in possible_names:
         base_url = f"https://{uptodown_name}.en.uptodown.com/android"
         try:
-            requested = candidate or VersionCandidate(name=version)
             download_page = f"{base_url}/download"
-
-            # The current release is identified on Uptodown's download page
-            # even when the versions-page CSS selector has changed. Resolve it
-            # directly when the page's primary metadata matches the requested
-            # release. The downloaded APK is still subject to manifest identity
-            # validation by the caller.
             if _download_page_matches_candidate(download_page, requested):
                 current_link = _download_url_from_page(download_page)
                 if current_link:
