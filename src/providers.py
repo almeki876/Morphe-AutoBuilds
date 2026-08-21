@@ -12,7 +12,8 @@ import logging
 from pathlib import Path
 from types import ModuleType
 
-from src import apkcombo, apkmirror_latest, apkpure, aptoide, github, softonic, uptodown
+from src import apkcombo, apkmirror_latest, apkpure, aptoide, github, softonic
+from src import uptodown_direct as uptodown
 
 
 DOWNLOAD_PRIORITY = (
