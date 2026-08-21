@@ -132,33 +132,60 @@ def _download(app_name: str, source: str, arch: str) -> tuple[Path, str]:
     if not version:
         suffix = f" Identity errors: {'; '.join(identity_errors)}" if identity_errors else ""
         raise RuntimeError(f"Could not resolve a fallback version for {app_name}.{suffix}")
-    input_apk = downloader.download_with_fallback_chain(package, version, Path("."))
-    if not apk_cache.is_valid_apk_archive(input_apk):
-        input_apk.unlink(missing_ok=True)
-        raise RuntimeError("fallback chain returned HTML or a corrupt APK archive")
 
     fallback_candidate = next(
         (candidate for candidate in candidates if candidate.canonical == version),
         VersionCandidate(name=version),
     )
-    try:
-        _validate_downloaded_identity(input_apk, package, fallback_candidate)
-    except apk_identity.ApkIdentityError as error:
-        input_apk.unlink(missing_ok=True)
-        raise RuntimeError(f"fallback chain returned mismatched APK identity: {error}") from error
+    fallback_errors: list[str] = []
+    for fallback_name, fallback_downloader in (
+        ("justapk", downloader.download_with_justapk),
+        ("apkeep", downloader.download_with_apkeep),
+    ):
+        try:
+            input_apk = fallback_downloader(package, version, Path("."))
+            if not apk_cache.is_valid_apk_archive(input_apk):
+                input_apk.unlink(missing_ok=True)
+                raise RuntimeError("returned HTML or a corrupt APK archive")
+            _validate_downloaded_identity(input_apk, package, fallback_candidate)
+        except apk_identity.ApkIdentityError as error:
+            input_apk.unlink(missing_ok=True)
+            identity_errors.append(f"{fallback_name}: {error}")
+            fallback_errors.append(f"{fallback_name}: {error}")
+            logging.warning(
+                "⚠️  %s fallback returned a mismatched APK for %s: %s",
+                fallback_name,
+                app_name,
+                error,
+            )
+            continue
+        except Exception as error:
+            fallback_errors.append(
+                f"{fallback_name}: {type(error).__name__}: {error}"
+            )
+            logging.warning(
+                "⚠️  %s fallback failed for %s: %s",
+                fallback_name,
+                app_name,
+                error,
+            )
+            continue
 
-    apk_cache.stage(input_apk, package, version, "fallback-chain")
-    from src import provenance
+        apk_cache.stage(input_apk, package, version, fallback_name)
+        from src import provenance
 
-    provenance.record(
-        app_name,
-        version,
-        "fallback-chain",
-        input_apk,
-        arch,
-        config={"package": package},
-    )
-    return input_apk, version
+        provenance.record(
+            app_name,
+            version,
+            fallback_name,
+            input_apk,
+            arch,
+            config={"package": package},
+        )
+        return input_apk, version
+
+    detail = "; ".join(fallback_errors)
+    raise RuntimeError(f"all non-browser fallbacks failed for {app_name}: {detail}")
 
 
 def _configured_arch(app_name: str, source: str) -> str:
