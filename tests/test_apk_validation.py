@@ -41,6 +41,22 @@ class ApkValidationTests(unittest.TestCase):
             {"arm64-v8a", "armeabi-v7a"},
         )
 
+    def test_accepts_single_abi_for_universal(self) -> None:
+        path = self._apk([
+            "AndroidManifest.xml",
+            "classes.dex",
+            "lib/arm64-v8a/libapp.so",
+        ])
+        self.assertEqual(validate_apk(path, "universal"), {"arm64-v8a"})
+
+    def test_accepts_native_less_apk_for_universal(self) -> None:
+        path = self._apk(["AndroidManifest.xml", "classes.dex"])
+        self.assertEqual(validate_apk(path, "universal"), set())
+
+    def test_accepts_native_less_apk_for_concrete_abi(self) -> None:
+        path = self._apk(["AndroidManifest.xml", "classes.dex"])
+        self.assertEqual(validate_apk(path, "arm64-v8a"), set())
+
 
 if __name__ == "__main__":
     unittest.main()
