@@ -50,20 +50,47 @@ private fun parseArgs(args: Array<String>): CliOptions {
     return CliOptions(command, packages, output, versionCode, deviceProperties, userAgent, locale)
 }
 
+private fun authenticatedSession(options: CliOptions): Pair<GPlaySession, String> {
+    val properties = loadDeviceProperties(options.deviceProperties)
+    val email = System.getenv("GPLAY_EMAIL").orEmpty().trim()
+    val aasToken = System.getenv("GPLAY_AAS_TOKEN").orEmpty().trim()
+    val authToken = System.getenv("GPLAY_AUTH_TOKEN").orEmpty().trim()
+    val dispenserUrl = System.getenv("AURORA_DISPENSER_URL").orEmpty().trim()
+
+    return when {
+        email.isNotBlank() && aasToken.isNotBlank() ->
+            GPlaySession.aas(email, aasToken, properties, options.locale) to "repository AAS credentials"
+
+        email.isNotBlank() && authToken.isNotBlank() ->
+            GPlaySession.authToken(email, authToken, properties, options.locale) to "repository AUTH credentials"
+
+        dispenserUrl.isNotBlank() -> {
+            val dispenserAuth = AnonymousAuthClient(
+                dispenserUrl = dispenserUrl,
+                userAgent = options.userAgent,
+            ).login(properties)
+            GPlaySession.anonymous(dispenserAuth, properties, options.locale) to "configured Aurora dispenser"
+        }
+
+        else -> error(
+            "Google Play authentication is not configured. Set GPLAY_EMAIL with " +
+                "GPLAY_AAS_TOKEN or GPLAY_AUTH_TOKEN, or configure a self-hosted " +
+                "AURORA_DISPENSER_URL."
+        )
+    }
+}
+
 fun main(args: Array<String>) {
     val options = parseArgs(args)
-    val properties = loadDeviceProperties(options.deviceProperties)
-    val dispenserAuth = AnonymousAuthClient(userAgent = options.userAgent).login(properties)
+    val (session, authSource) = authenticatedSession(options)
 
     if (options.command == "auth") {
-        println("Anonymous login OK")
-        println("Account: ${dispenserAuth.email}")
+        println("Google Play login OK via $authSource")
         return
     }
 
     // Build one authenticated session and reuse it for every package requested
-    // by this process. Never print or persist the dispenser authToken.
-    val session = GPlaySession.anonymous(dispenserAuth, properties, options.locale)
+    // by this process. Never print or persist any authentication token.
     val downloader = PlayDownloader(session)
     for (packageName in options.packages) {
         val packageOutput = options.output.resolve(packageName)
@@ -74,7 +101,7 @@ fun main(args: Array<String>) {
         )
         println(
             "Downloaded ${result.packageName} versionName=${result.versionName} " +
-                "versionCode=${result.versionCode} files=${result.files.size}"
+                "versionCode=${result.versionCode} files=${result.files.size} source=GooglePlay"
         )
     }
 }
