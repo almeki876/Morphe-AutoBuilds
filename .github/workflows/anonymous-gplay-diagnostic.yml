@@ -6,57 +6,25 @@ on:
       - chatgpt/anonymous-google-play
     paths:
       - .github/workflows/anonymous-gplay-diagnostic.yml
-      - tools/gplaydl/**
+      - requirements.txt
       - src/aurora_play.py
-      - src/apkcombo.py
+      - src/apk_identity.py
   pull_request:
     branches:
       - main
     paths:
       - .github/workflows/anonymous-gplay-diagnostic.yml
-      - tools/gplaydl/**
+      - requirements.txt
       - src/aurora_play.py
-      - src/apkcombo.py
+      - src/apk_identity.py
 
 permissions:
   contents: read
 
 jobs:
-  gplaydl-public-dispenser:
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@v7
-
-      - uses: actions/setup-java@v5
-        with:
-          distribution: temurin
-          java-version: '21'
-
-      - name: Build repo-local gplaydl
-        run: mvn -q -f tools/gplaydl/pom.xml -DskipTests package
-
-      - name: Probe maintained gplaydl dispenser without repository credentials
-        id: anonymous-auth
-        continue-on-error: true
-        env:
-          GPLAY_DISPENSER_URL: https://dispenser.gplaydl.com
-          GPLAY_EMAIL: ''
-          GPLAY_AAS_TOKEN: ''
-          GPLAY_AUTH_TOKEN: ''
-          GPLAYDL_API_KEY: ''
-        run: java -jar tools/gplaydl/target/gplaydl-1.0-SNAPSHOT-all.jar auth
-
-      - name: Record public-dispenser result
-        if: always()
-        run: |
-          echo "anonymous_auth_outcome=${{ steps.anonymous-auth.outcome }}"
-          echo "anonymous_auth_conclusion=${{ steps.anonymous-auth.conclusion }}"
-
-  apkcombo-google-cdn:
+  anonymous-google-play:
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    continue-on-error: true
     steps:
       - uses: actions/checkout@v7
 
@@ -67,136 +35,55 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt -q
 
-      - name: Resolve and download Yuucho without Google credentials
+      - name: Download and verify Yuucho directly from Google Play anonymously
+        env:
+          GPLAYDL_API_KEY: ''
+          GPLAYDL_NO_BANNER: '1'
+          GPLAY_ARCH: arm64
         run: |
           python3 - <<'PY'
           from pathlib import Path
-          from urllib.parse import urlparse
-          from src import apkcombo, apk_identity, downloader
+          import tempfile
+          import zipfile
 
-          app_name = 'yuucho-tsucho'
-          package = 'jp.japanpost.jp_bank.bankbookapp'
-          config = {
-              'name': 'yucho-tsuco-bank-book',
-              'package': package,
-              'arch': 'arm64-v8a',
-          }
-          version = apkcombo.get_latest_version(app_name, config)
-          if not version:
-              raise SystemExit('APKCombo could not resolve the current Yuucho version')
-          url = apkcombo.get_download_link(version, app_name, config)
-          if not url:
-              raise SystemExit('APKCombo did not expose a signed download URL')
-          parsed = urlparse(url)
-          print(f'broker=APKCombo version={version} signed_url_host={parsed.hostname} path={parsed.path}')
-          path = downloader.download_resource(
-              url,
-              name='yuucho-anonymous-play.apks',
-              referer='https://apkcombo.com/',
-              validate_apk=True,
-          )
-          identity = apk_identity.read_identity(Path(path))
-          if identity.package_name != package:
-              raise SystemExit(f'package mismatch: {identity.package_name}')
-          print(
-              'verified_download '
-              f'package={identity.package_name} '
-              f'versionName={identity.version_name} '
-              f'versionCode={identity.version_code} '
-              f'bytes={Path(path).stat().st_size}'
-          )
-          PY
-
-  apkcube-play-broker:
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    steps:
-      - uses: actions/checkout@v7
-
-      - uses: actions/setup-python@v7
-        with:
-          python-version: '3.11'
-
-      - name: Install dependencies
-        run: pip install -r requirements.txt -q
-
-      - name: Discover APKCube public Play-download route
-        run: |
-          python3 - <<'PY'
-          import json
-          import re
-          from urllib.parse import urljoin, urlparse
-
-          import requests
-          from bs4 import BeautifulSoup
+          from src import apk_identity, aurora_play
 
           package = 'jp.japanpost.jp_bank.bankbookapp'
-          session = requests.Session()
-          session.headers.update({
-              'User-Agent': 'Morphe-AutoBuilds/1.0',
-              'Accept-Language': 'ja,en-US;q=0.8,en;q=0.7',
-          })
+          with tempfile.TemporaryDirectory(prefix='anonymous-gplay-check-') as tmp:
+              result = aurora_play.download_current(package, Path(tmp))
+              print(f'downloaded={result.name} bytes={result.stat().st_size}')
 
-          def safe(url):
-              parsed = urlparse(url)
-              return f'{parsed.scheme}://{parsed.netloc}{parsed.path}'
+              candidates = []
+              if result.suffix == '.apk':
+                  candidates = [result]
+              else:
+                  extract_dir = Path(tmp) / 'extracted'
+                  extract_dir.mkdir()
+                  with zipfile.ZipFile(result) as archive:
+                      archive.extractall(extract_dir)
+                  candidates = list(extract_dir.rglob('*.apk'))
 
-          start = 'https://apkcube.com/apk-downloader'
-          response = session.get(start, params={'url': package}, timeout=30, allow_redirects=True)
-          print(f'downloader status={response.status_code} final={safe(response.url)} bytes={len(response.content)}')
-          response.raise_for_status()
+              if not candidates:
+                  raise SystemExit('anonymous Google Play download produced no APKs')
 
-          soup = BeautifulSoup(response.content, 'html.parser')
-          candidates = []
-          for tag in soup.find_all(['a', 'form']):
-              value = tag.get('href') or tag.get('action')
-              if not value:
-                  continue
-              absolute = urljoin(response.url, value)
-              host = (urlparse(absolute).hostname or '').lower()
-              text = tag.get_text(' ', strip=True).lower()
-              if package.lower() in absolute.lower() or 'download' in text or '/download' in absolute.lower():
-                  if host == 'apkcube.com' or host.endswith('.apkcube.com') or host.endswith('.googleapis.com') or host.endswith('.gvt1.com'):
-                      candidates.append(absolute)
-          # Also inspect JSON/script strings for package-specific same-origin routes,
-          # but never print query strings or opaque signed tokens.
-          for match in re.findall(r'https?://[^"\'<>\\s]+|/[A-Za-z0-9_./?=&%+:-]+', response.text):
-              if package.lower() not in match.lower() and 'download' not in match.lower():
-                  continue
-              absolute = urljoin(response.url, match)
-              host = (urlparse(absolute).hostname or '').lower()
-              if host == 'apkcube.com' or host.endswith('.apkcube.com') or host.endswith('.googleapis.com') or host.endswith('.gvt1.com'):
-                  candidates.append(absolute)
-
-          unique = []
-          seen = set()
-          for item in candidates:
-              sanitized = safe(item)
-              if sanitized not in seen:
-                  seen.add(sanitized)
-                  unique.append(item)
-          print('candidate_routes=' + json.dumps([safe(item) for item in unique[:20]]))
-
-          package_pages = [
-              item for item in unique
-              if package.lower() in item.lower() and urlparse(item).hostname == 'apkcube.com'
-          ]
-          if not package_pages:
-              raise SystemExit('APKCube downloader did not expose a package route for Yuucho')
-
-          page = session.get(package_pages[0], timeout=30, allow_redirects=True)
-          print(f'package_page status={page.status_code} final={safe(page.url)} bytes={len(page.content)}')
-          page.raise_for_status()
-          page_soup = BeautifulSoup(page.content, 'html.parser')
-          download_routes = []
-          for tag in page_soup.find_all(['a', 'form']):
-              value = tag.get('href') or tag.get('action')
-              if not value:
-                  continue
-              absolute = urljoin(page.url, value)
-              if 'download' in absolute.lower() or 'download' in tag.get_text(' ', strip=True).lower():
-                  download_routes.append(absolute)
-          print('package_download_routes=' + json.dumps([safe(item) for item in download_routes[:20]]))
-          if not download_routes:
-              raise SystemExit('APKCube package page did not expose a download route')
+              identities = []
+              for apk in candidates:
+                  try:
+                      identity = apk_identity.read_identity(apk)
+                  except Exception:
+                      continue
+                  identities.append(identity)
+                  if identity.package_name == package:
+                      print(
+                          'verified_google_play_download '
+                          f'package={identity.package_name} '
+                          f'versionName={identity.version_name} '
+                          f'versionCode={identity.version_code}'
+                      )
+                      break
+              else:
+                  raise SystemExit(
+                      'download completed but no APK matched expected package; '
+                      f'identities={[item.package_name for item in identities]}'
+                  )
           PY
