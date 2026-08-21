@@ -68,3 +68,62 @@ jobs:
               raise SystemExit(f'missing configurable-dispenser support: {missing}')
           print('configurable dispenser support present; external provider probe intentionally omitted')
           PY
+
+  repository-backend-probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      GPLAY_DISPENSER_URLS: ${{ secrets.GPLAY_DISPENSER_URLS }}
+      GPLAY_DISPENSER_URL: ${{ secrets.GPLAY_DISPENSER_URL }}
+      GPLAYDL_API_KEY: ${{ secrets.GPLAYDL_API_KEY }}
+      GPLAY_EMAIL: ${{ secrets.GPLAY_EMAIL }}
+      GPLAY_AAS_TOKEN: ${{ secrets.GPLAY_AAS_TOKEN }}
+      GPLAY_AUTH_TOKEN: ${{ secrets.GPLAY_AUTH_TOKEN }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Detect repository backend without exposing secrets
+        id: backend
+        shell: bash
+        run: |
+          has_dispenser=false
+          has_account=false
+          if [ -n "$GPLAY_DISPENSER_URLS$GPLAY_DISPENSER_URL" ]; then
+            has_dispenser=true
+          fi
+          if [ -n "$GPLAY_EMAIL" ] && { [ -n "$GPLAY_AAS_TOKEN" ] || [ -n "$GPLAY_AUTH_TOKEN" ]; }; then
+            has_account=true
+          fi
+          echo "has_dispenser=$has_dispenser" >> "$GITHUB_OUTPUT"
+          echo "has_account=$has_account" >> "$GITHUB_OUTPUT"
+          echo "repository_anonymous_dispenser_configured=$has_dispenser"
+          echo "repository_google_account_fallback_configured=$has_account"
+
+      - name: Build repo-local gplaydl for live probe
+        if: steps.backend.outputs.has_dispenser == 'true'
+        run: mvn -q -f tools/gplaydl/pom.xml -DskipTests package
+
+      - name: Verify anonymous auth using repository-controlled dispenser
+        if: steps.backend.outputs.has_dispenser == 'true'
+        run: java -jar tools/gplaydl/target/gplaydl-1.0-SNAPSHOT-all.jar auth
+
+      - name: Download Yuucho from Google Play through anonymous dispenser
+        if: steps.backend.outputs.has_dispenser == 'true'
+        run: |
+          rm -rf /tmp/gplay-probe
+          mkdir -p /tmp/gplay-probe
+          java -jar tools/gplaydl/target/gplaydl-1.0-SNAPSHOT-all.jar download \
+            jp.japanpost.jp_bank.bankbookapp \
+            --output /tmp/gplay-probe
+          count="$(find /tmp/gplay-probe -type f -name '*.apk' -size +0c | wc -l)"
+          echo "google_play_apk_files=$count"
+          test "$count" -gt 0
+
+      - name: Record why live anonymous probe was skipped
+        if: steps.backend.outputs.has_dispenser != 'true'
+        run: echo 'No repository-controlled dispenser secret is configured; live anonymous Google Play probe skipped.'
