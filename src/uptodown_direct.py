@@ -53,13 +53,27 @@ def _base_urls(slug: str) -> list[str]:
     ]
 
 
+def _configured_slugs(config: dict) -> list[str]:
+    """Use the explicit Uptodown slug when one is configured.
+
+    The generic legacy name generator can produce dozens of guesses. That is
+    useful only when the repository has no known slug; once a config explicitly
+    names the Uptodown app, probing guesses adds latency and can trigger rate
+    limiting without improving correctness.
+    """
+    configured = str(config.get("name") or "").strip()
+    if configured:
+        return [configured]
+    return [str(slug) for slug in legacy.generate_possible_uptodown_names(config)]
+
+
 def _direct_link_from_variants(
     candidate: VersionCandidate,
     app_name: str,
     config: dict,
 ) -> str | None:
     """Resolve a direct XAPK/APK URL via Uptodown's public All variants flow."""
-    for slug in legacy.generate_possible_uptodown_names(config):
+    for slug in _configured_slugs(config):
         for base_url in _base_urls(slug):
             download_page = f"{base_url}/download"
             try:
