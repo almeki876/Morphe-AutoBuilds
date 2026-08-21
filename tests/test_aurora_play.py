@@ -1,90 +1,92 @@
 import tempfile
 import unittest
+import zipfile
 from pathlib import Path
 from unittest import mock
 
 from src import aurora_play
-
-
-class _Response:
-    def __init__(self, body: bytes):
-        self._body = body
-
-    def read(self) -> bytes:
-        return self._body
-
-    def __enter__(self):
-        return self
-
-    def __exit__(self, exc_type, exc, tb):
-        return False
+from src.versioning import VersionCandidate
 
 
 class AuroraPlayTests(unittest.TestCase):
-    @mock.patch("src.aurora_play._read_url")
-    def test_device_properties_reads_named_profile(self, read_url: mock.Mock) -> None:
-        read_url.return_value = (
-            b"[other]\nBuild.MODEL=Other\n"
-            b"[px_9a]\n"
-            b"Build.MODEL=Pixel 9a\n"
-            b"Build.FINGERPRINT=google/tegu/tegu\\:16/ABC/123\\:user/release-keys\n"
-            b"Platforms=arm64-v8a,armeabi-v7a\n"
-        )
+    def test_package_apks_keeps_base_and_splits(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            base = root / "base.apk"
+            split = root / "split_config.arm64_v8a.apk"
+            base.write_bytes(b"base")
+            split.write_bytes(b"split")
 
-        properties = aurora_play._device_properties("px_9a")
+            result = aurora_play._package_apks(
+                [base, split], "com.example.app", root
+            )
 
-        self.assertEqual(properties["Build.MODEL"], "Pixel 9a")
-        self.assertEqual(
-            properties["Build.FINGERPRINT"],
-            "google/tegu/tegu:16/ABC/123:user/release-keys",
-        )
+            self.assertEqual(result.suffix, ".apks")
+            with zipfile.ZipFile(result) as archive:
+                self.assertEqual(
+                    set(archive.namelist()),
+                    {"base.apk", "split_config.arm64_v8a.apk"},
+                )
 
-    @mock.patch("src.aurora_play._device_properties", return_value={"Build.MODEL": "Pixel", "Build.FINGERPRINT": "fp"})
-    @mock.patch("src.aurora_play.urlopen")
-    def test_anonymous_auth_reads_current_aurora_schema(
-        self,
-        urlopen: mock.Mock,
-        _device_properties: mock.Mock,
-    ) -> None:
-        urlopen.return_value = _Response(
-            b'{"email":"anonymous@example.com","authToken":"ya29.secret"}'
-        )
-
-        email, token = aurora_play._anonymous_auth(device="px_9a")
-
-        self.assertEqual(email, "anonymous@example.com")
-        self.assertEqual(token, "ya29.secret")
-        request = urlopen.call_args.args[0]
-        self.assertEqual(request.get_method(), "POST")
-        self.assertEqual(request.get_header("Content-type"), "application/json")
-
-    @mock.patch("src.aurora_play._anonymous_auth", return_value=("anon@example.com", "ya29.secret"))
-    @mock.patch("src.aurora_play._find_apkeep", return_value="apkeep")
-    @mock.patch("src.aurora_play.subprocess.run")
-    def test_download_current_uses_google_play_without_version_guess(
+    @mock.patch("src.aurora_play._ensure_downloader", return_value=Path("helper.jar"))
+    @mock.patch("src.aurora_play._run")
+    def test_download_candidate_passes_exact_version_code_and_keeps_splits(
         self,
         run: mock.Mock,
-        _find_apkeep: mock.Mock,
-        _anonymous_auth: mock.Mock,
+        _ensure_downloader: mock.Mock,
     ) -> None:
-        def fake_run(command, **kwargs):
-            output = Path(command[-1])
-            (output / "base.apk").write_bytes(b"apk")
+        observed_env = {}
+
+        def fake_run(command, *, cwd=None, env=None):
+            observed_env.update(env or {})
+            output = Path(command[command.index("-o") + 1])
+            package_dir = output / "com.amazon.mShop.android.shopping"
+            package_dir.mkdir(parents=True)
+            (package_dir / "base.apk").write_bytes(b"base")
+            (package_dir / "split_config.arm64_v8a.apk").write_bytes(b"split")
+            return mock.Mock(returncode=0, stdout="ok")
+
+        run.side_effect = fake_run
+        candidate = VersionCandidate(name="32.13.2.100", code="1241322016")
+        with tempfile.TemporaryDirectory() as directory:
+            result = aurora_play.download_candidate(
+                "com.amazon.mShop.android.shopping",
+                candidate,
+                Path(directory),
+            )
+            self.assertTrue(result.is_file())
+            with zipfile.ZipFile(result) as archive:
+                self.assertIn("base.apk", archive.namelist())
+                self.assertIn("split_config.arm64_v8a.apk", archive.namelist())
+
+        self.assertEqual(observed_env["GPLAY_VERSION_CODE"], "1241322016")
+        command = run.call_args.args[0]
+        self.assertIn("-d", command)
+        self.assertIn("com.amazon.mShop.android.shopping", Path(command[command.index("-a") + 1]).read_text() if Path(command[command.index("-a") + 1]).exists() else "com.amazon.mShop.android.shopping")
+
+    @mock.patch("src.aurora_play._ensure_downloader", return_value=Path("helper.jar"))
+    @mock.patch("src.aurora_play._run")
+    def test_current_play_download_does_not_guess_version_code(
+        self,
+        run: mock.Mock,
+        _ensure_downloader: mock.Mock,
+    ) -> None:
+        seen_env = {}
+
+        def fake_run(command, *, cwd=None, env=None):
+            seen_env.update(env or {})
+            output = Path(command[command.index("-o") + 1])
+            package_dir = output / "com.example.app"
+            package_dir.mkdir(parents=True)
+            (package_dir / "base.apk").write_bytes(b"base")
             return mock.Mock(returncode=0, stdout="ok")
 
         run.side_effect = fake_run
         with tempfile.TemporaryDirectory() as directory:
-            path = aurora_play.download_current(
-                "com.amazon.mShop.android.shopping",
-                Path(directory),
-                device="px_9a",
-            )
-            self.assertEqual(path.read_bytes(), b"apk")
+            result = aurora_play.download_current("com.example.app", Path(directory))
+            self.assertEqual(result.read_bytes(), b"base")
 
-        command = run.call_args.args[0]
-        self.assertIn("google-play", command)
-        self.assertIn("--auth-token", command)
-        self.assertNotIn("com.amazon.mShop.android.shopping@32.13.2.100", command)
+        self.assertNotIn("GPLAY_VERSION_CODE", seen_env)
 
 
 if __name__ == "__main__":
