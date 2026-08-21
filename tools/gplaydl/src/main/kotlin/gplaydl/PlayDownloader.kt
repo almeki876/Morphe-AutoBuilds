@@ -31,16 +31,22 @@ class PlayDownloader(
         }
         require(app.isFree) { "Paid apps are not supported by anonymous gplaydl" }
 
-        // This pinned pure-JVM GPlayApi exposes Play versionCode as Int. Keep
-        // the CLI/policy boundary as Long so callers never truncate silently,
-        // then reject values the API cannot represent before purchase.
-        val versionCode = requestedVersionCode ?: app.versionCode.toLong()
-        require(versionCode in 0..Int.MAX_VALUE.toLong()) {
-            "Google Play versionCode is outside the supported Int range: $versionCode"
+        // The pinned pure-JVM GPlayApi uses Int for versionCode and purchase().
+        // Keep the external CLI boundary as Long, validate before conversion,
+        // then use Int consistently inside the Play API boundary.
+        if (requestedVersionCode != null) {
+            require(requestedVersionCode in 0L..Int.MAX_VALUE.toLong()) {
+                "Requested Google Play versionCode is outside the supported Int range: $requestedVersionCode"
+            }
         }
-        val playFiles = PurchaseHelper(session.authData).purchase(
+        val versionCode: Int = requestedVersionCode?.toInt() ?: app.versionCode
+        require(versionCode >= 0) {
+            "Google Play returned an invalid versionCode: $versionCode"
+        }
+
+        val playFiles: List<PlayFile> = PurchaseHelper(session.authData).purchase(
             packageName,
-            versionCode.toInt(),
+            versionCode,
             app.offerType,
         )
         require(playFiles.isNotEmpty()) {
@@ -48,13 +54,13 @@ class PlayDownloader(
         }
 
         Files.createDirectories(outputDir)
-        val downloaded = playFiles.map { file ->
+        val downloaded: List<Path> = playFiles.map { file ->
             downloadFile(file, outputDir)
         }
         return Result(
             packageName = packageName,
             versionName = app.versionName,
-            versionCode = versionCode,
+            versionCode = versionCode.toLong(),
             files = downloaded,
         )
     }
