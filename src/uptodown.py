@@ -37,12 +37,31 @@ def _entry_matches_candidate(entry: dict, candidate: VersionCandidate) -> bool:
     return candidate.matches(identity.name, identity.code)
 
 
+def _download_url_from_page(page_url: str) -> str | None:
+    """Resolve Uptodown's direct file URL from a concrete download page."""
+    response = utils.cf_aware_get(page_url)
+    response.raise_for_status()
+    soup = BeautifulSoup(response.content, "html.parser")
+    button = soup.find("button", id="detail-download-button")
+    if not button:
+        return None
+
+    onclick = button.get("onclick", "")
+    if onclick and "download-link-deeplink" in onclick and not page_url.endswith("-x"):
+        response = utils.cf_aware_get(page_url + "-x")
+        response.raise_for_status()
+        soup = BeautifulSoup(response.content, "html.parser")
+        button = soup.find("button", id="detail-download-button")
+
+    if button and "data-url" in button.attrs:
+        return f"https://dw.uptodown.com/dwn/{button['data-url']}"
+    return None
+
+
 def get_latest_version(app_name: str, config: dict) -> str:
-    # Generate all possible Uptodown names
     possible_names = generate_possible_uptodown_names(config)
-    
     logging.info(f"Trying {len(possible_names)} possible Uptodown names for {app_name}")
-    
+
     for uptodown_name in possible_names:
         url = f"https://{uptodown_name}.en.uptodown.com/android/versions"
         try:
@@ -58,7 +77,7 @@ def get_latest_version(app_name: str, config: dict) -> str:
                     for candidate in [parse_candidate(span.text.strip())]
                     if candidate is not None
                 ]
-                
+
                 if versions:
                     highest = max(
                         versions,
@@ -70,7 +89,6 @@ def get_latest_version(app_name: str, config: dict) -> str:
                 logging.debug(f"✗ Not found: {url}")
                 continue
             elif response.status_code == 410:
-                # 410 Gone: このスラッグは恒久的に削除されている。次の候補へ。
                 logging.debug(f"✗ Gone (410): {url}")
                 continue
             else:
@@ -78,9 +96,10 @@ def get_latest_version(app_name: str, config: dict) -> str:
         except Exception as e:
             logging.debug(f"Failed for {url}: {str(e)[:50]}...")
             continue
-    
+
     logging.error(f"Could not find Uptodown page for {app_name}")
     return None
+
 
 def get_download_link(
     version: str,
@@ -89,20 +108,42 @@ def get_download_link(
     *,
     candidate: VersionCandidate | None = None,
 ) -> str:
-    # Generate all possible Uptodown names
     possible_names = generate_possible_uptodown_names(config)
-    
     logging.info(f"Searching {len(possible_names)} possible Uptodown names for {app_name} v{version}")
-    
+
     for uptodown_name in possible_names:
         base_url = f"https://{uptodown_name}.en.uptodown.com/android"
         try:
             response = utils.cf_aware_get(f"{base_url}/versions")
             if response.status_code != 200:
                 continue
-                
+
             soup = BeautifulSoup(response.content, "html.parser")
-            data_code = soup.find('h1', id='detail-app-name')['data-code']
+            version_spans = soup.select('#versions-items-list .version')
+            visible_versions = [span.text.strip() for span in version_spans if span.text.strip()]
+            requested = candidate or VersionCandidate(name=version)
+
+            # Uptodown's JSON /versions API is an archive of previous builds and
+            # can omit the current release. The public versions/download pages,
+            # however, list the current release at the top. If the requested
+            # release is the current visible one, resolve it from /download
+            # before searching the old-version API.
+            if visible_versions:
+                current = parse_candidate(visible_versions[0])
+                if current and requested.matches(current.name, current.code):
+                    current_link = _download_url_from_page(f"{base_url}/download")
+                    if current_link:
+                        logging.info(
+                            "✓ Resolved current Uptodown release %s for %s",
+                            requested.describe(),
+                            app_name,
+                        )
+                        return current_link
+
+            app_heading = soup.find('h1', id='detail-app-name')
+            if not app_heading or 'data-code' not in app_heading.attrs:
+                continue
+            data_code = app_heading['data-code']
 
             page = 1
             max_pages = 50
@@ -110,10 +151,10 @@ def get_download_link(
                 response = utils.cf_aware_get(f"{base_url}/apps/{data_code}/versions/{page}")
                 response.raise_for_status()
                 version_data = response.json().get('data', [])
-                
+
                 if not version_data:
                     break
-                    
+
                 for entry in version_data:
                     if (
                         _entry_matches_candidate(entry, candidate)
@@ -122,26 +163,10 @@ def get_download_link(
                     ):
                         version_url_parts = entry["versionURL"]
                         version_url = f"{version_url_parts['url']}/{version_url_parts['extraURL']}/{version_url_parts['versionID']}"
-                        version_page = utils.cf_aware_get(version_url)
-                        version_page.raise_for_status()
-                        soup = BeautifulSoup(version_page.content, "html.parser")
-                        
-                        button = soup.find('button', id='detail-download-button')
-                        if not button:
-                            continue
-                            
-                        onclick = button.get('onclick', '')
-                        if onclick and "download-link-deeplink" in onclick:
-                            version_url += '-x'
-                            version_page = utils.cf_aware_get(version_url)
-                            version_page.raise_for_status()
-                            soup = BeautifulSoup(version_page.content, "html.parser")
-                            button = soup.find('button', id='detail-download-button')
-                        
-                        if button and 'data-url' in button.attrs:
-                            download_url = button['data-url']
-                            return f"https://dw.uptodown.com/dwn/{download_url}"
-                
+                        download_url = _download_url_from_page(version_url)
+                        if download_url:
+                            return download_url
+
                 if all(
                     _natural_version_key(
                         (_entry_candidate(entry) or VersionCandidate(
@@ -156,7 +181,7 @@ def get_download_link(
         except Exception as e:
             logging.debug(f"Pattern {uptodown_name} failed: {str(e)[:50]}...")
             continue
-    
+
     logging.error(f"Version {version} not found for {app_name}")
     return None
 
@@ -176,6 +201,7 @@ def get_download_link_for_candidate(
         raise ValueError("; ".join(errors))
     return None
 
+
 def generate_possible_uptodown_names(config: dict) -> list:
     """Generate deterministic, de-duplicated URL slugs in priority order."""
     app_name = config.get("name", "")
@@ -189,7 +215,6 @@ def generate_possible_uptodown_names(config: dict) -> list:
             possible_names.append(candidate)
             seen.add(candidate)
 
-    # The explicitly configured slug is always tried first.
     add(app_name)
     add(app_name.replace("-", ""))
     add(app_name.replace("-plus", "plus"))
