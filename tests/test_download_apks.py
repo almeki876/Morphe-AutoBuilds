@@ -111,6 +111,69 @@ class DownloadApksTests(unittest.TestCase):
         stage.assert_called_once_with(correct, "com.example.app", "1.2.3", "apkeep")
         record.assert_called_once()
 
+    @mock.patch("src.provenance.record")
+    @mock.patch("scripts.download_apks.apk_cache.stage")
+    @mock.patch("scripts.download_apks.apk_cache.is_valid_apk_archive", return_value=True)
+    @mock.patch("scripts.download_apks.providers.load_config")
+    @mock.patch("scripts.download_apks.providers.download_priority", return_value=["apkpure"])
+    @mock.patch("scripts.download_apks.providers.configured_package", return_value="com.example.app")
+    @mock.patch("scripts.download_apks.utils.get_supported_version_candidates")
+    @mock.patch("scripts.download_apks._find_tools")
+    @mock.patch("scripts.download_apks.downloader.download_platform", return_value=(None, None))
+    @mock.patch("scripts.download_apks.downloader.download_with_apkeep")
+    @mock.patch("scripts.download_apks.aurora_play.download_current")
+    @mock.patch("scripts.download_apks.downloader.download_with_justapk")
+    @mock.patch("scripts.download_apks.apk_identity.validate_identity")
+    def test_opt_in_uses_aurora_after_mislabeled_justapk(
+        self,
+        validate_identity: mock.Mock,
+        download_with_justapk: mock.Mock,
+        aurora_download: mock.Mock,
+        download_with_apkeep: mock.Mock,
+        download_platform: mock.Mock,
+        find_tools: mock.Mock,
+        supported_versions: mock.Mock,
+        configured_package: mock.Mock,
+        download_priority: mock.Mock,
+        load_config: mock.Mock,
+        is_valid_apk_archive: mock.Mock,
+        stage: mock.Mock,
+        record: mock.Mock,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            wrong = root / "wrong.apk"
+            play = root / "play.apk"
+            wrong.write_bytes(b"wrong")
+            play.write_bytes(b"play")
+
+            find_tools.return_value = ([], Path("cli.jar"), Path("patches.mpp"))
+            supported_versions.return_value = [VersionCandidate(name="32.13.2.100")]
+            load_config.return_value = {"google_play_fallback": True}
+            download_with_justapk.return_value = wrong
+            aurora_download.return_value = play
+            validate_identity.side_effect = [
+                ApkIdentityError(
+                    "APK version mismatch: expected 32.13.2.100, actual 32.13.0.100"
+                ),
+                ApkIdentity("com.example.app", "32.13.2.100", "1241322016"),
+            ]
+
+            path, version = download_apks._download("example", "source", "universal")
+
+        self.assertEqual(path, play)
+        self.assertEqual(version, "32.13.2.100")
+        self.assertFalse(wrong.exists())
+        aurora_download.assert_called_once_with("com.example.app", Path("."))
+        download_with_apkeep.assert_not_called()
+        stage.assert_called_once_with(
+            play,
+            "com.example.app",
+            "32.13.2.100",
+            "aurora-google-play",
+        )
+        record.assert_called_once()
+
 
 if __name__ == "__main__":
     unittest.main()
