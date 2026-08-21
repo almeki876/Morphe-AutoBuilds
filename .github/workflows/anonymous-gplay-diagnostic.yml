@@ -1,0 +1,59 @@
+name: Anonymous Google Play Diagnostic
+
+on:
+  push:
+    branches:
+      - chatgpt/anonymous-google-play
+    paths:
+      - .github/workflows/anonymous-gplay-diagnostic.yml
+      - tools/gplaydl/**
+      - src/aurora_play.py
+
+permissions:
+  contents: read
+
+jobs:
+  gplaydl-public-dispenser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Build repo-local gplaydl
+        run: mvn -q -f tools/gplaydl/pom.xml -DskipTests package
+
+      - name: Probe maintained gplaydl dispenser without repository credentials
+        id: anonymous-auth
+        continue-on-error: true
+        env:
+          GPLAY_DISPENSER_URL: https://dispenser.gplaydl.com
+          GPLAY_EMAIL: ''
+          GPLAY_AAS_TOKEN: ''
+          GPLAY_AUTH_TOKEN: ''
+          GPLAYDL_API_KEY: ''
+        run: java -jar tools/gplaydl/target/gplaydl-1.0-SNAPSHOT-all.jar auth
+
+      - name: Download current Yuucho Bankbook from Google Play if anonymous auth works
+        if: steps.anonymous-auth.outcome == 'success'
+        env:
+          GPLAY_DISPENSER_URL: https://dispenser.gplaydl.com
+          GPLAY_EMAIL: ''
+          GPLAY_AAS_TOKEN: ''
+          GPLAY_AUTH_TOKEN: ''
+          GPLAYDL_API_KEY: ''
+        run: |
+          java -jar tools/gplaydl/target/gplaydl-1.0-SNAPSHOT-all.jar \
+            download jp.japanpost.jp_bank.bankbookapp \
+            --output anonymous-play-download
+          find anonymous-play-download -type f -maxdepth 3 -printf '%p %s bytes\n'
+
+      - name: Fail diagnostic when the public anonymous path is unavailable
+        if: steps.anonymous-auth.outcome != 'success'
+        run: |
+          echo 'The maintained gplaydl dispenser no longer permits credential-free anonymous minting.'
+          exit 1
