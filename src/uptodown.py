@@ -58,6 +58,39 @@ def _download_url_from_page(page_url: str) -> str | None:
     return None
 
 
+def _download_page_matches_candidate(
+    page_url: str, candidate: VersionCandidate
+) -> bool:
+    """Check the current download page's primary metadata for a release.
+
+    Uptodown's current HTML can omit the old ``#versions-items-list .version``
+    selector even though the download page still identifies the current release
+    in its title/primary metadata. Only primary metadata is inspected so an
+    older release merely mentioned in the page's archive list is not mistaken
+    for the current download.
+    """
+    response = utils.cf_aware_get(page_url)
+    if response.status_code != 200:
+        return False
+    soup = BeautifulSoup(response.content, "html.parser")
+    primary_texts: list[str] = []
+    if soup.title and soup.title.string:
+        primary_texts.append(soup.title.string.strip())
+    for attrs in (
+        {"property": "og:title"},
+        {"name": "twitter:title"},
+    ):
+        meta = soup.find("meta", attrs=attrs)
+        if meta and meta.get("content"):
+            primary_texts.append(str(meta["content"]).strip())
+    heading = soup.find("h1", id="detail-app-name")
+    if heading:
+        primary_texts.append(heading.get_text(" ", strip=True))
+
+    aliases = candidate.aliases("uptodown")
+    return any(alias and alias in text for alias in aliases for text in primary_texts)
+
+
 def get_latest_version(app_name: str, config: dict) -> str:
     possible_names = generate_possible_uptodown_names(config)
     logging.info(f"Trying {len(possible_names)} possible Uptodown names for {app_name}")
@@ -114,6 +147,24 @@ def get_download_link(
     for uptodown_name in possible_names:
         base_url = f"https://{uptodown_name}.en.uptodown.com/android"
         try:
+            requested = candidate or VersionCandidate(name=version)
+            download_page = f"{base_url}/download"
+
+            # The current release is identified on Uptodown's download page
+            # even when the versions-page CSS selector has changed. Resolve it
+            # directly when the page's primary metadata matches the requested
+            # release. The downloaded APK is still subject to manifest identity
+            # validation by the caller.
+            if _download_page_matches_candidate(download_page, requested):
+                current_link = _download_url_from_page(download_page)
+                if current_link:
+                    logging.info(
+                        "✓ Resolved current Uptodown release %s for %s",
+                        requested.describe(),
+                        app_name,
+                    )
+                    return current_link
+
             response = utils.cf_aware_get(f"{base_url}/versions")
             if response.status_code != 200:
                 continue
@@ -121,17 +172,11 @@ def get_download_link(
             soup = BeautifulSoup(response.content, "html.parser")
             version_spans = soup.select('#versions-items-list .version')
             visible_versions = [span.text.strip() for span in version_spans if span.text.strip()]
-            requested = candidate or VersionCandidate(name=version)
 
-            # Uptodown's JSON /versions API is an archive of previous builds and
-            # can omit the current release. The public versions/download pages,
-            # however, list the current release at the top. If the requested
-            # release is the current visible one, resolve it from /download
-            # before searching the old-version API.
             if visible_versions:
                 current = parse_candidate(visible_versions[0])
                 if current and requested.matches(current.name, current.code):
-                    current_link = _download_url_from_page(f"{base_url}/download")
+                    current_link = _download_url_from_page(download_page)
                     if current_link:
                         logging.info(
                             "✓ Resolved current Uptodown release %s for %s",
