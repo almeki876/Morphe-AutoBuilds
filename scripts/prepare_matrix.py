@@ -105,10 +105,15 @@ def main() -> int:
 
     if build_all:
         matrix = enabled_items
-    elif updated_sources:
-        matrix = [item for item in enabled_items if item.get("source") in updated_sources]
-    elif updated_apps:
-        matrix = [item for item in enabled_items if item.get("app_name") in updated_apps]
+    elif updated_sources or updated_apps:
+        # Source and base-APK updates can happen in the same scheduled check.
+        # Build the union so neither class of change masks the other.
+        matrix = [
+            item
+            for item in enabled_items
+            if item.get("source") in updated_sources
+            or item.get("app_name") in updated_apps
+        ]
     else:
         matrix = []
 
