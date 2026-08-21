@@ -11,7 +11,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from src import apk_cache, apk_identity, downloader, providers, utils
+from src import apk_cache, apk_identity, aurora_play, downloader, providers, utils
 from src.versioning import VersionCandidate, pinned_candidate
 
 
@@ -84,6 +84,18 @@ def _validate_downloaded_identity(
     )
 
 
+def _google_play_fallback_enabled(app_name: str) -> bool:
+    """Return true only when one of the app configs explicitly opts in."""
+    for platform in providers.download_priority(app_name):
+        try:
+            config = providers.load_config(app_name, platform) or {}
+        except Exception:
+            continue
+        if config.get("google_play_fallback") is True:
+            return True
+    return False
+
+
 def _download(app_name: str, source: str, arch: str) -> tuple[Path, str]:
     package = providers.configured_package(app_name)
     if not package:
@@ -138,10 +150,20 @@ def _download(app_name: str, source: str, arch: str) -> tuple[Path, str]:
         VersionCandidate(name=version),
     )
     fallback_errors: list[str] = []
-    for fallback_name, fallback_downloader in (
-        ("justapk", downloader.download_with_justapk),
-        ("apkeep", downloader.download_with_apkeep),
-    ):
+    fallbacks = [("justapk", downloader.download_with_justapk)]
+    if _google_play_fallback_enabled(app_name):
+        fallbacks.append(
+            (
+                "aurora-google-play",
+                lambda pkg, _version, output_dir: aurora_play.download_current(
+                    pkg, output_dir
+                ),
+            )
+        )
+    fallbacks.append(("apkeep", downloader.download_with_apkeep))
+
+    for fallback_name, fallback_downloader in fallbacks:
+        input_apk: Path | None = None
         try:
             input_apk = fallback_downloader(package, version, Path("."))
             if not apk_cache.is_valid_apk_archive(input_apk):
@@ -149,7 +171,8 @@ def _download(app_name: str, source: str, arch: str) -> tuple[Path, str]:
                 raise RuntimeError("returned HTML or a corrupt APK archive")
             _validate_downloaded_identity(input_apk, package, fallback_candidate)
         except apk_identity.ApkIdentityError as error:
-            input_apk.unlink(missing_ok=True)
+            if input_apk is not None:
+                input_apk.unlink(missing_ok=True)
             identity_errors.append(f"{fallback_name}: {error}")
             fallback_errors.append(f"{fallback_name}: {error}")
             logging.warning(
@@ -160,6 +183,8 @@ def _download(app_name: str, source: str, arch: str) -> tuple[Path, str]:
             )
             continue
         except Exception as error:
+            if input_apk is not None:
+                input_apk.unlink(missing_ok=True)
             fallback_errors.append(
                 f"{fallback_name}: {type(error).__name__}: {error}"
             )
