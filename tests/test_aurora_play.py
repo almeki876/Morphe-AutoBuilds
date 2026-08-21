@@ -84,6 +84,12 @@ class AuroraPlayTests(unittest.TestCase):
         self.assertNotIn("--version-code", command)
         self.assertEqual(command[command.index("download") + 1], "com.example.app")
 
+    @mock.patch("src.aurora_play._ensure_downloader")
+    def test_adguard_never_touches_google_play(self, ensure_downloader: mock.Mock) -> None:
+        with self.assertRaises(aurora_play.GooglePlayDisabled):
+            aurora_play.download_current("com.adguard.android", Path("."))
+        ensure_downloader.assert_not_called()
+
 
 if __name__ == "__main__":
     unittest.main()
