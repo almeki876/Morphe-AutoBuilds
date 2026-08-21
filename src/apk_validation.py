@@ -40,7 +40,7 @@ def validate_apk(path: Path, expected_abi: str | None = None) -> set[str]:
         for name in names
         if (match := _ABI_PATH_RE.match(name))
     }
-    if expected_abi and abis and expected_abi not in abis:
+    if expected_abi and expected_abi != "universal" and abis and expected_abi not in abis:
         raise ApkValidationError(
             f"APK has no native libraries for requested ABI {expected_abi}; "
             f"found: {', '.join(sorted(abis))}"

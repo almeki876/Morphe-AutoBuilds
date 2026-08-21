@@ -1136,7 +1136,8 @@ def run_build(app_name: str, source: str, arch: str = "universal") -> str:
             "APK_VALIDATION_FAILED",
             f"architecture filtering invalidated input APK: {error}",
         ) from error
-    logging.info("[SIZE] prepared: %d bytes (%s)", input_apk.stat().st_size, input_apk.name)
+    prepared_size = input_apk.stat().st_size
+    logging.info("[SIZE] prepared: %d bytes (%s)", prepared_size, input_apk.name)
 
     # ── 7. Build patch selection (dynamic from patches-list.json) ───────────
     enables, disables = _build_patch_flags(
@@ -1211,14 +1212,13 @@ def run_build(app_name: str, source: str, arch: str = "universal") -> str:
         ", ".join(sorted(output_abis)) or "none",
     )
     logging.info("[SIZE] patched: %d bytes (%s)", output_apk.stat().st_size, output_apk.name)
-    input_size = input_apk.stat().st_size
     output_size = output_apk.stat().st_size
-    if input_size and output_size / input_size < 0.25:
+    if prepared_size and output_size / prepared_size < 0.25:
         logging.warning(
             "Patched APK is only %.1f%% of the filtered input size (%d -> %d bytes); "
             "review the patch output carefully",
-            output_size / input_size * 100,
-            input_size,
+            output_size / prepared_size * 100,
+            prepared_size,
             output_size,
         )
 

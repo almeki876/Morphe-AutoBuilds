@@ -29,6 +29,18 @@ class ApkValidationTests(unittest.TestCase):
         with self.assertRaises(ApkValidationError):
             validate_apk(path)
 
+    def test_accepts_multiple_abis_for_universal(self) -> None:
+        path = self._apk([
+            "AndroidManifest.xml",
+            "classes.dex",
+            "lib/arm64-v8a/libapp.so",
+            "lib/armeabi-v7a/libapp.so",
+        ])
+        self.assertEqual(
+            validate_apk(path, "universal"),
+            {"arm64-v8a", "armeabi-v7a"},
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
