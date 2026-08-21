@@ -14,6 +14,15 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from src import apk_cache, apk_identity, aurora_play, downloader, providers, utils
 from src.versioning import VersionCandidate, pinned_candidate
 
+# Yuucho apps intentionally track the current Google Play release. Their GitHub
+# configs remain as a fallback only when Google Play cannot serve the app.
+CURRENT_PLAY_PACKAGES = frozenset(
+    {
+        "jp.japanpost.jp_bank.FIDOapp",
+        "jp.japanpost.jp_bank.bankbookapp",
+    }
+)
+
 
 def _find_tools(source: str) -> tuple[list[Path], Path, Path]:
     files, source_name = downloader.download_required(source)
@@ -56,14 +65,18 @@ def _expected_candidate(
 
 def _preferred_play_candidate(
     app_name: str,
+    package: str,
     candidates: list[VersionCandidate],
 ) -> VersionCandidate | None:
     """Choose the release Play should try without guessing a versionCode.
 
-    Patch-bundle compatibility wins. If the bundle is unpinned/Any, retain an
+    Yuucho explicitly tracks the current Play release. For other apps patch-
+    bundle compatibility wins. If the bundle is unpinned/Any, retain an
     explicit app-level pin when one exists. Otherwise ``None`` means current
     Google Play release.
     """
+    if package in CURRENT_PLAY_PACKAGES:
+        return None
     if candidates:
         return candidates[0]
     for platform in providers.download_priority(app_name):
@@ -136,12 +149,12 @@ def _download(app_name: str, source: str, arch: str) -> tuple[Path, str]:
     candidates = utils.get_supported_version_candidates(package, str(cli), str(bundle))
     identity_errors: list[str] = []
 
-    # Google Play is the preferred origin for every app. Aurora/GPlayApi asks
-    # Google Play for the base APK and all required split APKs. If the requested
-    # release has a known versionCode it is supplied to PurchaseHelper directly;
-    # otherwise Play's current AppDetails versionCode is used and the manifest
-    # gate below verifies that it is the patch-compatible release.
-    play_candidate = _preferred_play_candidate(app_name, candidates)
+    # Google Play is the preferred origin for every app except explicit
+    # GitHub-only packages such as AdGuard. Aurora/GPlayApi asks Google Play for
+    # the base APK and all required split APKs. If the requested release has a
+    # known versionCode it is supplied to PurchaseHelper directly; otherwise
+    # Play's current AppDetails versionCode is used.
+    play_candidate = _preferred_play_candidate(app_name, package, candidates)
     play_input: Path | None = None
     try:
         play_input = aurora_play.download_candidate(package, play_candidate, Path("."))
@@ -153,6 +166,8 @@ def _download(app_name: str, source: str, arch: str) -> tuple[Path, str]:
         _record_play_download(app_name, package, arch, play_input, version)
         logging.info("✅ Google Play selected as APK origin for %s v%s", app_name, version)
         return play_input, version
+    except aurora_play.GooglePlayDisabled as error:
+        logging.info("⏭️  %s; using configured provider policy", error)
     except apk_identity.ApkIdentityError as error:
         if play_input is not None:
             play_input.unlink(missing_ok=True)
