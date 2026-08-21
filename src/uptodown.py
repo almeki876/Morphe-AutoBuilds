@@ -111,9 +111,6 @@ def _api_app_id(package: str) -> int | str | None:
                 logging.info("Uptodown API resolved app id from package endpoint")
                 return app_id
 
-    # The maintained justapk provider uses the package search endpoint when
-    # byPackagename does not return an id. Require an exact package match so a
-    # similarly named app can never be substituted.
     response = _api_get(
         f"/v2/apps/search/{package}?page[limit]=5&page[offset]=0"
     )
@@ -294,6 +291,12 @@ def _download_page_matches_candidate(
     heading = soup.find("h1", id="detail-app-name")
     if heading:
         primary_texts.append(heading.get_text(" ", strip=True))
+
+    # The current release is exposed in the download header as div.version.
+    # Do not scan the whole page because it also contains older-version history.
+    current_version = soup.select_one("div.version")
+    if current_version:
+        primary_texts.append(current_version.get_text(" ", strip=True))
 
     aliases = candidate.aliases("uptodown")
     return any(alias and alias in text for alias in aliases for text in primary_texts)
