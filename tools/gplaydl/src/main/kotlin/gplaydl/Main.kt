@@ -3,6 +3,8 @@ package gplaydl
 import java.nio.file.Path
 import java.util.Locale
 
+private const val DEFAULT_AURORA_DISPENSER_URL = "https://auroraoss.com/api/auth"
+
 private data class CliOptions(
     val command: String,
     val packages: List<String>,
@@ -55,7 +57,10 @@ private fun authenticatedSession(options: CliOptions): Pair<GPlaySession, String
     val email = System.getenv("GPLAY_EMAIL").orEmpty().trim()
     val aasToken = System.getenv("GPLAY_AAS_TOKEN").orEmpty().trim()
     val authToken = System.getenv("GPLAY_AUTH_TOKEN").orEmpty().trim()
-    val dispenserUrl = System.getenv("AURORA_DISPENSER_URL").orEmpty().trim()
+    val dispenserUrl = System.getenv("AURORA_DISPENSER_URL")
+        .orEmpty()
+        .trim()
+        .ifBlank { DEFAULT_AURORA_DISPENSER_URL }
 
     return when {
         email.isNotBlank() && aasToken.isNotBlank() ->
@@ -64,19 +69,13 @@ private fun authenticatedSession(options: CliOptions): Pair<GPlaySession, String
         email.isNotBlank() && authToken.isNotBlank() ->
             GPlaySession.authToken(email, authToken, properties, options.locale) to "repository AUTH credentials"
 
-        dispenserUrl.isNotBlank() -> {
+        else -> {
             val dispenserAuth = AnonymousAuthClient(
                 dispenserUrl = dispenserUrl,
                 userAgent = options.userAgent,
             ).login(properties)
-            GPlaySession.anonymous(dispenserAuth, properties, options.locale) to "configured Aurora dispenser"
+            GPlaySession.anonymous(dispenserAuth, properties, options.locale) to "Aurora anonymous dispenser"
         }
-
-        else -> error(
-            "Google Play authentication is not configured. Set GPLAY_EMAIL with " +
-                "GPLAY_AAS_TOKEN or GPLAY_AUTH_TOKEN, or configure a self-hosted " +
-                "AURORA_DISPENSER_URL."
-        )
     }
 }
 
