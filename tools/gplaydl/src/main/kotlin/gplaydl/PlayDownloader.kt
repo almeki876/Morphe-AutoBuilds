@@ -31,10 +31,16 @@ class PlayDownloader(
         }
         require(app.isFree) { "Paid apps are not supported by anonymous gplaydl" }
 
-        val versionCode = requestedVersionCode ?: app.versionCode
+        // This pinned pure-JVM GPlayApi exposes Play versionCode as Int. Keep
+        // the CLI/policy boundary as Long so callers never truncate silently,
+        // then reject values the API cannot represent before purchase.
+        val versionCode = requestedVersionCode ?: app.versionCode.toLong()
+        require(versionCode in 0..Int.MAX_VALUE.toLong()) {
+            "Google Play versionCode is outside the supported Int range: $versionCode"
+        }
         val playFiles = PurchaseHelper(session.authData).purchase(
             packageName,
-            versionCode,
+            versionCode.toInt(),
             app.offerType,
         )
         require(playFiles.isNotEmpty()) {
