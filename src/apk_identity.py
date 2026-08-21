@@ -1,4 +1,4 @@
-"""Read and validate package/version identity from plain APK files."""
+"""Read and validate package/version identity from APK inputs."""
 
 from __future__ import annotations
 
@@ -7,6 +7,8 @@ import os
 import re
 import shutil
 import subprocess
+import tempfile
+import zipfile
 from pathlib import Path
 
 from src.versioning import VersionCandidate
@@ -59,7 +61,9 @@ def find_aapt() -> str | None:
         if found:
             return found
 
-    executable_names = ("aapt.exe", "aapt2.exe") if os.name == "nt" else ("aapt", "aapt2")
+    executable_names = (
+        ("aapt.exe", "aapt2.exe") if os.name == "nt" else ("aapt", "aapt2")
+    )
     for directory in _build_tools_dirs():
         for name in executable_names:
             candidate = directory / name
@@ -81,15 +85,7 @@ def parse_badging(output: str) -> ApkIdentity:
     )
 
 
-def read_identity(path: Path) -> ApkIdentity:
-    """Return package/version identity for a plain APK."""
-    if path.suffix.casefold() != ".apk":
-        raise ApkIdentityError(f"identity inspection requires a plain .apk: {path}")
-    aapt = find_aapt()
-    if not aapt:
-        raise ApkIdentityError(
-            "Android build-tools aapt/aapt2 was not found; cannot verify APK identity"
-        )
+def _read_plain_apk_identity(path: Path, aapt: str) -> ApkIdentity:
     try:
         result = subprocess.run(
             [aapt, "dump", "badging", str(path)],
@@ -109,12 +105,65 @@ def read_identity(path: Path) -> ApkIdentity:
     return parse_badging(result.stdout)
 
 
+def _nested_apk_priority(name: str) -> tuple[int, str]:
+    normalized = name.replace("\\", "/").casefold()
+    basename = normalized.rsplit("/", 1)[-1]
+    if basename == "base.apk":
+        return (0, normalized)
+    if "base-master" in basename or basename.startswith("base-"):
+        return (1, normalized)
+    return (2, normalized)
+
+
+def read_identity(path: Path) -> ApkIdentity:
+    """Return package/version identity for a plain APK or split container."""
+    aapt = find_aapt()
+    if not aapt:
+        raise ApkIdentityError(
+            "Android build-tools aapt/aapt2 was not found; cannot verify APK identity"
+        )
+
+    if path.suffix.casefold() == ".apk":
+        return _read_plain_apk_identity(path, aapt)
+
+    try:
+        with zipfile.ZipFile(path) as archive:
+            nested = sorted(
+                (
+                    name for name in archive.namelist()
+                    if name.casefold().endswith(".apk") and not name.endswith("/")
+                ),
+                key=_nested_apk_priority,
+            )
+            if not nested:
+                raise ApkIdentityError(
+                    f"split container contains no nested APK files: {path}"
+                )
+
+            errors: list[str] = []
+            with tempfile.TemporaryDirectory(prefix="apk-identity-") as directory:
+                for index, name in enumerate(nested):
+                    extracted = Path(directory) / f"candidate-{index}.apk"
+                    with archive.open(name) as source, extracted.open("wb") as target:
+                        shutil.copyfileobj(source, target)
+                    try:
+                        return _read_plain_apk_identity(extracted, aapt)
+                    except ApkIdentityError as error:
+                        errors.append(f"{name}: {error}")
+    except zipfile.BadZipFile as error:
+        raise ApkIdentityError(f"APK input is not a readable ZIP archive: {path}") from error
+
+    raise ApkIdentityError(
+        f"could not read identity from nested APKs in {path}: {'; '.join(errors[:3])}"
+    )
+
+
 def validate_identity(
     path: Path,
     expected_package: str,
     expected_candidate: VersionCandidate | None = None,
 ) -> ApkIdentity:
-    """Verify package and optional release identity for one plain APK."""
+    """Verify package and optional release identity for one APK input."""
     identity = read_identity(path)
     if identity.package_name != expected_package:
         raise ApkIdentityError(
