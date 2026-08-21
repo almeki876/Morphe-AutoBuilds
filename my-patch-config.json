@@ -143,7 +143,7 @@
     {"app_name":"inshot","source":"hoomans","disable":[]},
     {"app_name":"ilovepdf","source":"lain","disable":[]},
     {"app_name":"gboard","source":"jason","disable":[]},
-    {"app_name":"gboard","source":"adobo","disable":[],"force_enable":["Enable OCR feature","Enable Undo feature","Enable access points menu redesign","Enable key shape selection","Toggle feature flags"]},
+    {"app_name":"gboard","source":"adobo","disable":[],"force_enable":["Enable OCR feature","Enable Undo feature","Enable access points menu redesign","Enable key shape selection"]},
     {"app_name":"gboard","source":"morning-entree","disable":[],"force_enable":["Always incognito mode","Block tracking and analytics","Change package name"]},
     {"app_name":"prime-video-android-tv","source":"ajstrick81","disable":[]},
     {"app_name":"poweramp","source":"hoomans","disable":[]},
