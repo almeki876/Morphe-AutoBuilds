@@ -45,3 +45,6 @@ jobs:
           "from src import providers;
           errors = providers.validate_all_configs();
           assert not errors, errors"
+
+      - name: Run Unit Tests
+        run: python3 -m unittest discover tests
