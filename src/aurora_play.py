@@ -32,6 +32,11 @@ class GooglePlayDisabled(RuntimeError):
     """Raised when repository policy forbids Google Play for an app."""
 
 
+def google_play_enabled(package: str) -> bool:
+    """Return whether repository policy allows contacting Google Play."""
+    return package not in GITHUB_ONLY_PACKAGES
+
+
 def _run(
     command: list[str],
     *,
@@ -94,7 +99,7 @@ def download_candidate(
     output_dir: Path | None = None,
 ) -> Path:
     """Download a Play release, purchasing ``candidate.code`` when known."""
-    if package in GITHUB_ONLY_PACKAGES:
+    if not google_play_enabled(package):
         raise GooglePlayDisabled(
             f"Google Play is disabled by repository policy for {package}; use GitHub"
         )
