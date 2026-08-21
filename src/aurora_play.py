@@ -1,36 +1,28 @@
-"""Google Play APK downloads through the pinned anonymous gplaydl 2.x client.
+"""Google Play APK downloads through the repo-local gplaydl CLI.
 
-The repository prefers Google Play bodies whenever possible. gplaydl 2.x obtains
-short-lived anonymous Play credentials from Aurora Store's public token
-dispenser, purchases an exact versionCode when supplied, and downloads the
-complete Play file set (base plus split APKs). The caller validates
-package/version identity before accepting or caching the result.
+APK bodies should come from Google Play whenever possible. gplaydl obtains a
+short-lived Play session from an explicitly configured token dispenser (or
+repository credentials), creates a GPlayApi session, purchases an exact
+versionCode when supplied, and downloads the complete Play file set (base plus
+split APKs). The caller validates package/version identity before accepting or
+caching the result.
 """
 
 from __future__ import annotations
 
-import importlib.util
-import json
 import logging
 import os
 import shutil
 import subprocess
-import sys
 import tempfile
-import time
 import zipfile
 from pathlib import Path
 
 from src.versioning import VersionCandidate
 
-GPLAYDL_MODULE = "gplaydl"
-DEFAULT_GPLAY_ARCH = "arm64"
-DEFAULT_AURORA_DISPENSER = "https://auroraoss.com/api/auth"
-AURORA_USER_AGENTS = (
-    "com.aurora.store-4.8.4-76",
-    "com.aurora.store-4.8.3-75",
-    "com.aurora.store-4.6.1-70",
-)
+GPLAYDL_PROJECT = Path("tools/gplaydl/pom.xml")
+GPLAYDL_JAR = Path("tools/gplaydl/target/gplaydl-1.0-SNAPSHOT-all.jar")
+DEFAULT_DISPENSER_USER_AGENT = "Morphe-AutoBuilds-gplaydl/1.0"
 
 # Apps that are intentionally distributed from an upstream GitHub release
 # rather than Google Play. Keep this list narrow and explicit.
@@ -63,72 +55,22 @@ def _run(
     )
 
 
-def _ensure_downloader() -> list[str]:
-    """Return the pinned Python gplaydl CLI invocation."""
-    if importlib.util.find_spec(GPLAYDL_MODULE) is None:
-        raise FileNotFoundError(
-            "gplaydl is required for anonymous Google Play downloads; "
-            "install requirements.txt"
-        )
-    return [sys.executable, "-m", GPLAYDL_MODULE]
+def _ensure_downloader() -> Path:
+    """Build the checked-in JVM CLI rather than cloning executable code."""
+    if GPLAYDL_JAR.is_file() and GPLAYDL_JAR.stat().st_size > 0:
+        return GPLAYDL_JAR
+    if not GPLAYDL_PROJECT.is_file():
+        raise FileNotFoundError(f"gplaydl project not found: {GPLAYDL_PROJECT}")
+    if shutil.which("mvn") is None:
+        raise FileNotFoundError("mvn is required to build the repo-local gplaydl CLI")
 
-
-def _refresh_anonymous_auth(arch: str) -> None:
-    """Mint and cache an anonymous Aurora token using current Store UAs.
-
-    gplaydl 2.1.7 hard-codes an older Aurora Store user-agent. Aurora's token
-    dispenser can reject stale clients, so try the current stable identifiers
-    first while still using gplaydl's checked-in device profiles and cache
-    format. No Google account or repository secret is used.
-    """
-    import httpx
-    from gplaydl.profiles import FALLBACK_PROFILE, get_priority_profiles
-
-    profiles = get_priority_profiles(arch) or [("fallback", FALLBACK_PROFILE)]
-    dispenser = os.getenv("AURORA_DISPENSER_URL", DEFAULT_AURORA_DISPENSER)
-    attempts: list[str] = []
-
-    for user_agent in AURORA_USER_AGENTS:
-        headers = {
-            "User-Agent": user_agent,
-            "Content-Type": "application/json",
-        }
-        for profile_name, profile in profiles:
-            try:
-                response = httpx.post(
-                    dispenser,
-                    json=profile,
-                    headers=headers,
-                    timeout=30,
-                    follow_redirects=True,
-                )
-            except Exception as exc:
-                attempts.append(f"{user_agent}/{profile_name}: {type(exc).__name__}")
-                continue
-
-            attempts.append(f"{user_agent}/{profile_name}: HTTP {response.status_code}")
-            if response.status_code != 200:
-                continue
-            try:
-                data = response.json()
-            except Exception:
-                continue
-            if not data.get("authToken"):
-                continue
-
-            config_dir = Path.home() / ".config" / "gplaydl"
-            config_dir.mkdir(parents=True, exist_ok=True)
-            data["_cached_at"] = time.time()
-            auth_path = config_dir / f"auth-{arch}.json"
-            auth_path.write_text(json.dumps(data))
-            logging.info(
-                "🌌 Anonymous Google Play auth succeeded with Aurora client %s",
-                user_agent,
-            )
-            return
-
-    summary = "; ".join(attempts[-12:])
-    raise RuntimeError(f"Aurora anonymous auth rejected all profiles: {summary}")
+    result = _run(
+        ["mvn", "-q", "-f", str(GPLAYDL_PROJECT), "-DskipTests", "package"]
+    )
+    if result.returncode != 0 or not GPLAYDL_JAR.is_file():
+        tail = "\n".join((result.stdout or "").splitlines()[-50:])
+        raise RuntimeError(f"could not build repo-local gplaydl CLI: {tail}")
+    return GPLAYDL_JAR
 
 
 def _package_apks(apk_files: list[Path], package: str, output_dir: Path) -> Path:
@@ -157,7 +99,7 @@ def download_candidate(
     candidate: VersionCandidate | None,
     output_dir: Path | None = None,
 ) -> Path:
-    """Download a Play release, requesting ``candidate.code`` when known."""
+    """Download a Play release, purchasing ``candidate.code`` when known."""
     if not google_play_enabled(package):
         raise GooglePlayDisabled(
             f"Google Play is disabled by repository policy for {package}; use GitHub"
@@ -165,30 +107,26 @@ def download_candidate(
 
     output_dir = output_dir or Path(".")
     output_dir.mkdir(parents=True, exist_ok=True)
-    cli = _ensure_downloader()
-    arch = os.getenv("GPLAY_ARCH", DEFAULT_GPLAY_ARCH)
-
-    env = os.environ.copy()
-    env.pop("GPLAYDL_API_KEY", None)
-    env["GPLAYDL_NO_BANNER"] = "1"
-
-    _refresh_anonymous_auth(arch)
+    jar = _ensure_downloader()
 
     with tempfile.TemporaryDirectory(prefix="google-play-", dir=output_dir) as tmp:
         downloads = Path(tmp) / "downloads"
         downloads.mkdir()
         command = [
-            *cli,
+            "java",
+            "-jar",
+            str(jar.resolve()),
             "download",
             package,
-            "-o",
+            "--output",
             str(downloads.resolve()),
-            "-a",
-            arch,
+            "--aurora-user-agent",
+            os.getenv("GPLAY_DISPENSER_USER_AGENT", DEFAULT_DISPENSER_USER_AGENT),
+            "--locale",
+            os.getenv("GPLAY_LOCALE", "ja-JP"),
         ]
-
         if candidate and candidate.code:
-            command.extend(["-v", str(candidate.code)])
+            command.extend(["--version-code", str(candidate.code)])
             logging.info(
                 "🌌 Google Play first: package=%s exact-versionCode=%s (%s)",
                 package,
@@ -202,12 +140,18 @@ def download_candidate(
                 f" (wanted versionName {candidate.name})" if candidate else "",
             )
 
-        result = _run(command, env=env)
+        result = _run(command)
         if result.returncode != 0:
+            # gplaydl never prints the auth token; still keep failure output
+            # bounded so provider HTML or unrelated diagnostics cannot flood
+            # Actions logs.
             tail = "\n".join((result.stdout or "").splitlines()[-35:])
             raise RuntimeError(f"gplaydl exited non-zero: {tail}")
 
-        apk_files = list(downloads.rglob("*.apk"))
+        package_dir = downloads / package
+        apk_files = list(package_dir.glob("*.apk")) if package_dir.is_dir() else []
+        if not apk_files:
+            apk_files = list(downloads.rglob("*.apk"))
         if not apk_files:
             tail = "\n".join((result.stdout or "").splitlines()[-20:])
             raise IOError(
