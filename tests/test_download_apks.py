@@ -4,7 +4,6 @@ from pathlib import Path
 from unittest import mock
 
 from scripts import download_apks
-from src import aurora_play
 from src.apk_identity import ApkIdentity, ApkIdentityError
 from src.versioning import VersionCandidate
 
@@ -44,7 +43,6 @@ class DownloadApksTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             github_apk = Path(directory) / "adguard.apk"
             github_apk.write_bytes(b"apk")
-            play_download.side_effect = aurora_play.GooglePlayDisabled("github only")
             download_platform.return_value = (github_apk, "4.9.2")
             validate_identity.return_value = ApkIdentity(
                 "com.adguard.android", "4.9.2", "40090200"
@@ -54,8 +52,37 @@ class DownloadApksTests(unittest.TestCase):
 
         self.assertEqual(path, github_apk)
         self.assertEqual(version, "4.9.2")
-        play_download.assert_called_once_with("com.adguard.android", None, Path("."))
+        play_download.assert_not_called()
         download_platform.assert_called_once()
+
+    @mock.patch("scripts.download_apks.downloader.download_with_apkeep")
+    @mock.patch("scripts.download_apks.downloader.download_with_justapk")
+    @mock.patch("scripts.download_apks._cache_snapshot", return_value=set())
+    @mock.patch("scripts.download_apks.providers.download_priority", return_value=["github"])
+    @mock.patch("scripts.download_apks.providers.configured_package", return_value="com.adguard.android")
+    @mock.patch("scripts.download_apks.utils.get_supported_version_candidates", return_value=[])
+    @mock.patch("scripts.download_apks._find_tools", return_value=([], Path("cli.jar"), Path("patches.mpp")))
+    @mock.patch("scripts.download_apks.downloader.download_platform", return_value=(None, None))
+    @mock.patch("scripts.download_apks.aurora_play.download_candidate")
+    def test_adguard_refuses_mirror_fallback_when_github_fails(
+        self,
+        play_download: mock.Mock,
+        download_platform: mock.Mock,
+        find_tools: mock.Mock,
+        supported_versions: mock.Mock,
+        configured_package: mock.Mock,
+        download_priority: mock.Mock,
+        cache_snapshot: mock.Mock,
+        justapk: mock.Mock,
+        apkeep: mock.Mock,
+    ) -> None:
+        with self.assertRaisesRegex(RuntimeError, "GitHub-only provider failed"):
+            download_apks._download("adguard", "source", "universal")
+
+        play_download.assert_not_called()
+        download_platform.assert_called_once()
+        justapk.assert_not_called()
+        apkeep.assert_not_called()
 
     @mock.patch("src.provenance.record")
     @mock.patch("scripts.download_apks.apk_cache.stage")
