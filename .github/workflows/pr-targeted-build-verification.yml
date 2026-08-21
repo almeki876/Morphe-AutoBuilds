@@ -1,9 +1,9 @@
 name: PR Targeted Build Verification
 
 on:
-  push:
+  pull_request:
     branches:
-      - chatgpt/resolve-open-build-issues
+      - main
     paths:
       - .github/workflows/pr-targeted-build-verification.yml
 
@@ -13,14 +13,13 @@ permissions:
 
 jobs:
   dispatch:
-    if: github.event.head_commit.message == 'Run targeted build verification'
     runs-on: ubuntu-latest
     steps:
       - name: Dispatch unresolved app builds on this branch
         env:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
-          REF: ${{ github.ref_name }}
+          REF: ${{ github.head_ref }}
         run: |
           gh workflow run build.yml \
             --repo "$REPO" \
