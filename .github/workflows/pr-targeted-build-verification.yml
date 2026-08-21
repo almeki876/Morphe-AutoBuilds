@@ -5,7 +5,18 @@ on:
     branches:
       - main
     paths:
-      - .github/workflows/pr-targeted-build-verification.yml
+      - '.github/workflows/build.yml'
+      - '.github/workflows/check-upstream.yml'
+      - '.github/workflows/pr-targeted-build-verification.yml'
+      - 'scripts/download_all_tools.py'
+      - 'scripts/download_apks.py'
+      - 'scripts/prepare_matrix.py'
+      - 'scripts/check_upstream_sources.py'
+      - 'src/**'
+      - 'sources/**'
+      - 'apps/**'
+      - 'my-patch-config.json'
+      - 'arch-config.json'
 
 permissions:
   actions: write
@@ -15,7 +26,7 @@ jobs:
   dispatch:
     runs-on: ubuntu-latest
     steps:
-      - name: Dispatch unresolved app builds on this branch
+      - name: Dispatch regression build set on this branch
         env:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
