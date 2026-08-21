@@ -9,6 +9,7 @@ before accepting or caching the result.
 
 from __future__ import annotations
 
+import hashlib
 import logging
 import os
 import shutil
@@ -20,7 +21,9 @@ from pathlib import Path
 from src.versioning import VersionCandidate
 
 GPLAYDL_PROJECT = Path("tools/gplaydl/pom.xml")
+GPLAYDL_SOURCE_ROOT = Path("tools/gplaydl/src")
 GPLAYDL_JAR = Path("tools/gplaydl/target/gplaydl-1.0-SNAPSHOT-all.jar")
+GPLAYDL_FINGERPRINT = Path("tools/gplaydl/target/gplaydl-source.sha256")
 DEFAULT_AURORA_USER_AGENT = "com.aurora.store-4.8.4-76"
 
 # Apps that are intentionally distributed from an upstream GitHub release
@@ -54,21 +57,50 @@ def _run(
     )
 
 
-def _ensure_downloader() -> Path:
-    """Build the checked-in JVM CLI rather than cloning executable code."""
-    if GPLAYDL_JAR.is_file() and GPLAYDL_JAR.stat().st_size > 0:
-        return GPLAYDL_JAR
+def _gplaydl_source_fingerprint() -> str:
+    """Hash every checked-in input that changes the repo-local gplaydl binary."""
     if not GPLAYDL_PROJECT.is_file():
         raise FileNotFoundError(f"gplaydl project not found: {GPLAYDL_PROJECT}")
+
+    digest = hashlib.sha256()
+    inputs = [GPLAYDL_PROJECT]
+    if GPLAYDL_SOURCE_ROOT.is_dir():
+        inputs.extend(sorted(path for path in GPLAYDL_SOURCE_ROOT.rglob("*") if path.is_file()))
+    for path in inputs:
+        digest.update(path.as_posix().encode("utf-8"))
+        digest.update(b"\0")
+        digest.update(path.read_bytes())
+        digest.update(b"\0")
+    return digest.hexdigest()
+
+
+def _ensure_downloader() -> Path:
+    """Build the checked-in JVM CLI and never trust a stale restored JAR."""
+    fingerprint = _gplaydl_source_fingerprint()
+    cached_fingerprint = ""
+    if GPLAYDL_FINGERPRINT.is_file():
+        cached_fingerprint = GPLAYDL_FINGERPRINT.read_text(encoding="utf-8").strip()
+
+    if (
+        GPLAYDL_JAR.is_file()
+        and GPLAYDL_JAR.stat().st_size > 0
+        and cached_fingerprint == fingerprint
+    ):
+        return GPLAYDL_JAR
+
     if shutil.which("mvn") is None:
         raise FileNotFoundError("mvn is required to build the repo-local gplaydl CLI")
 
+    logging.info("🔧 Building repo-local gplaydl because the cached binary is missing or stale")
     result = _run(
         ["mvn", "-q", "-f", str(GPLAYDL_PROJECT), "-DskipTests", "package"]
     )
     if result.returncode != 0 or not GPLAYDL_JAR.is_file():
         tail = "\n".join((result.stdout or "").splitlines()[-50:])
         raise RuntimeError(f"could not build repo-local gplaydl CLI: {tail}")
+
+    GPLAYDL_FINGERPRINT.parent.mkdir(parents=True, exist_ok=True)
+    GPLAYDL_FINGERPRINT.write_text(fingerprint + "\n", encoding="utf-8")
     return GPLAYDL_JAR
 
 
