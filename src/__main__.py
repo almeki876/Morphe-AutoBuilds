@@ -354,22 +354,36 @@ def _build_option_flags(options: list[PatchOption], cli_ver: str) -> list[str]:
 # ---------------------------------------------------------------------------
 
 _FAILED_PATCH_RE = re.compile(r"SEVERE:\s+FAILED:\s*(?P<name>.+?)\s*$", re.IGNORECASE)
+_APPLYING_PATCHES_RE = re.compile(r"INFO:\s+Applying\s+(?P<count>\d+)\s+patches?\.\.\.", re.IGNORECASE)
+_APPLIED_PATCH_RE = re.compile(r"INFO:\s+Applied:\s*(?P<name>.+?)\s*$", re.IGNORECASE)
 _FINGERPRINT_FAILURE_RE = re.compile(
     r"PatchException:\s+Failed to match the fingerprint", re.IGNORECASE
 )
 
 
 class PatchFailureParser:
-    """Extract patches skipped by a CLI running with continue-on-error."""
+    """Extract actual patch outcomes from CLI output."""
 
     def __init__(self) -> None:
         self.failed_patches: list[str] = []
+        self.applied_patches: list[str] = []
+        self.applying_count: int | None = None
         self._fingerprint_failure_seen = False
 
     def __call__(self, line: str) -> None:
-        match = _FAILED_PATCH_RE.search(line)
-        if match:
-            name = match.group("name").strip()
+        applying_match = _APPLYING_PATCHES_RE.search(line)
+        if applying_match:
+            self.applying_count = int(applying_match.group("count"))
+
+        applied_match = _APPLIED_PATCH_RE.search(line)
+        if applied_match:
+            name = applied_match.group("name").strip()
+            if name and name not in self.applied_patches:
+                self.applied_patches.append(name)
+
+        failed_match = _FAILED_PATCH_RE.search(line)
+        if failed_match:
+            name = failed_match.group("name").strip()
             if name and name not in self.failed_patches:
                 self.failed_patches.append(name)
         if _FINGERPRINT_FAILURE_RE.search(line):
@@ -379,6 +393,9 @@ class PatchFailureParser:
         if self._fingerprint_failure_seen and not self.failed_patches:
             return ["Unknown"]
         return list(self.failed_patches)
+
+    def applied_result(self) -> list[str]:
+        return list(self.applied_patches)
 
 def _log_available_patches(cli: Path, bundle: Path) -> None:
     """Run list-patches and log the output for debugging. Never fatal."""
@@ -842,16 +859,23 @@ def _write_build_report(
     error_summary: str | None = None,
     failed_patches: list[str] | None = None,
     required_patches: list[str] | None = None,
+    applied_patches: list[str] | None = None,
+    applying_count: int | None = None,
 ) -> None:
     """Persist patch selection for the workflow's human-readable summary."""
     failed_patches = list(dict.fromkeys(failed_patches or []))
     required_patches = list(dict.fromkeys(required_patches or []))
-    applied_patches = [
-        enables[index + 1]
-        for index in range(0, len(enables), 2)
-        if index + 1 < len(enables)
-        and enables[index + 1] not in failed_patches
-    ]
+    if applied_patches is None:
+        # Before patch execution there is no actual CLI result yet. Keep the
+        # existing selection-based preview for the intermediate report only.
+        applied_patches = [
+            enables[index + 1]
+            for index in range(0, len(enables), 2)
+            if index + 1 < len(enables)
+            and enables[index + 1] not in failed_patches
+        ]
+    else:
+        applied_patches = list(dict.fromkeys(applied_patches))
     excluded_patches = [
         {
             "name": disables[index + 1],
@@ -867,7 +891,7 @@ def _write_build_report(
     missing_requested = [
         {
             "name": name,
-            "reason": "requested by force_enable/options but not selected from the patch bundle",
+            "reason": "requested by force_enable/options but CLI did not report it as applied",
         }
         for name in requested_patches
         if name not in applied_patches and name not in {item["name"] for item in excluded_patches}
@@ -897,6 +921,7 @@ def _write_build_report(
             {"patch": option.patch, "key": option.key, "value": option.value}
             for option in patch_config.options
         ],
+        "applying_count": applying_count,
         "applied_patches": applied_patches,
         "excluded_patches": excluded_patches,
         "disabled_patches": [item["name"] for item in excluded_patches],
@@ -1232,14 +1257,10 @@ def run_build(app_name: str, source: str, arch: str = "universal") -> str:
     )
     logging.info("[SIZE] patched: %d bytes (%s)", output_apk.stat().st_size, output_apk.name)
     failed_patches = patch_failure_parser.result()
-    enabled_names = {
-        enables[index + 1]
-        for index in range(0, len(enables), 2)
-        if index + 1 < len(enables)
-    }
+    applied_patches = patch_failure_parser.applied_result()
     required_failures = [
         name for name in patch_config.required
-        if name in failed_patches or name not in enabled_names
+        if name not in applied_patches
     ]
     if required_failures:
         summary = (
@@ -1259,6 +1280,8 @@ def run_build(app_name: str, source: str, arch: str = "universal") -> str:
             error_summary=summary,
             failed_patches=failed_patches,
             required_patches=patch_config.required,
+            applied_patches=applied_patches,
+            applying_count=patch_failure_parser.applying_count,
         )
         raise BuildFailure("REQUIRED_PATCH_FAILED", summary)
     output_size = output_apk.stat().st_size
@@ -1297,6 +1320,8 @@ def run_build(app_name: str, source: str, arch: str = "universal") -> str:
         "success",
         failed_patches=failed_patches,
         required_patches=patch_config.required,
+        applied_patches=applied_patches,
+        applying_count=patch_failure_parser.applying_count,
     )
 
     print(f"✅ APK built: {signed_apk.name}")
