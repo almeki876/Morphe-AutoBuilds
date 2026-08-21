@@ -17,59 +17,79 @@ data class DispenserAuth(
     val authToken: String,
 )
 
+data class AnonymousLogin(
+    val auth: DispenserAuth,
+    val properties: Properties,
+    val profileName: String,
+    val dispenserHost: String,
+)
+
 class AnonymousAuthClient(
-    dispenserUrl: String,
-    private val apiKey: String? = null,
+    private val dispenserUrls: List<String>,
     private val client: OkHttpClient = OkHttpClient(),
-    private val userAgent: String = "Morphe-AutoBuilds-gplaydl/1.0",
+    private val userAgent: String = "com.aurora.store-4.8.4-76",
+    private val apiKey: String? = null,
 ) {
     private val json = Json { ignoreUnknownKeys = true }
-    private val dispenserUrl = normalizeEndpoint(dispenserUrl)
 
-    private fun normalizeEndpoint(rawUrl: String): String {
-        val trimmed = rawUrl.trim().trimEnd('/')
-        require(trimmed.isNotBlank()) { "Google Play token dispenser URL is required" }
-        return if (trimmed.endsWith("/api/auth")) trimmed else "$trimmed/api/auth"
-    }
+    fun login(propertyCandidates: List<Pair<String, Properties>>): AnonymousLogin {
+        require(dispenserUrls.isNotEmpty()) { "at least one anonymous dispenser URL is required" }
+        require(propertyCandidates.isNotEmpty()) { "at least one Android device profile is required" }
 
-    fun login(properties: Properties): DispenserAuth {
-        val payload = buildJsonObject {
-            properties.stringPropertyNames().forEach { key ->
-                put(key, properties.getProperty(key))
+        val failures = linkedSetOf<String>()
+        for (dispenserUrl in dispenserUrls.distinct()) {
+            require(dispenserUrl.isNotBlank()) { "anonymous dispenser URL must not be blank" }
+            val host = runCatching { URI(dispenserUrl).host }.getOrNull()
+                ?.takeIf { it.isNotBlank() }
+                ?: "configured dispenser"
+
+            for ((profileName, properties) in propertyCandidates) {
+                val payload = buildJsonObject {
+                    properties.stringPropertyNames().forEach { key ->
+                        put(key, properties.getProperty(key))
+                    }
+                }
+                val requestBuilder = Request.Builder()
+                    .url(dispenserUrl)
+                    .header("User-Agent", userAgent)
+                    .post(payload.toString().toRequestBody("application/json".toMediaType()))
+                apiKey?.trim()?.takeIf { it.isNotBlank() }?.let {
+                    requestBuilder.header("X-Api-Key", it)
+                }
+
+                try {
+                    client.newCall(requestBuilder.build()).execute().use { response ->
+                        val responseBody = response.body?.string().orEmpty()
+                        if (!response.isSuccessful) {
+                            failures += "$host HTTP ${response.code}"
+                            // 401/403 are caller/server policy failures. A different device
+                            // profile cannot repair them, so move to the next dispenser.
+                            if (response.code == 401 || response.code == 403) break
+                            continue
+                        }
+
+                        val objectValue = json.parseToJsonElement(responseBody).jsonObject
+                        val email = objectValue["email"]?.jsonPrimitive?.content.orEmpty()
+                        val authToken = objectValue["authToken"]?.jsonPrimitive?.content.orEmpty()
+                        if (email.isNotBlank() && authToken.isNotBlank()) {
+                            return AnonymousLogin(
+                                auth = DispenserAuth(email = email, authToken = authToken),
+                                properties = properties,
+                                profileName = profileName,
+                                dispenserHost = host,
+                            )
+                        }
+                        failures += "$host incomplete credentials"
+                    }
+                } catch (exception: Exception) {
+                    failures += "$host ${exception::class.simpleName ?: "request failure"}"
+                }
             }
         }
-        val requestBuilder = Request.Builder()
-            .url(dispenserUrl)
-            .header("User-Agent", userAgent)
-            .post(payload.toString().toRequestBody("application/json".toMediaType()))
-        apiKey?.trim()?.takeIf { it.isNotBlank() }?.let {
-            requestBuilder.header("X-Api-Key", it)
-        }
-        val request = requestBuilder.build()
 
-        client.newCall(request).execute().use { response ->
-            val responseBody = response.body?.string().orEmpty()
-            if (!response.isSuccessful) {
-                // Never propagate a dispenser response body into CI logs. A
-                // custom endpoint could include tokens, account details, or a
-                // large reverse-proxy challenge document in its error response.
-                val host = runCatching { URI(dispenserUrl).host }.getOrNull()
-                    ?.takeIf { it.isNotBlank() }
-                    ?: "configured dispenser"
-                error("Google Play token dispenser failed: HTTP ${response.code} from $host")
-            }
-            val objectValue = json.parseToJsonElement(responseBody).jsonObject
-            val email = objectValue["email"]?.jsonPrimitive?.content.orEmpty()
-            // Aurora-compatible dispensers historically used authToken while
-            // some maintained implementations expose the same bearer token as
-            // auth. Supporting both keeps the client compatible without
-            // leaking or persisting either value.
-            val authToken = objectValue["authToken"]?.jsonPrimitive?.content.orEmpty()
-                .ifBlank { objectValue["auth"]?.jsonPrimitive?.content.orEmpty() }
-            require(email.isNotBlank() && authToken.isNotBlank()) {
-                "Google Play token dispenser returned incomplete credentials"
-            }
-            return DispenserAuth(email = email, authToken = authToken)
-        }
+        error(
+            "Anonymous Google Play authentication failed: " +
+                failures.take(8).joinToString("; ").ifBlank { "no dispenser accepted a device profile" }
+        )
     }
 }

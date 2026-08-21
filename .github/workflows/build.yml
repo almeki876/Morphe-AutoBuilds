@@ -1,5 +1,9 @@
 name: Build and Release APKs
 
+# 同時に複数回このワークフローが走ると、download-tools ジョブが同じ
+# キャッシュキーを取り合って "Unable to reserve cache" 警告が出る
+# （実害は小さいが、無駄な再ダウンロードや紛らわしいログの原因になる）。
+# 新しい実行が来たら前の実行をキャンセルして直列化する。
 concurrency:
   group: ${{ github.workflow }}
   cancel-in-progress: true
@@ -7,22 +11,106 @@ concurrency:
 on:
   workflow_dispatch:
     inputs:
+      morphe_tag:
+        description: 'Morphe (Official) tag'
+        required: false
+        default: 'latest'
+      anddea_tag:
+        description: 'Anddea tag'
+        required: false
+        default: 'latest'
+      rushiranpise_tag:
+        description: 'rushiranpise tag'
+        required: false
+        default: 'latest'
+      rookie_tag:
+        description: 'RookieEnough tag'
+        required: false
+        default: 'latest'
+      tosox_tag:
+        description: 'Tosox tag'
+        required: false
+        default: 'latest'
+      yuzu_tag:
+        description: 'YuzuMikan404 tag'
+        required: false
+        default: 'latest'
+      dropped_tag:
+        description: 'Dropped-Patches tag'
+        required: false
+        default: 'latest'
+      morphe_updated:
+        description: 'Whether Morphe (Official) was updated'
+        required: false
+        default: 'false'
+      anddea_updated:
+        description: 'Whether Anddea was updated'
+        required: false
+        default: 'false'
+      rushiranpise_updated:
+        description: 'Whether rushiranpise was updated'
+        required: false
+        default: 'false'
+      rookie_updated:
+        description: 'Whether RookieEnough was updated'
+        required: false
+        default: 'false'
+      tosox_updated:
+        description: 'Whether Tosox was updated'
+        required: false
+        default: 'false'
+      yuzu_updated:
+        description: 'Whether YuzuMikan404 was updated'
+        required: false
+        default: 'false'
+      dropped_updated:
+        description: 'Whether Dropped-Patches was updated'
+        required: false
+        default: 'false'
+      morphe_force_build:
+        description: 'Force build Morphe due to APK update (no NEW badge)'
+        required: false
+        default: 'false'
+      anddea_force_build:
+        description: 'Force build Anddea due to APK update (no NEW badge)'
+        required: false
+        default: 'false'
+      rushiranpise_force_build:
+        description: 'Force build rushiranpise due to APK update (no NEW badge)'
+        required: false
+        default: 'false'
+      rookie_force_build:
+        description: 'Force build RookieEnough due to APK update (no NEW badge)'
+        required: false
+        default: 'false'
+      tosox_force_build:
+        description: 'Force build Tosox due to APK update (no NEW badge)'
+        required: false
+        default: 'false'
+      yuzu_force_build:
+        description: 'Force build YuzuMikan404 due to APK update (no NEW badge)'
+        required: false
+        default: 'false'
+      dropped_force_build:
+        description: 'Force build Dropped-Patches due to APK update (no NEW badge)'
+        required: false
+        default: 'false'
+      apk_updated_apps:
+        description: 'JSON array of apps whose APK was updated'
+        required: false
+        default: '[]'
       build_all_sources:
-        description: 'Build every enabled app/source entry'
+        description: 'Build every app/source entry in my-patch-config.json'
         required: false
         default: 'false'
       updated_sources:
-        description: 'Comma-separated patch source ids to build'
+        description: 'Comma-separated patch sources to build incrementally'
         required: false
         default: ''
       updated_apps:
-        description: 'Comma-separated apps whose base APK changed'
+        description: 'Comma-separated apps whose base APK was updated'
         required: false
         default: ''
-      apk_updated_apps:
-        description: 'JSON array of apps whose base APK changed (diagnostics)'
-        required: false
-        default: '[]'
 
 jobs:
   download-tools:
@@ -31,7 +119,14 @@ jobs:
     permissions:
       contents: read
     outputs:
-      cache-key: ${{ steps.cache-key.outputs.cache-key }}
+      cache-key: ${{ steps.resolve-tags.outputs.cache-key }}
+      morphe_resolved:  ${{ steps.resolve-tags.outputs.morphe_resolved }}
+      anddea_resolved:  ${{ steps.resolve-tags.outputs.anddea_resolved }}
+      rushiranpise_resolved: ${{ steps.resolve-tags.outputs.rushiranpise_resolved }}
+      rookie_resolved:  ${{ steps.resolve-tags.outputs.rookie_resolved }}
+      tosox_resolved:   ${{ steps.resolve-tags.outputs.tosox_resolved }}
+      yuzu_resolved:    ${{ steps.resolve-tags.outputs.yuzu_resolved }}
+      dropped_resolved: ${{ steps.resolve-tags.outputs.dropped_resolved }}
 
     steps:
       - name: Checkout Repository
@@ -40,39 +135,96 @@ jobs:
       - name: Validate Repository Configuration
         run: python3 scripts/validate_repository.py
 
-      - name: Compute Tool Cache Key
-        id: cache-key
+      # ---------------------------------------------------------------
+      # 1. 各ソースの実際のパッチバージョンを確定させる
+      #    "latest" が渡された場合はプレリリースを含む最新1件を解決する。
+      #    解決済みのタグをキャッシュキーに組み込むことで、
+      #    パッチが更新されるたびに必ずキャッシュミスが発生し
+      #    古いパッチが再利用されることを防ぐ。
+      # ---------------------------------------------------------------
+      - name: Resolve Patch Tags and Compute Cache Key
+        id: resolve-tags
         env:
-          UPDATED_SOURCES: ${{ github.event.inputs.updated_sources }}
-          BUILD_ALL_SOURCES: ${{ github.event.inputs.build_all_sources }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          file_hash="${{ hashFiles('my-patch-config.json', 'sources/**', 'scripts/download_all_tools.py') }}"
-          # A source update means a sources/*.json entry can still say "latest".
-          # Bust the exact cache for that run so a newly published bundle is never
-          # hidden behind an older cache entry. Manual full builds do the same.
-          nonce="stable"
-          if [ -n "$UPDATED_SOURCES" ] || [ "$BUILD_ALL_SOURCES" = "true" ]; then
-            nonce="${{ github.run_id }}"
-          fi
-          echo "cache-key=build-tools-${file_hash}-${nonce}" >> "$GITHUB_OUTPUT"
+          # プレリリースを含む全リリースから最新1件のタグを返す
+          resolve_tag() {
+            local repo="$1" hint="$2"
+            if [ -n "$hint" ] && [ "$hint" != "latest" ]; then
+              echo "$hint"
+              return
+            fi
+            gh api "repos/${repo}/releases?per_page=100" \
+              --jq 'sort_by(.published_at) | reverse | .[0].tag_name' \
+              2>/dev/null || echo "unknown"
+          }
+
+          morphe_resolved=$(resolve_tag  "MorpheApp/morphe-patches"          "${{ github.event.inputs.morphe_tag }}")
+          anddea_resolved=$(resolve_tag  "anddea/revanced-patches"            "${{ github.event.inputs.anddea_tag }}")
+          rushiranpise_resolved=$(resolve_tag "rushiranpise/morphe-patches" "${{ github.event.inputs.rushiranpise_tag }}")
+          rookie_resolved=$(resolve_tag  "RookieEnough/De-Vanced"              "${{ github.event.inputs.rookie_tag }}")
+          tosox_resolved=$(resolve_tag   "Tosox/revanced-patches"             "${{ github.event.inputs.tosox_tag }}")
+          yuzu_resolved="patche"  # 固定リリースタグ (matchadaisuke/morphe-patches)
+          dropped_resolved=$(resolve_tag "indrastorms/Dropped-Patches"        "${{ github.event.inputs.dropped_tag }}")
+
+          echo "morphe_resolved=$morphe_resolved"   >> $GITHUB_OUTPUT
+          echo "anddea_resolved=$anddea_resolved"   >> $GITHUB_OUTPUT
+          echo "rushiranpise_resolved=$rushiranpise_resolved" >> $GITHUB_OUTPUT
+          echo "rookie_resolved=$rookie_resolved"   >> $GITHUB_OUTPUT
+          echo "tosox_resolved=$tosox_resolved"     >> $GITHUB_OUTPUT
+          echo "yuzu_resolved=$yuzu_resolved"       >> $GITHUB_OUTPUT
+          echo "dropped_resolved=$dropped_resolved" >> $GITHUB_OUTPUT
+
+          # キャッシュキー = ファイルハッシュ + 全パッチバージョンの結合
+          # パッチが1つでも変わればキャッシュミスになる
+          version_string="${morphe_resolved}__${anddea_resolved}__${rushiranpise_resolved}__${rookie_resolved}__${tosox_resolved}__${yuzu_resolved}__${dropped_resolved}"
+          file_hash="${{ hashFiles('my-patch-config.json', 'arch-config.json', 'sources/**') }}"
+          cache_key="build-tools-${file_hash}-${version_string}"
+          echo "cache-key=${cache_key}" >> $GITHUB_OUTPUT
+
+          echo "Resolved tags:"
+          echo "  morphe:  $morphe_resolved"
+          echo "  anddea:  $anddea_resolved"
+          echo "  rushiranpise: $rushiranpise_resolved"
+          echo "  rookie:  $rookie_resolved"
+          echo "  tosox:   $tosox_resolved"
+          echo "  yuzu:    $yuzu_resolved"
+          echo "  dropped: $dropped_resolved"
+          echo "Cache key: ${cache_key}"
 
       - name: Restore Cached Tools
         id: cache-restore
         uses: actions/cache/restore@v6
         with:
           path: tools/
-          key: ${{ steps.cache-key.outputs.cache-key }}
+          key: ${{ steps.resolve-tags.outputs.cache-key }}
 
       - name: Setup Python
         if: steps.cache-restore.outputs.cache-hit != 'true'
         uses: actions/setup-python@v7
         with:
-          python-version: '3.11'
+          python-version: 3.11
 
-      - name: Download All Declared Source Tools
+      - name: Download All Source Tools
         if: steps.cache-restore.outputs.cache-hit != 'true'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          UPD_MORPHE:   ${{ github.event.inputs.morphe_updated }}
+          UPD_ANDDEA:   ${{ github.event.inputs.anddea_updated }}
+          UPD_RUSHIRANPISE: ${{ github.event.inputs.rushiranpise_updated }}
+          UPD_ROOKIE:   ${{ github.event.inputs.rookie_updated }}
+          UPD_TOSOX:    ${{ github.event.inputs.tosox_updated }}
+          UPD_YUZU:     ${{ github.event.inputs.yuzu_updated }}
+          UPD_DROPPED:  ${{ github.event.inputs.dropped_updated }}
+          SOURCE_TAG_MORPHE:          ${{ steps.resolve-tags.outputs.morphe_resolved }}
+          SOURCE_TAG_ANDDEA:          ${{ steps.resolve-tags.outputs.anddea_resolved }}
+          SOURCE_TAG_REVANCED_ANDDEA: ${{ steps.resolve-tags.outputs.anddea_resolved }}
+          SOURCE_TAG_RUSHIRANPISE:    ${{ steps.resolve-tags.outputs.rushiranpise_resolved }}
+          SOURCE_TAG_ROOKIE:          ${{ steps.resolve-tags.outputs.rookie_resolved }}
+          SOURCE_TAG_TOSOX:           ${{ steps.resolve-tags.outputs.tosox_resolved }}
+          SOURCE_TAG_YUZU:            ${{ steps.resolve-tags.outputs.yuzu_resolved }}
+          PAT:                        ${{ secrets.PAT }}
+          SOURCE_TAG_DROPPED:         ${{ steps.resolve-tags.outputs.dropped_resolved }}
         run: |
           pip install -r requirements.txt -q
           python3 scripts/download_all_tools.py
@@ -82,7 +234,7 @@ jobs:
         uses: actions/cache/save@v6
         with:
           path: tools/
-          key: ${{ steps.cache-key.outputs.cache-key }}
+          key: ${{ steps.resolve-tags.outputs.cache-key }}
 
   prepare-matrix:
     name: Prepare Build Matrix
@@ -95,18 +247,33 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v7
 
-      - name: Read Patch Config
+      - name: Read Patch Config and Filter by Updated Sources
         id: read-matrix
         env:
+          UPD_MORPHE:   ${{ github.event.inputs.morphe_updated }}
+          UPD_ANDDEA:   ${{ github.event.inputs.anddea_updated }}
+          UPD_RUSHIRANPISE: ${{ github.event.inputs.rushiranpise_updated }}
+          UPD_ROOKIE:   ${{ github.event.inputs.rookie_updated }}
+          UPD_TOSOX:    ${{ github.event.inputs.tosox_updated }}
+          UPD_YUZU:     ${{ github.event.inputs.yuzu_updated }}
+          UPD_DROPPED:  ${{ github.event.inputs.dropped_updated }}
+          FORCE_MORPHE:  ${{ github.event.inputs.morphe_force_build }}
+          FORCE_ANDDEA:  ${{ github.event.inputs.anddea_force_build }}
+          FORCE_RUSHIRANPISE: ${{ github.event.inputs.rushiranpise_force_build }}
+          FORCE_ROOKIE:  ${{ github.event.inputs.rookie_force_build }}
+          FORCE_TOSOX:   ${{ github.event.inputs.tosox_force_build }}
+          FORCE_YUZU:    ${{ github.event.inputs.yuzu_force_build }}
+          FORCE_DROPPED: ${{ github.event.inputs.dropped_force_build }}
           BUILD_ALL_SOURCES: ${{ github.event.inputs.build_all_sources }}
           UPDATED_SOURCES: ${{ github.event.inputs.updated_sources }}
           UPDATED_APPS: ${{ github.event.inputs.updated_apps }}
-        run: python3 scripts/prepare_matrix.py
+          APK_UPDATED_APPS: ${{ github.event.inputs.apk_updated_apps }}
+        run: |
+          python3 scripts/prepare_matrix.py
 
   download-apks:
     name: Download ${{ matrix.app_name }} base APK
     needs: [download-tools, prepare-matrix]
-    if: ${{ needs.prepare-matrix.outputs.matrix != '[]' }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
@@ -129,15 +296,15 @@ jobs:
           key: ${{ needs.download-tools.outputs.cache-key }}
           fail-on-cache-miss: true
 
-      - name: Setup Python
+      - name: Install Python
         uses: actions/setup-python@v7
         with:
-          python-version: '3.11'
+          python-version: 3.11
 
       - name: Setup Java
         uses: actions/setup-java@v5
         with:
-          distribution: temurin
+          distribution: 'temurin'
           java-version: '21'
 
       - name: Install Dependencies
@@ -159,9 +326,6 @@ jobs:
           GPLAY_EMAIL: ${{ secrets.GPLAY_EMAIL }}
           GPLAY_AAS_TOKEN: ${{ secrets.GPLAY_AAS_TOKEN }}
           GPLAY_AUTH_TOKEN: ${{ secrets.GPLAY_AUTH_TOKEN }}
-          GPLAY_DISPENSER_URLS: ${{ secrets.GPLAY_DISPENSER_URLS || vars.GPLAY_DISPENSER_URLS }}
-          GPLAY_DISPENSER_URL: ${{ secrets.GPLAY_DISPENSER_URL || vars.GPLAY_DISPENSER_URL }}
-          GPLAYDL_API_KEY: ${{ secrets.GPLAYDL_API_KEY }}
           AURORA_DISPENSER_URL: ${{ vars.AURORA_DISPENSER_URL }}
           HTTP_RETRIES: '4'
           HTTP_RETRY_BASE_SECONDS: '5'
@@ -235,7 +399,7 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v7
         with:
-          python-version: '3.11'
+          python-version: 3.11
 
       - name: Download Unmodified Base APKs
         uses: actions/download-artifact@v8
@@ -274,17 +438,16 @@ jobs:
   build-apps:
     name: Build ${{ matrix.app_name }} with ${{ matrix.source_label }}
     needs: [download-tools, prepare-matrix, download-apks]
-    if: ${{ needs.prepare-matrix.outputs.matrix != '[]' }}
     runs-on: ubuntu-latest
     timeout-minutes: 45
     permissions:
       contents: write
-    continue-on-error: true
     strategy:
       fail-fast: false
       max-parallel: 12
       matrix:
         include: ${{ fromJson(needs.prepare-matrix.outputs.matrix) }}
+    continue-on-error: true
 
     steps:
       - name: Checkout Repository
@@ -297,19 +460,28 @@ jobs:
           key: ${{ needs.download-tools.outputs.cache-key }}
           fail-on-cache-miss: true
 
-      - name: Setup Python
+      - name: Install Python
         uses: actions/setup-python@v7
         with:
-          python-version: '3.11'
+          python-version: 3.11
 
       - name: Setup Java
         uses: actions/setup-java@v5
         with:
-          distribution: temurin
+          distribution: 'temurin'
           java-version: '21'
 
       - name: Install Dependencies
-        run: pip install -r requirements.txt
+        run: |
+          pip install -r requirements.txt
+
+      - name: Install apkeep
+        run: |
+          mkdir -p "$HOME/.local/bin"
+          curl -fsSL "https://github.com/EFForg/apkeep/releases/latest/download/apkeep-x86_64-unknown-linux-gnu" -o "$HOME/.local/bin/apkeep"
+          chmod +x "$HOME/.local/bin/apkeep"
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          "$HOME/.local/bin/apkeep" --version
 
       - name: Download APK Input Artifact
         uses: actions/download-artifact@v8
@@ -334,7 +506,16 @@ jobs:
           APP_NAME: ${{ matrix.app_name }}
           SOURCE: ${{ matrix.source }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          HTTP_RETRIES: '4'
+          HTTP_RETRY_BASE_SECONDS: '5'
+          HTTP_RETRY_MAX_SECONDS: '60'
+          APK_VERSION_CANDIDATES: '5'
+          APKMIRROR_REQUEST_INTERVAL_SECONDS: '3.5'
+          BASE_APK_CACHE: 'true'
+          BASE_APK_CACHE_TAG: 'base-apk-cache-v2'
+          BASE_APK_CACHE_REPOSITORY: ${{ github.repository }}
         run: |
+          echo "Building ${{ matrix.app_name }} with ${{ matrix.source_label }}..."
           python3 -m src 2>&1 | tee build.log
           exit ${PIPESTATUS[0]}
 
@@ -349,15 +530,42 @@ jobs:
             echo "phase=Patch"
             echo "status=${{ steps.build-apk.outcome }}"
             echo "run=${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-            echo ""
-            echo "traceback_or_error_tail<<EOF"
-            if [ -f build.log ]; then tail -n 100 build.log; else echo "Build step did not start."; fi
-            echo "EOF"
           } > "build-status/${{ matrix.app_name }}-${{ matrix.source }}-build.txt"
+          if [ -f build.log ]; then
+            {
+              echo ""
+              echo "traceback_or_error_tail<<EOF"
+              tail -n 80 build.log
+              echo "EOF"
+            } >> "build-status/${{ matrix.app_name }}-${{ matrix.source }}-build.txt"
+          fi
           if [ -f build-metadata/build-report.json ]; then
             cp build-metadata/build-report.json "build-status/${{ matrix.app_name }}-${{ matrix.source }}.json"
           fi
           cat "build-status/${{ matrix.app_name }}-${{ matrix.source }}-build.txt" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "### Patch application details" >> "$GITHUB_STEP_SUMMARY"
+          if [ -f build-metadata/build-report.json ]; then
+            jq -r '
+              "- **Patch source:** `" + (.source_name // .source) + "`",
+              "- **Status:** `" + (.lifecycle_status // .status) + "`",
+              "",
+              "**Applied patches**",
+              ((.applied_patches // [])[] | "- `" + . + "`"),
+              "",
+              "**Excluded patches**",
+              ((.feature_failures // .excluded_patches // [])[] | "- `" + .name + "`: " + .reason)
+            ' build-metadata/build-report.json >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "- No patch report was produced before the failure." >> "$GITHUB_STEP_SUMMARY"
+          fi
+          if [ -f build.log ]; then
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "**Error log excerpt**" >> "$GITHUB_STEP_SUMMARY"
+            echo '```text' >> "$GITHUB_STEP_SUMMARY"
+            tail -n 80 build.log >> "$GITHUB_STEP_SUMMARY"
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+          fi
 
       - name: Upload Build Result
         if: always()
@@ -387,7 +595,7 @@ jobs:
   report-build-failures:
     name: Report Per-App Build Failures
     needs: [prepare-matrix, download-apks, build-apps]
-    if: ${{ always() && needs.prepare-matrix.result == 'success' && needs.prepare-matrix.outputs.matrix != '[]' }}
+    if: ${{ always() && needs.prepare-matrix.result == 'success' }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -396,24 +604,54 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v7
+
       - name: Setup Python
         uses: actions/setup-python@v7
         with:
-          python-version: '3.11'
+          python-version: 3.11
+
       - name: Install Dependencies
         run: pip install -r requirements.txt
-      - name: Download Failure Results
+
+      - name: Download Build Failure Results
         continue-on-error: true
         uses: actions/download-artifact@v8
         with:
           path: failure-results
           pattern: '*-status-*'
           merge-multiple: true
+
       - name: Create or Update App Issues
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_REPO: ${{ github.repository }}
         run: python3 scripts/report_build_failure.py --directory failure-results
+
+  report-partial-patch-failures:
+    name: Report Partial Patch Failures
+    needs: [build-apps, create-release]
+    if: ${{ needs.create-release.result == 'success' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v7
+
+      - name: Download Build Results
+        uses: actions/download-artifact@v8
+        with:
+          path: partial-results
+          pattern: build-status-*
+          merge-multiple: true
+
+      - name: Create Partial Patch Failure Issues
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+        run: python3 scripts/report_build_failure.py --directory partial-results --partial-only
 
   update-base-apk-cache:
     name: Update Base APK Cache
@@ -426,10 +664,12 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v7
-      - name: Setup Python
+
+      - name: Install Python
         uses: actions/setup-python@v7
         with:
-          python-version: '3.11'
+          python-version: 3.11
+
       - name: Download Cache Candidates
         id: candidates
         continue-on-error: true
@@ -438,6 +678,7 @@ jobs:
           path: base-apk-cache-in
           pattern: base-apk-*
           merge-multiple: true
+
       - name: Update Hidden Durable Cache
         if: steps.candidates.outcome == 'success'
         env:
@@ -450,107 +691,170 @@ jobs:
 
   create-release:
     name: Create Integrated Release
-    needs: [prepare-matrix, build-apps, scan-base-apks]
+    needs: [download-tools, prepare-matrix, build-apps, scan-base-apks]
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
     if: >-
       ${{
         !cancelled() &&
-        needs.prepare-matrix.outputs.matrix != '[]' &&
+        needs.download-tools.result == 'success' &&
+        needs.prepare-matrix.result == 'success' &&
         needs.build-apps.result != 'skipped' &&
         needs.scan-base-apks.result == 'success'
       }}
-    runs-on: ubuntu-latest
-    timeout-minutes: 300
     permissions:
       contents: write
 
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v7
+
       - name: Setup Python
         uses: actions/setup-python@v7
         with:
-          python-version: '3.11'
-      - name: Download APK Artifacts
+          python-version: 3.11
+
+      - name: Download All APK Artifacts
         uses: actions/download-artifact@v8
         with:
           path: ./all-apks
           pattern: apk-*
+
       - name: Download Build Results
+        if: always()
         continue-on-error: true
         uses: actions/download-artifact@v8
         with:
           path: ./build-results
           pattern: build-status-*
           merge-multiple: true
+
+      - name: Collect All APKs
+        run: |
+          mkdir -p ./release-apks
+          echo "Collecting built APKs..."
+          [ -d ./all-apks ] && find ./all-apks -name "*.apk" -exec cp {} ./release-apks/ \; || true
+          echo "APKs in release-apks:"
+          ls -la ./release-apks/ 2>/dev/null || echo "(none)"
+          echo "## Build results" >> "$GITHUB_STEP_SUMMARY"
+          if [ -d ./build-results ] && find ./build-results -name '*.txt' -print -quit | grep -q .; then
+            cat ./build-results/*.txt >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "No per-app build result artifacts were found." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
       - name: Download VirusTotal Report
         uses: actions/download-artifact@v8
         with:
           path: .
           name: virustotal-report
-      - name: Collect APKs and Validate Release
-        id: release-state
+
+      - name: Check if Any APKs Were Built
+        id: check-apks
         env:
           EXPECTED_MATRIX: ${{ needs.prepare-matrix.outputs.matrix }}
         run: |
-          mkdir -p ./release-apks
-          find ./all-apks -name '*.apk' -exec cp {} ./release-apks/ \; 2>/dev/null || true
-          total=$(find ./release-apks -name '*.apk' | wc -l)
+          total=$(find ./release-apks -name "*.apk" 2>/dev/null | wc -l)
+          echo "Total APKs built: $total"
           if [ "$total" -eq 0 ]; then
-            echo "::error::No APK artifacts were produced."
+            echo "::error::No APK artifacts were produced. Refusing to report a successful release job."
+            echo "skip_release=true" >> $GITHUB_OUTPUT
             exit 1
+          else
+            echo "skip_release=false" >> $GITHUB_OUTPUT
           fi
-          failed_count=0
-          if [ -d ./build-results ]; then
-            failed_count=$(grep -R -l '^status=failure$' ./build-results/*.txt 2>/dev/null | wc -l || true)
-          fi
-          echo "failed_count=$failed_count" >> "$GITHUB_OUTPUT"
+
           python3 -m scripts.release_metadata
-      - name: Generate Release Tag
+
+      - name: Add VirusTotal Report to Job Summary
+        if: always() && hashFiles('virustotal_base_results.md') != ''
+        run: |
+          [ -f virustotal_base_results.md ] && cat virustotal_base_results.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Generate Release Tag (JST)
+        if: steps.check-apks.outputs.skip_release == 'false'
         id: tag
         run: |
-          tag=$(TZ=Asia/Tokyo date +'%Y-%m-%d_%H-%M-JST')
-          echo "release_tag=$tag" >> "$GITHUB_OUTPUT"
+          jst_time=$(TZ=Asia/Tokyo date +'%Y-%m-%d_%H-%M-JST')
+          echo "release_tag=$jst_time" >> $GITHUB_OUTPUT
+          echo "Release tag: $jst_time"
+
       - name: Generate Release Notes
-        run: python3 -m scripts.release_notes
+        if: steps.check-apks.outputs.skip_release == 'false'
+        env:
+          MORPHE_TAG: ${{ needs.download-tools.outputs.morphe_resolved }}
+          ANDDEA_TAG: ${{ needs.download-tools.outputs.anddea_resolved }}
+          RUSHIRANPISE_TAG: ${{ needs.download-tools.outputs.rushiranpise_resolved }}
+          ROOKIE_TAG: ${{ needs.download-tools.outputs.rookie_resolved }}
+          TOSOX_TAG: ${{ needs.download-tools.outputs.tosox_resolved }}
+          YUZU_TAG: ${{ needs.download-tools.outputs.yuzu_resolved }}
+          DROPPED_TAG: ${{ needs.download-tools.outputs.dropped_resolved }}
+          MORPHE_UPDATED: ${{ github.event.inputs.morphe_updated }}
+          ANDDEA_UPDATED: ${{ github.event.inputs.anddea_updated }}
+          RUSHIRANPISE_UPDATED: ${{ github.event.inputs.rushiranpise_updated }}
+          ROOKIE_UPDATED: ${{ github.event.inputs.rookie_updated }}
+          TOSOX_UPDATED: ${{ github.event.inputs.tosox_updated }}
+          YUZU_UPDATED: ${{ github.event.inputs.yuzu_updated }}
+          DROPPED_UPDATED: ${{ github.event.inputs.dropped_updated }}
+          MORPHE_FORCE: ${{ github.event.inputs.morphe_force_build }}
+          ANDDEA_FORCE: ${{ github.event.inputs.anddea_force_build }}
+          RUSHIRANPISE_FORCE: ${{ github.event.inputs.rushiranpise_force_build }}
+          ROOKIE_FORCE: ${{ github.event.inputs.rookie_force_build }}
+          TOSOX_FORCE: ${{ github.event.inputs.tosox_force_build }}
+          YUZU_FORCE: ${{ github.event.inputs.yuzu_force_build }}
+          DROPPED_FORCE: ${{ github.event.inputs.dropped_force_build }}
+        run: |
+          python3 -m scripts.release_notes
+
       - name: Create Release
+        if: steps.check-apks.outputs.skip_release == 'false'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           release_tag="${{ steps.tag.outputs.release_tag }}"
-          title="Morphe AutoBuilds $release_tag"
-          if [ "${{ steps.release-state.outputs.failed_count }}" -gt 0 ]; then
-            title="$title (Partial)"
+          failed_count="${{ steps.check-apks.outputs.failed_count }}"
+          release_title="Morphe AutoBuilds $release_tag"
+          if [ "${failed_count:-0}" -gt 0 ]; then
+            release_title="$release_title (Partial)"
           fi
-          gh release create "$release_tag" --title "$title" --notes-file release_notes.md
-          find ./release-apks -name '*.apk' -print0 | xargs -0 -r -P 8 -I {} gh release upload "$release_tag" "{}"
 
-  report-partial-patch-failures:
-    name: Report Partial Patch Failures
-    needs: [build-apps, create-release]
-    if: ${{ needs.create-release.result == 'success' }}
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      issues: write
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v7
-      - name: Download Build Results
-        uses: actions/download-artifact@v8
-        with:
-          path: partial-results
-          pattern: build-status-*
-          merge-multiple: true
-      - name: Create Partial Patch Failure Issues
+          echo "Creating release: $release_tag"
+          gh release delete "$release_tag" --yes 2>/dev/null || true
+          git push --delete origin "refs/tags/$release_tag" 2>/dev/null || true
+
+          gh release create "$release_tag" \
+            --title "$release_title" \
+            --notes-file release_notes.md
+
+          find ./release-apks -name '*.apk' -print0 \
+            | xargs -0 -r -P 8 -I {} gh release upload "$release_tag" "{}"
+
+          echo "Release created and APK assets uploaded successfully!"
+          echo "Release URL: https://github.com/${{ github.repository }}/releases/tag/$release_tag"
+
+      - name: Display Release Summary
+        if: steps.check-apks.outputs.skip_release == 'false'
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GH_REPO: ${{ github.repository }}
-        run: python3 scripts/report_build_failure.py --directory partial-results --partial-only
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          release_tag="${{ steps.tag.outputs.release_tag }}"
+
+          echo "Release Summary:"
+          echo "  Tag: $release_tag"
+          echo "  APKs:"
+          ls -1 ./release-apks/*.apk | sed 's/^/    - /'
+          echo ""
+          echo "Download: https://github.com/${{ github.repository }}/releases/tag/$release_tag"
 
   persist-successful-state:
     name: Persist Successful Upstream State
-    needs: [build-apps, create-release]
-    if: ${{ !cancelled() && needs.build-apps.result == 'success' && needs.create-release.result == 'success' }}
+    needs: [download-tools, build-apps, create-release]
+    if: >-
+      ${{
+        !cancelled() &&
+        needs.build-apps.result == 'success' &&
+        needs.create-release.result == 'success'
+      }}
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -558,33 +862,45 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v7
+
       - name: Setup Python
         uses: actions/setup-python@v7
         with:
           python-version: '3.11'
           cache: pip
-      - name: Download Build Results
+
+      - name: Verify Every Matrix Build Succeeded
         uses: actions/download-artifact@v8
         with:
           path: ./build-results
           pattern: build-status-*
           merge-multiple: true
+
       - name: Refuse Partial State Persistence
         run: |
           if [ ! -d ./build-results ] || ! find ./build-results -name '*.txt' -print -quit | grep -q .; then
-            echo "::error::Per-app build results are missing."
+            echo "::error::Per-app build results are missing; refusing to advance successful state."
             exit 1
           fi
           if grep -R -E '^status=(failure|cancelled|skipped)$' ./build-results; then
-            echo "::error::At least one build failed; not advancing state."
+            echo "::error::At least one matrix build failed; refusing to advance successful state."
             exit 1
           fi
+
       - name: Save Resolved Patch and APK Versions
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SOURCE_TAG_MORPHE: ${{ needs.download-tools.outputs.morphe_resolved }}
+          SOURCE_TAG_ANDDEA: ${{ needs.download-tools.outputs.anddea_resolved }}
+          SOURCE_TAG_RUSHIRANPISE: ${{ needs.download-tools.outputs.rushiranpise_resolved }}
+          SOURCE_TAG_ROOKIE: ${{ needs.download-tools.outputs.rookie_resolved }}
+          SOURCE_TAG_TOSOX: ${{ needs.download-tools.outputs.tosox_resolved }}
+          SOURCE_TAG_YUZU: ${{ needs.download-tools.outputs.yuzu_resolved }}
+          SOURCE_TAG_DROPPED: ${{ needs.download-tools.outputs.dropped_resolved }}
         run: |
           pip install -r requirements.txt
           python3 scripts/save_successful_state.py
+
       - name: Commit State When Changed
         run: |
           if git diff --quiet -- last-tags.json; then
@@ -598,12 +914,11 @@ jobs:
           git push
 
   handle-build-failure:
-    name: Open or Update Workflow Failure Issue
+    name: Open or Update Build Failure Issue
     needs: [download-tools, prepare-matrix, download-apks, build-apps, create-release, report-build-failures]
     if: >-
       ${{
         always() &&
-        needs.prepare-matrix.outputs.matrix != '[]' &&
         needs.report-build-failures.result != 'success' &&
         (needs.download-tools.result == 'failure' ||
          needs.prepare-matrix.result == 'failure' ||
@@ -627,21 +942,29 @@ jobs:
           DOWNLOAD_RESULT: ${{ needs.download-apks.result }}
           BUILD_RESULT: ${{ needs.build-apps.result }}
           RELEASE_RESULT: ${{ needs.create-release.result }}
+          REPORT_RESULT: ${{ needs.report-build-failures.result }}
         run: |
           title="Automated APK build workflow failed"
-          cat > build-failure-issue.md <<EOF
+          cat <<EOF > build-failure-issue.md
           # Automated APK Build Failure Report
 
-          - **Download Tools:** ${TOOLS_RESULT}
-          - **Prepare Matrix:** ${MATRIX_RESULT}
-          - **Download APKs:** ${DOWNLOAD_RESULT}
-          - **Build Apps:** ${BUILD_RESULT}
-          - **Create Release:** ${RELEASE_RESULT}
-          - **Workflow Run:** ${RUN_URL}
+          An error occurred during the APK build and release workflow run.
+
+          ## Job Status Summary
+          - **Download Tools**: ${TOOLS_RESULT}
+          - **Prepare Matrix**: ${MATRIX_RESULT}
+          - **Download APKs**: ${DOWNLOAD_RESULT}
+          - **Build Apps**: ${BUILD_RESULT}
+          - **Create Release**: ${RELEASE_RESULT}
+          - **Detailed Reporter**: ${REPORT_RESULT}
+
+          **Workflow Run**: ${RUN_URL}
           EOF
-          issue=$(gh issue list --state open --search "$title in:title" --json number,title --jq ".[] | select(.title == \"$title\") | .number" | head -n 1)
+
+          issue=$(gh issue list --state open --search "$title in:title" --json number,title \
+            --jq ".[] | select(.title == \"$title\") | .number" | head -n 1)
           if [ -n "$issue" ]; then
             gh issue comment "$issue" --body-file build-failure-issue.md
           else
-            gh issue create --title "$title" --body-file build-failure-issue.md --label bug
+            gh issue create --title "$title" --body-file build-failure-issue.md --label "bug"
           fi

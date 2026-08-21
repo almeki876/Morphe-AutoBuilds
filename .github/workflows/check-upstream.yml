@@ -2,7 +2,7 @@ name: Check Upstream for Updates
 
 on:
   schedule:
-    - cron: '0 9 * * *' # 18:00 JST
+    - cron: '0 9 * * *'   # JST 18:00
   workflow_dispatch:
 
 concurrency:
@@ -11,7 +11,7 @@ concurrency:
 
 jobs:
   check-upstream:
-    name: Check Declared Patch Sources and Base APKs
+    name: Check All Upstream Patch Sources
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -21,16 +21,84 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v7
 
-      - name: Setup Python
-        uses: actions/setup-python@v7
-        with:
-          python-version: '3.11'
-
       - name: Validate Repository Configuration
         run: python3 scripts/validate_repository.py
 
+      - name: Fetch Latest Tags
+        id: fetch
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # プレリリースを含む全リリースから最新1件を取得する
+          # releases?per_page=1 は GitHub の "latest stable" 相当でプレリリースを返さない。
+          # releases?per_page=100 で全件取得し、published_at でソートして先頭を使う。
+          fetch_tag() {
+            gh api "repos/${1}/releases?per_page=100" \
+              --jq 'sort_by(.published_at) | reverse | .[0].tag_name' \
+              2>/dev/null || echo ""
+          }
+
+          morphe_tag=$(fetch_tag  "MorpheApp/morphe-patches")
+          anddea_tag=$(fetch_tag  "anddea/revanced-patches")
+          rushiranpise_tag=$(fetch_tag "rushiranpise/morphe-patches")
+          rookie_tag=$(fetch_tag  "RookieEnough/De-Vanced")
+          tosox_tag=$(fetch_tag   "Tosox/revanced-patches")
+          dropped_tag=$(fetch_tag "indrastorms/Dropped-Patches")
+
+          for var in morphe anddea rushiranpise rookie tosox dropped; do
+            eval "tag=\${${var}_tag}"
+            [ -z "$tag" ] && echo "WARNING: Could not fetch tag for: $var" || echo "OK: $var: $tag"
+            echo "${var}_tag=${tag}" >> $GITHUB_OUTPUT
+          done
+
+      - name: Compare with Previous Tags
+        id: compare
+        env:
+          FETCH_MORPHE:  ${{ steps.fetch.outputs.morphe_tag }}
+          FETCH_ANDDEA:  ${{ steps.fetch.outputs.anddea_tag }}
+          FETCH_RUSHIRANPISE: ${{ steps.fetch.outputs.rushiranpise_tag }}
+          FETCH_ROOKIE:  ${{ steps.fetch.outputs.rookie_tag }}
+          FETCH_TOSOX:   ${{ steps.fetch.outputs.tosox_tag }}
+          FETCH_DROPPED: ${{ steps.fetch.outputs.dropped_tag }}
+        run: |
+          load_last() {
+            [ -f "last-tags.json" ] && jq -r ".${1} // \"\"" last-tags.json || echo ""
+          }
+
+          any_updated=false
+
+          check_src() {
+            local src="$1" cur="$2"
+            local prev
+            prev=$(load_last "$src")
+
+            if [ -z "$cur" ] || [ "$cur" = "unknown" ]; then
+              echo "${src}_updated=false" >> $GITHUB_OUTPUT
+              echo "WARNING: $src: fetch failed or unknown, skipping"
+            elif [ -z "$prev" ]; then
+              echo "${src}_updated=false" >> $GITHUB_OUTPUT
+              echo "INFO: $src: initial tag recorded as $cur (not marking as updated)"
+            elif [ "$cur" != "$prev" ]; then
+              any_updated=true
+              echo "${src}_updated=true" >> $GITHUB_OUTPUT
+              echo "UPDATED: $src: $prev -> $cur"
+            else
+              echo "${src}_updated=false" >> $GITHUB_OUTPUT
+              echo "UNCHANGED: $src: $cur"
+            fi
+          }
+
+          check_src morphe  "$FETCH_MORPHE"
+          check_src anddea  "$FETCH_ANDDEA"
+          check_src rushiranpise "$FETCH_RUSHIRANPISE"
+          check_src rookie  "$FETCH_ROOKIE"
+          check_src tosox   "$FETCH_TOSOX"
+          check_src dropped "$FETCH_DROPPED"
+
+          echo "any_updated=$any_updated" >> $GITHUB_OUTPUT
+
       - name: Check All Declared Patch Sources
-        id: sources
+        id: all_sources
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: python3 scripts/check_upstream_sources.py
@@ -38,25 +106,38 @@ jobs:
       - name: Setup Java
         uses: actions/setup-java@v5
         with:
-          distribution: temurin
+          distribution: 'temurin'
           java-version: '21'
 
-      - name: Download Current Source Tools for Version Detection
-        id: tools
+      - name: Download CLI for Version Detection
+        id: dl-cli
         continue-on-error: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PAT: ${{ secrets.PAT }}
+          SOURCE_TAG_MORPHE:          ${{ steps.fetch.outputs.morphe_tag }}
+          SOURCE_TAG_REVANCED_ANDDEA: ${{ steps.fetch.outputs.anddea_tag }}
+          SOURCE_TAG_RUSHIRANPISE:    ${{ steps.fetch.outputs.rushiranpise_tag }}
+          SOURCE_TAG_ROOKIE:          ${{ steps.fetch.outputs.rookie_tag }}
+          SOURCE_TAG_TOSOX:           ${{ steps.fetch.outputs.tosox_tag }}
+          SOURCE_TAG_DROPPED:         ${{ steps.fetch.outputs.dropped_tag }}
         run: |
-          pip install -r requirements.txt -q
+          pip install requests beautifulsoup4 PyGithub curl-cffi --quiet
           python3 scripts/download_all_tools.py
 
       - name: Detect Version-Pinned Apps
         id: pinned
-        if: steps.tools.outcome == 'success'
         continue-on-error: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: python3 scripts/detect_version_pinned.py
+          SOURCE_TAG_MORPHE:          ${{ steps.fetch.outputs.morphe_tag }}
+          SOURCE_TAG_REVANCED_ANDDEA: ${{ steps.fetch.outputs.anddea_tag }}
+          SOURCE_TAG_RUSHIRANPISE:    ${{ steps.fetch.outputs.rushiranpise_tag }}
+          SOURCE_TAG_ROOKIE:          ${{ steps.fetch.outputs.rookie_tag }}
+          SOURCE_TAG_TOSOX:           ${{ steps.fetch.outputs.tosox_tag }}
+          SOURCE_TAG_DROPPED:         ${{ steps.fetch.outputs.dropped_tag }}
+        run: |
+          python3 scripts/detect_version_pinned.py
 
       - name: Check APK Versions
         id: apkver
@@ -64,29 +145,88 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           VERSION_PINNED_APPS: ${{ steps.pinned.outputs.version_pinned_apps }}
-        run: python3 scripts/check_apk_versions.py
+        run: |
+          python3 scripts/check_apk_versions.py
 
       - name: Publish APK Version Health
         if: always() && hashFiles('apk-version-health.md') != ''
         run: cat apk-version-health.md >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Trigger Build for Detected Changes
-        if: steps.sources.outputs.any_updated == 'true' || steps.apkver.outputs.any_apk_updated == 'true'
+      - name: Trigger Build if Updates Found
+        if: steps.compare.outputs.any_updated == 'true' || steps.all_sources.outputs.any_updated == 'true' || steps.apkver.outputs.any_apk_updated == 'true'
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          UPDATED_SOURCES: ${{ steps.sources.outputs.updated_sources }}
-          UPDATED_APPS: ${{ steps.apkver.outputs.updated_apps }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           APK_UPDATED_APPS: ${{ steps.apkver.outputs.apk_updated_apps }}
+          UPDATED_SOURCES: ${{ steps.all_sources.outputs.updated_sources }}
+          UPDATED_APPS: ${{ steps.apkver.outputs.updated_apps }}
         run: |
-          echo "Patch sources: ${UPDATED_SOURCES:-none}"
-          echo "Base APK apps: ${UPDATED_APPS:-none}"
-          gh workflow run build.yml \
-            -f updated_sources="${UPDATED_SOURCES}" \
-            -f updated_apps="${UPDATED_APPS}" \
-            -f apk_updated_apps="${APK_UPDATED_APPS:-[]}"
+          echo "Triggering build workflow..."
 
-      - name: Log No Updates
-        if: steps.sources.outputs.any_updated != 'true' && steps.apkver.outputs.any_apk_updated != 'true'
+          updated_sources="$UPDATED_SOURCES"
+
+          morphe_upd="${{ steps.compare.outputs.morphe_updated }}"
+          anddea_upd="${{ steps.compare.outputs.anddea_updated }}"
+          rushiranpise_upd="${{ steps.compare.outputs.rushiranpise_updated }}"
+          rookie_upd="${{ steps.compare.outputs.rookie_updated }}"
+          tosox_upd="${{ steps.compare.outputs.tosox_updated }}"
+          dropped_upd="${{ steps.compare.outputs.dropped_updated }}"
+
+          # APK更新で影響を受けるソースを特定（*_upd フラグは汚染しない）
+          morphe_force=false; anddea_force=false; rushiranpise_force=false
+          rookie_force=false; tosox_force=false; yuzu_force=false; dropped_force=false
+
+          if [ -n "$APK_UPDATED_APPS" ] && [ "$APK_UPDATED_APPS" != "[]" ]; then
+            while IFS= read -r line; do
+              eval "export $line"
+            done < <(python3 scripts/force_sources_from_apps.py)
+          fi
+
+          # FORCE_* は *_force に入れる（NEWバッジ用の *_upd は変えない）
+          [ "${FORCE_MORPHE:-false}" = "true" ]          && morphe_force=true
+          [ "${FORCE_REVANCED_ANDDEA:-false}" = "true" ] && anddea_force=true
+          [ "${FORCE_RUSHIRANPISE:-false}" = "true" ]   && rushiranpise_force=true
+          [ "${FORCE_ROOKIE:-false}" = "true" ]          && rookie_force=true
+          [ "${FORCE_TOSOX:-false}" = "true" ]           && tosox_force=true
+          [ "${FORCE_YUZU:-false}" = "true" ]            && yuzu_force=true
+          [ "${FORCE_DROPPED:-false}" = "true" ]         && dropped_force=true
+
+          for forced_source in morphe anddea rushiranpise rookie tosox yuzu dropped; do
+            eval "forced=\${${forced_source}_force}"
+            if [ "$forced" = "true" ]; then
+              updated_sources="${updated_sources:+$updated_sources,}$forced_source"
+            fi
+          done
+
+          gh workflow run build.yml \
+            -f morphe_tag="${{ steps.fetch.outputs.morphe_tag }}" \
+            -f anddea_tag="${{ steps.fetch.outputs.anddea_tag }}" \
+            -f rushiranpise_tag="${{ steps.fetch.outputs.rushiranpise_tag }}" \
+            -f rookie_tag="${{ steps.fetch.outputs.rookie_tag }}" \
+            -f tosox_tag="${{ steps.fetch.outputs.tosox_tag }}" \
+            -f yuzu_tag="patche" \
+            -f dropped_tag="${{ steps.fetch.outputs.dropped_tag }}" \
+            -f morphe_updated="$morphe_upd" \
+            -f anddea_updated="$anddea_upd" \
+            -f rushiranpise_updated="$rushiranpise_upd" \
+            -f rookie_updated="$rookie_upd" \
+            -f tosox_updated="$tosox_upd" \
+            -f yuzu_updated="false" \
+            -f dropped_updated="$dropped_upd" \
+            -f morphe_force_build="$morphe_force" \
+            -f anddea_force_build="$anddea_force" \
+            -f rushiranpise_force_build="$rushiranpise_force" \
+            -f rookie_force_build="$rookie_force" \
+            -f tosox_force_build="$tosox_force" \
+            -f yuzu_force_build="$yuzu_force" \
+            -f dropped_force_build="$dropped_force" \
+            -f updated_sources="$updated_sources" \
+            -f updated_apps="$UPDATED_APPS" \
+            -f apk_updated_apps="${APK_UPDATED_APPS:-[]}" \
+
+          echo "Build workflow triggered"
+
+      - name: Log - No Updates Found
+        if: steps.compare.outputs.any_updated == 'false' && steps.all_sources.outputs.any_updated == 'false' && steps.apkver.outputs.any_apk_updated == 'false'
         run: |
-          echo "No patch-source or base-APK updates found."
-          cat last-tags.json 2>/dev/null || true
+          echo "No updates found across all sources. Skipping build."
+          cat last-tags.json 2>/dev/null || echo "(last-tags.json not yet created)"

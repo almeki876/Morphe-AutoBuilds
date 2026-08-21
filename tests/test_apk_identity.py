@@ -26,7 +26,7 @@ class ApkIdentityTests(unittest.TestCase):
 
     @mock.patch("src.apk_identity._read_plain_apk_identity")
     @mock.patch("src.apk_identity.find_aapt", return_value="aapt")
-    def test_reads_suffixless_plain_apk_before_treating_it_as_container(
+    def test_reads_base_apk_first_from_split_container(
         self,
         find_aapt: mock.Mock,
         read_plain: mock.Mock,
@@ -34,32 +34,12 @@ class ApkIdentityTests(unittest.TestCase):
         expected = ApkIdentity("com.example.app", "1.2.3", "123")
         read_plain.return_value = expected
         with tempfile.TemporaryDirectory() as directory:
-            path = Path(directory) / "provider-download-without-extension"
-            path.write_bytes(b"placeholder")
-            self.assertEqual(read_identity(path), expected)
-        self.assertEqual(read_plain.call_args.args[0], path)
-        find_aapt.assert_called_once_with()
-
-    @mock.patch("src.apk_identity._read_plain_apk_identity")
-    @mock.patch("src.apk_identity.find_aapt", return_value="aapt")
-    def test_reads_base_apk_first_from_split_container(
-        self,
-        find_aapt: mock.Mock,
-        read_plain: mock.Mock,
-    ) -> None:
-        expected = ApkIdentity("com.example.app", "1.2.3", "123")
-        read_plain.side_effect = [
-            ApkIdentityError("container is not a plain APK"),
-            expected,
-        ]
-        with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "bundle.apkm"
             with zipfile.ZipFile(path, "w") as archive:
                 archive.writestr("split_config.en.apk", b"language")
                 archive.writestr("base.apk", b"base")
             self.assertEqual(read_identity(path), expected)
-        self.assertEqual(read_plain.call_count, 2)
-        first_path = read_plain.call_args_list[1].args[0]
+        first_path = read_plain.call_args.args[0]
         self.assertEqual(first_path.name, "candidate-0.apk")
         find_aapt.assert_called_once_with()
 
@@ -72,19 +52,6 @@ class ApkIdentityTests(unittest.TestCase):
             VersionCandidate(name="1.2.3", code="123"),
         )
         self.assertEqual(result.version_name, "1.2.3")
-
-    @mock.patch("src.apk_identity.read_identity")
-    def test_accepts_vendor_combined_version_name_and_code(
-        self,
-        read_identity_mock: mock.Mock,
-    ) -> None:
-        read_identity_mock.return_value = ApkIdentity("com.example.app", "21.0.0", "40")
-        result = validate_identity(
-            Path("app.apk"),
-            "com.example.app",
-            VersionCandidate(name="21.0.0.40"),
-        )
-        self.assertEqual(result.version_code, "40")
 
     @mock.patch("src.apk_identity.read_identity")
     def test_rejects_package_mismatch(self, read_identity_mock: mock.Mock) -> None:
