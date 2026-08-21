@@ -1,10 +1,11 @@
-"""Google Play APK downloads through the repo-local Aurora-style gplaydl CLI.
+"""Google Play APK downloads through the repo-local gplaydl CLI.
 
-APK bodies should come from Google Play whenever possible. gplaydl performs
-Aurora-style anonymous dispenser authentication, creates a GPlayApi session,
-purchases an exact versionCode when supplied, and downloads the complete Play
-file set (base plus split APKs). The caller validates package/version identity
-before accepting or caching the result.
+APK bodies should come from Google Play whenever possible. gplaydl obtains a
+short-lived Play session from an explicitly configured token dispenser (or
+repository credentials), creates a GPlayApi session, purchases an exact
+versionCode when supplied, and downloads the complete Play file set (base plus
+split APKs). The caller validates package/version identity before accepting or
+caching the result.
 """
 
 from __future__ import annotations
@@ -21,7 +22,7 @@ from src.versioning import VersionCandidate
 
 GPLAYDL_PROJECT = Path("tools/gplaydl/pom.xml")
 GPLAYDL_JAR = Path("tools/gplaydl/target/gplaydl-1.0-SNAPSHOT-all.jar")
-DEFAULT_AURORA_USER_AGENT = "com.aurora.store-4.8.4-76"
+DEFAULT_DISPENSER_USER_AGENT = "Morphe-AutoBuilds-gplaydl/1.0"
 
 # Apps that are intentionally distributed from an upstream GitHub release
 # rather than Google Play. Keep this list narrow and explicit.
@@ -120,7 +121,7 @@ def download_candidate(
             "--output",
             str(downloads.resolve()),
             "--aurora-user-agent",
-            os.getenv("AURORA_USER_AGENT", DEFAULT_AURORA_USER_AGENT),
+            os.getenv("GPLAY_DISPENSER_USER_AGENT", DEFAULT_DISPENSER_USER_AGENT),
             "--locale",
             os.getenv("GPLAY_LOCALE", "ja-JP"),
         ]
@@ -141,9 +142,9 @@ def download_candidate(
 
         result = _run(command)
         if result.returncode != 0:
-            # gplaydl never prints the anonymous auth token; still keep failure
-            # output bounded so provider HTML or unrelated diagnostics cannot
-            # flood Actions logs.
+            # gplaydl never prints the auth token; still keep failure output
+            # bounded so provider HTML or unrelated diagnostics cannot flood
+            # Actions logs.
             tail = "\n".join((result.stdout or "").splitlines()[-35:])
             raise RuntimeError(f"gplaydl exited non-zero: {tail}")
 
