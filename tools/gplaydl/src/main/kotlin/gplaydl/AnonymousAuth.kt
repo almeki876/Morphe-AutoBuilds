@@ -17,13 +17,14 @@ data class DispenserAuth(
 )
 
 class AnonymousAuthClient(
+    private val dispenserUrl: String,
     private val client: OkHttpClient = OkHttpClient(),
-    private val dispenserUrl: String = "https://auroraoss.com/api/auth",
     private val userAgent: String = "com.aurora.store-4.8.4-76",
 ) {
     private val json = Json { ignoreUnknownKeys = true }
 
     fun login(properties: Properties): DispenserAuth {
+        require(dispenserUrl.isNotBlank()) { "custom Aurora dispenser URL is required" }
         val payload = buildJsonObject {
             properties.stringPropertyNames().forEach { key ->
                 put(key, properties.getProperty(key))
