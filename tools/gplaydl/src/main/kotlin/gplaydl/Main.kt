@@ -1,8 +1,9 @@
 package gplaydl
 
-import java.net.URI
 import java.nio.file.Path
 import java.util.Locale
+
+private const val DEFAULT_ANONYMOUS_DISPENSER_URL = "https://dispenser.gplaydl.com/api/auth"
 
 private data class CliOptions(
     val command: String,
@@ -24,7 +25,7 @@ private fun parseArgs(args: Array<String>): CliOptions {
     var output = Path.of(".")
     var versionCode: Long? = null
     var deviceProperties: Path? = null
-    var userAgent = "Morphe-AutoBuilds-gplaydl/1.0"
+    var userAgent = "com.aurora.store-4.8.4-76"
     var locale = Locale.JAPAN
     val packages = mutableListOf<String>()
 
@@ -51,64 +52,51 @@ private fun parseArgs(args: Array<String>): CliOptions {
     return CliOptions(command, packages, output, versionCode, deviceProperties, userAgent, locale)
 }
 
-private fun configuredDispenserUrls(): List<String> {
-    // GPLAY_DISPENSER_URLS is the preferred multi-endpoint setting. Keep the
-    // singular form and the old AURORA_DISPENSER_URL name for compatibility.
-    return sequenceOf(
-        System.getenv("GPLAY_DISPENSER_URLS"),
-        System.getenv("GPLAY_DISPENSER_URL"),
-        System.getenv("AURORA_DISPENSER_URL"),
-    )
-        .flatMap { value -> value.orEmpty().split(',', ';', '\n').asSequence() }
+private fun anonymousDispenserUrls(): List<String> {
+    val configured = System.getenv("GPLAY_ANON_DISPENSER_URLS")
+        .orEmpty()
+        .split(',', '\n')
         .map { it.trim() }
         .filter { it.isNotBlank() }
-        .distinct()
-        .toList()
+        .toMutableList()
+
+    System.getenv("AURORA_DISPENSER_URL")
+        .orEmpty()
+        .trim()
+        .takeIf { it.isNotBlank() }
+        ?.let { configured += it }
+
+    if (configured.isEmpty()) {
+        configured += System.getenv("GPLAYDL_DISPENSER_URL")
+            .orEmpty()
+            .trim()
+            .ifBlank { DEFAULT_ANONYMOUS_DISPENSER_URL }
+    }
+    return configured.distinct()
 }
 
-private fun safeDispenserHost(url: String): String =
-    runCatching { URI(url).host }.getOrNull()
-        ?.takeIf { it.isNotBlank() }
-        ?: "configured dispenser"
-
 private fun authenticatedSession(options: CliOptions): Pair<GPlaySession, String> {
-    val properties = loadDeviceProperties(options.deviceProperties)
+    val propertyCandidates = loadDevicePropertyCandidates(options.deviceProperties)
+    val primaryProperties = propertyCandidates.first().second
     val email = System.getenv("GPLAY_EMAIL").orEmpty().trim()
     val aasToken = System.getenv("GPLAY_AAS_TOKEN").orEmpty().trim()
     val authToken = System.getenv("GPLAY_AUTH_TOKEN").orEmpty().trim()
-    val dispenserApiKey = System.getenv("GPLAYDL_API_KEY").orEmpty().trim().ifBlank { null }
 
     return when {
         email.isNotBlank() && aasToken.isNotBlank() ->
-            GPlaySession.aas(email, aasToken, properties, options.locale) to "repository AAS credentials"
+            GPlaySession.aas(email, aasToken, primaryProperties, options.locale) to "repository AAS credentials"
 
         email.isNotBlank() && authToken.isNotBlank() ->
-            GPlaySession.authToken(email, authToken, properties, options.locale) to "repository AUTH credentials"
+            GPlaySession.authToken(email, authToken, primaryProperties, options.locale) to "repository AUTH credentials"
 
         else -> {
-            val dispenserUrls = configuredDispenserUrls()
-            require(dispenserUrls.isNotEmpty()) {
-                "anonymous Google Play authentication requires GPLAY_DISPENSER_URLS or GPLAY_DISPENSER_URL; " +
-                    "no third-party dispenser is hardcoded"
-            }
-
-            val failures = mutableListOf<String>()
-            for (dispenserUrl in dispenserUrls) {
-                try {
-                    val dispenserAuth = AnonymousAuthClient(
-                        dispenserUrl = dispenserUrl,
-                        apiKey = dispenserApiKey,
-                        userAgent = options.userAgent,
-                    ).login(properties)
-                    return GPlaySession.anonymous(dispenserAuth, properties, options.locale) to
-                        "configured anonymous dispenser (${safeDispenserHost(dispenserUrl)})"
-                } catch (error: Exception) {
-                    val detail = error.message.orEmpty().lineSequence().firstOrNull().orEmpty().take(180)
-                    failures += "${safeDispenserHost(dispenserUrl)}: ${error::class.simpleName}" +
-                        if (detail.isNotBlank()) " ($detail)" else ""
-                }
-            }
-            error("all configured Google Play token dispensers failed: ${failures.joinToString("; ")}")
+            val login = AnonymousAuthClient(
+                dispenserUrls = anonymousDispenserUrls(),
+                userAgent = options.userAgent,
+                apiKey = System.getenv("GPLAYDL_API_KEY").orEmpty().trim().ifBlank { null },
+            ).login(propertyCandidates)
+            GPlaySession.anonymous(login.auth, login.properties, options.locale) to
+                "anonymous dispenser ${login.dispenserHost} (${login.profileName})"
         }
     }
 }

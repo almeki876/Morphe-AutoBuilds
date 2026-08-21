@@ -2,8 +2,6 @@
 # - で始まる行 = 除外（ブラックリスト）
 # + で始まる行 = 強制含有
 
-- AddResourcesPatch
-
 + Bypass certificate checks
 + Change header
 + Change miniplayer color

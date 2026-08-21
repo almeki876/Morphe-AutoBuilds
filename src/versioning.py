@@ -20,7 +20,6 @@ _CODE_AND_NAME_RE = re.compile(
 _NAME_AND_CODE_RE = re.compile(
     r"^(?P<name>\d[\w.+ -]*?)\((?P<code>\d+)\)\s*$"
 )
-_VENDOR_VERSION_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._+-]*$")
 _DISCOVERED_VERSION_CODES: dict[tuple[str, str], str] = {}
 
 
@@ -55,25 +54,11 @@ class VersionCandidate:
     def matches(self, name: str, code: str | None = None) -> bool:
         """Return whether a provider result is the same release identity."""
         normalized_name = str(name).strip()
-        normalized_code = str(code).strip() if code is not None else None
-
-        if normalized_name in self.aliases(""):
-            if self.code is None:
-                return True
-            return normalized_code == self.code
-
-        # Some vendor feeds expose a release as ``versionName.versionCode``
-        # (for example ``21.0.0.40``) while the APK manifest stores
-        # versionName=21.0.0 and versionCode=40. Treat that exact composition as
-        # the same release without weakening normal version matching.
-        if (
-            self.code is None
-            and normalized_name
-            and normalized_code
-            and f"{normalized_name}.{normalized_code}" == self.name
-        ):
+        if normalized_name not in self.aliases(""):
+            return False
+        if self.code is None:
             return True
-        return False
+        return code is not None and str(code).strip() == self.code
 
     def aliases(self, provider: str) -> tuple[str, ...]:
         """Return exact-match aliases in the order preferred by a provider."""
@@ -138,13 +123,6 @@ def parse_candidate(line: str) -> VersionCandidate | None:
         )
 
     if re.match(r"^\d", value):
-        return VersionCandidate(name=value, raw=line)
-
-    # Some Android apps use vendor labels rather than dot-leading versions,
-    # e.g. Poweramp's ``build-1025-bundle-play``. These are valid exact
-    # release identifiers as long as they are a single token and contain a
-    # digit. Keep log prose excluded by the strict token pattern above.
-    if re.search(r"\d", value) and _VENDOR_VERSION_RE.fullmatch(value):
         return VersionCandidate(name=value, raw=line)
     return None
 

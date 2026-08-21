@@ -116,24 +116,15 @@ def _nested_apk_priority(name: str) -> tuple[int, str]:
 
 
 def read_identity(path: Path) -> ApkIdentity:
-    """Return package/version identity for a plain APK or split container.
-
-    Providers do not always preserve an ``.apk`` suffix. Ask ``aapt`` to read
-    the downloaded file first regardless of its filename; only if that fails do
-    we interpret the ZIP as an APKM/APKS/XAPK-style split container. This avoids
-    misclassifying a valid suffixless APK as a container with no nested APKs.
-    """
+    """Return package/version identity for a plain APK or split container."""
     aapt = find_aapt()
     if not aapt:
         raise ApkIdentityError(
             "Android build-tools aapt/aapt2 was not found; cannot verify APK identity"
         )
 
-    direct_error: ApkIdentityError | None = None
-    try:
+    if path.suffix.casefold() == ".apk":
         return _read_plain_apk_identity(path, aapt)
-    except ApkIdentityError as error:
-        direct_error = error
 
     try:
         with zipfile.ZipFile(path) as archive:
@@ -146,8 +137,7 @@ def read_identity(path: Path) -> ApkIdentity:
             )
             if not nested:
                 raise ApkIdentityError(
-                    f"APK input is neither a readable APK nor a split container: {path}; "
-                    f"direct identity error: {direct_error}"
+                    f"split container contains no nested APK files: {path}"
                 )
 
             errors: list[str] = []
@@ -161,10 +151,7 @@ def read_identity(path: Path) -> ApkIdentity:
                     except ApkIdentityError as error:
                         errors.append(f"{name}: {error}")
     except zipfile.BadZipFile as error:
-        raise ApkIdentityError(
-            f"APK input is not a readable APK or ZIP archive: {path}; "
-            f"direct identity error: {direct_error}"
-        ) from error
+        raise ApkIdentityError(f"APK input is not a readable ZIP archive: {path}") from error
 
     raise ApkIdentityError(
         f"could not read identity from nested APKs in {path}: {'; '.join(errors[:3])}"

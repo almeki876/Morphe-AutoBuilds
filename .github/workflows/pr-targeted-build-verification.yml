@@ -16,6 +16,7 @@ on:
       - 'sources/**'
       - 'apps/**'
       - 'my-patch-config.json'
+      - 'patches/**'
       - 'arch-config.json'
 
 permissions:
@@ -26,7 +27,7 @@ jobs:
   dispatch:
     runs-on: ubuntu-latest
     steps:
-      - name: Dispatch regression build set on this branch
+      - name: Dispatch open-issue regression builds on this branch
         env:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
@@ -35,4 +36,4 @@ jobs:
           gh workflow run build.yml \
             --repo "$REPO" \
             --ref "$REF" \
-            -f updated_apps='adobe-scan,brave-beta,brave-nightly,disney-plus,gboard,proton-vpn,amazon-music,amazon-shopping,tumblr'
+            -f updated_apps='adobe-acrobat,amazon-shopping,crunchyroll,fing,ibs_paint,lightroom,nova,twitch-android-tv,youtube-music'

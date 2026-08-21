@@ -12,14 +12,73 @@ jobs:
       actions: write
 
     steps:
-      - name: Trigger Build for Every Enabled Entry
+      - name: Checkout Repository
+        uses: actions/checkout@v7
+
+      - name: Fetch Latest Tags and Trigger Build
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          fetch_tag() {
+            gh api "repos/${1}/releases?per_page=100" \
+              --jq 'sort_by(.published_at) | reverse | .[0].tag_name' \
+              2>/dev/null || echo ""
+          }
+
+          echo "Fetching latest tags..."
+          morphe_tag=$(fetch_tag  "MorpheApp/morphe-patches")
+          anddea_tag=$(fetch_tag  "anddea/revanced-patches")
+          rushiranpise_tag=$(fetch_tag "rushiranpise/morphe-patches")
+          rookie_tag=$(fetch_tag  "RookieEnough/De-Vanced")
+          tosox_tag=$(fetch_tag   "Tosox/revanced-patches")
+          dropped_tag=$(fetch_tag "indrastorms/Dropped-Patches")
+
+          echo "Tags fetched:"
+          echo "  morphe:  $morphe_tag"
+          echo "  anddea:  $anddea_tag"
+          echo "  rushiranpise: $rushiranpise_tag"
+          echo "  rookie:  $rookie_tag"
+          echo "  tosox:   $tosox_tag"
+          echo "  dropped: $dropped_tag"
+
+          # タグ取得の検証: 空タグがあればエラーにする
+          failed=false
+          for src in morphe anddea rushiranpise rookie tosox dropped; do
+            eval "tag=\${${src}_tag}"
+            if [ -z "$tag" ]; then
+              echo "::error::Failed to fetch tag for: $src"
+              failed=true
+            fi
+          done
+          [ "$failed" = "true" ] && exit 1
+
+          echo "Triggering build.yml with force_build for all sources..."
+
+          # *_updated=false  → NEWバッジを付けない（テストビルドなので）
+          # *_force_build=true → 全ソースを強制ビルド
           gh workflow run build.yml \
-            --repo "$GITHUB_REPOSITORY" \
+            -f morphe_tag="$morphe_tag" \
+            -f anddea_tag="$anddea_tag" \
+            -f rushiranpise_tag="$rushiranpise_tag" \
+            -f rookie_tag="$rookie_tag" \
+            -f tosox_tag="$tosox_tag" \
+            -f yuzu_tag="patche" \
+            -f dropped_tag="$dropped_tag" \
+            -f morphe_updated="false" \
+            -f anddea_updated="false" \
+            -f rushiranpise_updated="false" \
+            -f rookie_updated="false" \
+            -f tosox_updated="false" \
+            -f yuzu_updated="false" \
+            -f dropped_updated="false" \
+            -f morphe_force_build="true" \
+            -f anddea_force_build="true" \
+            -f rushiranpise_force_build="true" \
+            -f rookie_force_build="true" \
+            -f tosox_force_build="true" \
+            -f yuzu_force_build="true" \
+            -f dropped_force_build="true" \
             -f build_all_sources="true" \
-            -f updated_sources="" \
-            -f updated_apps="" \
             -f apk_updated_apps="[]"
-          echo "Full build workflow triggered successfully."
+
+          echo "Build workflow triggered successfully."
