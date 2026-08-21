@@ -14,7 +14,7 @@ class GboardMultiSourceTests(unittest.TestCase):
     def test_conflicting_supplemental_patches_are_suppressed(self):
         self.assertEqual(
             gboard_multi._effective_selection("adobo"),
-            {"Enable Undo feature", "Toggle feature flags"},
+            {"Enable Undo feature"},
         )
         self.assertEqual(
             gboard_multi._effective_selection("morning-entree"),
