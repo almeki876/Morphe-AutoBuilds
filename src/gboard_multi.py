@@ -213,8 +213,13 @@ def prepare_morphe_command(command: Sequence[str]) -> list[str]:
 
     # --exclusive is global across all bundles. The generated options file
     # already contains per-bundle enabled states, so keeping --exclusive would
-    # incorrectly erase Jason's default set.
-    cmd = [arg for arg in cmd if arg != "--exclusive"]
+    # incorrectly erase Jason's default set. Gboard also intentionally removes
+    # --continue-on-error: every selected patch in the integrated build must
+    # succeed or the build must fail visibly.
+    cmd = [
+        arg for arg in cmd
+        if arg not in {"--exclusive", "--continue-on-error"}
+    ]
     primary_index = cmd.index("-p")
     insert_at = primary_index + 2
     extra_args: list[str] = []
