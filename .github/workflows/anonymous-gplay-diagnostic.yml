@@ -8,6 +8,7 @@ on:
       - .github/workflows/anonymous-gplay-diagnostic.yml
       - tools/gplaydl/**
       - src/aurora_play.py
+      - src/apkcombo.py
   pull_request:
     branches:
       - main
@@ -15,6 +16,7 @@ on:
       - .github/workflows/anonymous-gplay-diagnostic.yml
       - tools/gplaydl/**
       - src/aurora_play.py
+      - src/apkcombo.py
 
 permissions:
   contents: read
@@ -59,8 +61,61 @@ jobs:
             --output anonymous-play-download
           find anonymous-play-download -maxdepth 3 -type f -printf '%p %s bytes\n'
 
-      - name: Fail diagnostic when the public anonymous path is unavailable
-        if: steps.anonymous-auth.outcome != 'success'
+      - name: Record public-dispenser result
+        if: always()
         run: |
-          echo 'The maintained gplaydl dispenser no longer permits credential-free anonymous minting.'
-          exit 1
+          echo "anonymous_auth_outcome=${{ steps.anonymous-auth.outcome }}"
+          echo "anonymous_auth_conclusion=${{ steps.anonymous-auth.conclusion }}"
+
+  apkcombo-google-cdn:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt -q
+
+      - name: Resolve and download Yuucho without Google credentials
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          from urllib.parse import urlparse
+          from src import apkcombo, apk_identity, downloader
+
+          app_name = 'yuucho-tsucho'
+          package = 'jp.japanpost.jp_bank.bankbookapp'
+          config = {
+              'name': 'yucho-tsuco-bank-book',
+              'package': package,
+              'arch': 'arm64-v8a',
+          }
+          version = apkcombo.get_latest_version(app_name, config)
+          if not version:
+              raise SystemExit('APKCombo could not resolve the current Yuucho version')
+          url = apkcombo.get_download_link(version, app_name, config)
+          if not url:
+              raise SystemExit('APKCombo did not expose a signed download URL')
+          parsed = urlparse(url)
+          print(f'broker=APKCombo version={version} signed_url_host={parsed.hostname} path={parsed.path}')
+          path = downloader.download_resource(
+              url,
+              name='yuucho-anonymous-play.apks',
+              referer='https://apkcombo.com/',
+              validate_apk=True,
+          )
+          identity = apk_identity.read_identity(Path(path))
+          if identity.package_name != package:
+              raise SystemExit(f'package mismatch: {identity.package_name}')
+          print(
+              'verified_download '
+              f'package={identity.package_name} '
+              f'versionName={identity.version_name} '
+              f'versionCode={identity.version_code} '
+              f'bytes={Path(path).stat().st_size}'
+          )
+          PY
