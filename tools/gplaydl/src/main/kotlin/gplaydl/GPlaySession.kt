@@ -6,32 +6,43 @@ import com.aurora.gplayapi.helpers.AuthHelper
 import java.util.Locale
 import java.util.Properties
 
-/**
- * Keeps the GPlayApi-specific authentication boundary in one place.
- *
- * Current Aurora Store uses AuthHelper.build(... Token.AUTH, isAnonymous=true).
- * The JVM-compatible GPlayApi transport used by this CLI exposes the equivalent
- * buildInsecure(email, authToken, locale, DeviceInfoProvider) entry point.
- * Replacing this transport with a pure-JVM extraction of GPlayApi 3.6.x should
- * only require changing this class.
- */
+/** Keeps the GPlayApi-specific authentication boundary in one place. */
 class GPlaySession(
     val authData: AuthData,
 ) {
     companion object {
-        fun anonymous(
-            dispenserAuth: DispenserAuth,
+        fun aas(
+            email: String,
+            aasToken: String,
+            properties: Properties,
+            locale: Locale,
+        ): GPlaySession {
+            // This JVM-compatible GPlayApi's AAS builder uses Locale.getDefault().
+            Locale.setDefault(locale)
+            return GPlaySession(AuthHelper.build(email, aasToken, properties))
+        }
+
+        fun authToken(
+            email: String,
+            authToken: String,
             properties: Properties,
             locale: Locale,
         ): GPlaySession {
             val provider = DeviceInfoProvider(properties, locale.toString())
-            val authData = AuthHelper.buildInsecure(
-                dispenserAuth.email,
-                dispenserAuth.authToken,
-                locale,
-                provider,
+            return GPlaySession(
+                AuthHelper.buildInsecure(email, authToken, locale, provider)
             )
-            return GPlaySession(authData)
         }
+
+        fun anonymous(
+            dispenserAuth: DispenserAuth,
+            properties: Properties,
+            locale: Locale,
+        ): GPlaySession = authToken(
+            dispenserAuth.email,
+            dispenserAuth.authToken,
+            properties,
+            locale,
+        )
     }
 }
