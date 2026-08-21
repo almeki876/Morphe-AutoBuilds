@@ -74,13 +74,7 @@ def _validate_downloaded_identity(
     package: str,
     candidate: VersionCandidate,
 ) -> None:
-    """Reject plain APKs whose actual manifest identity differs from selection."""
-    if input_apk.suffix.casefold() != ".apk":
-        logging.info(
-            "APK identity validation deferred until split merge: %s",
-            input_apk.name,
-        )
-        return
+    """Reject APKs whose actual manifest identity differs from selection."""
     identity = apk_identity.validate_identity(input_apk, package, candidate)
     logging.info(
         "🪪 Verified APK identity: package=%s versionName=%s versionCode=%s",
