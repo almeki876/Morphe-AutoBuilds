@@ -1,179 +1,145 @@
 # Morphe AutoBuilds 運用セットアップ
 
-この文書は、Morphe AutoBuildsをフォークまたは独自リポジトリで運用する管理者向けです。公開済みAPKを利用するだけの場合は設定不要です。[README](./README.md)から最新リリースを確認してください。
+この文書は、Morphe AutoBuilds をフォークまたは独自リポジトリで運用する管理者向けです。公開 APK を使うだけなら設定は不要です。
 
-## 必要なもの
+## 前提
 
-- GitHub Actionsを利用できるGitHubリポジトリ
-- リポジトリのActionsとSecretsを変更できる権限
-- `matchadaisuke/morphe-patches`を読み取れるPersonal Access Token
-- VirusTotal Communityまたは上位プランのAPIキー
-- コマンド操作を行う場合は[GitHub CLI](https://cli.github.com/)のログイン済み環境
+- GitHub Actions を利用できるリポジトリ
+- Actions / Secrets / Variables / Releases を管理できる権限
+- VirusTotal API キー
+- Google Play を使う場合は、下記いずれかの認証方式
 
-このリポジトリはPython 3.11、Java 21、GitHub CLIなどをActions内で準備します。通常はローカル環境へビルドツールを導入する必要はありません。
+現在の通常ビルドには、削除済みの private `matchadaisuke/morphe-patches` / `yuzu` ソース用 PAT は不要です。CLI とパッチバンドルは [`sources/*.json`](sources/) に宣言された公開ソースだけを取得します。
 
-## 1. リポジトリを用意する
+Actions 内では Python 3.11 と Java 21 を準備します。
 
-GitHub上でこのリポジトリをフォークするか、内容を管理対象リポジトリへpushします。
+## 1. Actions を有効にする
 
-Actionsが次の操作を行うため、対象ブランチの保護ルールも確認してください。
+GitHub の **Settings → Actions → General** で Actions を許可してください。ワークフローは用途ごとに最小限の `permissions` を宣言していますが、Organization policy や branch protection が優先されます。
 
-- Actionsワークフローの実行
-- GitHub Releaseとタグの作成
-- 内部APKキャッシュ用ドラフトリリースの更新
-- `last-tags.json`の自動更新とpush
+必要な操作は主に次のとおりです。
 
-ブランチ保護でActionsからのpushを禁止している場合、更新確認は成功しても`last-tags.json`の保存に失敗します。
+- ソースコードの読み取り
+- workflow dispatch
+- GitHub Release / tag の作成
+- base APK cache 用 release の更新
+- `last-tags.json` の更新 push
+- build failure Issue の作成・更新・クローズ
 
-## 2. GitHub Actionsを有効にする
+## 2. 必須 Secret
 
-リポジトリの「Settings」から「Actions」→「General」を開き、使用しているActionsを実行できる設定にします。
+### `VIRUSTOTAL_API_KEY`
 
-ワークフローには必要な`permissions`が個別に定義されています。ただし、組織ポリシーやブランチ保護はワークフロー設定より優先されるため、次の権限が許可されていることを確認してください。
-
-- Actionsからリポジトリ内容を読み取る
-- リリース、タグ、ドラフトリリースを作成・更新する
-- `check-upstream.yml`から`build.yml`を起動する
-- `github-actions[bot]`が`last-tags.json`を更新する
-- 定期ヘルスチェックが障害Issueを作成、更新、クローズする
-
-## 3. 必須Secretsを登録する
-
-登録場所は「Settings」→「Secrets and variables」→「Actions」→「Repository secrets」です。
-
-| Secret名 | 用途 |
-| --- | --- |
-| `PAT` | 非公開のYuzuパッチリポジトリ`matchadaisuke/morphe-patches`の読み取り |
-| `VIRUSTOTAL_API_KEY` | ダウンロード直後の未加工APKを公開前にVirusTotalで検査 |
-
-`GITHUB_TOKEN`はActions実行時にGitHubが自動発行するため、手動登録は不要です。現在の更新管理は`last-tags.json`を使用しており、古い手順にあった`LAST_MORPHE_TAG`などのRepository Variablesも不要です。
-
-### PAT
-
-Fine-grained Personal Access Tokenを使用する場合は、次の条件を満たすようにします。
-
-- Resource ownerが`matchadaisuke/morphe-patches`へアクセスできる所有者である
-- Repository accessに`matchadaisuke/morphe-patches`が含まれている
-- Repository permissionsの`Contents`が`Read-only`以上である
-- 有効期限内である
-
-トークンの値はファイル、コミット、Issue、Actionsログへ記載しないでください。
-
-GitHub CLIから登録する場合は、値をコマンド行へ直接書かず、表示される入力欄へ貼り付けます。
-
-```bash
-gh secret set PAT
-```
-
-この非公開リポジトリへのアクセス権を持たないフォークでは、Yuzuパッチツールを取得できません。現在のビルドはツールを一括準備するため、PATが無効だと他のアプリを含むビルド全体が開始できない場合があります。
-
-### VirusTotal APIキー
-
-GitHub CLIから登録する場合は次を実行します。
+Repository secret として登録します。
 
 ```bash
 gh secret set VIRUSTOTAL_API_KEY
 ```
 
-通常のVirusTotal APIへアップロードしたAPKは、VirusTotalや解析パートナーと共有される場合があります。共有条件を確認したうえで利用してください。未加工の元APKは最初にSHA-256で既存結果を照会し、VirusTotalに未知のハッシュだけをアップロードします。パッチ適用後の完成APKはアップロードしません。
+未加工の元 APK は SHA-256 の既存結果を先に照会し、未知のハッシュだけを VirusTotal へアップロードします。検査を完了できない場合は、その APK を公開しません。
 
-APIキーが未設定、無効、利用上限超過、または解析がタイムアウトした場合、未検査APKを公開しないためリリースジョブは失敗します。
+## 3. Google Play 認証
 
-## 4. 設定ファイルを確認する
+一般的な Play 配布アプリでは Google Play を最初に試します。認証方法は次のいずれかです。
 
-初回実行前に、少なくとも次のファイルを確認します。
+### 方法 A: AAS token
 
-| ファイル | 確認内容 |
+Repository secrets:
+
+- `GPLAY_EMAIL`
+- `GPLAY_AAS_TOKEN`
+
+### 方法 B: auth token
+
+Repository secrets:
+
+- `GPLAY_EMAIL`
+- `GPLAY_AUTH_TOKEN`
+
+### 方法 C: 匿名 token dispenser
+
+コードには第三者 dispenser を固定していません。利用する endpoint を Repository variable へ設定します。
+
+推奨:
+
+- `GPLAY_DISPENSER_URLS` — 複数 endpoint。カンマ、セミコロン、改行で区切れます。
+
+互換用:
+
+- `GPLAY_DISPENSER_URL` — 単一 endpoint
+- `AURORA_DISPENSER_URL` — 旧変数名
+
+endpoint が API key を必要とする場合は Repository secret `GPLAYDL_API_KEY` を設定します。`gplaydl` は `X-Api-Key` ヘッダーとして送信します。
+
+URL は `https://example.invalid` のようなベース URL でも `https://example.invalid/api/auth` でも構いません。複数 endpoint は指定順に試し、失敗レスポンス本文や token は CI ログへ出しません。
+
+> [!NOTE]
+> Google Play 認証を設定していなくても、アプリによっては他の取得元へフォールバックできます。ただし Google Play だけが要求版を提供している場合は取得に失敗します。
+
+## 4. ビルド設定
+
+設定の正本は次のファイルです。
+
+| ファイル | 内容 |
 | --- | --- |
-| `my-patch-config.json` | ビルド対象の`app_name`と`source`、パッチオプション |
-| `arch-config.json` | 個別に固定するアーキテクチャ。未指定時はarm64優先 |
-| `apps/<provider>/<app>.json` | package ID、取得先の名前やURL、固定バージョン |
-| `sources/<source>.json` | CLIとパッチバンドルのGitHubリリース |
-| `last-tags.json` | 前回確認したパッチとAPKのバージョン |
+| `my-patch-config.json` | 有効なアプリ/パッチソース、パッチオプション |
+| `sources/*.json` | Morphe CLI とパッチバンドルの upstream release |
+| `apps/**.json` | package ID と元 APK 取得設定 |
+| `arch-config.json` | アーキテクチャの個別指定 |
+| `last-tags.json` | 最後に正常公開できた upstream/APK 状態 |
 
-`apps/`の`version`が空の場合は、パッチが対応するバージョンを自動選択します。APKMirror設定の`org`やアプリ名が古い場合も、package IDによる検索を試みます。
+新しいパッチソースを追加する場合、`sources/<source>.json` と `my-patch-config.json` を追加すれば、定期 updater と tool downloader は自動的にそのソースを走査します。`build.yml` や `check-upstream.yml` に `SOURCE_NAME_updated` のような固定 input を追加する必要はありません。
 
-AdGuardは`apps/github/adguard.json`の設定で公式の安定版GitHub Releaseだけを使用します。取得元を保証するため、第三者APKサイトや既存の共通キャッシュへはフォールバックしません。ゆうちょ2アプリは`apps/github/`の設定でYuzuMikan404の専用GitHubリリースを優先し、取得できない場合は一般APKサイトへフォールバックします。
+Gboard は `jason`、`adobo`、`morning-entree` の 3 ソースを 1 つの統合マトリクス項目へまとめます。
 
-## 5. 初回の動作確認
+## 5. 手動ビルド
 
-GitHubの「Actions」タブから、最初に「Build and Release APKs」を手動実行します。手動実行では、ビルドしたいパッチソースの`*_updated`または`*_force_build`を`true`にしてください。すべて`false`のままだとビルドマトリクスは空になります。
+### 全有効エントリ
 
-全ソースを確認する場合は、各ソースの更新フラグを`true`にします。Yuzuを確認する場合は`yuzu_updated`または`yuzu_force_build`も明示的に`true`にしてください。
+Actions から **Trigger Test Build All (Release)** (`test-build.yml`) を実行します。内部で `build.yml` を `build_all_sources=true` で dispatch します。
 
-実行中は次の順番で確認します。
-
-1. `Download Build Tools`がすべてのCLIとパッチを取得できる
-2. `Prepare Build Matrix`に対象アプリが含まれる
-3. 各`Build <app> with <source>`ジョブがAPKを作成する
-4. `Scan Unmodified Base APKs with VirusTotal`が取得直後の元APKを検査する
-5. `Create Integrated Release`がリリースを作成する
-
-ビルドは同時アクセスによる配布サイトの制限を避けるため、並列数を抑えて実行します。VirusTotal Community APIの待機もあるため、対象数によっては完了まで長時間かかります。
-
-GitHub CLIで状況を見る場合は次を使用できます。
+直接実行する場合:
 
 ```bash
-gh run list --workflow=build.yml --limit=5
-gh run watch
+gh workflow run build.yml -f build_all_sources=true
 ```
 
-## 6. 自動更新確認を有効にする
-
-`Check Upstream for Updates`は、毎日09:00 UTC（日本時間18:00頃）に実行されます。GitHub Actionsのスケジュールは混雑により遅延することがあります。
-
-このワークフローは次を確認します。
-
-- Morphe、Anddea、Hoo-dles (rushiranpise)、RookieEnough、Tosox、Dropped-Patchesの新しいリリース
-- パッチが任意バージョンへ対応するアプリの新しい元APK
-
-更新を検出すると、影響するパッチソースのビルドを起動し、確認済みバージョンを`last-tags.json`へ保存します。
-
-`last-tags.json`は更新検出直後には変更されません。全対象のビルド、VirusTotal検査、リリース作成が成功した場合だけ保存されます。一部失敗時は前回状態を維持するため、次回の定期確認で同じ更新を自動再試行できます。
-
-`Repository and APK Provider Health`は毎日03:17 UTC（日本時間12:17頃）に、設定、パッチツール資産、APK取得元を検査します。障害時は`Automated APK build health check failed` Issueを作成または追記し、復旧すると自動で閉じます。レポートはActionsアーティファクトへ30日間保存されます。
-
-DependabotはGitHub ActionsとPython依存関係を週1回確認し、更新をまとめたPull Requestを作成します。Pull Requestでは`Configuration Check`がJSON設定、Python構文、プロバイダー登録を検査します。
-
-手動確認はActions画面、または次のコマンドから実行できます。
+### 特定ソース
 
 ```bash
-gh workflow run check-upstream.yml
+gh workflow run build.yml \
+  -f updated_sources='adobo,morning-entree'
 ```
 
-## 7. リリース結果を確認する
+`anddea` は内部 source id `revanced-anddea` と同じものとして扱います。
 
-正常なリリースには、成功したAPKと次の情報が含まれます。
+### 特定アプリ
 
-- パッチソースと解決済みバージョン
-- 成功・失敗したアプリとソースの組み合わせ
-- 元APKの取得元、バージョン、アーキテクチャ
-- 元APKのVirusTotal検出数、照会方法、SHA-256へのリンク
+```bash
+gh workflow run build.yml \
+  -f updated_apps='gboard,amazon-shopping'
+```
 
-一部のビルドだけ失敗した場合、タイトルへ`Partial`が付き、成功したAPKのみ公開されることがあります。元APKのVirusTotal検査で検出または検査失敗が発生した場合は、APKが完成していてもリリースされません。完成APKはVirusTotalへアップロードしません。
+## 6. 定期更新確認
 
-VirusTotalの元APK用MarkdownとJSONレポートは、Actions実行の`virustotal-report`アーティファクトへ30日間保存されます。Markdownには検出エンジンの詳細、JSONには返却された全エンジンのカテゴリ、検出名、方式、バージョン、更新日が入ります。各APKの完了ごとにファイルを更新し、同じ内容の検出警告をActionsログにも出します。
+`check-upstream.yml` は毎日 09:00 UTC（JST 18:00 頃）に実行されます。
 
-## トラブルシューティング
+- `scripts/check_upstream_sources.py` が `sources/*.json` の全パッチ repository を確認
+- `scripts/detect_version_pinned.py` が version-pinned 対象を確認
+- `scripts/check_apk_versions.py` が監視 APK の更新を確認
+- 変更があれば `updated_sources` / `updated_apps` を `build.yml` へ渡す
 
-### `401 Bad credentials`またはPAT認証エラー
+固定された手動ソース一覧は使用しません。
 
-- `PAT`がRepository Secretとして登録されているか確認する
-- PATの有効期限と失効状態を確認する
-- `matchadaisuke/morphe-patches`の`Contents: Read`権限を確認する
-- 同じ無効なトークンを再試行せず、新しいトークンへ更新する
+`last-tags.json` は更新を検出した時点では進めません。選択されたビルド、VirusTotal、release が成功した後に `scripts/save_successful_state.py` が現在の宣言済みソースと APK 状態を保存します。
 
-### ビルドマトリクスが空になる
+## 7. 元 APK の取得と検証
 
-手動実行時の`*_updated`と`*_force_build`がすべて`false`になっています。対象ソースのどちらかを`true`にして再実行します。
+一般経路では Google Play を優先し、失敗時に JustAPK、apkeep、APKMirror、APKPure、Uptodown、Softonic、Aptoide、APKCombo などの利用可能な取得経路へフォールバックします。アプリ固有の公式 GitHub Release や専用 provider がある場合は、その設定が優先されます。
 
-### 元APKを取得できない
+候補 APK は採用前に package id、version name/version code、ABI を検証します。要求版と違う APK や HTML/error page は破棄して次へ進みます。`universal` は特定 ABI 一致を要求しません。
 
-対象バージョンが各配布サイトに存在するか、package IDが正しいかを確認します。ワークフローはAPKMirror、APKPure、Uptodown、Softonic、Aptoide、APKComboの順に試すため、最後に記録された各取得元のエラーを確認してください。
-
-403、429、503はアクセス制限や一時障害の可能性があります。不完全なファイルやHTMLが返った場合は自動的に拒否されます。
-
-ローカルで取得元を実通信確認する場合は、依存関係を導入した環境で次のように実行します。`--download-dir`を省略するとAPK全体は保存せず、先頭バイトとHTTP応答だけを検査します。
+取得元を個別確認する場合:
 
 ```bash
 python scripts/probe_apk_sources.py \
@@ -183,48 +149,54 @@ python scripts/probe_apk_sources.py \
   --arch arm64-v8a
 ```
 
-実APKまで検査する場合は、Git管理外の一時ディレクトリを指定します。
+## 8. CI / validation
 
-```bash
-python scripts/probe_apk_sources.py \
-  --app icon-packer \
-  --version 1.21.0-release \
-  --providers apkpure \
-  --download-dir temp/provider-probe
-```
+Pull Request と main への push では `configuration-check.yml` が次を実行します。
 
-Cloudflareの`cf-mitigated: challenge`や対話型検証画面は、Actions上での自動突破を試みません。そのホストを同一ジョブ内で一時停止し、次の取得元へ切り替えます。
+1. `scripts/validate_repository.py`
+2. `python3 -m compileall -q src scripts`
+3. provider configuration validation
+4. `python3 -m unittest discover tests`
 
-APKMirrorは短時間の連続アクセスにより403または429を返すことがあります。ビルドではジョブ開始を15～45秒分散し、同一ジョブ内のAPKMirrorページ要求を3.5秒以上空けます。診断コマンドを連続実行して制限された場合は、同じURLを即座に繰り返さず時間を空けてください。
+実 APK を伴う確認が必要な変更では `pr-targeted-build-verification.yml` または手動 `build.yml` を使います。
 
-APKMirrorのreleaseページは読めても最終`download.php`だけが403になる場合があります。この場合はvariant表から得たversion codeをAPKPureの直接配信へ自動的に引き継ぎます。APKPure個別設定がないアプリも、他プロバイダーにpackage IDがあれば実行時設定を生成します。
+## 9. リリース
 
-### VirusTotalで停止する
+正常な release には成功 APK と release notes が含まれます。元 APK の VirusTotal report は Actions artifact にも保存されます。
 
-- Secret名が正確に`VIRUSTOTAL_API_KEY`になっているか確認する
-- APIキーが有効か、利用上限に達していないか確認する
-- `virustotal-report`とジョブ概要で対象APKの結果を確認する
-- 元APKに`malicious`または`suspicious`が1件以上ある場合は、原因を確認するまで公開しない
-- 完成APKの既知Repack/PUP警告は元APK全件cleanの場合だけ許可され、それ以外の新しい検出は公開を停止する
-- 元APKだけで検出される場合は取得元を疑い、完成APKだけで検出される場合はパッチ、APK変換、アーキテクチャ調整、再署名の差分を確認する
+一部の対象だけが失敗した場合は Partial release になることがあります。全対象が成功していない場合、`last-tags.json` は進めません。
 
-### リリースが作成されない
+## トラブルシューティング
 
-次のいずれかが原因です。
+### `anonymous Google Play authentication requires ...`
 
-- APKが1件も完成していない
-- VirusTotal検査が失敗または検出ありで終了した
-- `contents: write`が組織ポリシーで禁止されている
-- タグやリリースを作成する権限がない
+`GPLAY_EMAIL` + token がなく、dispenser URL も設定されていません。`GPLAY_DISPENSER_URLS` または直接認証用 secret を設定してください。
 
-### `last-tags.json`を更新できない
+### `all configured Google Play token dispensers failed`
 
-ブランチ保護、Ruleset、Actionsの書き込み権限を確認します。ワークフローは`github-actions[bot]`として`last-tags.json`だけをコミットします。
+- endpoint が到達可能か
+- `/api/auth` を受け付ける互換 API か
+- API key が必要なら `GPLAYDL_API_KEY` が正しいか
+- 複数 endpoint を `GPLAY_DISPENSER_URLS` に設定できないか
 
-## 運用上の注意
+を確認します。CI のエラーには認証レスポンス本文を出さないため、必要なら dispenser 側ログを確認してください。
 
-- Secretsをリポジトリ内のファイルへ保存しないでください。
-- PATは対象リポジトリの読み取りだけに絞り、期限を設定してください。
-- パッチソース、配布サイト、VirusTotal APIは外部サービスです。仕様変更時はActionsログと各サービスの公式情報を確認してください。
-- 公開APKの「検出なし」は安全性の保証ではありません。
-- package ID、署名、取得元、ハッシュを確認できないAPKは公開しないでください。
+### 元 APK の version mismatch
+
+フォールバック provider が別版を返しています。その候補は自動的に拒否されます。要求 version/version code が provider に存在するか、`apps/` の設定やパッチ互換版を確認してください。
+
+### ビルドマトリクスが空
+
+手動 `build.yml` では `build_all_sources=true`、`updated_sources`、`updated_apps` のいずれかを指定してください。
+
+### パッチが適用されたように見えるが失敗扱い
+
+現行コードは要求パッチと CLI が報告した適用パッチを照合します。選択した feature patch が option 不足などで落ちた場合は、APK が出力されても成功にしません。Build result artifact と Issue の patch details を確認してください。
+
+### VirusTotal で release が止まる
+
+`VIRUSTOTAL_API_KEY`、利用上限、解析 status を確認してください。未検査の APK を公開しない設計です。
+
+## セキュリティ
+
+Secret や token をコミット、Issue、Actions summary へ貼らないでください。Google Play token dispenser のレスポンス本文も認証情報を含む可能性があります。Actions には必要な secret/variable だけを設定し、使わなくなった credential は削除してください。
