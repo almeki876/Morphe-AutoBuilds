@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import logging
 import re
+from urllib.parse import urlparse
 
 from bs4 import BeautifulSoup
 
@@ -28,6 +29,7 @@ _UPTODOWN_HOST_TEMPLATES = (
     "{slug}.uptodown.com",
 )
 _POST_DOWNLOAD_RE = re.compile(r"/android/post-download/([^'\"\s?#]+)")
+_PATH_RE = re.compile(r"(/[A-Za-z0-9._~!$&'()*+,;=:@%/-]{2,})")
 
 
 def _page_matches_candidate(soup: BeautifulSoup, candidate: VersionCandidate) -> bool:
@@ -67,6 +69,59 @@ def _post_download_token(variant) -> str | None:
     """Read the modern post-download token embedded in one variant card."""
     match = _POST_DOWNLOAD_RE.search(str(variant))
     return match.group(1) if match else None
+
+
+def _safe_variant_shape(variant) -> str:
+    """Describe variant markup without logging download tokens or URLs."""
+    variant_attrs = sorted(str(key) for key in variant.attrs)
+    descendants: list[str] = []
+    data_keys: set[str] = set()
+    href_paths: set[str] = set()
+    onclick_paths: set[str] = set()
+
+    nodes = [variant, *variant.find_all(True)]
+    for node in nodes:
+        classes = node.get("class") or []
+        class_text = ".".join(str(value) for value in classes[:4])
+        descriptor = str(node.name)
+        if class_text:
+            descriptor += f".{class_text}"
+        if descriptor not in descendants:
+            descendants.append(descriptor)
+
+        for key in node.attrs:
+            key_text = str(key)
+            if key_text.startswith("data-"):
+                data_keys.add(key_text)
+
+        href = node.get("href")
+        if href:
+            try:
+                path = urlparse(str(href)).path
+            except Exception:
+                path = ""
+            if path:
+                href_paths.add(path[:180])
+
+        onclick = str(node.get("onclick") or "")
+        for path in _PATH_RE.findall(onclick):
+            # Paths may contain opaque download tokens. Keep only the route
+            # shape by replacing long path segments with a placeholder.
+            safe_segments = []
+            for segment in path.split("/"):
+                if len(segment) > 24:
+                    safe_segments.append("<opaque>")
+                else:
+                    safe_segments.append(segment)
+            onclick_paths.add("/".join(safe_segments)[:180])
+
+    return (
+        f"variant_attrs={variant_attrs} "
+        f"descendants={descendants[:16]} "
+        f"data_keys={sorted(data_keys)} "
+        f"href_paths={sorted(href_paths)[:8]} "
+        f"onclick_paths={sorted(onclick_paths)[:8]}"
+    )
 
 
 def _direct_from_post_download(base_url: str, token: str) -> str | None:
@@ -171,7 +226,14 @@ def _direct_link_from_variants(
                 files_soup = BeautifulSoup(str(content), "html.parser")
 
                 file_ids: list[tuple[str, bool, str | None]] = []
-                for variant in files_soup.select(".variant"):
+                for variant_index, variant in enumerate(files_soup.select(".variant")):
+                    logging.info(
+                        "Uptodown variant structure #%d for %s via %s: %s",
+                        variant_index,
+                        app_name,
+                        utils.safe_url_for_log(base_url),
+                        _safe_variant_shape(variant),
+                    )
                     report = variant.select_one(".v-report[data-file-id]")
                     if not report:
                         continue
