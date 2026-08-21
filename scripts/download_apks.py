@@ -154,39 +154,44 @@ def _download(app_name: str, source: str, arch: str) -> tuple[Path, str]:
     # the base APK and all required split APKs. If the requested release has a
     # known versionCode it is supplied to PurchaseHelper directly; otherwise
     # Play's current AppDetails versionCode is used.
-    play_candidate = _preferred_play_candidate(app_name, package, candidates)
-    play_input: Path | None = None
-    try:
-        play_input = aurora_play.download_candidate(package, play_candidate, Path("."))
-        if not apk_cache.is_valid_apk_archive(play_input):
-            play_input.unlink(missing_ok=True)
-            raise RuntimeError("Google Play returned a corrupt APK archive")
-        identity = _validate_downloaded_identity(play_input, package, play_candidate)
-        version = identity.version_name
-        _record_play_download(app_name, package, arch, play_input, version)
-        logging.info("✅ Google Play selected as APK origin for %s v%s", app_name, version)
-        return play_input, version
-    except aurora_play.GooglePlayDisabled as error:
-        logging.info("⏭️  %s; using configured provider policy", error)
-    except apk_identity.ApkIdentityError as error:
-        if play_input is not None:
-            play_input.unlink(missing_ok=True)
-        identity_errors.append(f"aurora-google-play: {error}")
-        logging.warning(
-            "⚠️  Google Play release does not match the requested release for %s: %s; "
-            "trying configured providers",
+    play_enabled = aurora_play.google_play_enabled(package)
+    if play_enabled:
+        play_candidate = _preferred_play_candidate(app_name, package, candidates)
+        play_input: Path | None = None
+        try:
+            play_input = aurora_play.download_candidate(package, play_candidate, Path("."))
+            if not apk_cache.is_valid_apk_archive(play_input):
+                play_input.unlink(missing_ok=True)
+                raise RuntimeError("Google Play returned a corrupt APK archive")
+            identity = _validate_downloaded_identity(play_input, package, play_candidate)
+            version = identity.version_name
+            _record_play_download(app_name, package, arch, play_input, version)
+            logging.info("✅ Google Play selected as APK origin for %s v%s", app_name, version)
+            return play_input, version
+        except apk_identity.ApkIdentityError as error:
+            if play_input is not None:
+                play_input.unlink(missing_ok=True)
+            identity_errors.append(f"aurora-google-play: {error}")
+            logging.warning(
+                "⚠️  Google Play release does not match the requested release for %s: %s; "
+                "trying configured providers",
+                app_name,
+                error,
+            )
+        except Exception as error:
+            if play_input is not None:
+                play_input.unlink(missing_ok=True)
+            logging.warning(
+                "⚠️  Google Play first-choice download failed for %s: %s: %s; "
+                "trying configured providers",
+                app_name,
+                type(error).__name__,
+                error,
+            )
+    else:
+        logging.info(
+            "⏭️  Google Play disabled by repository policy for %s; using configured provider only",
             app_name,
-            error,
-        )
-    except Exception as error:
-        if play_input is not None:
-            play_input.unlink(missing_ok=True)
-        logging.warning(
-            "⚠️  Google Play first-choice download failed for %s: %s: %s; "
-            "trying configured providers",
-            app_name,
-            type(error).__name__,
-            error,
         )
 
     for platform in providers.download_priority(app_name):
@@ -224,6 +229,14 @@ def _download(app_name: str, source: str, arch: str) -> tuple[Path, str]:
                 staged.unlink(missing_ok=True)
             continue
         return input_apk, version
+
+    # A GitHub-only app must never fall through to justapk/apkeep or any other
+    # third-party mirror if its configured GitHub release is unavailable.
+    if not play_enabled:
+        suffix = f" Identity errors: {'; '.join(identity_errors)}" if identity_errors else ""
+        raise RuntimeError(
+            f"Configured GitHub-only provider failed for {app_name}; refusing mirror fallback.{suffix}"
+        )
 
     version = next((candidate.canonical for candidate in candidates), None)
     if not version:
