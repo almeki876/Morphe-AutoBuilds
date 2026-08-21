@@ -103,6 +103,19 @@ def download_candidate(
     output_dir = output_dir or Path(".")
     output_dir.mkdir(parents=True, exist_ok=True)
     cli = _ensure_downloader()
+    arch = os.getenv("GPLAY_ARCH", DEFAULT_GPLAY_ARCH)
+
+    # Never pass repository Google credentials here. The pinned 2.x client
+    # intentionally uses its anonymous Aurora-compatible token flow.
+    env = os.environ.copy()
+    env.pop("GPLAYDL_API_KEY", None)
+    env["GPLAYDL_NO_BANNER"] = "1"
+
+    # gplaydl 2.x requires an explicit auth step before the first download.
+    auth = _run([*cli, "auth", "--arch", arch], env=env)
+    if auth.returncode != 0:
+        tail = "\n".join((auth.stdout or "").splitlines()[-35:])
+        raise RuntimeError(f"gplaydl anonymous auth failed: {tail}")
 
     with tempfile.TemporaryDirectory(prefix="google-play-", dir=output_dir) as tmp:
         downloads = Path(tmp) / "downloads"
@@ -114,7 +127,7 @@ def download_candidate(
             "-o",
             str(downloads.resolve()),
             "-a",
-            os.getenv("GPLAY_ARCH", DEFAULT_GPLAY_ARCH),
+            arch,
         ]
 
         # gplaydl 2.x uses -v for an exact Play versionCode.
@@ -133,11 +146,6 @@ def download_candidate(
                 f" (wanted versionName {candidate.name})" if candidate else "",
             )
 
-        # Never pass repository Google credentials here. The pinned 2.x client
-        # intentionally uses its anonymous Aurora-compatible token flow.
-        env = os.environ.copy()
-        env.pop("GPLAYDL_API_KEY", None)
-        env["GPLAYDL_NO_BANNER"] = "1"
         result = _run(command, env=env)
         if result.returncode != 0:
             tail = "\n".join((result.stdout or "").splitlines()[-35:])
