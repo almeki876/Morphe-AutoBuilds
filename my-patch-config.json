@@ -497,7 +497,7 @@
     },
     {
       "app_name": "amazon-shopping",
-      "source": "rookie",
+      "source": "rushiranpise",
       "disable": [],
       "force_enable": [
         "Dark mode",
