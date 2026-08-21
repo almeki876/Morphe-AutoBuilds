@@ -2,16 +2,16 @@
 
 Gboard is intentionally exceptional: the original request combines Jason's
 Gboard bundle with selected patches from Adobo and Morning-Entree on the same
-APK.  Normal apps should continue to use a single upstream bundle and its
-current defaults.
+APK. Normal apps continue to use a single upstream bundle and its current
+defaults.
 
 The adapter works at the Morphe command boundary so the existing APK download,
-validation, reporting and signing pipeline stays unchanged.  It asks the
+validation, reporting and signing pipeline stays unchanged. It asks the
 *actual cached bundles* to generate an options file, keeps Jason's current
 upstream defaults, and turns the two supplemental bundles into explicit
-allowlists from my-patch-config.json.  This avoids maintaining a copied list of
-Jason defaults and prevents generic/default patches from supplemental bundles
-from leaking into Gboard.
+allowlists from my-patch-config.json. Known semantic duplicates are suppressed
+in favor of Jason's implementation so the original requested intent remains in
+configuration without double-patching the same Gboard feature.
 """
 
 from __future__ import annotations
@@ -28,6 +28,20 @@ from typing import Callable, Sequence
 GBOARD_PACKAGE = "com.google.android.inputmethod.latin"
 PRIMARY_SOURCE = "jason"
 EXTRA_SOURCES = ("adobo", "morning-entree")
+
+# Jason's current defaults already provide these same user-facing functions.
+# Applying a second implementation from another bundle risks patching the same
+# code/resources twice, so Jason wins for the overlapping feature.
+CONFLICT_SUPPRESSED = {
+    "adobo": {
+        "Enable OCR feature",              # Jason: Enable OCR / Scan Text
+        "Enable access points menu redesign",  # Jason: Access Points menu style
+        "Enable key shape selection",      # Jason: Key Shape Selection
+    },
+    "morning-entree": {
+        "Change package name",             # Jason: Package Rename
+    },
+}
 
 _TEMP_FILES: list[Path] = []
 
@@ -54,7 +68,7 @@ def _find_bundle(source: str) -> Path:
     return candidates[0]
 
 
-def _explicit_selection(source: str) -> set[str]:
+def _requested_selection(source: str) -> set[str]:
     data = json.loads(Path("my-patch-config.json").read_text(encoding="utf-8"))
     for entry in data.get("patch_list", []):
         if entry.get("app_name") == "gboard" and entry.get("source") == source:
@@ -64,6 +78,10 @@ def _explicit_selection(source: str) -> set[str]:
                 if str(name).strip()
             }
     raise RuntimeError(f"Missing Gboard patch config for supplemental source {source}")
+
+
+def _effective_selection(source: str) -> set[str]:
+    return _requested_selection(source) - CONFLICT_SUPPRESSED.get(source, set())
 
 
 def _bundle_entry(options: list[dict], bundle: Path) -> dict:
@@ -140,7 +158,9 @@ def _create_options_file(
     )
     result = subprocess.run(options_cmd, capture_output=True, text=True, check=False)
     if result.returncode != 0:
-        detail = "\n".join(part.strip() for part in (result.stdout, result.stderr) if part.strip())
+        detail = "\n".join(
+            part.strip() for part in (result.stdout, result.stderr) if part.strip()
+        )
         raise RuntimeError(
             "Morphe options-create failed for Gboard multi-source build"
             + (f": {detail[-2000:]}" if detail else "")
@@ -154,12 +174,11 @@ def _create_options_file(
         raise RuntimeError("Morphe Gboard options JSON must be an array")
 
     # Jason is deliberately untouched: its current bundle defaults are the
-    # authoritative Gboard baseline.  Only the supplemental bundles are
-    # restricted to the non-overlapping additions selected in config.
+    # authoritative Gboard baseline. Only supplemental bundles are restricted.
     _bundle_entry(options, primary_bundle)
     for source in EXTRA_SOURCES:
         entry = _bundle_entry(options, extra_bundles[source])
-        _restrict_bundle(entry, _explicit_selection(source), source)
+        _restrict_bundle(entry, _effective_selection(source), source)
 
     options_path.write_text(
         json.dumps(options, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
@@ -192,7 +211,7 @@ def prepare_morphe_command(command: Sequence[str]) -> list[str]:
     extra_bundles = {source: _find_bundle(source) for source in EXTRA_SOURCES}
     options_path = _create_options_file(cmd, primary_bundle, extra_bundles)
 
-    # --exclusive is global across all bundles.  The generated options file
+    # --exclusive is global across all bundles. The generated options file
     # already contains per-bundle enabled states, so keeping --exclusive would
     # incorrectly erase Jason's default set.
     cmd = [arg for arg in cmd if arg != "--exclusive"]
@@ -207,9 +226,18 @@ def prepare_morphe_command(command: Sequence[str]) -> list[str]:
     cmd[-1:-1] = ["--options-file", str(options_path)]
     logging.info(
         "Gboard multi-source enabled: Jason defaults + Adobo %s + Morning-Entree %s",
-        sorted(_explicit_selection("adobo")),
-        sorted(_explicit_selection("morning-entree")),
+        sorted(_effective_selection("adobo")),
+        sorted(_effective_selection("morning-entree")),
     )
+    for source, suppressed in CONFLICT_SUPPRESSED.items():
+        requested = _requested_selection(source)
+        skipped = sorted(requested.intersection(suppressed))
+        if skipped:
+            logging.info(
+                "Gboard conflict suppression (%s; Jason equivalent wins): %s",
+                source,
+                skipped,
+            )
     return cmd
 
 
