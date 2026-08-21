@@ -8,6 +8,13 @@ on:
       - .github/workflows/anonymous-gplay-diagnostic.yml
       - tools/gplaydl/**
       - src/aurora_play.py
+  pull_request:
+    branches:
+      - main
+    paths:
+      - .github/workflows/anonymous-gplay-diagnostic.yml
+      - tools/gplaydl/**
+      - src/aurora_play.py
 
 permissions:
   contents: read
@@ -50,7 +57,7 @@ jobs:
           java -jar tools/gplaydl/target/gplaydl-1.0-SNAPSHOT-all.jar \
             download jp.japanpost.jp_bank.bankbookapp \
             --output anonymous-play-download
-          find anonymous-play-download -type f -maxdepth 3 -printf '%p %s bytes\n'
+          find anonymous-play-download -maxdepth 3 -type f -printf '%p %s bytes\n'
 
       - name: Fail diagnostic when the public anonymous path is unavailable
         if: steps.anonymous-auth.outcome != 'success'
