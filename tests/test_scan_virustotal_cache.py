@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import tempfile
+import unittest
 from pathlib import Path
 
 from scripts.scan_virustotal import _load_cache, _save_cache, _scan_all
@@ -36,25 +38,37 @@ class ExplodingClient:
         raise AssertionError("VirusTotal must not be called for a cached SHA-256")
 
 
-def test_persistent_cache_skips_virustotal_and_deduplicates(tmp_path: Path) -> None:
-    first = tmp_path / "first.apk"
-    second = tmp_path / "second.apk"
-    first.write_bytes(b"same-apk-bytes")
-    second.write_bytes(b"same-apk-bytes")
-    digest = sha256_file(first)
+class VirusTotalPersistentCacheTests(unittest.TestCase):
+    def test_persistent_cache_skips_virustotal_and_deduplicates(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            first = root / "first.apk"
+            second = root / "second.apk"
+            first.write_bytes(b"same-apk-bytes")
+            second.write_bytes(b"same-apk-bytes")
+            digest = sha256_file(first)
 
-    cache_path = tmp_path / "cache" / "hash-results.json"
-    _save_cache(cache_path, {digest: _result(first, digest)})
-    cache = _load_cache(cache_path)
+            cache_path = root / "cache" / "hash-results.json"
+            _save_cache(cache_path, {digest: _result(first, digest)})
+            cache = _load_cache(cache_path)
 
-    results, failures = _scan_all(
-        ExplodingClient(),
-        [first, second],
-        cache,
-        cache_path,
-    )
+            results, failures = _scan_all(
+                ExplodingClient(),
+                [first, second],
+                cache,
+                cache_path,
+            )
 
-    assert failures == []
-    assert [result.file for result in results] == ["first.apk", "second.apk"]
-    assert all(result.sha256 == digest for result in results)
-    assert all(result.method == "persistent hash cache" for result in results)
+            self.assertEqual(failures, [])
+            self.assertEqual(
+                [result.file for result in results],
+                ["first.apk", "second.apk"],
+            )
+            self.assertTrue(all(result.sha256 == digest for result in results))
+            self.assertTrue(
+                all(result.method == "persistent hash cache" for result in results)
+            )
+
+
+if __name__ == "__main__":
+    unittest.main()
