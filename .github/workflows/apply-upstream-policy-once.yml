@@ -1,0 +1,164 @@
+name: Apply upstream policy once
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    if: github.head_ref == 'fix/upstream-recommendation-policy' && github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.head_ref }}
+          fetch-depth: 0
+          token: ${{ github.token }}
+      - name: Apply minimal upstream-driven policy patch
+        run: |
+          set -euo pipefail
+          git fetch origin main
+          git checkout origin/main -- src/__main__.py scripts/download_apks.py
+          python3 - <<'PY'
+          from pathlib import Path
+
+          p = Path('src/__main__.py')
+          s = p.read_text(encoding='utf-8')
+
+          s = s.replace(
+          '''            # options が設定されているパッチ名セット（use=false でも有効化する）
+            config_opts_patches = {o.patch for o in patch_config.options}
+            disable_set = {d.lower() for d in patch_config.disable}
+            force_enable_set = {f for f in patch_config.force_enable}
+''',
+          '''            # Upstream recommendation metadata is authoritative.
+            # Local options and force_enable must never promote use=false patches.
+            disable_set = {d.lower() for d in patch_config.disable}
+''')
+
+          s = s.replace(
+          '''                # use=false でも options または force_enable が config に設定されていれば有効化
+                if not use and name not in config_opts_patches and name not in force_enable_set:
+                    continue
+''',
+          '''                if not use:
+                    continue
+''')
+
+          a = s.index('            # force_enable に指定されているがパッチバンドルに存在しなかったものを警告')
+          b = s.index('            # disable はバンドル内に実在する use=true パッチのみ意味を持つ', a)
+          s = s[:a] + s[b:]
+
+          s = s.replace(
+              'logging.warning("⚠️  Failed to parse patches-list.json: %s — falling back to txt", e)',
+              'logging.warning("⚠️  Failed to parse patches-list.json: %s — using patch bundle defaults", e)',
+          )
+
+          a = s.index('    # A force_enable list is also the explicit allowlist when a release does')
+          end_marker = '    return enables_fb, disables_fb\n'
+          b = s.index(end_marker, a) + len(end_marker)
+          s = s[:a] + '''    # If upstream recommendation metadata is unavailable, defer to the
+    # patch bundle/CLI defaults. Do not use stale local patch-name allowlists.
+    logging.info(
+        "ℹ️  No usable upstream recommendation metadata for %s; using patch bundle defaults",
+        app_name,
+    )
+    return [], []
+''' + s[b:]
+
+          old = '''    # ── 7b. Build option flags ───────────────────────────────────────────────
+    option_flags = _build_option_flags(patch_config.options, cli_ver)
+'''
+          new = '''    # ── 7b. Options configure recommended patches; they never enable patches ─
+    selected_patch_names = {
+        enables[index + 1]
+        for index in range(0, len(enables), 2)
+        if index + 1 < len(enables)
+    }
+    effective_options = [
+        option for option in patch_config.options
+        if option.patch in selected_patch_names
+    ]
+    ignored_option_patches = sorted({
+        option.patch for option in patch_config.options
+        if option.patch not in selected_patch_names
+    })
+    if ignored_option_patches:
+        logging.info(
+            "ℹ️  Ignoring options for non-recommended patches: %s",
+            ", ".join(ignored_option_patches),
+        )
+    patch_config = PatchConfig(
+        app_name=patch_config.app_name,
+        source=patch_config.source,
+        options=effective_options,
+        disable=patch_config.disable,
+        force_enable=[],
+        required=[name for name in patch_config.required if name in selected_patch_names],
+    )
+    option_flags = _build_option_flags(patch_config.options, cli_ver)
+'''
+          if old not in s:
+              raise SystemExit('option block not found')
+          s = s.replace(old, new, 1)
+          p.write_text(s, encoding='utf-8')
+
+          p = Path('scripts/download_apks.py')
+          s = p.read_text(encoding='utf-8')
+          a = s.index('# Yuucho apps intentionally track the current Google Play release.')
+          b = s.index('\n\n\ndef _find_tools', a)
+          s = s[:a] + s[b + 2:]
+
+          old = '''def _preferred_play_candidate(
+    app_name: str,
+    package: str,
+    candidates: list[VersionCandidate],
+) -> VersionCandidate | None:
+    """Choose the exact patch-required release Play should try first.
+
+    Patch candidates have already been enriched from live provider metadata when
+    possible. A configured pin is therefore only a fallback when the patch CLI
+    produced no compatible release at all.
+    """
+    if package in CURRENT_PLAY_PACKAGES:
+        return None
+    if candidates:
+        return candidates[0]
+    for platform in providers.download_priority(app_name):
+        try:
+            config = providers.load_config(app_name, platform) or {}
+        except Exception:
+            continue
+        pinned = pinned_candidate(config)
+        if pinned:
+            return pinned
+    return None
+'''
+          new = '''def _preferred_play_candidate(
+    app_name: str,
+    package: str,
+    candidates: list[VersionCandidate],
+) -> VersionCandidate | None:
+    """Choose newest explicit compatibility, or current Play for ``any``.
+
+    Explicit compatible versions are already sorted newest-first by
+    ``get_supported_version_candidates``. An empty list means no version
+    restriction (for example ``any``), so no local version pin is consulted.
+    """
+    return candidates[0] if candidates else None
+'''
+          if old not in s:
+              raise SystemExit('preferred Play block not found')
+          s = s.replace(old, new, 1)
+          p.write_text(s, encoding='utf-8')
+          PY
+
+          rm .github/workflows/apply-upstream-policy-once.yml
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add -A
+          git commit -m 'fix: enforce upstream recommendation policy'
+          git push origin HEAD:${{ github.head_ref }}
