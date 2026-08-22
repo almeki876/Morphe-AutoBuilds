@@ -52,46 +52,41 @@ def _expected_candidate(
     version: str,
     candidates: list[VersionCandidate],
 ) -> VersionCandidate:
-    """Recover and enrich the release identity used by a provider lookup."""
+    """Recover the patch-required release identity used by a provider lookup.
+
+    Patch compatibility is authoritative. Provider-discovered versionCode data
+    may enrich that identity, while provider config pins are used only when the
+    patch bundle supplied no candidate for the returned version.
+    """
+    candidate = next(
+        (candidate for candidate in candidates if candidate.canonical == version),
+        None,
+    )
+    if candidate is not None:
+        if candidate.code:
+            return candidate
+        package = providers.configured_package(app_name)
+        discovered_code = (
+            versioning.discovered_version_code(package, version) if package else None
+        )
+        if discovered_code:
+            return VersionCandidate(
+                name=candidate.name,
+                code=discovered_code,
+                raw=candidate.raw,
+            )
+        return candidate
+
     config = providers.load_config(app_name, platform) or {}
     pinned = pinned_candidate(config)
     if pinned and pinned.canonical == version:
         return pinned
 
-    candidate = next(
-        (candidate for candidate in candidates if candidate.canonical == version),
-        VersionCandidate(name=version),
-    )
-    if candidate.code:
-        return candidate
-
     package = providers.configured_package(app_name)
     discovered_code = (
         versioning.discovered_version_code(package, version) if package else None
     )
-    if discovered_code:
-        return VersionCandidate(
-            name=candidate.name,
-            code=discovered_code,
-            raw=candidate.raw,
-        )
-    return candidate
-
-
-def _configured_candidate_for_version(
-    app_name: str,
-    version: str,
-) -> VersionCandidate | None:
-    """Return configured release metadata when it refers to ``version`` exactly."""
-    for platform in providers.download_priority(app_name):
-        try:
-            config = providers.load_config(app_name, platform) or {}
-        except Exception:
-            continue
-        pinned = pinned_candidate(config)
-        if pinned and pinned.canonical == version:
-            return pinned
-    return None
+    return VersionCandidate(name=version, code=discovered_code)
 
 
 def _preferred_play_candidate(
@@ -99,28 +94,16 @@ def _preferred_play_candidate(
     package: str,
     candidates: list[VersionCandidate],
 ) -> VersionCandidate | None:
-    """Choose the exact release Play should try without guessing identifiers.
+    """Choose the exact patch-required release Play should try first.
 
-    Yuucho explicitly tracks the current Play release. For other apps patch-
-    bundle compatibility wins, but a matching app config may enrich that
-    compatible versionName with a known Android versionCode. This lets Google
-    Play purchase historical patch-compatible releases directly instead of
-    downloading today's version and rejecting it afterwards.
+    Patch candidates have already been enriched from live provider metadata when
+    possible. A configured pin is therefore only a fallback when the patch CLI
+    produced no compatible release at all.
     """
     if package in CURRENT_PLAY_PACKAGES:
         return None
     if candidates:
-        candidate = candidates[0]
-        if candidate.code:
-            return candidate
-        configured = _configured_candidate_for_version(app_name, candidate.canonical)
-        if configured and configured.code:
-            return VersionCandidate(
-                name=candidate.name,
-                code=configured.code,
-                raw=candidate.raw,
-            )
-        return candidate
+        return candidates[0]
     for platform in providers.download_priority(app_name):
         try:
             config = providers.load_config(app_name, platform) or {}
@@ -188,14 +171,28 @@ def _download(app_name: str, source: str, arch: str) -> tuple[Path, str]:
     if not package:
         raise RuntimeError(f"No package ID configured for {app_name}")
     _, cli, bundle = _find_tools(source)
-    candidates = utils.get_supported_version_candidates(package, str(cli), str(bundle))
+    patch_candidates = utils.get_supported_version_candidates(
+        package, str(cli), str(bundle)
+    )
+    candidates = providers.resolve_patch_candidates(
+        app_name,
+        package,
+        patch_candidates,
+    )
+    if patch_candidates:
+        logging.info(
+            "🧩 Patch-compatible release identities for %s: %s",
+            app_name,
+            ", ".join(candidate.describe() for candidate in candidates),
+        )
     identity_errors: list[str] = []
 
     # Google Play is the preferred origin for every app except explicit
     # GitHub-only packages such as AdGuard. Aurora/GPlayApi asks Google Play for
-    # the base APK and all required split APKs. If the requested release has a
-    # known versionCode it is supplied to PurchaseHelper directly; otherwise
-    # Play's current AppDetails versionCode is used.
+    # the base APK and all required split APKs. If the patch-required release
+    # has a resolved versionCode it is supplied to PurchaseHelper directly;
+    # otherwise Play's current AppDetails versionCode is used and still must
+    # pass strict manifest identity validation.
     play_enabled = aurora_play.google_play_enabled(package)
     if play_enabled:
         play_candidate = _preferred_play_candidate(app_name, package, candidates)

@@ -13,7 +13,8 @@ from pathlib import Path
 from types import ModuleType
 
 from src import apkcombo, apkmirror_latest, apkpure, aptoide, github, softonic
-from src import uptodown_machine as uptodown
+from src import uptodown_exact as uptodown
+from src.versioning import VersionCandidate
 
 
 DOWNLOAD_PRIORITY = (
@@ -23,6 +24,13 @@ DOWNLOAD_PRIORITY = (
     "softonic",
     "aptoide",
     "apkcombo",
+)
+
+# Prefer package-addressed machine-readable metadata for patch identity
+# enrichment. More resolvers can opt in by exposing resolve_candidate_identities.
+IDENTITY_RESOLUTION_PRIORITY = (
+    "uptodown",
+    "apkmirror",
 )
 
 PRIMARY_PROVIDER_KEY = "primary"
@@ -124,6 +132,74 @@ def configured_package(app_name: str) -> str | None:
         details = ", ".join(f"{provider}={package}" for provider, package in found)
         raise ValueError(f"conflicting package IDs for {app_name}: {details}")
     return found[0][1] if found else None
+
+
+def resolve_patch_candidates(
+    app_name: str,
+    package: str,
+    candidates: list[VersionCandidate],
+) -> list[VersionCandidate]:
+    """Resolve live Android identities without changing patch compatibility.
+
+    Patch CLI output is authoritative. Provider metadata is allowed only to
+    fill in the missing half of an already-compatible release identity
+    (versionName or versionCode). A provider result that does not match the
+    patch candidate is discarded rather than substituted.
+    """
+    resolved = list(candidates)
+    if not package or not resolved:
+        return resolved
+
+    for provider in IDENTITY_RESOLUTION_PRIORITY:
+        module = MODULES.get(provider)
+        resolver = getattr(module, "resolve_candidate_identities", None) if module else None
+        if resolver is None:
+            continue
+        try:
+            proposed = resolver(package, resolved)
+        except Exception as error:
+            logging.info(
+                "Patch identity lookup via %s failed for %s: %s",
+                provider,
+                app_name,
+                error,
+            )
+            continue
+        if not isinstance(proposed, list) or len(proposed) != len(resolved):
+            logging.warning(
+                "Ignoring malformed patch identity result from %s for %s",
+                provider,
+                app_name,
+            )
+            continue
+
+        accepted: list[VersionCandidate] = []
+        for requested, candidate in zip(resolved, proposed):
+            if not isinstance(candidate, VersionCandidate):
+                accepted.append(requested)
+                continue
+            if requested.matches(candidate.name, candidate.code):
+                accepted.append(
+                    VersionCandidate(
+                        name=candidate.name,
+                        code=candidate.code,
+                        raw=requested.raw,
+                    )
+                )
+            else:
+                logging.warning(
+                    "Ignoring %s identity %s for patch-required %s",
+                    provider,
+                    candidate.describe(),
+                    requested.describe(),
+                )
+                accepted.append(requested)
+        resolved = accepted
+
+        if all(candidate.code for candidate in resolved):
+            break
+
+    return resolved
 
 
 def validate_all_configs() -> list[str]:

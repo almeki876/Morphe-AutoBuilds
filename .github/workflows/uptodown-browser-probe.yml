@@ -1,0 +1,73 @@
+name: Uptodown Browser Probe
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/uptodown-browser-probe.yml
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install --disable-pip-version-check 'selenium==4.47.0'
+      - name: Observe exact Amazon history card
+        shell: bash
+        run: |
+          python - <<'PY'
+          import shutil, time
+          from selenium import webdriver
+          from selenium.webdriver.chrome.options import Options
+          from selenium.webdriver.chrome.service import Service
+
+          chrome = shutil.which('google-chrome') or shutil.which('google-chrome-stable') or shutil.which('chromium')
+          driver_path = shutil.which('chromedriver')
+          print('chrome?', bool(chrome), 'driver?', bool(driver_path))
+          opts = Options(); opts.binary_location = chrome
+          for arg in ('--headless=new','--no-sandbox','--disable-dev-shm-usage','--disable-gpu','--window-size=1365,1600'):
+              opts.add_argument(arg)
+          browser = webdriver.Chrome(service=Service(driver_path), options=opts)
+          browser.set_page_load_timeout(30)
+          try:
+              browser.get('https://amazon-shopping.en.uptodown.com/android/versions')
+              time.sleep(1)
+              print('history=', browser.current_url, browser.title)
+              info = browser.execute_script(r'''
+const want='32.13.2.100';
+for (const card of document.querySelectorAll('[data-version-id]')) {
+ const text=String(card.innerText||card.textContent||'').replace(/\s+/g,' ').trim();
+ if(!text.includes(want)) continue;
+ const nodes=[card,...card.querySelectorAll('a,button,[role="button"],[data-url],[data-href]')];
+ return {text,attrs:Object.fromEntries(Array.from(card.attributes).map(a=>[a.name,a.value])),children:nodes.slice(0,16).map(n=>({tag:n.tagName,href:n.getAttribute('href')||'',dataUrl:n.getAttribute('data-url')||'',dataHref:n.getAttribute('data-href')||'',onclick:n.getAttribute('onclick')||'',cls:n.className||''}))};
+}
+return null;''')
+              print('card=', info)
+              clicked = browser.execute_script(r'''
+const want='32.13.2.100';
+for (const card of document.querySelectorAll('[data-version-id]')) {
+ const text=String(card.innerText||card.textContent||'').replace(/\s+/g,' ').trim();
+ if(!text.includes(want)) continue;
+ const clickable=card.matches('a,button,[role="button"]')?card:card.querySelector('a,button,[role="button"]');
+ (clickable||card).click(); return true;
+}
+return false;''')
+              print('clicked=', clicked)
+              time.sleep(2)
+              print('after=', browser.current_url, browser.title)
+              print('page-source-head=', (browser.page_source or '')[:500].replace('\n',' '))
+              target = browser.execute_script(r'''
+for (const s of ['#detail-download-button','[data-url*="/dwn/"]','a[href*="dw.uptodown.com/dwn/"]','.post-download[data-url]']) {
+ for (const e of document.querySelectorAll(s)) return {selector:s,href:e.getAttribute('href')||'',dataUrl:e.getAttribute('data-url')||''};
+}
+return null;''')
+              print('target=', target)
+          finally:
+              browser.quit()
+          PY
