@@ -24,16 +24,6 @@ _BUILD_VERSION_RE = re.compile(r"^(?:v\d+-)?build-\d+(?:[-\w.]*)$", re.IGNORECAS
 _COMPOSITE_NAME_CODE_RE = re.compile(r"^(?P<name>.+)\.(?P<code>\d+)$")
 _DISCOVERED_VERSION_CODES: dict[tuple[str, str], str] = {}
 
-# Patch bundles sometimes publish only versionName while authenticated Google
-# Play historical downloads require Android versionCode. Keep narrowly scoped,
-# manifest-verified mappings for releases proven by upstream/provider metadata.
-# A wrong value is fail-safe: the downloaded manifest must still match both
-# fields before the APK can be accepted.
-_KNOWN_VERSION_CODES: dict[tuple[str, str], str] = {
-    ("com.amazon.mShop.android.shopping", "32.13.2.100"): "1241320216",
-    ("com.adobe.reader", "26.7.1.47181"): "1931947181",
-}
-
 
 @dataclass(frozen=True)
 class VersionCandidate:
@@ -68,23 +58,47 @@ class VersionCandidate:
         normalized_name = str(name).strip()
         normalized_code = str(code).strip() if code is not None else None
 
+        # A versionCode is the APK's immutable release identifier. Some base
+        # APKs extracted from split bundles omit versionName entirely. When we
+        # have an exact expected versionCode (configured or learned from a
+        # provider), the matching code is sufficient in that narrow case.
         if self.code is not None and not normalized_name:
             return normalized_code == self.code
 
+        # A numeric-only patch CLI value is ambiguous in practice: some patch
+        # sources emit Android versionCode (for example Nova's ``88600``), while
+        # others emit a numeric versionName (Sleep as Android's ``20260616``).
+        # Both are exact manifest identifiers, so accept an exact match against
+        # either field instead of assuming every numeric CLI value is a code.
         if self.code is not None and self.name == self.code:
             return normalized_code == self.code or normalized_name == self.name
 
         if normalized_name in self.aliases(""):
             if self.code is None:
                 return True
+            # ``raw`` marks identities parsed from patch CLI output. Real build
+            # logs show that the leading numeric component in forms such as
+            # ``931240252 (5.161.0.931240252)`` and
+            # ``2607250000 (7.22.5.2607250000)`` is not necessarily the APK's
+            # manifest versionCode. In that case the exact versionName is the
+            # empirically verified release identity. Explicit/configured
+            # version codes (raw=None) remain strict below.
             if self.raw is not None:
                 return True
             return normalized_code == self.code
 
+        # Some APK manifests duplicate the patch CLI display form in
+        # versionName, e.g. Nova reports versionName ``88600 (8.8.6)`` and
+        # versionCode ``88600``. Accept this only when both exact components
+        # agree, rather than weakening general version-name matching.
         if self.code is not None and normalized_code == self.code:
             if normalized_name == f"{self.code} ({self.name})":
                 return True
 
+        # Some upstream asset names append versionCode to versionName, e.g.
+        # ``21.0.0.40`` while AndroidManifest.xml reports versionName=21.0.0
+        # and versionCode=40. Accept only when both components agree, avoiding
+        # a broad prefix match that could hide a genuinely wrong APK.
         if self.code is None and normalized_code:
             composite = _COMPOSITE_NAME_CODE_RE.match(self.name)
             if composite:
@@ -113,7 +127,12 @@ class VersionCandidate:
 
 
 def remember_version_code(package: str, version: str, code: str) -> None:
-    """Keep a version code discovered while visiting another provider."""
+    """Keep a version code discovered while visiting another provider.
+
+    APKMirror exposes Android versionCode in each variant row, while APKPure's
+    stable old-version endpoint requires that code. Keeping it for the current
+    build lets APKPure take over when APKMirror's final download is blocked.
+    """
     clean_package = package.strip()
     clean_version = version.strip()
     clean_code = code.strip()
@@ -122,8 +141,7 @@ def remember_version_code(package: str, version: str, code: str) -> None:
 
 
 def discovered_version_code(package: str, version: str) -> str | None:
-    key = (package.strip(), version.strip())
-    return _DISCOVERED_VERSION_CODES.get(key) or _KNOWN_VERSION_CODES.get(key)
+    return _DISCOVERED_VERSION_CODES.get((package.strip(), version.strip()))
 
 
 def parse_candidate(line: str) -> VersionCandidate | None:
@@ -157,6 +175,11 @@ def parse_candidate(line: str) -> VersionCandidate | None:
     if re.match(r"^\d", value):
         return VersionCandidate(name=value, raw=line)
 
+    # Vendor version labels are not guaranteed to begin with a digit. Poweramp,
+    # for example, reports ``build-1025-bundle-play``. Its embedded build number
+    # is a display/build identifier, not Android versionCode (the corresponding
+    # APK uses 1025004). Keep only the exact versionName here; a provider may
+    # enrich the candidate with the real manifest versionCode once discovered.
     if _BUILD_VERSION_RE.match(value):
         return VersionCandidate(name=value, raw=line)
     return None
