@@ -58,6 +58,13 @@ class VersionCandidate:
         normalized_name = str(name).strip()
         normalized_code = str(code).strip() if code is not None else None
 
+        # A versionCode is the APK's immutable release identifier. Some base
+        # APKs extracted from split bundles omit versionName entirely. When we
+        # have an exact expected versionCode (configured or learned from a
+        # provider), the matching code is sufficient in that narrow case.
+        if self.code is not None and not normalized_name:
+            return normalized_code == self.code
+
         # Some patch CLIs report only Android versionCode (for example Nova
         # reports ``88600`` while the APK manifest versionName is ``8.8.6``).
         # In that representation the code is authoritative and requiring the
