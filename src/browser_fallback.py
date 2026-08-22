@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import logging
 import os
+import re
 import shutil
 import time
 from dataclasses import dataclass
@@ -40,6 +41,13 @@ _CHALLENGE_MARKERS = (
     "recaptcha",
     "hcaptcha",
 )
+_DIRECT_IN_ONCLICK_RE = re.compile(
+    r"(?:https?:)?//dw\.uptodown\.com/dwn/[A-Za-z0-9._~!$&'()*+,;=:@%/-]+"
+    r"|/dwn/[A-Za-z0-9._~!$&'()*+,;=:@%/-]+",
+    re.IGNORECASE,
+)
+_SAFE_CARD_COMPONENT_RE = re.compile(r"^[A-Za-z0-9._~-]+$")
+_SAFE_EXTRA_PATH_RE = re.compile(r"^[A-Za-z0-9._~/-]+$")
 
 
 def _driver_paths() -> tuple[str | None, str | None]:
@@ -81,6 +89,68 @@ def _safe_download_url(raw: str, page_url: str) -> str | None:
     return urljoin(page_url, value)
 
 
+def _is_uptodown_host(hostname: str | None) -> bool:
+    host = (hostname or "").casefold().rstrip(".")
+    return host == "uptodown.com" or host.endswith(".uptodown.com")
+
+
+def _is_direct_uptodown_file_url(url: str | None) -> bool:
+    if not url:
+        return False
+    parsed = urlparse(url)
+    return (
+        parsed.scheme == "https"
+        and (parsed.hostname or "").casefold() == "dw.uptodown.com"
+        and parsed.path.startswith("/dwn/")
+        and len(parsed.path) > len("/dwn/")
+    )
+
+
+def _is_safe_uptodown_page_url(url: str | None) -> bool:
+    if not url:
+        return False
+    parsed = urlparse(url)
+    return parsed.scheme == "https" and _is_uptodown_host(parsed.hostname)
+
+
+def _direct_url_from_target(target: dict, page_url: str) -> str | None:
+    """Return only a concrete Uptodown CDN object, never an HTML download page."""
+    for key in ("dataUrl", "href"):
+        candidate = _safe_download_url(str(target.get(key) or ""), page_url)
+        if _is_direct_uptodown_file_url(candidate):
+            return candidate
+
+    onclick = str(target.get("onclick") or "")
+    match = _DIRECT_IN_ONCLICK_RE.search(onclick)
+    if match:
+        candidate = _safe_download_url(match.group(0), page_url)
+        if _is_direct_uptodown_file_url(candidate):
+            return candidate
+    return None
+
+
+def _version_target_page_url(target: dict, versions_url: str) -> str | None:
+    """Build the exact rendered history-card release page when metadata exists."""
+    version_id = str(target.get("dataVersionId") or "").strip()
+    if version_id:
+        if not _SAFE_CARD_COMPONENT_RE.fullmatch(version_id):
+            return None
+        extra_url = str(target.get("dataExtraUrl") or "download").strip(" /")
+        if not extra_url or not _SAFE_EXTRA_PATH_RE.fullmatch(extra_url):
+            return None
+        raw_root = str(target.get("dataUrl") or "").strip()
+        if raw_root:
+            root = _safe_download_url(raw_root, versions_url)
+        else:
+            root = versions_url.rsplit("/versions", 1)[0]
+        if not _is_safe_uptodown_page_url(root):
+            return None
+        return f"{str(root).rstrip('/')}/{extra_url}/{version_id}"
+
+    href = _safe_download_url(str(target.get("href") or ""), versions_url)
+    return href if _is_safe_uptodown_page_url(href) else None
+
+
 def _cookies_as_header(driver) -> dict[str, str]:
     cookies = []
     for cookie in driver.get_cookies():
@@ -114,18 +184,44 @@ def _find_version_target(driver, aliases: tuple[str, ...]):
     """Find a version card without depending on Uptodown CSS class names."""
     script = r"""
 const aliases = arguments[0].map(v => String(v).trim().toLowerCase()).filter(Boolean);
-const nodes = Array.from(document.querySelectorAll('a,button,[data-url],div,span,li,article'));
+const nodes = Array.from(document.querySelectorAll('a,button,[data-url],[data-version-id],div,span,li,article'));
 function normalized(el) { return (el.innerText || el.textContent || '').trim().toLowerCase(); }
+function matches(text) {
+  return aliases.some(v => text === v || text.startsWith(v + ' ') || text.includes(' ' + v + ' '));
+}
 for (const el of nodes) {
   const text = normalized(el);
-  if (!text || !aliases.some(v => text === v || text.startsWith(v + ' ') || text.includes(' ' + v + ' '))) continue;
+  if (!text || !matches(text)) continue;
   let cur = el;
-  for (let depth = 0; cur && depth < 7; depth++, cur = cur.parentElement) {
+  let action = null;
+  for (let depth = 0; cur && depth < 8; depth++, cur = cur.parentElement) {
+    const versionId = cur.getAttribute && cur.getAttribute('data-version-id');
+    if (versionId) {
+      return {
+        dataVersionId: versionId || '',
+        dataExtraUrl: cur.getAttribute('data-extra-url') || '',
+        dataUrl: cur.getAttribute('data-url') || '',
+        href: cur.href || cur.getAttribute('href') || '',
+        onclick: cur.getAttribute('onclick') || '',
+        tag: cur.tagName || '',
+        text: normalized(cur).slice(0, 300)
+      };
+    }
     const dataUrl = cur.getAttribute && cur.getAttribute('data-url');
     const href = cur.href || (cur.getAttribute && cur.getAttribute('href'));
-    if (dataUrl || href || cur.tagName === 'BUTTON') {
-      return {dataUrl: dataUrl || '', href: href || '', tag: cur.tagName || '', text: normalized(cur).slice(0, 300)};
-    }
+    const onclick = cur.getAttribute && cur.getAttribute('onclick');
+    if (!action && (dataUrl || href || onclick || cur.tagName === 'BUTTON')) action = cur;
+  }
+  if (action) {
+    return {
+      dataVersionId: '',
+      dataExtraUrl: '',
+      dataUrl: action.getAttribute('data-url') || '',
+      href: action.href || action.getAttribute('href') || '',
+      onclick: action.getAttribute('onclick') || '',
+      tag: action.tagName || '',
+      text: normalized(action).slice(0, 300)
+    };
   }
 }
 return null;
@@ -136,24 +232,49 @@ return null;
 def _find_download_target(driver):
     script = r"""
 const selectors = [
+  '.post-download[data-url]',
   '#detail-download-button',
-  '[data-url*="download"]',
-  'a[href*="/download"]',
-  'a[href*="dw.uptodown.com"]',
+  'a[href*="dw.uptodown.com/dwn/"]',
+  '[data-url*="/dwn/"]',
   'button[data-url]',
-  'a[data-url]'
+  'a[data-url]',
+  '[data-url*="download"]',
+  'a[href*="/download"]'
 ];
 for (const selector of selectors) {
   for (const el of document.querySelectorAll(selector)) {
     const dataUrl = el.getAttribute('data-url') || '';
     const href = el.href || el.getAttribute('href') || '';
+    const onclick = el.getAttribute('onclick') || '';
     const text = (el.innerText || el.textContent || '').trim().toLowerCase();
-    if (dataUrl || href) return {dataUrl, href, text};
+    if (dataUrl || href || onclick) return {dataUrl, href, onclick, text};
   }
 }
 return null;
 """
     return driver.execute_script(script)
+
+
+def _click_download_target(driver) -> bool:
+    """Activate a normal public download control when it hides the final URL."""
+    script = r"""
+const selectors = [
+  '#detail-download-button',
+  '.post-download',
+  'button[data-url]',
+  'a[data-url]',
+  'a[href*="/download"]'
+];
+for (const selector of selectors) {
+  for (const el of document.querySelectorAll(selector)) {
+    if (el.disabled) continue;
+    el.click();
+    return true;
+  }
+}
+return false;
+"""
+    return bool(driver.execute_script(script))
 
 
 def _new_driver():
@@ -230,23 +351,23 @@ def resolve_uptodown_download(
                 )
                 browser.get(versions_url)
                 _wait_for_normal_page(browser)
-                if urlparse(browser.current_url).hostname is None:
-                    raise BrowserFallbackError("browser returned an invalid URL")
+                if not _is_safe_uptodown_page_url(browser.current_url):
+                    raise BrowserFallbackError("browser returned a non-Uptodown URL")
 
                 target = _find_version_target(browser, aliases)
                 if not target:
                     errors.append(f"{slug}: requested version not present in rendered DOM")
                     continue
 
-                raw = target.get("dataUrl") or target.get("href") or ""
-                page_url = _safe_download_url(raw, browser.current_url)
-                if page_url and "dw.uptodown.com/dwn/" in page_url:
+                direct = _direct_url_from_target(target, browser.current_url)
+                if direct:
                     return BrowserDownload(
-                        page_url,
+                        direct,
                         _cookies_as_header(browser),
                         "browser-uptodown",
                     )
 
+                page_url = _version_target_page_url(target, browser.current_url)
                 if page_url:
                     browser.get(page_url)
                 else:
@@ -267,27 +388,40 @@ return false;
                     )
                 _wait_for_normal_page(browser)
                 time.sleep(1.0)
+                if not _is_safe_uptodown_page_url(browser.current_url):
+                    errors.append(f"{slug}: release navigation left Uptodown")
+                    continue
 
-                target = _find_download_target(browser)
-                if not target:
-                    errors.append(f"{slug}: rendered release page had no download target")
-                    continue
-                direct = _safe_download_url(
-                    target.get("dataUrl") or target.get("href") or "",
-                    browser.current_url,
-                )
-                if not direct:
-                    errors.append(f"{slug}: download target had no usable URL")
-                    continue
-                logging.info(
-                    "✓ browser fallback resolved %s %s from rendered Uptodown DOM",
-                    app_name,
-                    candidate.describe(),
-                )
-                return BrowserDownload(
-                    direct,
-                    _cookies_as_header(browser),
-                    "browser-uptodown",
+                for attempt in range(2):
+                    download_target = _find_download_target(browser)
+                    if not download_target:
+                        break
+                    direct = _direct_url_from_target(download_target, browser.current_url)
+                    if direct:
+                        logging.info(
+                            "✓ browser fallback resolved %s %s from rendered Uptodown DOM",
+                            app_name,
+                            candidate.describe(),
+                        )
+                        return BrowserDownload(
+                            direct,
+                            _cookies_as_header(browser),
+                            "browser-uptodown",
+                        )
+
+                    # A generic /android/download href is an HTML page, not an
+                    # APK. Click it once and inspect the rendered follow-up page
+                    # instead of handing that HTML URL to the binary downloader.
+                    if attempt == 0 and _click_download_target(browser):
+                        time.sleep(1.0)
+                        _wait_for_normal_page(browser)
+                        if not _is_safe_uptodown_page_url(browser.current_url):
+                            break
+                        continue
+                    break
+
+                errors.append(
+                    f"{slug}: exact release rendered but no concrete Uptodown CDN URL was exposed"
                 )
             except Exception as error:
                 errors.append(
