@@ -17,6 +17,56 @@ def _exact_package(items: list, package: str) -> dict | None:
     return None
 
 
+def _find_version(package: str, version: str, q: str) -> tuple[str | None, str | None]:
+    """Find an exact historical release without truncating Aptoide history.
+
+    Aptoide list endpoints expose ``datalist.next`` for pagination. Some apps
+    have more than 100 historical releases, so reading only the first page can
+    incorrectly report a still-hosted older version as missing. Keep the scan
+    bounded and stop on empty/repeated pages to avoid looping on malformed API
+    responses.
+    """
+    offset = 0
+    seen_offsets: set[int] = set()
+    max_pages = 20
+
+    for _ in range(max_pages):
+        if offset in seen_offsets:
+            break
+        seen_offsets.add(offset)
+        url = (
+            f"{BASE_URL}listAppVersions?package_name={package}"
+            f"&limit=100&offset={offset}{q}"
+        )
+        response = utils.cf_aware_get(url)
+        response.raise_for_status()
+        datalist = response.json().get("datalist", {})
+        items = datalist.get("list", []) if isinstance(datalist, dict) else []
+        if not isinstance(items, list) or not items:
+            break
+
+        for app in items:
+            if not isinstance(app, dict):
+                continue
+            file_data = app.get("file", {})
+            found_name = _normalize_vername(str(file_data.get("vername", "")))
+            if found_name == version:
+                code = str(file_data.get("vercode", "")).strip() or None
+                path = str(file_data.get("path", "")).strip() or None
+                return code, path
+
+        next_offset = datalist.get("next") if isinstance(datalist, dict) else None
+        try:
+            next_offset = int(next_offset)
+        except (TypeError, ValueError):
+            next_offset = offset + len(items)
+        if next_offset <= offset or len(items) < 100:
+            break
+        offset = next_offset
+
+    return None, None
+
+
 def get_latest_version(app_name: str, config: Dict) -> str:
     package = config['package']
     arch = config.get('arch', 'universal')
@@ -95,6 +145,7 @@ def get_download_link_for_candidate(
             errors.append(f"{alias}: {type(error).__name__}: {error}")
     raise ValueError("; ".join(errors))
 
+
 def get_download_link(version: str, app_name: str, config: Dict) -> str:
     package = config['package']
     arch = config.get('arch', 'universal')
@@ -123,16 +174,12 @@ def get_download_link(version: str, app_name: str, config: Dict) -> str:
             raise ValueError(f"aptoide: no exact result for package '{package}'")
         return item['file']['path']
 
-    # Find vercode for specific version
-    url_versions = f"{BASE_URL}listAppVersions?package_name={package}&limit=100{q}"
-    res_v = utils.cf_aware_get(url_versions)
-    res_v.raise_for_status()
-    versions_list = res_v.json().get('datalist', {}).get('list', [])
-    vercode = None
-    for app in versions_list:
-        if app['file']['vername'] == version:
-            vercode = app['file']['vercode']
-            break
+    # Search all available history pages for an exact version. A direct path on
+    # the version row can be used immediately; otherwise resolve the exact
+    # versionCode through getAppMeta as before.
+    vercode, path = _find_version(package, version, q)
+    if path:
+        return path
     if not vercode:
         # Version not found in listAppVersions — fall back to search API
         # Only use the result if it matches the requested version exactly.
@@ -164,12 +211,13 @@ def get_download_link(version: str, app_name: str, config: Dict) -> str:
     res_meta.raise_for_status()
     return res_meta.json()['data']['file']['path']
 
+
 def _normalize_vername(vername: str) -> str:
     """Normalize Aptoide vername for comparison.
-    
+
     Aptoide's search API sometimes returns vername in the format
     "87100 (8.7.1)" where the first token is a version code and the
-    parenthesised part is the human-readable version string.  Strip the
+    parenthesised part is the human-readable version string. Strip the
     leading vercode token so the result can be compared against a plain
     semantic version like "8.7.1".
     """
