@@ -1,4 +1,5 @@
 import os
+import sys
 import tempfile
 import unittest
 import zipfile
@@ -31,7 +32,7 @@ class AuroraPlayTests(unittest.TestCase):
 
     @mock.patch("src.aurora_play.shutil.which", return_value="/usr/bin/gplaydl")
     @mock.patch("src.aurora_play._run")
-    def test_linked_gplaydl_uses_api_key_route_and_exact_version_code(
+    def test_linked_gplaydl_uses_upstream_package_runner_and_exact_version_code(
         self,
         run: mock.Mock,
         _which: mock.Mock,
@@ -52,7 +53,9 @@ class AuroraPlayTests(unittest.TestCase):
                 self.assertEqual(result.suffix, ".apks")
 
         command = run.call_args.args[0]
-        self.assertEqual(command[:3], ["/usr/bin/gplaydl", "download", "com.example.app"])
+        self.assertEqual(command[0], sys.executable)
+        self.assertEqual(Path(command[1]), aurora_play.GPLAYDL_MARKET_RUNNER)
+        self.assertEqual(command[2:4], ["download", "com.example.app"])
         self.assertEqual(command[command.index("-v") + 1], "123")
         self.assertEqual(command[command.index("-a") + 1], "arm64")
         self.assertNotIn("secret-key", command)
@@ -91,11 +94,11 @@ class AuroraPlayTests(unittest.TestCase):
             return mock.Mock(returncode=0, stdout="ok")
 
         run.side_effect = fake_run
-        candidate = VersionCandidate(name="32.13.2.100", code="1241320216")
+        candidate = VersionCandidate(name="9.8.7", code="987654")
         with mock.patch.dict(os.environ, {"GPLAYDL_API_KEY": "secret-key"}, clear=False):
             with tempfile.TemporaryDirectory() as directory:
                 result = aurora_play.download_candidate(
-                    "com.amazon.mShop.android.shopping",
+                    "com.example.app",
                     candidate,
                     Path(directory),
                 )
@@ -105,8 +108,8 @@ class AuroraPlayTests(unittest.TestCase):
                     self.assertIn("split_config.arm64_v8a.apk", archive.namelist())
 
         command = run.call_args.args[0]
-        self.assertEqual(command[command.index("download") + 1], "com.amazon.mShop.android.shopping")
-        self.assertEqual(command[command.index("-v") + 1], "1241320216")
+        self.assertEqual(command[command.index("download") + 1], "com.example.app")
+        self.assertEqual(command[command.index("-v") + 1], "987654")
         self.assertIn("-o", command)
 
     @mock.patch("src.aurora_play.shutil.which", return_value="/usr/bin/gplaydl")
