@@ -115,7 +115,7 @@ class AuroraPlayTests(unittest.TestCase):
             return mock.Mock(returncode=0, stdout="ok")
 
         run.side_effect = fake_run
-        candidate = VersionCandidate(name="32.13.2.100", code="1241322016")
+        candidate = VersionCandidate(name="32.13.2.100", code="1241320216")
         with mock.patch.dict(os.environ, {"GPLAYDL_API_KEY": ""}, clear=False):
             with tempfile.TemporaryDirectory() as directory:
                 result = aurora_play.download_candidate(
@@ -130,7 +130,7 @@ class AuroraPlayTests(unittest.TestCase):
 
         command = run.call_args.args[0]
         self.assertEqual(command[command.index("download") + 1], "com.amazon.mShop.android.shopping")
-        self.assertEqual(command[command.index("--version-code") + 1], "1241322016")
+        self.assertEqual(command[command.index("--version-code") + 1], "1241320216")
         self.assertIn("--output", command)
 
     @mock.patch("src.aurora_play._ensure_downloader", return_value=Path("helper.jar"))
