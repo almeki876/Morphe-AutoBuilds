@@ -1,6 +1,6 @@
 import unittest
 
-from src import uptodown_direct
+from src import browser_fallback, uptodown_direct
 from src.versioning import VersionCandidate
 
 
@@ -58,6 +58,68 @@ class UptodownHistoryMarkupTests(unittest.TestCase):
         self.assertFalse(
             uptodown_direct._history_card_matches_candidate(
                 card, VersionCandidate(name="3.112.2")
+            )
+        )
+
+    def test_browser_history_card_builds_exact_release_page(self) -> None:
+        target = {
+            "dataVersionId": "424242",
+            "dataExtraUrl": "download",
+            "dataUrl": "https://crunchyroll.en.uptodown.com/android",
+            "href": "",
+        }
+        self.assertEqual(
+            browser_fallback._version_target_page_url(
+                target,
+                "https://crunchyroll.en.uptodown.com/android/versions",
+            ),
+            "https://crunchyroll.en.uptodown.com/android/download/424242",
+        )
+
+    def test_browser_rejects_generic_download_page_as_binary(self) -> None:
+        target = {
+            "dataUrl": "",
+            "href": "https://adobe-lightroom-mobile.en.uptodown.com/android/download",
+            "onclick": "",
+        }
+        self.assertIsNone(
+            browser_fallback._direct_url_from_target(
+                target,
+                "https://adobe-lightroom-mobile.en.uptodown.com/android/download/123",
+            )
+        )
+
+    def test_browser_accepts_only_uptodown_cdn_download(self) -> None:
+        target = {
+            "dataUrl": "opaque-token-abcdefghijklmnopqrstuvwxyz",
+            "href": "",
+            "onclick": "",
+        }
+        direct = browser_fallback._direct_url_from_target(
+            target,
+            "https://crunchyroll.en.uptodown.com/android/download/424242",
+        )
+        self.assertEqual(
+            direct,
+            "https://dw.uptodown.com/dwn/opaque-token-abcdefghijklmnopqrstuvwxyz",
+        )
+        self.assertFalse(
+            browser_fallback._is_direct_uptodown_file_url(
+                "https://example.invalid/dwn/opaque-token-abcdefghijklmnopqrstuvwxyz"
+            )
+        )
+
+    def test_browser_rejects_external_history_root(self) -> None:
+        target = {
+            "dataVersionId": "7",
+            "dataExtraUrl": "download",
+            "dataUrl": "https://example.invalid/android",
+            "href": "",
+        }
+        self.assertIsNone(
+            browser_fallback._version_target_page_url(
+                target,
+                "https://crunchyroll.en.uptodown.com/android/versions",
             )
         )
 
