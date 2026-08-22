@@ -3,7 +3,7 @@
 When ``GPLAYDL_API_KEY`` is available, prefer the pinned upstream gplaydl CLI
 and the user's linked Google account. If that path is unavailable or fails, the
 repo-local Aurora-style downloader remains as a fallback. Every returned APK is
-still validated by the caller before it can be cached or patched.
+still validated before it can be cached or patched.
 """
 
 from __future__ import annotations
@@ -17,6 +17,7 @@ import tempfile
 import zipfile
 from pathlib import Path
 
+from src import apk_identity
 from src.versioning import VersionCandidate
 
 GPLAYDL_PROJECT = Path("tools/gplaydl/pom.xml")
@@ -155,12 +156,60 @@ def _linked_account_configured() -> bool:
     return bool(os.getenv("GPLAYDL_API_KEY", "").strip())
 
 
+def _linked_gplaydl_command(
+    executable: str,
+    package: str,
+    downloads: Path,
+    version_code: str | None,
+) -> list[str]:
+    """Build one upstream gplaydl command without putting credentials in argv."""
+    command = [
+        executable,
+        "download",
+        package,
+        "-o",
+        str(downloads.resolve()),
+        "-a",
+        os.getenv("GPLAYDL_ARCH", "arm64"),
+    ]
+    configured_email = os.getenv("GPLAYDL_EMAIL", "").strip()
+    if configured_email:
+        command.extend(["--email", configured_email])
+    if version_code:
+        command.extend(["-v", version_code])
+    return command
+
+
+def _collect_linked_download(
+    downloads: Path,
+    package: str,
+    output_dir: Path,
+    result: subprocess.CompletedProcess[str],
+) -> Path:
+    """Package the APK files from one successful linked-account attempt."""
+    apk_files = list(downloads.rglob("*.apk"))
+    if not apk_files:
+        tail = "\n".join((result.stdout or "").splitlines()[-20:])
+        raise IOError(
+            f"linked gplaydl produced no APK files for {package}"
+            + (f": {tail}" if tail else "")
+        )
+    return _package_apks(apk_files, package, output_dir)
+
+
 def _download_with_linked_gplaydl(
     package: str,
     candidate: VersionCandidate | None,
     output_dir: Path,
 ) -> Path:
-    """Download through upstream gplaydl 4.x using ``GPLAYDL_API_KEY``."""
+    """Download through upstream gplaydl 4.x using ``GPLAYDL_API_KEY``.
+
+    When an exact versionCode lookup is unavailable, gplaydl can still serve the
+    same release through its normal current-release path. Probe that path once,
+    but only accept it after manifest identity matches the original exact
+    candidate. A different current release is deleted and treated as failure so
+    the repo-local exact-version fallback can still run.
+    """
     executable = shutil.which(OFFICIAL_GPLAYDL_COMMAND)
     if not executable:
         raise FileNotFoundError(
@@ -170,41 +219,58 @@ def _download_with_linked_gplaydl(
     with tempfile.TemporaryDirectory(prefix="linked-google-play-", dir=output_dir) as tmp:
         downloads = Path(tmp) / "downloads"
         downloads.mkdir()
-        command = [
-            executable,
-            "download",
-            package,
-            "-o",
-            str(downloads.resolve()),
-            "-a",
-            os.getenv("GPLAYDL_ARCH", "arm64"),
-        ]
-        configured_email = os.getenv("GPLAYDL_EMAIL", "").strip()
-        if configured_email:
-            command.extend(["--email", configured_email])
-        if candidate and candidate.code:
-            command.extend(["-v", str(candidate.code)])
+        exact_code = str(candidate.code) if candidate and candidate.code else None
+        command = _linked_gplaydl_command(executable, package, downloads, exact_code)
 
         logging.info(
             "🔐 Google Play linked-account first: package=%s%s",
             package,
             f" exact-versionCode={candidate.code} ({candidate.name})"
-            if candidate and candidate.code
+            if exact_code and candidate
             else " current release",
         )
         result = _run(command)
-        if result.returncode != 0:
-            tail = "\n".join((result.stdout or "").splitlines()[-35:])
-            raise RuntimeError(f"linked gplaydl exited non-zero: {tail}")
+        if result.returncode == 0:
+            return _collect_linked_download(downloads, package, output_dir, result)
 
-        apk_files = list(downloads.rglob("*.apk"))
-        if not apk_files:
-            tail = "\n".join((result.stdout or "").splitlines()[-20:])
-            raise IOError(
-                f"linked gplaydl produced no APK files for {package}"
-                + (f": {tail}" if tail else "")
+        exact_tail = "\n".join((result.stdout or "").splitlines()[-35:])
+        if not exact_code or candidate is None:
+            raise RuntimeError(f"linked gplaydl exited non-zero: {exact_tail}")
+
+        logging.warning(
+            "⚠️  Linked-account exact versionCode %s was not downloadable for %s; "
+            "probing the current Play release and requiring exact manifest identity",
+            exact_code,
+            package,
+        )
+        shutil.rmtree(downloads, ignore_errors=True)
+        downloads.mkdir()
+        current_command = _linked_gplaydl_command(executable, package, downloads, None)
+        current_result = _run(current_command)
+        if current_result.returncode != 0:
+            current_tail = "\n".join((current_result.stdout or "").splitlines()[-35:])
+            raise RuntimeError(
+                "linked gplaydl exact-version attempt failed, and current-release probe "
+                f"also failed. exact: {exact_tail}; current: {current_tail}"
             )
-        return _package_apks(apk_files, package, output_dir)
+
+        current_input = _collect_linked_download(
+            downloads, package, output_dir, current_result
+        )
+        try:
+            identity = apk_identity.validate_identity(current_input, package, candidate)
+        except Exception:
+            current_input.unlink(missing_ok=True)
+            raise
+
+        logging.info(
+            "✅ Current Play release exactly matches requested candidate: "
+            "package=%s versionName=%s versionCode=%s",
+            identity.package_name,
+            identity.version_name,
+            identity.version_code or "unknown",
+        )
+        return current_input
 
 
 def _download_with_repo_local_gplaydl(
