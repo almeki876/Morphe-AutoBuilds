@@ -1,11 +1,20 @@
 import base64
+import html
+import json
 import logging
 import re
 from typing import Dict
+from urllib.parse import urlparse
+
+from bs4 import BeautifulSoup
+
 from src import utils
 from src.versioning import VersionCandidate
 
 BASE_URL = "https://ws75.aptoide.com/api/7/"
+_SAFE_SLUG_RE = re.compile(r"^[a-z0-9][a-z0-9-]{0,100}$")
+_SAFE_LOCALE_RE = re.compile(r"^[a-z]{2}$")
+_APTOIDE_APK_EXTENSIONS = (".apk", ".xapk", ".apkm", ".apks")
 
 
 def _exact_package(items: list, package: str) -> dict | None:
@@ -39,10 +48,10 @@ def _regional_exact_path(
     """Resolve a georestricted exact release through Aptoide's official app/get.
 
     Aptoide documents that app/get is georestricted and supports an explicit
-    country parameter.  Some releases are visible on one regional frontend but
-    absent from the runner's default region.  Try only configured, evidence-
+    country parameter. Some releases are visible on one regional frontend but
+    absent from the runner's default region. Try only configured, evidence-
     based country fallbacks and accept a path only when both package and
-    versionName match exactly.  Repository-wide APK manifest validation remains
+    versionName match exactly. Repository-wide APK manifest validation remains
     the final authority after download.
     """
     if not isinstance(countries, list):
@@ -51,7 +60,7 @@ def _regional_exact_path(
     seen: set[str] = set()
     for raw_country in countries[:8]:
         country = str(raw_country).strip().casefold()
-        if not re.fullmatch(r"[a-z]{2}", country) or country in seen:
+        if not _SAFE_LOCALE_RE.fullmatch(country) or country in seen:
             continue
         seen.add(country)
         url = (
@@ -83,7 +92,7 @@ def _regional_exact_path(
                     returned_name or "none",
                 )
                 continue
-            path = str(file_data.get("path", "")).strip()
+            path = _safe_aptoide_download_path(file_data.get("path"))
             if path:
                 logging.info(
                     "✓ aptoide: regional exact release found package=%s "
@@ -100,6 +109,199 @@ def _regional_exact_path(
                 country,
                 utils.safe_text_for_log(error),
             )
+    return None
+
+
+def _safe_aptoide_download_path(value: object) -> str | None:
+    """Accept only HTTPS APK archive URLs hosted by Aptoide."""
+    raw = html.unescape(str(value or "").strip()).replace("\\/", "/")
+    if not raw:
+        return None
+    parsed = urlparse(raw)
+    host = (parsed.hostname or "").casefold().rstrip(".")
+    if (
+        parsed.scheme != "https"
+        or (host != "aptoide.com" and not host.endswith(".aptoide.com"))
+        or not parsed.path.casefold().endswith(_APTOIDE_APK_EXTENSIONS)
+    ):
+        return None
+    return raw
+
+
+def _iter_dicts(value: object):
+    if isinstance(value, dict):
+        yield value
+        for child in value.values():
+            yield from _iter_dicts(child)
+    elif isinstance(value, list):
+        for child in value:
+            yield from _iter_dicts(child)
+
+
+def _dict_exact_download_path(
+    node: dict,
+    package: str,
+    version: str,
+) -> str | None:
+    """Extract one exact release from Aptoide frontend JSON metadata."""
+    file_data = node.get("file") if isinstance(node.get("file"), dict) else {}
+    package_value = (
+        node.get("package")
+        or node.get("package_name")
+        or node.get("packageName")
+        or ""
+    )
+    if package_value and str(package_value) != package:
+        return None
+
+    version_values = [
+        node.get("vername"),
+        node.get("version"),
+        node.get("version_name"),
+        node.get("versionName"),
+        file_data.get("vername"),
+        file_data.get("version"),
+        file_data.get("version_name"),
+        file_data.get("versionName"),
+    ]
+    exact = any(
+        _normalize_vername(str(value or "")) == version
+        for value in version_values
+        if value is not None
+    )
+    if not exact:
+        return None
+
+    for raw_path in (file_data.get("path"), node.get("path"), node.get("downloadUrl")):
+        path = _safe_aptoide_download_path(raw_path)
+        if path:
+            return path
+    return None
+
+
+def _json_payloads_from_script(text: str):
+    stripped = text.strip()
+    if not stripped:
+        return
+    candidates = [stripped]
+    first_object = stripped.find("{")
+    last_object = stripped.rfind("}")
+    if first_object >= 0 and last_object > first_object:
+        candidates.append(stripped[first_object : last_object + 1])
+    first_array = stripped.find("[")
+    last_array = stripped.rfind("]")
+    if first_array >= 0 and last_array > first_array:
+        candidates.append(stripped[first_array : last_array + 1])
+
+    seen: set[str] = set()
+    for candidate in candidates:
+        if candidate in seen:
+            continue
+        seen.add(candidate)
+        try:
+            yield json.loads(candidate)
+        except (TypeError, ValueError, json.JSONDecodeError):
+            continue
+
+
+def _public_html_exact_path(content: bytes | str, package: str, version: str) -> str | None:
+    """Resolve an exact version from Aptoide's server-rendered frontend data.
+
+    The public website can expose a release that the region-sensitive API omits.
+    Prefer structured JSON embedded in the page. A narrowly bounded text fallback
+    handles older frontend bundles that serialize the same fields inside a JS
+    assignment. The normal manifest validator still proves package/version after
+    download.
+    """
+    if isinstance(content, bytes):
+        text = content.decode("utf-8", errors="replace")
+    else:
+        text = str(content)
+    if not text or version not in text:
+        return None
+
+    soup = BeautifulSoup(text, "html.parser")
+    for script in soup.find_all("script"):
+        script_text = script.string or script.get_text("", strip=False)
+        if not script_text or version not in script_text:
+            continue
+        for payload in _json_payloads_from_script(script_text):
+            for node in _iter_dicts(payload):
+                path = _dict_exact_download_path(node, package, version)
+                if path:
+                    return path
+
+    # Historical Aptoide frontends serialized app metadata into JavaScript with
+    # fields such as "vername" and "path". Keep the match close to the exact
+    # requested version so a neighbouring release cannot be selected by name.
+    normalized = html.unescape(text).replace("\\/", "/")
+    if package not in normalized:
+        return None
+    quoted_version = re.escape(version)
+    pair_patterns = (
+        re.compile(
+            rf'"(?:vername|version|versionName|version_name)"\s*:\s*"{quoted_version}"'
+            rf'.{{0,2500}}?"(?:path|downloadUrl)"\s*:\s*"(https://[^"\\]+)"',
+            re.IGNORECASE | re.DOTALL,
+        ),
+        re.compile(
+            rf'"(?:path|downloadUrl)"\s*:\s*"(https://[^"\\]+)"'
+            rf'.{{0,2500}}?"(?:vername|version|versionName|version_name)"\s*:\s*"{quoted_version}"',
+            re.IGNORECASE | re.DOTALL,
+        ),
+    )
+    for pattern in pair_patterns:
+        for match in pattern.finditer(normalized):
+            path = _safe_aptoide_download_path(match.group(1))
+            if path:
+                return path
+    return None
+
+
+def _public_exact_path(package: str, version: str, config: Dict) -> str | None:
+    """Try exact public Aptoide regional pages when API history is incomplete."""
+    slug = str(config.get("name") or "").strip().casefold()
+    if not _SAFE_SLUG_RE.fullmatch(slug):
+        return None
+
+    locales: list[str] = []
+    for raw_locale in [*(config.get("country_fallbacks") or []), "en"]:
+        locale = str(raw_locale).strip().casefold()
+        if _SAFE_LOCALE_RE.fullmatch(locale) and locale not in locales:
+            locales.append(locale)
+
+    for locale in locales[:9]:
+        base_url = f"https://{slug}.{locale}.aptoide.com"
+        for suffix in ("/versions", "/app"):
+            url = base_url + suffix
+            try:
+                response = utils.cf_aware_get(url)
+                logging.info(
+                    "aptoide: public frontend status=%s package=%s locale=%s page=%s",
+                    response.status_code,
+                    package,
+                    locale,
+                    suffix.lstrip("/"),
+                )
+                if response.status_code != 200:
+                    continue
+                path = _public_html_exact_path(response.content, package, version)
+                if path:
+                    logging.info(
+                        "✓ aptoide: public frontend resolved exact release "
+                        "package=%s version=%s locale=%s",
+                        package,
+                        version,
+                        locale,
+                    )
+                    return path
+            except Exception as error:
+                logging.info(
+                    "aptoide: public frontend lookup failed package=%s locale=%s: %s",
+                    package,
+                    locale,
+                    utils.safe_text_for_log(error),
+                )
     return None
 
 
@@ -138,7 +340,7 @@ def _find_version(package: str, version: str, q: str) -> tuple[str | None, str |
             found_name = _normalize_vername(str(file_data.get("vername", "")))
             if found_name == version:
                 code = str(file_data.get("vercode", "")).strip() or None
-                path = str(file_data.get("path", "")).strip() or None
+                path = _safe_aptoide_download_path(file_data.get("path"))
                 return code, path
 
         next_offset = datalist.get("next") if isinstance(datalist, dict) else None
@@ -158,7 +360,6 @@ def get_latest_version(app_name: str, config: Dict) -> str:
     arch = config.get('arch', 'universal')
     q = _get_q_param(arch)
 
-    # If a specific store_name is configured, use getApp endpoint directly
     store_name = config.get('store_name')
     if store_name:
         url = f"{BASE_URL}getApp?package_name={package}&store_name={store_name}{q}"
@@ -192,36 +393,56 @@ def get_latest_version(app_name: str, config: Dict) -> str:
 def get_download_link_for_candidate(
     candidate: VersionCandidate, app_name: str, config: Dict
 ) -> str:
-    """Use Aptoide's version-code endpoint before slower version-name lookup."""
+    """Use exact versionCode first, then public exact-version metadata."""
+    package = config["package"]
     if candidate.code:
-        package = config["package"]
         q = _get_q_param(config.get("arch", "universal"))
-        url = (
-            f"{BASE_URL}getAppMeta?package_name={package}"
-            f"&vercode={candidate.code}{q}"
-        )
-        response = utils.cf_aware_get(url)
-        response.raise_for_status()
-        data = response.json().get("data", {})
-        file_data = data.get("file", {})
-        returned_code = str(file_data.get("vercode", ""))
-        returned_name = _normalize_vername(str(file_data.get("vername", "")))
-        if returned_code != candidate.code:
-            raise ValueError(
-                f"aptoide: requested version code {candidate.code}, "
-                f"received {returned_code or 'none'}"
+        error: Exception | None = None
+        try:
+            url = (
+                f"{BASE_URL}getAppMeta?package_name={package}"
+                f"&vercode={candidate.code}{q}"
             )
-        if returned_name not in candidate.aliases("aptoide"):
-            raise ValueError(
-                f"aptoide: version code {candidate.code} resolved to "
-                f"{returned_name!r}, expected {candidate.name!r}"
+            response = utils.cf_aware_get(url)
+            response.raise_for_status()
+            data = response.json().get("data", {})
+            file_data = data.get("file", {})
+            returned_code = str(file_data.get("vercode", ""))
+            returned_name = _normalize_vername(str(file_data.get("vername", "")))
+            if returned_code != candidate.code:
+                raise ValueError(
+                    f"aptoide: requested version code {candidate.code}, "
+                    f"received {returned_code or 'none'}"
+                )
+            if returned_name not in candidate.aliases("aptoide"):
+                raise ValueError(
+                    f"aptoide: version code {candidate.code} resolved to "
+                    f"{returned_name!r}, expected {candidate.name!r}"
+                )
+            path = _safe_aptoide_download_path(file_data.get("path"))
+            if not path:
+                raise ValueError(
+                    f"aptoide: no safe download path for version code {candidate.code}"
+                )
+            return path
+        except Exception as exc:
+            error = exc
+            logging.info(
+                "aptoide: exact versionCode API lookup failed for %s %s: %s",
+                package,
+                candidate.describe(),
+                utils.safe_text_for_log(exc),
             )
-        path = file_data.get("path")
-        if not path:
-            raise ValueError(
-                f"aptoide: no download path for version code {candidate.code}"
-            )
-        return path
+
+        # Public history has versionName but not a trustworthy Android
+        # versionCode. It may still supply the file; the repository-wide APK
+        # identity validator enforces candidate.code after download.
+        for alias in candidate.aliases("aptoide"):
+            public = _public_exact_path(package, alias, config)
+            if public:
+                return public
+        assert error is not None
+        raise error
 
     errors: list[str] = []
     for alias in candidate.aliases("aptoide"):
@@ -238,16 +459,15 @@ def get_download_link(version: str, app_name: str, config: Dict) -> str:
     q = _get_q_param(arch)
     store_name = config.get('store_name')
 
-    # If a specific store_name is configured, use getApp endpoint directly
     if store_name:
         url = f"{BASE_URL}getApp?package_name={package}&store_name={store_name}{q}"
         res = utils.cf_aware_get(url)
         res.raise_for_status()
         data = res.json()
-        path = data.get('data', {}).get('file', {}).get('path')
+        path = _safe_aptoide_download_path(data.get('data', {}).get('file', {}).get('path'))
         if path:
             return path
-        raise ValueError(f"aptoide: no download path for '{package}' in store '{store_name}'")
+        raise ValueError(f"aptoide: no safe download path for '{package}' in store '{store_name}'")
 
     if version.lower() == "latest":
         url = f"{BASE_URL}apps/search?query={package}&limit=10&trusted=true{q}"
@@ -258,11 +478,11 @@ def get_download_link(version: str, app_name: str, config: Dict) -> str:
         item = _exact_package(items, package)
         if not item:
             raise ValueError(f"aptoide: no exact result for package '{package}'")
-        return item['file']['path']
+        path = _safe_aptoide_download_path(item['file'].get('path'))
+        if not path:
+            raise ValueError(f"aptoide: no safe download path for package '{package}'")
+        return path
 
-    # Search all available history pages for an exact version. A direct path on
-    # the version row can be used immediately; otherwise resolve the exact
-    # versionCode through getAppMeta as before.
     vercode, path = _find_version(package, version, q)
     if path:
         return path
@@ -276,10 +496,12 @@ def get_download_link(version: str, app_name: str, config: Dict) -> str:
         if regional:
             return regional
 
-        # Version not found in listAppVersions — fall back to search API.
-        # Only use the result if it matches the requested package/version exactly.
+        public = _public_exact_path(package, version, config)
+        if public:
+            return public
+
         logging.warning(
-            f"aptoide: version '{version}' not in listAppVersions for '{package}', "
+            f"aptoide: version '{version}' not in API/public history for '{package}', "
             f"falling back to search API"
         )
         url_search = f"{BASE_URL}apps/search?query={package}&limit=10&trusted=true{q}"
@@ -296,15 +518,20 @@ def get_download_link(version: str, app_name: str, config: Dict) -> str:
                 f"aptoide: version '{version}' not available for package '{package}' "
                 f"(search returned '{found_vername}' instead)"
             )
-        path = item['file'].get('path')
+        path = _safe_aptoide_download_path(item['file'].get('path'))
         if not path:
-            raise ValueError(f"aptoide: no download path for package '{package}'")
+            raise ValueError(f"aptoide: no safe download path for package '{package}'")
         return path
 
     url_meta = f"{BASE_URL}getAppMeta?package_name={package}&vercode={vercode}{q}"
     res_meta = utils.cf_aware_get(url_meta)
     res_meta.raise_for_status()
-    return res_meta.json()['data']['file']['path']
+    path = _safe_aptoide_download_path(res_meta.json()['data']['file'].get('path'))
+    if not path:
+        raise ValueError(
+            f"aptoide: getAppMeta returned no safe path for {package}@{vercode}"
+        )
+    return path
 
 
 def _normalize_vername(vername: str) -> str:
