@@ -1,10 +1,9 @@
-import tempfile
 import unittest
 from pathlib import Path
 from unittest import mock
 
 from scripts import download_apks
-from src import apk_identity, aurora_play, downloader, uptodown_direct, versioning
+from src import apk_identity, downloader, uptodown_direct, versioning
 from src.versioning import VersionCandidate, parse_candidate
 
 
@@ -234,61 +233,6 @@ class OpenIssueRegressionTests(unittest.TestCase):
                 card, "https://adobe-lightroom-mobile.en.uptodown.com/android"
             )
         )
-
-    def test_actions_restore_cannot_replace_tracked_gplaydl_sources(self) -> None:
-        completed = mock.Mock(returncode=0, stdout="")
-        with (
-            mock.patch.dict("os.environ", {"GITHUB_ACTIONS": "true"}),
-            mock.patch("src.aurora_play._run", return_value=completed) as run,
-        ):
-            aurora_play._restore_checked_in_gplaydl_sources()
-
-        run.assert_called_once_with(
-            [
-                "git",
-                "restore",
-                "--source=HEAD",
-                "--worktree",
-                "--",
-                str(aurora_play.GPLAYDL_PROJECT),
-                str(aurora_play.GPLAYDL_SOURCE_ROOT),
-            ]
-        )
-
-    def test_stale_cached_gplaydl_jar_is_rebuilt(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
-            project = root / "pom.xml"
-            source_root = root / "src"
-            source = source_root / "main" / "kotlin" / "Main.kt"
-            jar = root / "target" / "gplaydl-1.0-SNAPSHOT-all.jar"
-            fingerprint_file = root / "target" / "gplaydl-source.sha256"
-            source.parent.mkdir(parents=True)
-            jar.parent.mkdir(parents=True)
-            project.write_text("<project>new</project>", encoding="utf-8")
-            source.write_text("fun main() = println(\"new\")", encoding="utf-8")
-            jar.write_bytes(b"old-jar")
-            fingerprint_file.write_text("stale\n", encoding="utf-8")
-
-            def fake_run(command, *, cwd=None, env=None):
-                jar.write_bytes(b"new-jar")
-                return mock.Mock(returncode=0, stdout="ok")
-
-            with (
-                mock.patch.dict("os.environ", {"GITHUB_ACTIONS": "false"}),
-                mock.patch.object(aurora_play, "GPLAYDL_PROJECT", project),
-                mock.patch.object(aurora_play, "GPLAYDL_SOURCE_ROOT", source_root),
-                mock.patch.object(aurora_play, "GPLAYDL_JAR", jar),
-                mock.patch.object(aurora_play, "GPLAYDL_FINGERPRINT", fingerprint_file),
-                mock.patch("src.aurora_play.shutil.which", return_value="/usr/bin/mvn"),
-                mock.patch("src.aurora_play._run", side_effect=fake_run) as run,
-            ):
-                result = aurora_play._ensure_downloader()
-
-            self.assertEqual(result, jar)
-            self.assertEqual(jar.read_bytes(), b"new-jar")
-            self.assertNotEqual(fingerprint_file.read_text(encoding="utf-8").strip(), "stale")
-            run.assert_called_once()
 
 
 if __name__ == "__main__":

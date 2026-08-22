@@ -402,6 +402,15 @@ jobs:
         with:
           python-version: 3.11
 
+      - name: Restore VirusTotal Hash Cache
+        id: vt-cache-restore
+        uses: actions/cache/restore@v6
+        with:
+          path: .cache/virustotal
+          key: virustotal-hash-v1-${{ runner.os }}-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: |
+            virustotal-hash-v1-${{ runner.os }}-
+
       - name: Download Unmodified Base APKs
         uses: actions/download-artifact@v8
         with:
@@ -422,9 +431,17 @@ jobs:
           pip install -r requirements.txt
           python3 -m scripts.scan_virustotal \
             --directory ./base-apks \
+            --cache ./.cache/virustotal/hash-results.json \
             --title "VirusTotal base APK scan results (before patching)" \
             --markdown ./virustotal_base_results.md \
             --json ./virustotal_base_results.json
+
+      - name: Save VirusTotal Hash Cache
+        if: always() && hashFiles('.cache/virustotal/hash-results.json') != ''
+        uses: actions/cache/save@v6
+        with:
+          path: .cache/virustotal
+          key: virustotal-hash-v1-${{ runner.os }}-${{ github.run_id }}-${{ github.run_attempt }}
 
       - name: Upload VirusTotal Report
         if: always() && hashFiles('virustotal_base_results.*') != ''
