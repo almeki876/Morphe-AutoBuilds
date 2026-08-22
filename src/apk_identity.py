@@ -127,7 +127,15 @@ def _nested_apk_priority(name: str) -> tuple[int, str]:
 
 
 def read_identity(path: Path) -> ApkIdentity:
-    """Return package/version identity for a plain APK or split container."""
+    """Return package/version identity for a plain APK or split container.
+
+    Google Play split bundles can contain configuration APKs whose manifests
+    carry package/versionCode but omit versionName.  Do not return the first
+    parseable split blindly: inspect every nested APK and prefer an identity
+    with a non-empty versionName, while retaining base-APK ordering as the
+    tie-breaker.  This prevents valid authenticated Play bundles from being
+    rejected as a numeric versionCode with an empty versionName.
+    """
     aapt = find_aapt()
     if not aapt:
         raise ApkIdentityError(
@@ -141,7 +149,8 @@ def read_identity(path: Path) -> ApkIdentity:
         with zipfile.ZipFile(path) as archive:
             nested = sorted(
                 (
-                    name for name in archive.namelist()
+                    name
+                    for name in archive.namelist()
                     if name.casefold().endswith(".apk") and not name.endswith("/")
                 ),
                 key=_nested_apk_priority,
@@ -152,15 +161,28 @@ def read_identity(path: Path) -> ApkIdentity:
                 )
 
             errors: list[str] = []
+            identities: list[tuple[int, ApkIdentity]] = []
             with tempfile.TemporaryDirectory(prefix="apk-identity-") as directory:
                 for index, name in enumerate(nested):
                     extracted = Path(directory) / f"candidate-{index}.apk"
                     with archive.open(name) as source, extracted.open("wb") as target:
                         shutil.copyfileobj(source, target)
                     try:
-                        return _read_plain_apk_identity(extracted, aapt)
+                        identity = _read_plain_apk_identity(extracted, aapt)
                     except ApkIdentityError as error:
                         errors.append(f"{name}: {error}")
+                        continue
+                    identities.append((index, identity))
+
+            if identities:
+                # Prefer a manifest that actually exposes versionName. Among
+                # equally complete identities the original base-first ordering
+                # remains authoritative.
+                _, best = min(
+                    identities,
+                    key=lambda item: (0 if item[1].version_name else 1, item[0]),
+                )
+                return best
     except zipfile.BadZipFile as error:
         raise ApkIdentityError(f"APK input is not a readable ZIP archive: {path}") from error
 
