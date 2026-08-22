@@ -2,6 +2,11 @@ name: Trigger Test Build All (Release)
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/test-build.yml
 
 jobs:
   trigger-build:
