@@ -203,7 +203,13 @@ def _download(app_name: str, source: str, arch: str) -> tuple[Path, str]:
                 play_input.unlink(missing_ok=True)
                 raise RuntimeError("Google Play returned a corrupt APK archive")
             identity = _validate_downloaded_identity(play_input, package, play_candidate)
-            version = identity.version_name
+            # Some split/base APKs legitimately omit versionName. The same
+            # main workflow that produced issues #285/#286/#289 verified such
+            # APKs successfully, then passed an empty version to the build job,
+            # which rejected the otherwise valid pre-downloaded input. Keep a
+            # stable non-empty release identity by falling back to manifest
+            # versionCode when versionName is absent.
+            version = identity.version_name or identity.version_code or "unknown"
             _record_play_download(app_name, package, arch, play_input, version)
             logging.info("✅ Google Play selected as APK origin for %s v%s", app_name, version)
             return play_input, version
