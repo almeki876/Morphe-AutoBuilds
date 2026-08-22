@@ -54,11 +54,20 @@ class VersionCandidate:
     def matches(self, name: str, code: str | None = None) -> bool:
         """Return whether a provider result is the same release identity."""
         normalized_name = str(name).strip()
+        normalized_code = str(code).strip() if code is not None else None
+
+        # Some patch CLIs report only Android versionCode (for example Nova
+        # reports ``88600`` while the APK manifest versionName is ``8.8.6``).
+        # In that representation the code is authoritative and requiring the
+        # human-readable name to equal the numeric code rejects the right APK.
+        if self.code is not None and self.name == self.code:
+            return normalized_code == self.code
+
         if normalized_name not in self.aliases(""):
             return False
         if self.code is None:
             return True
-        return code is not None and str(code).strip() == self.code
+        return normalized_code == self.code
 
     def aliases(self, provider: str) -> tuple[str, ...]:
         """Return exact-match aliases in the order preferred by a provider."""
@@ -69,7 +78,6 @@ class VersionCandidate:
         if provider == "apkpure" and self.code:
             ordered = [self.code, *names]
         elif provider == "apkcombo" and self.code:
-            # APKCombo exposes both version code and name in anchor text.
             ordered = [*names, self.code]
         elif provider == "aptoide" and self.code:
             ordered = [*names, self.code]
@@ -122,6 +130,8 @@ def parse_candidate(line: str) -> VersionCandidate | None:
             raw=line,
         )
 
+    if value.isdigit():
+        return VersionCandidate(name=value, code=value, raw=line)
     if re.match(r"^\d", value):
         return VersionCandidate(name=value, raw=line)
     return None
