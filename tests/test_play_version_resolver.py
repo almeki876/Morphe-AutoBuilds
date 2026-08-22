@@ -79,6 +79,54 @@ class ApkPureIdentityResolverTests(unittest.TestCase):
     def tearDown(self) -> None:
         versioning._DISCOVERED_VERSION_CODES.clear()
 
+    def test_history_rows_accept_canonical_top_level_response(self) -> None:
+        payload = {
+            "version_list": [
+                {
+                    "package_name": "com.example.app",
+                    "version_name": "7.8.9",
+                    "version_code": 78942,
+                }
+            ]
+        }
+        rows = apkpure._history_rows_from_payload(payload)
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]["version_code"], 78942)
+
+    def test_history_rows_accept_gateway_wrapped_response(self) -> None:
+        payload = {
+            "code": 0,
+            "data": {
+                "version_list": [
+                    {
+                        "package_name": "com.example.app",
+                        "version_name": "7.8.9",
+                        "version_code": 78942,
+                    }
+                ]
+            },
+        }
+        rows = apkpure._history_rows_from_payload(payload)
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]["version_name"], "7.8.9")
+
+    def test_history_rows_reject_unrelated_nested_lists(self) -> None:
+        payload = {
+            "data": {
+                "items": [
+                    {
+                        "version_name": "7.8.9",
+                        "version_code": 78942,
+                    }
+                ]
+            }
+        }
+        self.assertEqual(apkpure._history_rows_from_payload(payload), [])
+
+    def test_history_api_headers_do_not_inherit_web_referer(self) -> None:
+        self.assertNotIn("Referer", apkpure.HISTORY_HEADERS)
+        self.assertEqual(apkpure.HISTORY_HEADERS["Ual-Access-Businessid"], "projecta")
+
     def test_history_metadata_enriches_exact_version_name(self) -> None:
         rows = [
             {
