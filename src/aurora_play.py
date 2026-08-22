@@ -9,9 +9,9 @@ For explicitly versioned patch targets, Android ``versionCode`` is resolved
 at runtime before invoking gplaydl and passed through ``-v``. ``any`` remains
 the only path that intentionally asks Google Play for the current release.
 
-A small runtime shim may be injected into the gplaydl subprocess for bounded,
-non-secret diagnostics. It must not change gplaydl's Google Play request
-semantics.
+The upstream gplaydl CLI owns Google Play authentication, device-profile
+selection, purchase, delivery, and request headers. This wrapper intentionally
+does not modify that wire protocol.
 """
 
 from __future__ import annotations
@@ -28,7 +28,6 @@ from src import apk_identity, play_version_resolver
 from src.versioning import VersionCandidate
 
 OFFICIAL_GPLAYDL_COMMAND = "gplaydl"
-GPLAYDL_SHIM_DIR = Path(__file__).resolve().parent.parent / "tools" / "gplaydl_shim"
 
 # Apps that are intentionally distributed from an upstream GitHub release
 # rather than Google Play. Keep this list narrow and explicit.
@@ -44,29 +43,16 @@ def google_play_enabled(package: str) -> bool:
     return package not in GITHUB_ONLY_PACKAGES
 
 
-def _gplaydl_runtime_env(command: list[str]) -> dict[str, str] | None:
-    """Inject the diagnostic shim only into upstream gplaydl subprocesses."""
-    if not command or Path(command[0]).name != OFFICIAL_GPLAYDL_COMMAND:
-        return None
-
-    env = os.environ.copy()
-    shim = str(GPLAYDL_SHIM_DIR)
-    current = env.get("PYTHONPATH", "").strip()
-    env["PYTHONPATH"] = shim if not current else shim + os.pathsep + current
-    return env
-
-
 def _run(
     command: list[str],
     *,
     cwd: Path | None = None,
     env: dict[str, str] | None = None,
 ) -> subprocess.CompletedProcess[str]:
-    runtime_env = env if env is not None else _gplaydl_runtime_env(command)
     return subprocess.run(
         command,
         cwd=cwd,
-        env=runtime_env,
+        env=env,
         check=False,
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
