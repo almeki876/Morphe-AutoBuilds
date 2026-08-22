@@ -2,6 +2,7 @@
   "name": "adobe-acrobat-reader",
   "package": "com.adobe.reader",
   "version": "26.7.1.47181",
+  "version_code": "1931947181",
   "primary": true,
   "country_fallbacks": ["br", "bd", "pt"]
 }
