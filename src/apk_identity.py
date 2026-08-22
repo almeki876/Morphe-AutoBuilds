@@ -97,12 +97,23 @@ def _read_plain_apk_identity(path: Path, aapt: str) -> ApkIdentity:
         )
     except OSError as error:
         raise ApkIdentityError(f"could not start aapt for {path}: {error}") from error
-    if result.returncode != 0:
-        diagnostics = (result.stderr or result.stdout or "unknown error").strip()
-        raise ApkIdentityError(
-            f"aapt could not read APK identity for {path}: {diagnostics[:300]}"
-        )
-    return parse_badging(result.stdout)
+
+    # aapt can emit the complete package identity first and then return nonzero
+    # because a later, unrelated resource reference (commonly android:icon in a
+    # split-derived APK) cannot be resolved. Identity validation only needs the
+    # package line, so use it whenever it was successfully decoded instead of
+    # discarding trustworthy metadata because a later badging field failed.
+    try:
+        identity = parse_badging(result.stdout)
+    except ApkIdentityError:
+        if result.returncode != 0:
+            diagnostics = (result.stderr or result.stdout or "unknown error").strip()
+            raise ApkIdentityError(
+                f"aapt could not read APK identity for {path}: {diagnostics[:300]}"
+            )
+        raise
+
+    return identity
 
 
 def _nested_apk_priority(name: str) -> tuple[int, str]:
