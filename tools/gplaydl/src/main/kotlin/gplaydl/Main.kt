@@ -93,7 +93,14 @@ private fun authenticatedSession(options: CliOptions): Pair<GPlaySession, String
             val login = AnonymousAuthClient(
                 dispenserUrls = anonymousDispenserUrls(),
                 userAgent = options.userAgent,
-                apiKey = System.getenv("GPLAYDL_API_KEY").orEmpty().trim().ifBlank { null },
+                // GPLAYDL_API_KEY is reserved for upstream gplaydl 4.x linked
+                // accounts. A legacy anonymous dispenser key must use its own
+                // explicitly named variable so the two credential types can
+                // never be confused.
+                apiKey = System.getenv("GPLAY_ANON_DISPENSER_API_KEY")
+                    .orEmpty()
+                    .trim()
+                    .ifBlank { null },
             ).login(propertyCandidates)
             GPlaySession.anonymous(login.auth, login.properties, options.locale) to
                 "anonymous dispenser ${login.dispenserHost} (${login.profileName})"
