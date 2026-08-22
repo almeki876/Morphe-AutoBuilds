@@ -57,6 +57,37 @@ def _run(
     )
 
 
+def _restore_checked_in_gplaydl_sources() -> None:
+    """Undo Actions cache contamination of tracked gplaydl source files.
+
+    The build-tools cache historically stores the whole ``tools/`` directory.
+    Because Actions restores it *after* checkout, an older cache can overwrite
+    tracked ``tools/gplaydl`` sources as well as generated artifacts.  In CI we
+    restore the tracked project files from HEAD before fingerprinting/building;
+    untracked ``target/`` artifacts remain available for reuse.
+    """
+    if os.getenv("GITHUB_ACTIONS", "").casefold() != "true":
+        return
+
+    result = _run(
+        [
+            "git",
+            "restore",
+            "--source=HEAD",
+            "--worktree",
+            "--",
+            str(GPLAYDL_PROJECT),
+            str(GPLAYDL_SOURCE_ROOT),
+        ]
+    )
+    if result.returncode != 0:
+        tail = "\n".join((result.stdout or "").splitlines()[-20:])
+        raise RuntimeError(
+            "could not restore checked-in gplaydl sources after tool cache restore"
+            + (f": {tail}" if tail else "")
+        )
+
+
 def _gplaydl_source_fingerprint() -> str:
     """Hash every checked-in input that changes the repo-local gplaydl binary."""
     if not GPLAYDL_PROJECT.is_file():
@@ -76,6 +107,7 @@ def _gplaydl_source_fingerprint() -> str:
 
 def _ensure_downloader() -> Path:
     """Build the checked-in JVM CLI and never trust a stale restored JAR."""
+    _restore_checked_in_gplaydl_sources()
     fingerprint = _gplaydl_source_fingerprint()
     cached_fingerprint = ""
     if GPLAYDL_FINGERPRINT.is_file():
