@@ -27,12 +27,7 @@ import tempfile
 import zipfile
 from pathlib import Path
 
-from src import (
-    apk_identity,
-    gplaydl_market_headers,
-    local_gplaydl_dispenser,
-    play_version_resolver,
-)
+from src import apk_identity, local_gplaydl_dispenser, play_version_resolver
 from src.versioning import VersionCandidate
 
 OFFICIAL_GPLAYDL_COMMAND = "gplaydl"
@@ -165,18 +160,12 @@ def _download_with_linked_gplaydl(
     dispenser credentials in this process with an ephemeral localhost dispenser
     before gplaydl is started.
 
-    Current gplaydl 4.x receives locale metadata in the AuthBundle but still
-    hardcodes English for its final FDFE headers. The narrow market-header
-    adaptation keeps those headers aligned with the upstream AuthBundle while
-    leaving authentication, details, purchase and delivery logic upstream.
-
     If a known exact versionCode is temporarily unavailable through a device
     profile, probe the current release once and accept it only when its manifest
     is exactly the requested release.
     """
     local_gplaydl_dispenser.ensure_running()
     _require_linked_account()
-    gplaydl_market_headers.ensure_auth_bundle_locale_headers()
 
     executable = shutil.which(OFFICIAL_GPLAYDL_COMMAND)
     if not executable:
