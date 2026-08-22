@@ -56,12 +56,14 @@ class OpenIssueRegressionTests(unittest.TestCase):
         self.assertEqual(candidate.code, "121200004")
         self.assertTrue(candidate.matches("", "121200004"))
 
-    def test_poweramp_build_version_exposes_google_play_version_code(self) -> None:
+    def test_poweramp_build_label_is_not_android_version_code(self) -> None:
         candidate = parse_candidate("build-1025-bundle-play (1 patch)")
         self.assertIsNotNone(candidate)
         assert candidate is not None
         self.assertEqual(candidate.name, "build-1025-bundle-play")
-        self.assertEqual(candidate.code, "1025")
+        self.assertIsNone(candidate.code)
+        self.assertTrue(candidate.matches("build-1025-bundle-play", "1025004"))
+        self.assertFalse(candidate.matches("build-1024-bundle-play", "1025004"))
 
     def test_composite_asset_version_matches_manifest_name_and_code(self) -> None:
         candidate = VersionCandidate(name="21.0.0.40")
