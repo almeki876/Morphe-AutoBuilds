@@ -4,7 +4,7 @@ from pathlib import Path
 from unittest import mock
 
 from src import aurora_play
-from src.versioning import parse_candidate
+from src.versioning import VersionCandidate, parse_candidate
 
 
 class OpenIssueRegressionTests(unittest.TestCase):
@@ -15,6 +15,19 @@ class OpenIssueRegressionTests(unittest.TestCase):
         self.assertEqual(candidate.code, "88600")
         self.assertTrue(candidate.matches("8.8.6", "88600"))
         self.assertFalse(candidate.matches("8.8.9", "88900"))
+
+    def test_poweramp_build_version_exposes_google_play_version_code(self) -> None:
+        candidate = parse_candidate("build-1025-bundle-play (1 patch)")
+        self.assertIsNotNone(candidate)
+        assert candidate is not None
+        self.assertEqual(candidate.name, "build-1025-bundle-play")
+        self.assertEqual(candidate.code, "1025")
+
+    def test_composite_asset_version_matches_manifest_name_and_code(self) -> None:
+        candidate = VersionCandidate(name="21.0.0.40")
+        self.assertTrue(candidate.matches("21.0.0", "40"))
+        self.assertFalse(candidate.matches("21.0.0", "41"))
+        self.assertFalse(candidate.matches("20.0.0", "40"))
 
     def test_stale_cached_gplaydl_jar_is_rebuilt(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
