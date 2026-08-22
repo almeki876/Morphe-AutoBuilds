@@ -2,10 +2,9 @@
 
 Google Play is the preferred APK origin for every app except packages that are
 explicitly GitHub-only (currently AdGuard). Downloads use upstream ``gplaydl``.
-When an encrypted CI dispenser snapshot is available it is restored locally
-first. The older direct ``GPLAY_EMAIL`` + ``GPLAY_AAS_TOKEN`` bootstrap remains
-a compatibility fallback; otherwise the configured hosted dispenser path stays
-available.
+When ``GPLAY_EMAIL`` and ``GPLAY_AAS_TOKEN`` are available, CI first starts an
+ephemeral self-hosted dispenser on the runner and points gplaydl at it; otherwise
+the configured ``GPLAYDL_API_KEY``/dispenser path remains available.
 
 For explicitly versioned patch targets, Android ``versionCode`` is resolved
 at runtime before invoking gplaydl and passed through ``-v``. ``any`` remains
@@ -28,12 +27,7 @@ import tempfile
 import zipfile
 from pathlib import Path
 
-from src import (
-    apk_identity,
-    local_gplaydl_dispenser,
-    persisted_gplaydl_dispenser,
-    play_version_resolver,
-)
+from src import apk_identity, local_gplaydl_dispenser, play_version_resolver
 from src.versioning import VersionCandidate
 
 OFFICIAL_GPLAYDL_COMMAND = "gplaydl"
@@ -162,17 +156,15 @@ def _download_with_linked_gplaydl(
     versionCode and is sent to gplaydl through ``-v``. Only ``candidate=None``
     (patch compatibility ``any``) intentionally requests the current release.
 
-    Encrypted Authenticator state is restored into an ephemeral localhost
-    dispenser before gplaydl starts. If no state cache is configured, the
-    direct-AAS compatibility bootstrap is tried and then the hosted dispenser
-    remains available.
+    If AAS credentials are present, ``ensure_running`` replaces the hosted
+    dispenser credentials in this process with an ephemeral localhost dispenser
+    before gplaydl is started.
 
     If a known exact versionCode is temporarily unavailable through a device
     profile, probe the current release once and accept it only when its manifest
     is exactly the requested release.
     """
-    if not persisted_gplaydl_dispenser.ensure_running():
-        local_gplaydl_dispenser.ensure_running()
+    local_gplaydl_dispenser.ensure_running()
     _require_linked_account()
 
     executable = shutil.which(OFFICIAL_GPLAYDL_COMMAND)
