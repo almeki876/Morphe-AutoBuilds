@@ -146,26 +146,47 @@ def _direct_from_post_download(base_url: str, token: str) -> str | None:
     return f"https://dw.uptodown.com/dwn/{data_url}"
 
 
-def _history_card_matches_candidate(card, candidate: VersionCandidate) -> bool:
-    """Match history metadata without pretending it contains Android versionCode.
+def _text_contains_version_alias(text: str, alias: str) -> bool:
+    """Match one version token inside a card without prefix false positives."""
+    if not text or not alias:
+        return False
+    return re.search(
+        rf"(?<![0-9A-Za-z]){re.escape(alias)}(?![0-9A-Za-z])",
+        text,
+        flags=re.IGNORECASE,
+    ) is not None
 
-    Public Uptodown history cards identify the release by versionName and an
-    opaque version id.  A configured/patch versionCode is therefore checked only
-    after the APK/XAPK is downloaded by the repository-wide manifest validator.
+
+def _history_card_matches_candidate(card, candidate: VersionCandidate) -> bool:
+    """Match history metadata without depending on one Uptodown CSS class.
+
+    Uptodown has used ``.version``, ``.v-version`` and plain card text for the
+    same public history rows. The opaque version/file id is not Android's
+    versionCode, so release identity remains enforced after download by the
+    repository-wide manifest validator.
     """
-    version_node = card.select_one(".version")
-    if not version_node:
-        return False
-    text = version_node.get_text(" ", strip=True)
-    if not text:
-        return False
-    names = {text}
-    parsed = parse_candidate(text)
-    if parsed is not None:
-        names.add(parsed.name)
-        if parsed.code:
-            names.add(parsed.code)
-    return bool(names.intersection(candidate.aliases("uptodown")))
+    texts: list[str] = []
+    for attr in ("data-version", "data-version-name"):
+        value = str(card.get(attr) or "").strip()
+        if value:
+            texts.append(value)
+    for node in card.select(".version, .v-version, [data-version]"):
+        value = node.get_text(" ", strip=True)
+        if value:
+            texts.append(value)
+        data_version = str(node.get("data-version") or "").strip()
+        if data_version:
+            texts.append(data_version)
+    card_text = card.get_text(" ", strip=True)
+    if card_text:
+        texts.append(card_text)
+
+    aliases = tuple(candidate.aliases("uptodown"))
+    return any(
+        _text_contains_version_alias(text, alias)
+        for text in texts
+        for alias in aliases
+    )
 
 
 def _history_download_page(card, base_url: str) -> str | None:
