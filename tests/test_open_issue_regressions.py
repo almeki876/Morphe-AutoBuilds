@@ -3,6 +3,7 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
+from scripts import download_apks
 from src import aurora_play
 from src.versioning import VersionCandidate, parse_candidate
 
@@ -28,6 +29,27 @@ class OpenIssueRegressionTests(unittest.TestCase):
         self.assertTrue(candidate.matches("21.0.0", "40"))
         self.assertFalse(candidate.matches("21.0.0", "41"))
         self.assertFalse(candidate.matches("20.0.0", "40"))
+
+    @mock.patch("scripts.download_apks.providers.download_priority", return_value=["apkpure"])
+    @mock.patch(
+        "scripts.download_apks.providers.load_config",
+        return_value={"version": "32.13.2.100", "version_code": "1241322016"},
+    )
+    def test_patch_version_is_enriched_with_configured_version_code(
+        self,
+        load_config: mock.Mock,
+        download_priority: mock.Mock,
+    ) -> None:
+        candidate = VersionCandidate(name="32.13.2.100")
+        selected = download_apks._preferred_play_candidate(
+            "amazon-shopping",
+            "com.amazon.mShop.android.shopping",
+            [candidate],
+        )
+        self.assertIsNotNone(selected)
+        assert selected is not None
+        self.assertEqual(selected.name, "32.13.2.100")
+        self.assertEqual(selected.code, "1241322016")
 
     def test_stale_cached_gplaydl_jar_is_rebuilt(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
