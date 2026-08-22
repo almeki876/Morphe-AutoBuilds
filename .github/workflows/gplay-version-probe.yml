@@ -1,4 +1,4 @@
-name: GPlay Version Probe
+name: APK Source Probe
 
 on:
   pull_request:
@@ -19,25 +19,12 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Install upstream gplaydl
-        run: python -m pip install --disable-pip-version-check 'gplaydl==4.2.1'
-      - name: Probe exact Play metadata
+      - name: Install probe dependencies
+        run: python -m pip install --disable-pip-version-check 'gplaydl==4.2.1' 'beautifulsoup4==4.15.0' 'requests>=2.34'
+      - name: Probe linked Play metadata
         shell: bash
         run: |
           set -u
-          if [[ -z "${GPLAYDL_API_KEY:-}" ]]; then
-            echo 'GPLAYDL_API_KEY is not available to this PR workflow'
-            exit 1
-          fi
-          for package in \
-            com.amazon.mShop.android.shopping \
-            com.adobe.reader \
-            com.adobe.lrmobile \
-            com.crunchyroll.crunchyroid \
-            com ibispaint package-placeholder
-          do
-            :
-          done
           packages=(
             'com.amazon.mShop.android.shopping'
             'com.adobe.reader'
@@ -46,6 +33,71 @@ jobs:
             'jp.ne.ibis.ibispaintx.app'
           )
           for package in "${packages[@]}"; do
-            echo "===== ${package} ====="
+            echo "===== PLAY ${package} ====="
             gplaydl info "${package}" --arch arm64 || true
           done
+      - name: Probe Uptodown exact history-card routes
+        shell: bash
+        run: |
+          python - <<'PY'
+          import re
+          from urllib.parse import urljoin, urlparse
+          import requests
+          from bs4 import BeautifulSoup
+
+          targets = [
+              ('amazon-shopping', '32.13.2.100'),
+              ('adobe-lightroom-mobile', '11.4.5'),
+              ('crunchyroll', '3.113.2'),
+          ]
+          headers = {'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/140 Safari/537.36'}
+
+          def contains(text, version):
+              return re.search(rf'(?<![0-9A-Za-z]){re.escape(version)}(?![0-9A-Za-z])', text or '', re.I) is not None
+
+          for slug, version in targets:
+              versions_url = f'https://{slug}.en.uptodown.com/android/versions'
+              print(f'===== UPTODOWN {slug} {version} =====')
+              try:
+                  r = requests.get(versions_url, headers=headers, timeout=20)
+              except Exception as e:
+                  print('history request error', type(e).__name__, e)
+                  continue
+              print('history', r.status_code, r.url, 'bytes', len(r.content))
+              soup = BeautifulSoup(r.content, 'html.parser')
+              cards = soup.select('[data-version-id]')
+              print('cards', len(cards))
+              matched = 0
+              for card in cards:
+                  text = card.get_text(' ', strip=True)
+                  attrs = {k: str(card.get(k) or '') for k in ('data-version-id','data-url','data-extra-url','href')}
+                  if not contains(text, version) and not any(contains(v, version) for v in attrs.values()):
+                      continue
+                  matched += 1
+                  print('MATCH text=', text[:240])
+                  print('attrs=', attrs)
+                  vid = attrs['data-version-id'].strip()
+                  data_url = attrs['data-url'].strip()
+                  extra = attrs['data-extra-url'].strip().strip('/') or 'download'
+                  root = urljoin(versions_url, data_url) if data_url else versions_url.rsplit('/versions',1)[0]
+                  parsed = urlparse(root)
+                  path = parsed.path.rstrip('/')
+                  if path.endswith('/versions'):
+                      path = path[:-len('/versions')]
+                  if path.endswith('/download'):
+                      path = path[:-len('/download')]
+                  if vid:
+                      canonical = f'{parsed.scheme}://{parsed.netloc}{path}/{extra}/{vid}'
+                      print('canonical=', canonical)
+                      try:
+                          rr = requests.get(canonical, headers=headers, timeout=20, allow_redirects=True)
+                          print('canonical response', rr.status_code, rr.url, 'bytes', len(rr.content))
+                          ds = BeautifulSoup(rr.content, 'html.parser')
+                          btn = ds.select_one('#detail-download-button[data-url], .post-download[data-url], [data-url*="/dwn/"]')
+                          if btn:
+                              value = str(btn.get('data-url') or '')
+                              print('direct data-url?', bool(value), 'len', len(value))
+                      except Exception as e:
+                          print('canonical request error', type(e).__name__, e)
+              print('matched', matched)
+          PY
