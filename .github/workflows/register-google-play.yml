@@ -1,0 +1,62 @@
+name: Register Google Play Account
+
+on:
+  workflow_dispatch:
+    inputs:
+      expected_email:
+        description: 'Japanese Google account to register with the official gplaydl Authenticator'
+        required: true
+        type: string
+      wait_minutes:
+        description: 'How long to keep the temporary registration server open (1-30 minutes)'
+        required: false
+        default: '15'
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: register-google-play-account
+  cancel-in-progress: false
+
+jobs:
+  register:
+    name: Register Google Play account
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v7
+
+      - name: Setup Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.11'
+
+      - name: Setup Go for current gplaydl-dispenser
+        uses: actions/setup-go@v6
+        with:
+          go-version: '1.26.1'
+          cache: false
+
+      - name: Install Python Dependencies
+        run: pip install -r requirements.txt -q
+
+      - name: Install Cloudflare Quick Tunnel Client
+        run: |
+          mkdir -p "$HOME/.local/bin"
+          curl -fsSL \
+            https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 \
+            -o "$HOME/.local/bin/cloudflared"
+          chmod +x "$HOME/.local/bin/cloudflared"
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          "$HOME/.local/bin/cloudflared" --version
+
+      - name: Register Account and Save Actions Secrets
+        env:
+          EXPECTED_GPLAY_EMAIL: ${{ inputs.expected_email }}
+          GPLAYDL_REGISTRATION_WAIT_MINUTES: ${{ inputs.wait_minutes }}
+          GPLAY_SECRET_ADMIN_TOKEN: ${{ secrets.PAT }}
+        run: python3 scripts/register_google_play_secrets.py
