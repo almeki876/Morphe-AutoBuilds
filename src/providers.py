@@ -13,7 +13,7 @@ from pathlib import Path
 from types import ModuleType
 
 from src import apkcombo, apkmirror_latest, apkpure, aptoide, github, softonic
-from src import uptodown_direct as uptodown
+from src import uptodown_machine as uptodown
 
 
 DOWNLOAD_PRIORITY = (
