@@ -9,10 +9,9 @@ For explicitly versioned patch targets, Android ``versionCode`` is resolved
 at runtime before invoking gplaydl and passed through ``-v``. ``any`` remains
 the only path that intentionally asks Google Play for the current release.
 
-Upstream gplaydl currently hard-codes English FDFE locale headers. The CLI is
-started with a small runtime shim so the Play locale can follow the linked
-account's market without forking gplaydl. ``GPLAYDL_PLAY_LOCALE`` defaults to
-``ja-JP`` for this repository and remains configurable for other deployments.
+A small runtime shim may be injected into the gplaydl subprocess for bounded,
+non-secret diagnostics. It must not change gplaydl's Google Play request
+semantics.
 """
 
 from __future__ import annotations
@@ -46,7 +45,7 @@ def google_play_enabled(package: str) -> bool:
 
 
 def _gplaydl_runtime_env(command: list[str]) -> dict[str, str] | None:
-    """Inject the gplaydl locale shim only into upstream gplaydl subprocesses."""
+    """Inject the diagnostic shim only into upstream gplaydl subprocesses."""
     if not command or Path(command[0]).name != OFFICIAL_GPLAYDL_COMMAND:
         return None
 
@@ -54,7 +53,6 @@ def _gplaydl_runtime_env(command: list[str]) -> dict[str, str] | None:
     shim = str(GPLAYDL_SHIM_DIR)
     current = env.get("PYTHONPATH", "").strip()
     env["PYTHONPATH"] = shim if not current else shim + os.pathsep + current
-    env.setdefault("GPLAYDL_PLAY_LOCALE", "ja-JP")
     return env
 
 
@@ -185,12 +183,11 @@ def _download_with_linked_gplaydl(
         command = _linked_gplaydl_command(executable, package, downloads, exact_code)
 
         logging.info(
-            "🔐 Authenticated Google Play first: package=%s%s locale=%s",
+            "🔐 Authenticated Google Play first: package=%s%s",
             package,
             f" exact-versionCode={candidate.code} ({candidate.name})"
             if exact_code and candidate
             else " current release",
-            os.getenv("GPLAYDL_PLAY_LOCALE", "ja-JP"),
         )
         result = _run(command)
         if result.returncode == 0:
