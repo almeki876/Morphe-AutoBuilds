@@ -59,4 +59,4 @@ jobs:
           EXPECTED_GPLAY_EMAIL: ${{ inputs.expected_email }}
           GPLAYDL_REGISTRATION_WAIT_MINUTES: ${{ inputs.wait_minutes }}
           GPLAY_SECRET_ADMIN_TOKEN: ${{ secrets.PAT }}
-        run: python3 scripts/register_google_play_secrets.py
+        run: python3 -m scripts.register_google_play_secrets
