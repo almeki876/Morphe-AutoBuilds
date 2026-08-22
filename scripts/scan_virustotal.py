@@ -25,6 +25,7 @@ from scripts.virustotal import (
 )
 
 CACHE_VERSION = 1
+CACHE_ENGINE_CATEGORIES = frozenset({"malicious", "suspicious"})
 SCAN_RESULT_FIELDS = {field.name for field in fields(ScanResult)}
 
 
@@ -68,7 +69,7 @@ def _atomic_write_json(path: Path, payload: object) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     temporary = path.with_name(f".{path.name}.part")
     temporary.write_text(
-        json.dumps(payload, ensure_ascii=False, indent=2) + "\n",
+        json.dumps(payload, ensure_ascii=False, separators=(",", ":")) + "\n",
         encoding="utf-8",
     )
     temporary.replace(path)
@@ -112,13 +113,25 @@ def _load_cache(path: Path) -> dict[str, ScanResult]:
     return cache
 
 
+def _cache_result(result: ScanResult) -> ScanResult:
+    """Drop non-detection engine details that are not needed on cache reuse."""
+    detected_engines = {
+        engine: details
+        for engine, details in result.engines.items()
+        if details.get("category") in CACHE_ENGINE_CATEGORIES
+    }
+    if detected_engines == result.engines:
+        return result
+    return replace(result, engines=detected_engines)
+
+
 def _save_cache(path: Path, cache: dict[str, ScanResult]) -> None:
     _atomic_write_json(
         path,
         {
             "version": CACHE_VERSION,
             "results": {
-                sha256: asdict(result)
+                sha256: asdict(_cache_result(result))
                 for sha256, result in sorted(cache.items())
             },
         },
@@ -146,7 +159,7 @@ def _report_result(apk: Path, result: ScanResult) -> None:
     detected = [
         (engine, details)
         for engine, details in result.engines.items()
-        if details.get("category") in {"malicious", "suspicious"}
+        if details.get("category") in CACHE_ENGINE_CATEGORIES
     ]
     for engine, details in sorted(detected):
         print(
