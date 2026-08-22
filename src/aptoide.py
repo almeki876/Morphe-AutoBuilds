@@ -17,6 +17,92 @@ def _exact_package(items: list, package: str) -> dict | None:
     return None
 
 
+def _app_get_data(payload: object) -> dict:
+    """Read app metadata from both current and older Aptoide response shapes."""
+    if not isinstance(payload, dict):
+        return {}
+    nodes = payload.get("nodes")
+    if isinstance(nodes, dict):
+        meta = nodes.get("meta")
+        if isinstance(meta, dict) and isinstance(meta.get("data"), dict):
+            return meta["data"]
+    data = payload.get("data")
+    return data if isinstance(data, dict) else {}
+
+
+def _regional_exact_path(
+    package: str,
+    version: str,
+    q: str,
+    countries: object,
+) -> str | None:
+    """Resolve a georestricted exact release through Aptoide's official app/get.
+
+    Aptoide documents that app/get is georestricted and supports an explicit
+    country parameter.  Some releases are visible on one regional frontend but
+    absent from the runner's default region.  Try only configured, evidence-
+    based country fallbacks and accept a path only when both package and
+    versionName match exactly.  Repository-wide APK manifest validation remains
+    the final authority after download.
+    """
+    if not isinstance(countries, list):
+        return None
+
+    seen: set[str] = set()
+    for raw_country in countries[:8]:
+        country = str(raw_country).strip().casefold()
+        if not re.fullmatch(r"[a-z]{2}", country) or country in seen:
+            continue
+        seen.add(country)
+        url = (
+            f"{BASE_URL}app/get?package_name={package}"
+            f"&nodes=meta&country={country}{q}"
+        )
+        try:
+            response = utils.cf_aware_get(url)
+            logging.info(
+                "aptoide: regional app/get status=%s package=%s country=%s",
+                response.status_code,
+                package,
+                country,
+            )
+            if response.status_code != 200:
+                continue
+            app = _app_get_data(response.json())
+            returned_package = str(app.get("package", ""))
+            file_data = app.get("file", {}) if isinstance(app, dict) else {}
+            if not isinstance(file_data, dict):
+                continue
+            returned_name = _normalize_vername(str(file_data.get("vername", "")))
+            if returned_package != package or returned_name != version:
+                logging.info(
+                    "aptoide: regional result did not match exact target "
+                    "country=%s package_match=%s version=%s",
+                    country,
+                    returned_package == package,
+                    returned_name or "none",
+                )
+                continue
+            path = str(file_data.get("path", "")).strip()
+            if path:
+                logging.info(
+                    "✓ aptoide: regional exact release found package=%s "
+                    "version=%s country=%s",
+                    package,
+                    version,
+                    country,
+                )
+                return path
+        except Exception as error:
+            logging.info(
+                "aptoide: regional lookup failed package=%s country=%s: %s",
+                package,
+                country,
+                utils.safe_text_for_log(error),
+            )
+    return None
+
+
 def _find_version(package: str, version: str, q: str) -> tuple[str | None, str | None]:
     """Find an exact historical release without truncating Aptoide history.
 
@@ -181,8 +267,17 @@ def get_download_link(version: str, app_name: str, config: Dict) -> str:
     if path:
         return path
     if not vercode:
-        # Version not found in listAppVersions — fall back to search API
-        # Only use the result if it matches the requested version exactly.
+        regional = _regional_exact_path(
+            package,
+            version,
+            q,
+            config.get("country_fallbacks"),
+        )
+        if regional:
+            return regional
+
+        # Version not found in listAppVersions — fall back to search API.
+        # Only use the result if it matches the requested package/version exactly.
         logging.warning(
             f"aptoide: version '{version}' not in listAppVersions for '{package}', "
             f"falling back to search API"
