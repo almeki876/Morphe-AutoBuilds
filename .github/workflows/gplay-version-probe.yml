@@ -118,41 +118,16 @@ jobs:
               browser.get(url)
               time.sleep(1)
               print('history current=', browser.current_url, 'title=', browser.title)
-              info = browser.execute_script(r'''
-const want='32.13.2.100';
-for (const card of document.querySelectorAll('[data-version-id]')) {
-  const text=String(card.innerText||card.textContent||'').replace(/\s+/g,' ').trim();
-  if (!text.includes(want)) continue;
-  const nodes=[card,...card.querySelectorAll('a,button,[role="button"],[data-url],[data-href]')];
-  return {
-    text,
-    outer: card.outerHTML.slice(0,4000),
-    attrs: Object.fromEntries(Array.from(card.attributes).map(a=>[a.name,a.value])),
-    children: nodes.slice(0,12).map(n=>({tag:n.tagName,href:n.getAttribute('href')||'',dataUrl:n.getAttribute('data-url')||'',dataHref:n.getAttribute('data-href')||'',onclick:n.getAttribute('onclick')||'',role:n.getAttribute('role')||''}))
-  };
-}
-return null;
-''')
+              info_js = "const want='32.13.2.100'; for (const card of document.querySelectorAll('[data-version-id]')) { const text=String(card.innerText||card.textContent||'').replace(/\\s+/g,' ').trim(); if (!text.includes(want)) continue; const nodes=[card,...card.querySelectorAll('a,button,[role=\"button\"],[data-url],[data-href]')]; return {text,outer:card.outerHTML.slice(0,4000),attrs:Object.fromEntries(Array.from(card.attributes).map(a=>[a.name,a.value])),children:nodes.slice(0,12).map(n=>({tag:n.tagName,href:n.getAttribute('href')||'',dataUrl:n.getAttribute('data-url')||'',dataHref:n.getAttribute('data-href')||'',onclick:n.getAttribute('onclick')||'',role:n.getAttribute('role')||''}))}; } return null;"
+              info = browser.execute_script(info_js)
               print('card=', info)
-              clicked = browser.execute_script(r'''
-const want='32.13.2.100';
-for (const card of document.querySelectorAll('[data-version-id]')) {
-  const text=String(card.innerText||card.textContent||'').replace(/\s+/g,' ').trim();
-  if (!text.includes(want)) continue;
-  const clickable = card.matches('a,button,[role="button"]') ? card : card.querySelector('a,button,[role="button"]');
-  if (clickable) { clickable.click(); return true; }
-  card.click(); return true;
-}
-return false;
-''')
+              click_js = "const want='32.13.2.100'; for (const card of document.querySelectorAll('[data-version-id]')) { const text=String(card.innerText||card.textContent||'').replace(/\\s+/g,' ').trim(); if (!text.includes(want)) continue; const clickable=card.matches('a,button,[role=\"button\"]')?card:card.querySelector('a,button,[role=\"button\"]'); if (clickable) { clickable.click(); return true; } card.click(); return true; } return false;"
+              clicked = browser.execute_script(click_js)
               print('clicked=', clicked)
               time.sleep(2)
               print('after click current=', browser.current_url, 'title=', browser.title)
-              target = browser.execute_script(r'''
-const selectors=['#detail-download-button','[data-url*="/dwn/"]','a[href*="dw.uptodown.com/dwn/"]','.post-download[data-url]'];
-for (const s of selectors) for (const e of document.querySelectorAll(s)) return {selector:s,href:e.getAttribute('href')||'',dataUrl:e.getAttribute('data-url')||''};
-return null;
-''')
+              target_js = "const selectors=['#detail-download-button','[data-url*=\"/dwn/\"]','a[href*=\"dw.uptodown.com/dwn/\"]','.post-download[data-url]']; for (const s of selectors) for (const e of document.querySelectorAll(s)) return {selector:s,href:e.getAttribute('href')||'',dataUrl:e.getAttribute('data-url')||''}; return null;"
+              target = browser.execute_script(target_js)
               print('download target=', target)
           finally:
               browser.quit()
