@@ -9,9 +9,10 @@ For explicitly versioned patch targets, Android ``versionCode`` is resolved
 at runtime before invoking gplaydl and passed through ``-v``. ``any`` remains
 the only path that intentionally asks Google Play for the current release.
 
-If the authenticated Google Play request fails, callers may continue with their
-configured non-Play providers, but this module never retries Google Play
-anonymously.
+Upstream gplaydl currently hard-codes English FDFE locale headers. The CLI is
+started with a small runtime shim so the Play locale can follow the linked
+account's market without forking gplaydl. ``GPLAYDL_PLAY_LOCALE`` defaults to
+``ja-JP`` for this repository and remains configurable for other deployments.
 """
 
 from __future__ import annotations
@@ -28,6 +29,7 @@ from src import apk_identity, play_version_resolver
 from src.versioning import VersionCandidate
 
 OFFICIAL_GPLAYDL_COMMAND = "gplaydl"
+GPLAYDL_SHIM_DIR = Path(__file__).resolve().parent.parent / "tools" / "gplaydl_shim"
 
 # Apps that are intentionally distributed from an upstream GitHub release
 # rather than Google Play. Keep this list narrow and explicit.
@@ -43,16 +45,30 @@ def google_play_enabled(package: str) -> bool:
     return package not in GITHUB_ONLY_PACKAGES
 
 
+def _gplaydl_runtime_env(command: list[str]) -> dict[str, str] | None:
+    """Inject the gplaydl locale shim only into upstream gplaydl subprocesses."""
+    if not command or Path(command[0]).name != OFFICIAL_GPLAYDL_COMMAND:
+        return None
+
+    env = os.environ.copy()
+    shim = str(GPLAYDL_SHIM_DIR)
+    current = env.get("PYTHONPATH", "").strip()
+    env["PYTHONPATH"] = shim if not current else shim + os.pathsep + current
+    env.setdefault("GPLAYDL_PLAY_LOCALE", "ja-JP")
+    return env
+
+
 def _run(
     command: list[str],
     *,
     cwd: Path | None = None,
     env: dict[str, str] | None = None,
 ) -> subprocess.CompletedProcess[str]:
+    runtime_env = env if env is not None else _gplaydl_runtime_env(command)
     return subprocess.run(
         command,
         cwd=cwd,
-        env=env,
+        env=runtime_env,
         check=False,
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
@@ -169,11 +185,12 @@ def _download_with_linked_gplaydl(
         command = _linked_gplaydl_command(executable, package, downloads, exact_code)
 
         logging.info(
-            "🔐 Authenticated Google Play first: package=%s%s",
+            "🔐 Authenticated Google Play first: package=%s%s locale=%s",
             package,
             f" exact-versionCode={candidate.code} ({candidate.name})"
             if exact_code and candidate
             else " current release",
+            os.getenv("GPLAYDL_PLAY_LOCALE", "ja-JP"),
         )
         result = _run(command)
         if result.returncode == 0:
