@@ -47,3 +47,10 @@ gh = Github(auth=Auth.Token(github_token)) if github_token else Github()
 # initialized so src.utils can import this module without a circular init race.
 from src import gboard_multi as _gboard_multi
 _gboard_multi.install()
+
+# Derive patch/version behavior from the currently downloaded upstream bundle.
+# This mutates only the ephemeral CI working copy: committed local options and
+# provider fallback metadata remain intact, but they cannot override upstream
+# recommendation/version policy for the current build.
+from src import upstream_policy as _upstream_policy
+_upstream_policy.prepare_runtime_policy()
