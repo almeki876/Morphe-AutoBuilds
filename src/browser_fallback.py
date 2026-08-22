@@ -113,6 +113,16 @@ def _is_safe_uptodown_page_url(url: str | None) -> bool:
     return parsed.scheme == "https" and _is_uptodown_host(parsed.hostname)
 
 
+def _is_concrete_uptodown_release_url(url: str | None) -> bool:
+    """Recognize a history card URL that already identifies one release."""
+    if not _is_safe_uptodown_page_url(url):
+        return False
+    path = urlparse(str(url)).path.rstrip("/")
+    return bool(
+        re.search(r"/android/(?:download|post-download)/[^/]+$", path)
+    )
+
+
 def _direct_url_from_target(target: dict, page_url: str) -> str | None:
     """Return only a concrete Uptodown CDN object, never an HTML download page."""
     for key in ("dataUrl", "href"):
@@ -135,15 +145,17 @@ def _version_target_page_url(target: dict, versions_url: str) -> str | None:
     if version_id:
         if not _SAFE_CARD_COMPONENT_RE.fullmatch(version_id):
             return None
-        extra_url = str(target.get("dataExtraUrl") or "download").strip(" /")
-        if not extra_url or not _SAFE_EXTRA_PATH_RE.fullmatch(extra_url):
-            return None
         raw_root = str(target.get("dataUrl") or "").strip()
         if raw_root:
             root = _safe_download_url(raw_root, versions_url)
+            if _is_concrete_uptodown_release_url(root):
+                return root
         else:
             root = versions_url.rsplit("/versions", 1)[0]
         if not _is_safe_uptodown_page_url(root):
+            return None
+        extra_url = str(target.get("dataExtraUrl") or "download").strip(" /")
+        if not extra_url or not _SAFE_EXTRA_PATH_RE.fullmatch(extra_url):
             return None
         return f"{str(root).rstrip('/')}/{extra_url}/{version_id}"
 
