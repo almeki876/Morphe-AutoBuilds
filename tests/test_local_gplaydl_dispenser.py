@@ -1,4 +1,5 @@
 import os
+import subprocess
 import tempfile
 import unittest
 from pathlib import Path
@@ -82,6 +83,25 @@ class LocalGPlayDlDispenserTests(unittest.TestCase):
         ):
             with self.assertRaisesRegex(RuntimeError, "requires both"):
                 local._credentials()
+
+    def test_wait_postgres_final_ignores_init_time_temp_server(self) -> None:
+        responses = [
+            subprocess.CompletedProcess([], 0, "docker-entrypoint.sh\n", ""),
+            subprocess.CompletedProcess([], 0, "postgres\n", ""),
+            subprocess.CompletedProcess([], 0, "1\n", ""),
+        ]
+        with (
+            mock.patch.object(local, "_run", side_effect=responses) as run,
+            mock.patch.object(local.time, "sleep"),
+        ):
+            local._wait_postgres_final("db", timeout_seconds=1)
+
+        commands = [call.args[0] for call in run.call_args_list]
+        self.assertEqual(commands[0], ["docker", "exec", "db", "cat", "/proc/1/comm"])
+        self.assertEqual(commands[1], ["docker", "exec", "db", "cat", "/proc/1/comm"])
+        self.assertIn("psql", commands[2])
+        self.assertIn("SELECT 1;", commands[2])
+        self.assertFalse(any("pg_isready" in command for command in commands))
 
 
 if __name__ == "__main__":

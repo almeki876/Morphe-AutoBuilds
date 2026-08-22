@@ -162,6 +162,57 @@ def _wait_http(url: str, timeout_seconds: int = 45) -> None:
     raise RuntimeError(f"local gplaydl dispenser did not become healthy: {last_error}")
 
 
+def _wait_postgres_final(
+    container: str,
+    *,
+    user: str = "dispenser",
+    database: str = "dispenser",
+    timeout_seconds: int = 45,
+) -> None:
+    """Wait for the final postgres process, not Docker's init-time temp server.
+
+    The official postgres image briefly runs a temporary PostgreSQL server
+    during first-time initialization. ``pg_isready`` can succeed against that
+    server immediately before the entrypoint shuts it down and execs the final
+    server. Starting gplaydl-dispenser in that window can make its first DB
+    connection reset. PID 1 becomes ``postgres`` only after initialization is
+    complete, so require that transition and then prove the target database can
+    execute a query before starting the dispenser.
+    """
+    deadline = time.monotonic() + timeout_seconds
+    last_detail = "container entrypoint has not exec'd postgres yet"
+    while time.monotonic() < deadline:
+        pid1 = _run(["docker", "exec", container, "cat", "/proc/1/comm"])
+        if pid1.returncode == 0 and (pid1.stdout or "").strip() == "postgres":
+            probe = _run(
+                [
+                    "docker",
+                    "exec",
+                    container,
+                    "psql",
+                    "-qAtX",
+                    "-U",
+                    user,
+                    "-d",
+                    database,
+                    "-c",
+                    "SELECT 1;",
+                ]
+            )
+            if probe.returncode == 0 and (probe.stdout or "").strip() == "1":
+                return
+            last_detail = (probe.stdout or "database probe failed").strip()
+        elif pid1.returncode != 0:
+            last_detail = (pid1.stdout or "could not inspect container PID 1").strip()
+        time.sleep(0.5)
+
+    logs = _run(["docker", "logs", "--tail", "30", container])
+    tail = (logs.stdout or "").strip()
+    if tail:
+        last_detail = f"{last_detail}; postgres log tail:\n{tail}"
+    raise RuntimeError(f"ephemeral Postgres did not become ready: {last_detail}")
+
+
 def _post_json(url: str, payload: dict, headers: dict[str, str] | None = None) -> dict:
     request_headers = {"Content-Type": "application/json"}
     if headers:
@@ -268,14 +319,7 @@ def ensure_running() -> bool:
         label="start ephemeral Postgres",
     )
 
-    deadline = time.monotonic() + 45
-    while time.monotonic() < deadline:
-        ready = _run(["docker", "exec", _postgres_name, "pg_isready", "-U", "dispenser"])
-        if ready.returncode == 0:
-            break
-        time.sleep(0.5)
-    else:
-        raise RuntimeError("ephemeral Postgres did not become ready")
+    _wait_postgres_final(_postgres_name)
 
     server_env = os.environ.copy()
     server_env.update(
