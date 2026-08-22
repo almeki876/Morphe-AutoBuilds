@@ -9,15 +9,20 @@ from src.versioning import VersionCandidate
 
 
 class DownloadApksTests(unittest.TestCase):
-    def test_yuucho_always_requests_current_play_release(self) -> None:
-        candidate = VersionCandidate(name="9.9.9", code="999")
-        for package in (
-            "jp.japanpost.jp_bank.FIDOapp",
-            "jp.japanpost.jp_bank.bankbookapp",
-        ):
-            self.assertIsNone(
-                download_apks._preferred_play_candidate("yuucho", package, [candidate])
-            )
+    def test_explicit_patch_candidate_is_primary_play_release(self) -> None:
+        newest = VersionCandidate(name="9.9.9", code="999")
+        older = VersionCandidate(name="9.8.0", code="980")
+        self.assertIs(
+            download_apks._preferred_play_candidate(
+                "example", "com.example.app", [newest, older]
+            ),
+            newest,
+        )
+
+    def test_any_patch_compatibility_requests_current_play_release(self) -> None:
+        self.assertIsNone(
+            download_apks._preferred_play_candidate("example", "com.example.app", [])
+        )
 
     @mock.patch("scripts.download_apks._cache_snapshot", return_value=set())
     @mock.patch("scripts.download_apks.providers.load_config", return_value={})
@@ -81,6 +86,39 @@ class DownloadApksTests(unittest.TestCase):
 
         play_download.assert_not_called()
         download_platform.assert_called_once()
+        justapk.assert_not_called()
+        apkeep.assert_not_called()
+
+    @mock.patch("scripts.download_apks.downloader.download_with_apkeep")
+    @mock.patch("scripts.download_apks.downloader.download_with_justapk")
+    @mock.patch("scripts.download_apks.providers.download_priority")
+    @mock.patch("scripts.download_apks.providers.google_play_only", return_value=True)
+    @mock.patch("scripts.download_apks.providers.configured_package", return_value="com.example.jp")
+    @mock.patch("scripts.download_apks.utils.get_supported_version_candidates", return_value=[])
+    @mock.patch("scripts.download_apks._find_tools", return_value=([], Path("cli.jar"), Path("patches.mpp")))
+    @mock.patch("scripts.download_apks.downloader.download_platform")
+    @mock.patch(
+        "scripts.download_apks.aurora_play.download_candidate",
+        side_effect=RuntimeError("purchase failed"),
+    )
+    def test_google_play_only_failure_never_uses_non_play_sources(
+        self,
+        play_download: mock.Mock,
+        download_platform: mock.Mock,
+        find_tools: mock.Mock,
+        supported_versions: mock.Mock,
+        configured_package: mock.Mock,
+        play_only: mock.Mock,
+        download_priority: mock.Mock,
+        justapk: mock.Mock,
+        apkeep: mock.Mock,
+    ) -> None:
+        with self.assertRaisesRegex(RuntimeError, "Google Play-only source failed"):
+            download_apks._download("example", "source", "arm64-v8a")
+
+        play_download.assert_called_once_with("com.example.jp", None, Path("."))
+        download_priority.assert_not_called()
+        download_platform.assert_not_called()
         justapk.assert_not_called()
         apkeep.assert_not_called()
 
