@@ -4,7 +4,7 @@ from pathlib import Path
 from unittest import mock
 
 from scripts import download_apks
-from src import apk_identity, aurora_play, versioning
+from src import apk_identity, aurora_play, uptodown_direct, versioning
 from src.versioning import VersionCandidate, parse_candidate
 
 
@@ -91,6 +91,88 @@ class OpenIssueRegressionTests(unittest.TestCase):
         assert selected is not None
         self.assertEqual(selected.name, "32.13.2.100")
         self.assertEqual(selected.code, "1241322016")
+
+    def test_uptodown_history_card_uses_current_data_attributes(self) -> None:
+        soup = uptodown_direct.BeautifulSoup(
+            """
+            <div data-version-id="987654"
+                 data-url="https://amazon-shopping.en.uptodown.com/android"
+                 data-extra-url="download">
+              <span class="type">xapk</span>
+              <span class="version">32.13.2.100</span>
+            </div>
+            """,
+            "html.parser",
+        )
+        card = soup.select_one("[data-version-id]")
+        self.assertIsNotNone(card)
+        assert card is not None
+        candidate = VersionCandidate(name="32.13.2.100", code="1241322016")
+
+        self.assertTrue(
+            uptodown_direct._history_card_matches_candidate(card, candidate)
+        )
+        self.assertEqual(
+            uptodown_direct._history_download_page(
+                card, "https://amazon-shopping.en.uptodown.com/android"
+            ),
+            "https://amazon-shopping.en.uptodown.com/android/download/987654",
+        )
+
+    def test_uptodown_history_resolves_exact_version_card_before_legacy_api(self) -> None:
+        html = b"""
+        <div id="versions-items-list">
+          <div data-version-id="424242"
+               data-url="https://crunchyroll.en.uptodown.com/android"
+               data-extra-url="download">
+            <span class="type">xapk</span>
+            <span class="version">3.112.2</span>
+          </div>
+        </div>
+        """
+        response = mock.Mock(status_code=200, content=html)
+        with (
+            mock.patch.object(
+                uptodown_direct,
+                "_base_urls",
+                return_value=["https://crunchyroll.en.uptodown.com/android"],
+            ),
+            mock.patch("src.uptodown_direct.utils.cf_aware_get", return_value=response),
+            mock.patch(
+                "src.uptodown_direct.legacy._download_url_from_page",
+                return_value="https://dw.uptodown.com/dwn/example",
+            ) as resolve,
+        ):
+            link = uptodown_direct._direct_link_from_history(
+                VersionCandidate(name="3.112.2"),
+                "crunchyroll",
+                {"name": "crunchyroll", "package": "com.crunchyroll.crunchyroid"},
+            )
+
+        self.assertEqual(link, "https://dw.uptodown.com/dwn/example")
+        resolve.assert_called_once_with(
+            "https://crunchyroll.en.uptodown.com/android/download/424242"
+        )
+
+    def test_uptodown_history_rejects_external_data_url(self) -> None:
+        soup = uptodown_direct.BeautifulSoup(
+            """
+            <div data-version-id="7"
+                 data-url="https://example.invalid/android"
+                 data-extra-url="download">
+              <span class="version">11.4.5</span>
+            </div>
+            """,
+            "html.parser",
+        )
+        card = soup.select_one("[data-version-id]")
+        self.assertIsNotNone(card)
+        assert card is not None
+        self.assertIsNone(
+            uptodown_direct._history_download_page(
+                card, "https://adobe-lightroom-mobile.en.uptodown.com/android"
+            )
+        )
 
     def test_actions_restore_cannot_replace_tracked_gplaydl_sources(self) -> None:
         completed = mock.Mock(returncode=0, stdout="")
