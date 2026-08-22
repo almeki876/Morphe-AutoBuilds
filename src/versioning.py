@@ -20,7 +20,7 @@ _CODE_AND_NAME_RE = re.compile(
 _NAME_AND_CODE_RE = re.compile(
     r"^(?P<name>\d[\w.+ -]*?)\((?P<code>\d+)\)\s*$"
 )
-_BUILD_VERSION_RE = re.compile(r"^(?:v\d+-)?build-(?P<code>\d+)(?:[-\w.]*)$", re.IGNORECASE)
+_BUILD_VERSION_RE = re.compile(r"^(?:v\d+-)?build-\d+(?:[-\w.]*)$", re.IGNORECASE)
 _COMPOSITE_NAME_CODE_RE = re.compile(r"^(?P<name>.+)\.(?P<code>\d+)$")
 _DISCOVERED_VERSION_CODES: dict[tuple[str, str], str] = {}
 
@@ -165,13 +165,13 @@ def parse_candidate(line: str) -> VersionCandidate | None:
     if re.match(r"^\d", value):
         return VersionCandidate(name=value, raw=line)
 
-    # Vendor version names are not guaranteed to begin with a digit. Poweramp,
-    # for example, reports ``build-1025-bundle-play``. The embedded build
-    # number is its Android versionCode and lets Google Play request that exact
-    # release instead of silently falling back to the current version.
-    build_match = _BUILD_VERSION_RE.match(value)
-    if build_match:
-        return VersionCandidate(name=value, code=build_match.group("code"), raw=line)
+    # Vendor version labels are not guaranteed to begin with a digit. Poweramp,
+    # for example, reports ``build-1025-bundle-play``. Its embedded build number
+    # is a display/build identifier, not Android versionCode (the corresponding
+    # APK uses 1025004). Keep only the exact versionName here; a provider may
+    # enrich the candidate with the real manifest versionCode once discovered.
+    if _BUILD_VERSION_RE.match(value):
+        return VersionCandidate(name=value, raw=line)
     return None
 
 
