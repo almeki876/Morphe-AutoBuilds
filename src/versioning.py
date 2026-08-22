@@ -70,6 +70,14 @@ class VersionCandidate:
                 return True
             return normalized_code == self.code
 
+        # Some APK manifests duplicate the patch CLI display form in
+        # versionName, e.g. Nova reports versionName ``88600 (8.8.6)`` and
+        # versionCode ``88600``. Accept this only when both exact components
+        # agree, rather than weakening general version-name matching.
+        if self.code is not None and normalized_code == self.code:
+            if normalized_name == f"{self.code} ({self.name})":
+                return True
+
         # Some upstream asset names append versionCode to versionName, e.g.
         # ``21.0.0.40`` while AndroidManifest.xml reports versionName=21.0.0
         # and versionCode=40. Accept only when both components agree, avoiding
