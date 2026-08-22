@@ -38,6 +38,19 @@ jobs:
         run: |
           set -euo pipefail
 
+          # A rerun of this PR check can see an older workflow_dispatch run for
+          # the same branch/SHA. Remember it before dispatch so we only watch the
+          # run created by this invocation.
+          previous_run_id=$(gh run list \
+            --repo "$REPO" \
+            --workflow build.yml \
+            --branch "$REF" \
+            --event workflow_dispatch \
+            --commit "$HEAD_SHA" \
+            --limit 1 \
+            --json databaseId \
+            --jq '.[0].databaseId // empty')
+
           gh workflow run build.yml \
             --repo "$REPO" \
             --ref "$REF" \
@@ -45,7 +58,7 @@ jobs:
 
           run_id=''
           for _ in $(seq 1 30); do
-            run_id=$(gh run list \
+            candidate_run_id=$(gh run list \
               --repo "$REPO" \
               --workflow build.yml \
               --branch "$REF" \
@@ -54,14 +67,15 @@ jobs:
               --limit 1 \
               --json databaseId \
               --jq '.[0].databaseId // empty')
-            if [ -n "$run_id" ]; then
+            if [ -n "$candidate_run_id" ] && [ "$candidate_run_id" != "$previous_run_id" ]; then
+              run_id="$candidate_run_id"
               break
             fi
             sleep 5
           done
 
           if [ -z "$run_id" ]; then
-            echo '::error::Dispatched Build Apps run could not be identified.'
+            echo '::error::Newly dispatched Build Apps run could not be identified.'
             exit 1
           fi
 
