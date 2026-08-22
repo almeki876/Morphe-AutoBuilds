@@ -28,6 +28,33 @@ class BrowserFallbackRegressionTests(unittest.TestCase):
             )
         )
 
+    def test_current_page_version_proof_requires_exact_version_token(self) -> None:
+        aliases = ("11.4.5",)
+        self.assertTrue(
+            browser_fallback._text_has_exact_version(
+                "Adobe Lightroom\nVersion 11.4.5\nUpdated Jul 17, 2026",
+                aliases,
+            )
+        )
+        self.assertFalse(
+            browser_fallback._text_has_exact_version(
+                "Adobe Lightroom\nVersion 11.4.50\nUpdated Jul 17, 2026",
+                aliases,
+            )
+        )
+        self.assertFalse(
+            browser_fallback._text_has_exact_version(
+                "Adobe Lightroom\nVersion 11.4\nUpdated Jul 17, 2026",
+                aliases,
+            )
+        )
+
+    def test_page_version_proof_reads_rendered_visible_text(self) -> None:
+        driver = mock.Mock()
+        driver.execute_script.return_value = "Version 11.4.5\nPackage com.adobe.lrmobile"
+        self.assertTrue(browser_fallback._page_has_exact_version(driver, ("11.4.5",)))
+        driver.execute_script.assert_called_once()
+
     def test_bundle_normalizer_rejects_unrelated_zip(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             archive = Path(directory) / "not-an-apk.zip"
