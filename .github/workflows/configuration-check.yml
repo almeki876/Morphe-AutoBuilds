@@ -30,6 +30,12 @@ jobs:
           python-version: '3.11'
           cache: pip
 
+      - name: Setup Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+
       - name: Install Dependencies
         run: pip install -r requirements.txt
 
@@ -38,6 +44,9 @@ jobs:
 
       - name: Compile Python Sources
         run: python3 -m compileall -q src scripts
+
+      - name: Compile Google Play Downloader
+        run: mvn -q -f tools/gplaydl/pom.xml -DskipTests package
 
       - name: Import Provider Registry
         run: >-
