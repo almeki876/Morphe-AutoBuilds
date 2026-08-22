@@ -51,6 +51,26 @@ class OpenIssueRegressionTests(unittest.TestCase):
         self.assertEqual(selected.name, "32.13.2.100")
         self.assertEqual(selected.code, "1241322016")
 
+    def test_actions_restore_cannot_replace_tracked_gplaydl_sources(self) -> None:
+        completed = mock.Mock(returncode=0, stdout="")
+        with (
+            mock.patch.dict("os.environ", {"GITHUB_ACTIONS": "true"}),
+            mock.patch("src.aurora_play._run", return_value=completed) as run,
+        ):
+            aurora_play._restore_checked_in_gplaydl_sources()
+
+        run.assert_called_once_with(
+            [
+                "git",
+                "restore",
+                "--source=HEAD",
+                "--worktree",
+                "--",
+                str(aurora_play.GPLAYDL_PROJECT),
+                str(aurora_play.GPLAYDL_SOURCE_ROOT),
+            ]
+        )
+
     def test_stale_cached_gplaydl_jar_is_rebuilt(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -71,6 +91,7 @@ class OpenIssueRegressionTests(unittest.TestCase):
                 return mock.Mock(returncode=0, stdout="ok")
 
             with (
+                mock.patch.dict("os.environ", {"GITHUB_ACTIONS": "false"}),
                 mock.patch.object(aurora_play, "GPLAYDL_PROJECT", project),
                 mock.patch.object(aurora_play, "GPLAYDL_SOURCE_ROOT", source_root),
                 mock.patch.object(aurora_play, "GPLAYDL_JAR", jar),
