@@ -12,7 +12,8 @@ the only path that intentionally asks Google Play for the current release.
 The upstream gplaydl CLI continues to own details, purchase, delivery,
 protobuf handling, device-profile selection, and downloads. A thin local
 runner may correct only market metadata (locale and MCC/MNC) supplied by the
-hosted dispenser when CI explicitly configures those values.
+hosted dispenser. The repository defaults match its linked Japanese account
+and remain overridable through environment variables.
 """
 
 from __future__ import annotations
@@ -33,6 +34,8 @@ OFFICIAL_GPLAYDL_COMMAND = "gplaydl"
 GPLAYDL_MARKET_RUNNER = (
     Path(__file__).resolve().parent.parent / "tools" / "gplaydl_market_runner.py"
 )
+DEFAULT_GPLAYDL_MARKET_LOCALE = "ja_JP"
+DEFAULT_GPLAYDL_MARKET_MCCMNC = "44010"
 
 # Apps that are intentionally distributed from an upstream GitHub release
 # rather than Google Play. Keep this list narrow and explicit.
@@ -63,6 +66,14 @@ def _run(
         stderr=subprocess.STDOUT,
         text=True,
     )
+
+
+def _gplaydl_market_env() -> dict[str, str]:
+    """Return subprocess env with overridable market defaults for this account."""
+    env = os.environ.copy()
+    env.setdefault("GPLAYDL_MARKET_LOCALE", DEFAULT_GPLAYDL_MARKET_LOCALE)
+    env.setdefault("GPLAYDL_MARKET_MCCMNC", DEFAULT_GPLAYDL_MARKET_MCCMNC)
+    return env
 
 
 def _package_apks(apk_files: list[Path], package: str, output_dir: Path) -> Path:
@@ -174,24 +185,24 @@ def _download_with_linked_gplaydl(
     if not GPLAYDL_MARKET_RUNNER.is_file():
         raise FileNotFoundError(f"missing gplaydl market runner: {GPLAYDL_MARKET_RUNNER}")
 
+    market_env = _gplaydl_market_env()
+
     with tempfile.TemporaryDirectory(prefix="linked-google-play-", dir=output_dir) as tmp:
         downloads = Path(tmp) / "downloads"
         downloads.mkdir()
         exact_code = str(candidate.code) if candidate and candidate.code else None
         command = _linked_gplaydl_command(executable, package, downloads, exact_code)
 
-        market_locale = os.getenv("GPLAYDL_MARKET_LOCALE", "").strip() or "upstream"
-        market_mccmnc = os.getenv("GPLAYDL_MARKET_MCCMNC", "").strip() or "upstream"
         logging.info(
             "🔐 Authenticated Google Play first: package=%s%s market_locale=%s market_mccmnc=%s",
             package,
             f" exact-versionCode={candidate.code} ({candidate.name})"
             if exact_code and candidate
             else " current release",
-            market_locale,
-            market_mccmnc,
+            market_env.get("GPLAYDL_MARKET_LOCALE") or "upstream",
+            market_env.get("GPLAYDL_MARKET_MCCMNC") or "upstream",
         )
-        result = _run(command)
+        result = _run(command, env=market_env)
         if result.returncode == 0:
             return _collect_linked_download(downloads, package, output_dir, result)
 
@@ -209,7 +220,7 @@ def _download_with_linked_gplaydl(
         shutil.rmtree(downloads, ignore_errors=True)
         downloads.mkdir()
         current_command = _linked_gplaydl_command(executable, package, downloads, None)
-        current_result = _run(current_command)
+        current_result = _run(current_command, env=market_env)
         if current_result.returncode != 0:
             current_tail = "\n".join((current_result.stdout or "").splitlines()[-35:])
             raise RuntimeError(
