@@ -4,7 +4,7 @@ from pathlib import Path
 from unittest import mock
 
 from scripts import download_apks
-from src import apk_identity, aurora_play, uptodown_direct, versioning
+from src import apk_identity, aurora_play, downloader, uptodown_direct, versioning
 from src.versioning import VersionCandidate, parse_candidate
 
 
@@ -56,6 +56,88 @@ class OpenIssueRegressionTests(unittest.TestCase):
         self.assertEqual(candidate.code, "121200004")
         self.assertTrue(candidate.matches("", "121200004"))
 
+    def test_patch_candidate_code_beats_stale_provider_pin(self) -> None:
+        candidate = VersionCandidate(
+            name="32.13.2.100",
+            code="1241320216",
+        )
+        with mock.patch(
+            "scripts.download_apks.providers.load_config",
+            return_value={
+                "version": "32.13.2.100",
+                "version_code": "1241322016",
+            },
+        ):
+            selected = download_apks._expected_candidate(
+                "amazon-shopping",
+                "apkpure",
+                "32.13.2.100",
+                [candidate],
+            )
+        self.assertEqual(selected, candidate)
+
+    def test_play_selection_uses_resolved_patch_identity_unchanged(self) -> None:
+        candidate = VersionCandidate(
+            name="32.13.2.100",
+            code="1241320216",
+        )
+        selected = download_apks._preferred_play_candidate(
+            "amazon-shopping",
+            "com.amazon.mShop.android.shopping",
+            [candidate],
+        )
+        self.assertEqual(selected, candidate)
+
+    def test_downloader_patch_candidate_overrides_stale_provider_pin(self) -> None:
+        candidate = VersionCandidate(
+            name="32.13.2.100",
+            code="1241320216",
+        )
+        provider_module = mock.Mock()
+        provider_module.get_download_link_for_candidate.return_value = (
+            "https://example.invalid/amazon.apk"
+        )
+        config = {
+            "name": "amazon-shopping",
+            "package": "com.amazon.mShop.android.shopping",
+            "version": "32.13.2.100",
+            "version_code": "1241322016",
+            "cache": False,
+        }
+
+        with (
+            mock.patch("src.downloader.providers.load_config", return_value=config),
+            mock.patch.dict(
+                "src.downloader.providers.MODULES",
+                {"apkpure": provider_module},
+            ),
+            mock.patch(
+                "src.downloader.download_resource",
+                return_value=Path("amazon.apk"),
+            ),
+            mock.patch(
+                "src.downloader.apk_cache.is_valid_apk_archive",
+                return_value=True,
+            ),
+            mock.patch("src.downloader.provenance.record"),
+        ):
+            filepath, version = downloader.download_platform(
+                "amazon-shopping",
+                "apkpure",
+                "cli.jar",
+                "patches.rvp",
+                "arm64-v8a",
+                version_candidates=[candidate],
+            )
+
+        self.assertEqual(filepath, Path("amazon.apk"))
+        self.assertEqual(version, "32.13.2.100")
+        provider_module.get_download_link_for_candidate.assert_called_once_with(
+            candidate,
+            "amazon-shopping",
+            mock.ANY,
+        )
+
     def test_poweramp_build_label_is_not_android_version_code(self) -> None:
         candidate = parse_candidate("build-1025-bundle-play (1 patch)")
         self.assertIsNotNone(candidate)
@@ -70,27 +152,6 @@ class OpenIssueRegressionTests(unittest.TestCase):
         self.assertTrue(candidate.matches("21.0.0", "40"))
         self.assertFalse(candidate.matches("21.0.0", "41"))
         self.assertFalse(candidate.matches("20.0.0", "40"))
-
-    @mock.patch("scripts.download_apks.providers.download_priority", return_value=["apkpure"])
-    @mock.patch(
-        "scripts.download_apks.providers.load_config",
-        return_value={"version": "32.13.2.100", "version_code": "1241322016"},
-    )
-    def test_patch_version_is_enriched_with_configured_version_code(
-        self,
-        load_config: mock.Mock,
-        download_priority: mock.Mock,
-    ) -> None:
-        candidate = VersionCandidate(name="32.13.2.100")
-        selected = download_apks._preferred_play_candidate(
-            "amazon-shopping",
-            "com.amazon.mShop.android.shopping",
-            [candidate],
-        )
-        self.assertIsNotNone(selected)
-        assert selected is not None
-        self.assertEqual(selected.name, "32.13.2.100")
-        self.assertEqual(selected.code, "1241322016")
 
     def test_uptodown_history_card_uses_current_data_attributes(self) -> None:
         soup = uptodown_direct.BeautifulSoup(
@@ -107,7 +168,7 @@ class OpenIssueRegressionTests(unittest.TestCase):
         card = soup.select_one("[data-version-id]")
         self.assertIsNotNone(card)
         assert card is not None
-        candidate = VersionCandidate(name="32.13.2.100", code="1241322016")
+        candidate = VersionCandidate(name="32.13.2.100", code="1241320216")
 
         self.assertTrue(
             uptodown_direct._history_card_matches_candidate(card, candidate)
