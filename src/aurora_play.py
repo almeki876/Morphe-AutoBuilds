@@ -1,10 +1,9 @@
-"""Google Play APK downloads through the repo-local Aurora-style gplaydl CLI.
+"""Google Play APK downloads with authenticated and anonymous fallbacks.
 
-APK bodies should come from Google Play whenever possible. gplaydl performs
-Aurora-style anonymous dispenser authentication, creates a GPlayApi session,
-purchases an exact versionCode when supplied, and downloads the complete Play
-file set (base plus split APKs). The caller validates package/version identity
-before accepting or caching the result.
+When ``GPLAYDL_API_KEY`` is available, prefer the pinned upstream gplaydl CLI
+and the user's linked Google account. If that path is unavailable or fails, the
+repo-local Aurora-style downloader remains as a fallback. Every returned APK is
+still validated by the caller before it can be cached or patched.
 """
 
 from __future__ import annotations
@@ -25,6 +24,7 @@ GPLAYDL_SOURCE_ROOT = Path("tools/gplaydl/src")
 GPLAYDL_JAR = Path("tools/gplaydl/target/gplaydl-1.0-SNAPSHOT-all.jar")
 GPLAYDL_FINGERPRINT = Path("tools/gplaydl/target/gplaydl-source.sha256")
 DEFAULT_AURORA_USER_AGENT = "com.aurora.store-4.8.4-76"
+OFFICIAL_GPLAYDL_COMMAND = "gplaydl"
 
 # Apps that are intentionally distributed from an upstream GitHub release
 # rather than Google Play. Keep this list narrow and explicit.
@@ -58,14 +58,7 @@ def _run(
 
 
 def _restore_checked_in_gplaydl_sources() -> None:
-    """Undo Actions cache contamination of tracked gplaydl source files.
-
-    The build-tools cache historically stores the whole ``tools/`` directory.
-    Because Actions restores it *after* checkout, an older cache can overwrite
-    tracked ``tools/gplaydl`` sources as well as generated artifacts.  In CI we
-    restore the tracked project files from HEAD before fingerprinting/building;
-    untracked ``target/`` artifacts remain available for reuse.
-    """
+    """Undo Actions cache contamination of tracked gplaydl source files."""
     if os.getenv("GITHUB_ACTIONS", "").casefold() != "true":
         return
 
@@ -157,19 +150,69 @@ def _package_apks(apk_files: list[Path], package: str, output_dir: Path) -> Path
     return target
 
 
-def download_candidate(
+def _linked_account_configured() -> bool:
+    """Return whether CI supplied a gplaydl 4.x linked-account API key."""
+    return bool(os.getenv("GPLAYDL_API_KEY", "").strip())
+
+
+def _download_with_linked_gplaydl(
     package: str,
     candidate: VersionCandidate | None,
-    output_dir: Path | None = None,
+    output_dir: Path,
 ) -> Path:
-    """Download a Play release, purchasing ``candidate.code`` when known."""
-    if not google_play_enabled(package):
-        raise GooglePlayDisabled(
-            f"Google Play is disabled by repository policy for {package}; use GitHub"
+    """Download through upstream gplaydl 4.x using ``GPLAYDL_API_KEY``."""
+    executable = shutil.which(OFFICIAL_GPLAYDL_COMMAND)
+    if not executable:
+        raise FileNotFoundError(
+            "GPLAYDL_API_KEY is configured but the upstream gplaydl CLI is not installed"
         )
 
-    output_dir = output_dir or Path(".")
-    output_dir.mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory(prefix="linked-google-play-", dir=output_dir) as tmp:
+        downloads = Path(tmp) / "downloads"
+        downloads.mkdir()
+        command = [
+            executable,
+            "download",
+            package,
+            "-o",
+            str(downloads.resolve()),
+            "-a",
+            os.getenv("GPLAYDL_ARCH", "arm64"),
+        ]
+        configured_email = os.getenv("GPLAYDL_EMAIL", "").strip()
+        if configured_email:
+            command.extend(["--email", configured_email])
+        if candidate and candidate.code:
+            command.extend(["-v", str(candidate.code)])
+
+        logging.info(
+            "🔐 Google Play linked-account first: package=%s%s",
+            package,
+            f" exact-versionCode={candidate.code} ({candidate.name})"
+            if candidate and candidate.code
+            else " current release",
+        )
+        result = _run(command)
+        if result.returncode != 0:
+            tail = "\n".join((result.stdout or "").splitlines()[-35:])
+            raise RuntimeError(f"linked gplaydl exited non-zero: {tail}")
+
+        apk_files = list(downloads.rglob("*.apk"))
+        if not apk_files:
+            tail = "\n".join((result.stdout or "").splitlines()[-20:])
+            raise IOError(
+                f"linked gplaydl produced no APK files for {package}"
+                + (f": {tail}" if tail else "")
+            )
+        return _package_apks(apk_files, package, output_dir)
+
+
+def _download_with_repo_local_gplaydl(
+    package: str,
+    candidate: VersionCandidate | None,
+    output_dir: Path,
+) -> Path:
+    """Use the legacy repo-local downloader as an independent fallback."""
     jar = _ensure_downloader()
 
     with tempfile.TemporaryDirectory(prefix="google-play-", dir=output_dir) as tmp:
@@ -191,25 +234,26 @@ def download_candidate(
         if candidate and candidate.code:
             command.extend(["--version-code", str(candidate.code)])
             logging.info(
-                "🌌 Google Play first: package=%s exact-versionCode=%s (%s)",
+                "🌌 Repo-local Google Play fallback: package=%s exact-versionCode=%s (%s)",
                 package,
                 candidate.code,
                 candidate.name,
             )
         else:
             logging.info(
-                "🌌 Google Play first: package=%s current Play release%s",
+                "🌌 Repo-local Google Play fallback: package=%s current Play release%s",
                 package,
                 f" (wanted versionName {candidate.name})" if candidate else "",
             )
 
-        result = _run(command)
+        # GPLAYDL_API_KEY belongs to upstream gplaydl 4.x. Never forward it to
+        # the legacy anonymous dispenser as an X-Api-Key credential.
+        legacy_env = os.environ.copy()
+        legacy_env.pop("GPLAYDL_API_KEY", None)
+        result = _run(command, env=legacy_env)
         if result.returncode != 0:
-            # gplaydl never prints the anonymous auth token; still keep failure
-            # output bounded so provider HTML or unrelated diagnostics cannot
-            # flood Actions logs.
             tail = "\n".join((result.stdout or "").splitlines()[-35:])
-            raise RuntimeError(f"gplaydl exited non-zero: {tail}")
+            raise RuntimeError(f"repo-local gplaydl exited non-zero: {tail}")
 
         package_dir = downloads / package
         apk_files = list(package_dir.glob("*.apk")) if package_dir.is_dir() else []
@@ -222,6 +266,35 @@ def download_candidate(
                 + (f": {tail}" if tail else "")
             )
         return _package_apks(apk_files, package, output_dir)
+
+
+def download_candidate(
+    package: str,
+    candidate: VersionCandidate | None,
+    output_dir: Path | None = None,
+) -> Path:
+    """Download a Play release, preferring linked-account authentication."""
+    if not google_play_enabled(package):
+        raise GooglePlayDisabled(
+            f"Google Play is disabled by repository policy for {package}; use GitHub"
+        )
+
+    output_dir = output_dir or Path(".")
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    if _linked_account_configured():
+        try:
+            return _download_with_linked_gplaydl(package, candidate, output_dir)
+        except Exception as error:
+            logging.warning(
+                "⚠️  Linked-account Google Play failed for %s: %s: %s; "
+                "trying repo-local Google Play fallback",
+                package,
+                type(error).__name__,
+                error,
+            )
+
+    return _download_with_repo_local_gplaydl(package, candidate, output_dir)
 
 
 def download_current(package: str, output_dir: Path | None = None) -> Path:
