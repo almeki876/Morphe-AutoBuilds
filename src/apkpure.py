@@ -3,11 +3,16 @@ import re
 from urllib.parse import urlencode
 
 from src import utils
-from src.versioning import VersionCandidate, discovered_version_code
+from src.versioning import (
+    VersionCandidate,
+    discovered_version_code,
+    remember_version_code,
+)
 from bs4 import BeautifulSoup
 
 SITE_BASE_URL = "https://apkpure.com"
 DOWNLOAD_BASE_URL = "https://d.apkpure.net/b"
+HISTORY_API_URL = "https://tapi.pureapk.com/v3/get_app_his_version"
 
 # curl-cffi supplies a User-Agent matching its TLS browser impersonation.
 # Overriding it with an old Chrome version creates a detectable mismatch and
@@ -16,10 +21,98 @@ HEADERS = {
     'Accept-Language': 'en-US,en;q=0.9',
     'Referer': f'{SITE_BASE_URL}/'
 }
+HISTORY_HEADERS = {
+    **HEADERS,
+    "Ual-Access-Businessid": "projecta",
+    "Ual-Access-ProjectA": '{"device_info":{"os_ver":"35"}}',
+}
 
 # APKPureのリクエストタイムアウト（秒）
 # デフォルト無制限だと30秒以上かかる場合があるため短縮
 TIMEOUT = 15
+
+
+def _history_entries(package: str) -> list[dict]:
+    """Return APKPure's package-addressed historical release metadata.
+
+    The public history API exposes Android ``version_name`` and ``version_code``
+    separately. It is used only as release identity metadata; APK bytes still
+    come from authenticated Google Play whenever Play is enabled.
+    """
+    response = utils.cf_aware_get(
+        f"{HISTORY_API_URL}?{urlencode({'package_name': package, 'hl': 'en'})}",
+        headers=HISTORY_HEADERS,
+        timeout=TIMEOUT,
+        retries=2,
+    )
+    logging.info(
+        "APKPure history metadata status=%s package=%s",
+        response.status_code,
+        package,
+    )
+    if response.status_code != 200:
+        return []
+    try:
+        payload = response.json()
+    except Exception as error:
+        logging.info("APKPure history metadata parse failed for %s: %s", package, error)
+        return []
+    rows = payload.get("version_list", []) if isinstance(payload, dict) else []
+    return [row for row in rows if isinstance(row, dict)]
+
+
+def _history_identity(row: dict, package: str) -> VersionCandidate | None:
+    returned_package = str(row.get("package_name") or package).strip()
+    if returned_package != package:
+        return None
+    name = str(row.get("version_name") or "").strip()
+    code = str(row.get("version_code") or "").strip()
+    if not name or not code.isdigit():
+        return None
+    try:
+        return VersionCandidate(name=name, code=code)
+    except ValueError:
+        return None
+
+
+def resolve_candidate_identities(
+    package: str,
+    candidates: list[VersionCandidate],
+) -> list[VersionCandidate]:
+    """Enrich exact patch versionNames with APKPure Android versionCodes."""
+    if not candidates:
+        return []
+    try:
+        rows = _history_entries(package)
+    except Exception as error:
+        logging.info("APKPure history identity lookup failed for %s: %s", package, error)
+        return list(candidates)
+
+    resolved = list(candidates)
+    pending = set(range(len(candidates)))
+    for row in rows:
+        identity = _history_identity(row, package)
+        if identity is None:
+            continue
+        for index in list(pending):
+            requested = candidates[index]
+            if not requested.matches(identity.name, identity.code):
+                continue
+            resolved[index] = VersionCandidate(
+                name=identity.name,
+                code=identity.code,
+                raw=requested.raw,
+            )
+            remember_version_code(package, identity.name, identity.code or "")
+            logging.info(
+                "✓ APKPure resolved patch-required Android identity %s -> %s",
+                requested.describe(),
+                resolved[index].describe(),
+            )
+            pending.remove(index)
+        if not pending:
+            break
+    return resolved
 
 
 def _resolve_apkpure_slug(app_name: str, config: dict) -> str | None:
