@@ -17,7 +17,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - run: python -m pip install --disable-pip-version-check 'selenium==4.47.0'
+      - run: python -m pip install --disable-pip-version-check 'selenium==4.46.0'
       - name: Observe exact Amazon history card
         shell: bash
         run: |
