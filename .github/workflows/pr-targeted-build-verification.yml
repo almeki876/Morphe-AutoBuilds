@@ -24,16 +24,62 @@ permissions:
   contents: read
 
 jobs:
-  dispatch:
+  verify:
+    name: Run and verify open-issue regression builds
     runs-on: ubuntu-latest
+    timeout-minutes: 90
     steps:
-      - name: Dispatch open-issue regression builds on this branch
+      - name: Dispatch regression build and wait for its conclusion
         env:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
           REF: ${{ github.head_ref }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
+          set -euo pipefail
+
+          before_ids=$(gh run list \
+            --repo "$REPO" \
+            --workflow build.yml \
+            --branch "$REF" \
+            --event workflow_dispatch \
+            --limit 20 \
+            --json databaseId \
+            --jq 'map(.databaseId) | join(" ")')
+
           gh workflow run build.yml \
             --repo "$REPO" \
             --ref "$REF" \
             -f updated_apps='adobe-acrobat,amazon-shopping,crunchyroll,fing,ibs_paint,lightroom,nova,poweramp,twitch-android-tv,yuucho-tsucho'
+
+          run_id=''
+          for _ in $(seq 1 30); do
+            candidate=$(gh run list \
+              --repo "$REPO" \
+              --workflow build.yml \
+              --branch "$REF" \
+              --event workflow_dispatch \
+              --limit 20 \
+              --json databaseId,headSha,createdAt \
+              --jq --arg sha "$HEAD_SHA" --arg before " $before_ids " '
+                map(select(.headSha == $sha))
+                | map(select(($before | contains(" " + (.databaseId|tostring) + " ")) | not))
+                | sort_by(.createdAt) | reverse | .[0].databaseId // empty')
+            if [ -n "$candidate" ]; then
+              run_id="$candidate"
+              break
+            fi
+            sleep 5
+          done
+
+          if [ -z "$run_id" ]; then
+            echo '::error::Dispatched Build Apps run could not be identified.'
+            exit 1
+          fi
+
+          run_url="https://github.com/$REPO/actions/runs/$run_id"
+          echo "Regression build: $run_url" >> "$GITHUB_STEP_SUMMARY"
+          echo "Waiting for Build Apps run $run_id to finish..."
+
+          # --exit-status makes this PR check fail when any downstream build job fails.
+          gh run watch "$run_id" --repo "$REPO" --interval 20 --exit-status
