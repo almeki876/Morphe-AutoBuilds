@@ -57,3 +57,107 @@ jobs:
 
       - name: Run Unit Tests
         run: python3 -m unittest discover tests
+
+      - name: Diagnose Uptodown historical navigation
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import json
+          import shutil
+          import time
+          from urllib.parse import urlparse
+          from selenium import webdriver
+          from selenium.webdriver.chrome.options import Options
+          from selenium.webdriver.chrome.service import Service
+
+          chrome = (shutil.which('google-chrome') or shutil.which('google-chrome-stable')
+                    or shutil.which('chromium') or shutil.which('chromium-browser'))
+          driver_path = shutil.which('chromedriver')
+          if not chrome or not driver_path:
+              raise SystemExit(f'Chrome unavailable: chrome={bool(chrome)} driver={bool(driver_path)}')
+
+          options = Options()
+          options.binary_location = chrome
+          for arg in ('--headless=new', '--no-sandbox', '--disable-dev-shm-usage',
+                      '--disable-gpu', '--window-size=1365,1600', '--lang=en-US'):
+              options.add_argument(arg)
+          options.set_capability('goog:loggingPrefs', {'performance': 'ALL'})
+          browser = webdriver.Chrome(service=Service(driver_path), options=options)
+          browser.set_page_load_timeout(30)
+          browser.set_script_timeout(15)
+          try:
+              browser.get('https://amazon-shopping.en.uptodown.com/android/versions')
+              time.sleep(1.5)
+              print('history-url', browser.current_url)
+              info = browser.execute_script(r'''
+          const want='32.13.2.100';
+          for (const card of document.querySelectorAll('[data-version-id]')) {
+            const text=String(card.innerText||card.textContent||'').replace(/\s+/g,' ').trim();
+            if (!text.includes(want)) continue;
+            const all=[card,...card.querySelectorAll('*')];
+            return {
+              text,
+              tag: card.tagName,
+              attrs: Object.fromEntries(Array.from(card.attributes).map(a=>[a.name,a.value])),
+              nodes: all.slice(0,30).map(n=>({
+                tag:n.tagName,
+                cls:String(n.className||''),
+                href:n.getAttribute&&n.getAttribute('href')||'',
+                dataUrl:n.getAttribute&&n.getAttribute('data-url')||'',
+                dataExtraUrl:n.getAttribute&&n.getAttribute('data-extra-url')||'',
+                versionId:n.getAttribute&&n.getAttribute('data-version-id')||'',
+                onclick:n.getAttribute&&n.getAttribute('onclick')||''
+              }))
+            };
+          }
+          return null;
+          ''')
+              print('card-info', info)
+              browser.get_log('performance')
+              clicked = browser.execute_script(r'''
+          const want='32.13.2.100';
+          for (const card of document.querySelectorAll('[data-version-id]')) {
+            const text=String(card.innerText||card.textContent||'').replace(/\s+/g,' ').trim();
+            if (!text.includes(want)) continue;
+            card.scrollIntoView({block:'center'});
+            card.click();
+            return true;
+          }
+          return false;
+          ''')
+              print('clicked', clicked)
+              time.sleep(2.5)
+              print('after-url', browser.current_url)
+              print('after-title', browser.title)
+              target = browser.execute_script(r'''
+          for (const s of ['#detail-download-button','.post-download[data-url]',
+                           '[data-url*="/dwn/"]','a[href*="dw.uptodown.com/dwn/"]']) {
+            for (const e of document.querySelectorAll(s)) {
+              const raw=e.getAttribute('data-url')||e.getAttribute('href')||'';
+              return {selector:s, hasTarget:Boolean(raw), targetLength:String(raw).length};
+            }
+          }
+          return null;
+          ''')
+              print('download-target', target)
+              seen=[]
+              for item in browser.get_log('performance'):
+                  try:
+                      msg=json.loads(item['message'])['message']
+                  except Exception:
+                      continue
+                  if msg.get('method') != 'Network.requestWillBeSent':
+                      continue
+                  raw=msg.get('params',{}).get('request',{}).get('url','')
+                  p=urlparse(raw)
+                  if not (p.hostname or '').endswith('uptodown.com') and 'utdstc.com' not in (p.hostname or ''):
+                      continue
+                  safe=f'{p.scheme}://{p.netloc}{p.path}'
+                  if '/dwn/' in p.path:
+                      safe=f'{p.scheme}://{p.netloc}/dwn/<redacted>'
+                  if safe not in seen:
+                      seen.append(safe)
+              print('network-paths', seen[-30:])
+          finally:
+              browser.quit()
+          PY
