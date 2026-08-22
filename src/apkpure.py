@@ -21,8 +21,10 @@ HEADERS = {
     'Accept-Language': 'en-US,en;q=0.9',
     'Referer': f'{SITE_BASE_URL}/'
 }
+# Keep the history API request separate from APKPure's website headers. Public
+# clients such as Obtainium use only these API-specific headers; adding a web
+# Referer can put the request on a different edge path even when HTTP is 200.
 HISTORY_HEADERS = {
-    **HEADERS,
     "Ual-Access-Businessid": "projecta",
     "Ual-Access-ProjectA": '{"device_info":{"os_ver":"35"}}',
 }
@@ -30,6 +32,60 @@ HISTORY_HEADERS = {
 # APKPureのリクエストタイムアウト（秒）
 # デフォルト無制限だと30秒以上かかる場合があるため短縮
 TIMEOUT = 15
+
+
+def _history_rows_from_payload(payload: object) -> list[dict]:
+    """Extract version rows from known APKPure history response envelopes.
+
+    APKPure's public client response is normally ``{"version_list": [...]}``.
+    Edge/API gateways have also wrapped successful payloads below one dict
+    (for example ``data`` or ``result``). Accept only a list explicitly named
+    ``version_list`` and only dictionaries that carry the two Android release
+    identity fields we need. This stays generic without recursively pairing
+    unrelated values from a large response.
+    """
+    if not isinstance(payload, dict):
+        return []
+
+    containers: list[dict] = [payload]
+    for key in ("data", "result"):
+        value = payload.get(key)
+        if isinstance(value, dict):
+            containers.append(value)
+
+    for container in containers:
+        rows = container.get("version_list")
+        if not isinstance(rows, list):
+            continue
+        valid = [
+            row
+            for row in rows
+            if isinstance(row, dict)
+            and "version_name" in row
+            and "version_code" in row
+        ]
+        if valid:
+            return valid
+    return []
+
+
+def _history_payload_shape(payload: object) -> str:
+    """Describe response structure without logging release data or URLs."""
+    if not isinstance(payload, dict):
+        return type(payload).__name__
+    top = sorted(str(key) for key in payload.keys())[:20]
+    nested: list[str] = []
+    for key in ("data", "result"):
+        value = payload.get(key)
+        if isinstance(value, dict):
+            nested.append(f"{key}={sorted(str(k) for k in value.keys())[:20]}")
+    version_list = payload.get("version_list")
+    count = len(version_list) if isinstance(version_list, list) else None
+    details = [f"keys={top}"]
+    if count is not None:
+        details.append(f"version_list_count={count}")
+    details.extend(nested)
+    return " ".join(details)
 
 
 def _history_entries(package: str) -> list[dict]:
@@ -57,8 +113,21 @@ def _history_entries(package: str) -> list[dict]:
     except Exception as error:
         logging.info("APKPure history metadata parse failed for %s: %s", package, error)
         return []
-    rows = payload.get("version_list", []) if isinstance(payload, dict) else []
-    return [row for row in rows if isinstance(row, dict)]
+
+    rows = _history_rows_from_payload(payload)
+    if not rows:
+        logging.info(
+            "APKPure history metadata had no usable version rows for %s: %s",
+            package,
+            _history_payload_shape(payload),
+        )
+    else:
+        logging.info(
+            "APKPure history metadata found %d release row(s) for %s",
+            len(rows),
+            package,
+        )
+    return rows
 
 
 def _history_identity(row: dict, package: str) -> VersionCandidate | None:
