@@ -62,6 +62,41 @@ class ConfiguredIdentityEnrichmentTests(unittest.TestCase):
         self.assertEqual(resolved[0].code, "2005292331")
         self.assertEqual(resolved[0].raw, candidate.raw)
 
+    def test_live_resolved_code_beats_configured_pin(self) -> None:
+        candidate = VersionCandidate(
+            name="16.0.20326.20034",
+            code="20326",
+            raw="20326 (16.0.20326.20034) (1 patch)",
+        )
+
+        class LiveResolver:
+            @staticmethod
+            def resolve_candidate_identities(package, candidates):
+                return [
+                    VersionCandidate(
+                        name="16.0.20326.20034",
+                        code="2005292331",
+                    )
+                ]
+
+        with (
+            mock.patch.object(providers, "IDENTITY_RESOLUTION_PRIORITY", ("live",)),
+            mock.patch.dict(providers.MODULES, {"live": LiveResolver}),
+            mock.patch(
+                "src.providers.load_config",
+                return_value={
+                    "package": "com.microsoft.office.word",
+                    "version": "16.0.20326.20034",
+                    "version_code": "9999999999",
+                },
+            ),
+        ):
+            resolved = providers.resolve_patch_candidates(
+                "word", "com.microsoft.office.word", [candidate]
+            )
+
+        self.assertEqual(resolved[0].code, "2005292331")
+
     def test_stale_config_version_cannot_enrich_new_patch_version(self) -> None:
         candidate = VersionCandidate(name="26.33.1")
         with (
