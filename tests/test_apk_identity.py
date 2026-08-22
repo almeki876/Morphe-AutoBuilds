@@ -11,7 +11,7 @@ from src.apk_identity import (
     read_identity,
     validate_identity,
 )
-from src.versioning import VersionCandidate
+from src.versioning import VersionCandidate, parse_candidate
 
 
 class ApkIdentityTests(unittest.TestCase):
@@ -52,6 +52,58 @@ class ApkIdentityTests(unittest.TestCase):
             VersionCandidate(name="1.2.3", code="123"),
         )
         self.assertEqual(result.version_name, "1.2.3")
+
+    @mock.patch("src.apk_identity.read_identity")
+    def test_accepts_numeric_patch_cli_value_as_version_name(
+        self, read_identity_mock: mock.Mock
+    ) -> None:
+        read_identity_mock.return_value = ApkIdentity(
+            "com.urbandroid.sleep", "20260616", "231112"
+        )
+        candidate = parse_candidate("20260616")
+        self.assertIsNotNone(candidate)
+        result = validate_identity(
+            Path("app.apk"),
+            "com.urbandroid.sleep",
+            candidate,
+        )
+        self.assertEqual(result.version_name, "20260616")
+
+    @mock.patch("src.apk_identity.read_identity")
+    def test_accepts_patch_cli_display_code_when_exact_version_name_matches(
+        self, read_identity_mock: mock.Mock
+    ) -> None:
+        read_identity_mock.return_value = ApkIdentity(
+            "com.google.android.apps.magazines",
+            "5.161.0.931240252",
+            "2022244226",
+        )
+        candidate = parse_candidate("931240252 (5.161.0.931240252)")
+        self.assertIsNotNone(candidate)
+        result = validate_identity(
+            Path("app.apk"),
+            "com.google.android.apps.magazines",
+            candidate,
+        )
+        self.assertEqual(result.version_code, "2022244226")
+
+    @mock.patch("src.apk_identity.read_identity")
+    def test_accepts_second_observed_patch_cli_code_mismatch(
+        self, read_identity_mock: mock.Mock
+    ) -> None:
+        read_identity_mock.return_value = ApkIdentity(
+            "com.intsig.camscanner",
+            "7.22.5.2607250000",
+            "72252",
+        )
+        candidate = parse_candidate("2607250000 (7.22.5.2607250000)")
+        self.assertIsNotNone(candidate)
+        result = validate_identity(
+            Path("app.apk"),
+            "com.intsig.camscanner",
+            candidate,
+        )
+        self.assertEqual(result.version_code, "72252")
 
     @mock.patch("src.apk_identity.read_identity")
     def test_rejects_package_mismatch(self, read_identity_mock: mock.Mock) -> None:
