@@ -123,6 +123,52 @@ class DownloadApksTests(unittest.TestCase):
         stage.assert_called_once_with(play, "com.example.app", "1.2.3", "aurora-google-play")
         record.assert_called_once()
 
+    @mock.patch("src.provenance.record")
+    @mock.patch("scripts.download_apks.apk_cache.stage")
+    @mock.patch("scripts.download_apks.apk_cache.is_valid_apk_archive", return_value=True)
+    @mock.patch("scripts.download_apks.providers.download_priority", return_value=[])
+    @mock.patch("scripts.download_apks.providers.configured_package", return_value="com.google.android.apps.recorder")
+    @mock.patch("scripts.download_apks.utils.get_supported_version_candidates", return_value=[])
+    @mock.patch("scripts.download_apks._find_tools", return_value=([], Path("cli.jar"), Path("patches.mpp")))
+    @mock.patch("scripts.download_apks.downloader.download_platform")
+    @mock.patch("scripts.download_apks.aurora_play.download_candidate")
+    @mock.patch("scripts.download_apks.apk_identity.validate_identity")
+    def test_google_play_uses_version_code_when_manifest_version_name_is_empty(
+        self,
+        validate_identity: mock.Mock,
+        play_download: mock.Mock,
+        download_platform: mock.Mock,
+        find_tools: mock.Mock,
+        supported_versions: mock.Mock,
+        configured_package: mock.Mock,
+        download_priority: mock.Mock,
+        is_valid_apk_archive: mock.Mock,
+        stage: mock.Mock,
+        record: mock.Mock,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            play = Path(directory) / "recorder.apks"
+            play.write_bytes(b"play")
+            play_download.return_value = play
+            validate_identity.return_value = ApkIdentity(
+                "com.google.android.apps.recorder", "", "42422313"
+            )
+
+            path, version = download_apks._download(
+                "google-recorder", "rookie", "arm64-v8a"
+            )
+
+        self.assertEqual(path, play)
+        self.assertEqual(version, "42422313")
+        stage.assert_called_once_with(
+            play,
+            "com.google.android.apps.recorder",
+            "42422313",
+            "aurora-google-play",
+        )
+        download_platform.assert_not_called()
+        record.assert_called_once()
+
     @mock.patch("scripts.download_apks._cache_snapshot", return_value=set())
     @mock.patch("scripts.download_apks._new_cache_entries", return_value=set())
     @mock.patch("scripts.download_apks.providers.load_config", return_value={})
