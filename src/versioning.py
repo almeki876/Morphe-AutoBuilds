@@ -20,6 +20,8 @@ _CODE_AND_NAME_RE = re.compile(
 _NAME_AND_CODE_RE = re.compile(
     r"^(?P<name>\d[\w.+ -]*?)\((?P<code>\d+)\)\s*$"
 )
+_BUILD_VERSION_RE = re.compile(r"^(?:v\d+-)?build-(?P<code>\d+)(?:[-\w.]*)$", re.IGNORECASE)
+_COMPOSITE_NAME_CODE_RE = re.compile(r"^(?P<name>.+)\.(?P<code>\d+)$")
 _DISCOVERED_VERSION_CODES: dict[tuple[str, str], str] = {}
 
 
@@ -63,11 +65,24 @@ class VersionCandidate:
         if self.code is not None and self.name == self.code:
             return normalized_code == self.code
 
-        if normalized_name not in self.aliases(""):
-            return False
-        if self.code is None:
-            return True
-        return normalized_code == self.code
+        if normalized_name in self.aliases(""):
+            if self.code is None:
+                return True
+            return normalized_code == self.code
+
+        # Some upstream asset names append versionCode to versionName, e.g.
+        # ``21.0.0.40`` while AndroidManifest.xml reports versionName=21.0.0
+        # and versionCode=40. Accept only when both components agree, avoiding
+        # a broad prefix match that could hide a genuinely wrong APK.
+        if self.code is None and normalized_code:
+            composite = _COMPOSITE_NAME_CODE_RE.match(self.name)
+            if composite:
+                return (
+                    composite.group("name") == normalized_name
+                    and composite.group("code") == normalized_code
+                )
+
+        return False
 
     def aliases(self, provider: str) -> tuple[str, ...]:
         """Return exact-match aliases in the order preferred by a provider."""
@@ -134,6 +149,14 @@ def parse_candidate(line: str) -> VersionCandidate | None:
         return VersionCandidate(name=value, code=value, raw=line)
     if re.match(r"^\d", value):
         return VersionCandidate(name=value, raw=line)
+
+    # Vendor version names are not guaranteed to begin with a digit. Poweramp,
+    # for example, reports ``build-1025-bundle-play``. The embedded build
+    # number is its Android versionCode and lets Google Play request that exact
+    # release instead of silently falling back to the current version.
+    build_match = _BUILD_VERSION_RE.match(value)
+    if build_match:
+        return VersionCandidate(name=value, code=build_match.group("code"), raw=line)
     return None
 
 
