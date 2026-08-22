@@ -46,13 +46,17 @@ def _entry_matches_candidate(entry: dict, candidate: VersionCandidate) -> bool:
     return bool(identity and candidate.matches(identity.name, identity.code))
 
 
-def _iter_api_version_entries(package: str) -> Iterator[dict]:
+def _iter_api_version_entries(
+    package: str,
+    *,
+    app_id: int | str | None = None,
+) -> Iterator[dict]:
     """Yield bounded eAPI history rows for one exact Android package."""
     if not package:
         return
 
-    app_id = legacy._api_app_id(package)
-    if not app_id:
+    resolved_app_id = app_id or legacy._api_app_id(package)
+    if not resolved_app_id:
         return
 
     offset = 0
@@ -63,7 +67,7 @@ def _iter_api_version_entries(package: str) -> Iterator[dict]:
         seen_offsets.add(offset)
 
         response = legacy._api_get(
-            f"/v3/app/{app_id}/device/1/compatible/versions"
+            f"/v3/app/{resolved_app_id}/device/1/compatible/versions"
             f"?page[limit]={_API_PAGE_LIMIT}&page[offset]={offset}"
         )
         logging.info(
@@ -161,10 +165,13 @@ def _exact_api_download_link(
     if not package:
         return None
 
+    app_id = legacy._api_app_id(package)
+    if not app_id:
+        return None
     target = next(
         (
             entry
-            for entry in _iter_api_version_entries(package)
+            for entry in _iter_api_version_entries(package, app_id=app_id)
             if _entry_matches_candidate(entry, candidate)
         ),
         None,
@@ -174,9 +181,6 @@ def _exact_api_download_link(
 
     file_id = target.get("fileID") or target.get("fileid")
     if not file_id:
-        return None
-    app_id = legacy._api_app_id(package)
-    if not app_id:
         return None
     download_response = legacy._api_get(
         f"/apps/{app_id}/file/{file_id}/downloadUrl?update=0"
