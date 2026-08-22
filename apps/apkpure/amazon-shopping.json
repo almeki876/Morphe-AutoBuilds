@@ -2,6 +2,7 @@
   "name": "amazon-shopping",
   "package": "com.amazon.mShop.android.shopping",
   "version": "32.13.2.100",
+  "version_code": "1241320216",
   "primary": true,
   "google_play_fallback": true
 }
