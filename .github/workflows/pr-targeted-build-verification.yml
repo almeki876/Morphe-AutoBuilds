@@ -17,6 +17,7 @@ on:
       - 'apps/**'
       - 'my-patch-config.json'
       - 'patches/**'
+      - 'tests/**'
       - 'arch-config.json'
 
 permissions:

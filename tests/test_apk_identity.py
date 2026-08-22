@@ -39,8 +39,9 @@ class ApkIdentityTests(unittest.TestCase):
                 archive.writestr("split_config.en.apk", b"language")
                 archive.writestr("base.apk", b"base")
             self.assertEqual(read_identity(path), expected)
-        first_path = read_plain.call_args.args[0]
+        first_path = read_plain.call_args_list[0].args[0]
         self.assertEqual(first_path.name, "candidate-0.apk")
+        self.assertEqual(read_plain.call_count, 2)
         find_aapt.assert_called_once_with()
 
     @mock.patch("src.apk_identity.read_identity")
