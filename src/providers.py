@@ -14,7 +14,7 @@ from types import ModuleType
 
 from src import apkcombo, apkmirror_latest, apkpure, aptoide, github, softonic
 from src import uptodown_exact as uptodown
-from src.versioning import VersionCandidate
+from src.versioning import VersionCandidate, pinned_candidate
 
 
 DOWNLOAD_PRIORITY = (
@@ -134,6 +134,44 @@ def configured_package(app_name: str) -> str | None:
     return found[0][1] if found else None
 
 
+def _configured_identity_code(
+    app_name: str,
+    candidate: VersionCandidate,
+) -> str | None:
+    """Return a hand-verified code only for the exact same versionName.
+
+    Provider configs sometimes contain a version/version_code pair captured
+    from a store release. It is safe enrichment for a patch candidate only
+    when the configured versionName is an exact match. This deliberately
+    refuses stale pins when patch compatibility moves to another release.
+    """
+    if candidate.code:
+        return candidate.code
+    provider_order = (
+        *CONFIG_SOURCE_PRIORITY,
+        *(provider for provider in MODULES if provider not in CONFIG_SOURCE_PRIORITY),
+    )
+    for provider in provider_order:
+        try:
+            config = load_config(app_name, provider, allow_synthetic=False)
+        except ValueError as error:
+            logging.warning("Ignoring invalid identity config for %s: %s", app_name, error)
+            continue
+        if not config:
+            continue
+        pinned = pinned_candidate(config)
+        if pinned and pinned.code and pinned.name == candidate.name:
+            logging.info(
+                "🪪 %s: enriching patch release %s with configured versionCode %s from %s",
+                app_name,
+                candidate.name,
+                pinned.code,
+                provider,
+            )
+            return pinned.code
+    return None
+
+
 def resolve_patch_candidates(
     app_name: str,
     package: str,
@@ -199,7 +237,20 @@ def resolve_patch_candidates(
         if all(candidate.code for candidate in resolved):
             break
 
-    return resolved
+    # If live package metadata could not supply versionCode, allow an exact
+    # hand-verified provider pin to fill only the missing code. Never replace a
+    # code already learned from live metadata or the patch CLI, and never carry
+    # a code across a versionName change.
+    enriched: list[VersionCandidate] = []
+    for candidate in resolved:
+        code = _configured_identity_code(app_name, candidate)
+        if code and not candidate.code:
+            enriched.append(
+                VersionCandidate(name=candidate.name, code=code, raw=candidate.raw)
+            )
+        else:
+            enriched.append(candidate)
+    return enriched
 
 
 def validate_all_configs() -> list[str]:
