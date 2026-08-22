@@ -161,11 +161,12 @@ def _set_repository_secret(
 
 
 def _query_registered_account(container: str, expected_email: str) -> tuple[str, str] | None:
+    # Do not use psql -v interpolation with -c: psql does not expand variables
+    # in --command input. Query the ephemeral account table and match in Python
+    # instead, which also keeps the email out of SQL entirely.
     sql = (
         "SELECT email::text || E'\\t' || encode(aas_token_enc, 'hex') "
-        "FROM accounts "
-        "WHERE lower(email::text) = lower(:'expected_email') "
-        "ORDER BY updated_at DESC LIMIT 1;"
+        "FROM accounts ORDER BY updated_at DESC;"
     )
     result = _run(
         [
@@ -178,19 +179,20 @@ def _query_registered_account(container: str, expected_email: str) -> tuple[str,
             "dispenser",
             "-d",
             "dispenser",
-            "-v",
-            f"expected_email={expected_email}",
             "-c",
             sql,
         ]
     )
     if result.returncode != 0:
-        return None
-    line = (result.stdout or "").strip()
-    if not line or "\t" not in line:
-        return None
-    email, ciphertext_hex = line.split("\t", 1)
-    return email.strip(), ciphertext_hex.strip()
+        raise RuntimeError("could not query the temporary registration database")
+
+    for line in (result.stdout or "").splitlines():
+        if "\t" not in line:
+            continue
+        email, ciphertext_hex = line.split("\t", 1)
+        if email.strip().lower() == expected_email:
+            return email.strip(), ciphertext_hex.strip()
+    return None
 
 
 def _start_tunnel(local_url: str, log_path: Path) -> tuple[subprocess.Popen[str], object, str]:

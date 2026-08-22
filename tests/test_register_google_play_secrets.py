@@ -73,6 +73,32 @@ class RegisterGooglePlaySecretsTests(unittest.TestCase):
         recovered = SealedBox(private_key).decrypt(encrypted).decode("utf-8")
         self.assertEqual(recovered, plaintext)
 
+    def test_query_registered_account_matches_in_python_without_psql_variables(self) -> None:
+        result = mock.Mock(
+            returncode=0,
+            stdout=(
+                "other@example.com\t0011\n"
+                "MorpheAutoBuilds@GMAIL.COM\taabbcc\n"
+            ),
+        )
+        with mock.patch.object(registration, "_run", return_value=result) as run:
+            row = registration._query_registered_account(
+                "registration-db", "morpheautobuilds@gmail.com"
+            )
+
+        self.assertEqual(row, ("MorpheAutoBuilds@GMAIL.COM", "aabbcc"))
+        command = run.call_args.args[0]
+        self.assertNotIn("-v", command)
+        self.assertNotIn("expected_email", command[-1])
+
+    def test_query_registered_account_surfaces_database_errors(self) -> None:
+        result = mock.Mock(returncode=2, stdout="database query failed")
+        with mock.patch.object(registration, "_run", return_value=result):
+            with self.assertRaisesRegex(RuntimeError, "temporary registration database"):
+                registration._query_registered_account(
+                    "registration-db", "morpheautobuilds@gmail.com"
+                )
+
 
 if __name__ == "__main__":
     unittest.main()
