@@ -3,8 +3,9 @@
 Upstream gplaydl 4.2.1 hard-codes English Play FDFE locale headers even when
 its linked Google account and device metadata are for another country. Keep the
 upstream package intact and override only those request headers at interpreter
-startup. Also expose the purchase response outcome without logging credentials
-or opaque tokens, so Play acquisition failures can be diagnosed precisely.
+startup. Its purchase request also posts doc/ot/vc in the request body, while
+widely used Google Play API implementations send them as query parameters.
+Mirror that wire format here without app-specific rules.
 """
 
 from __future__ import annotations
@@ -35,16 +36,27 @@ def _install() -> None:
         return headers
 
     def purchase(package: str, version_code: int, auth_data: dict) -> str:
-        """Mirror upstream purchase() while logging only non-secret outcome fields."""
+        """Acquire a free app using the established FDFE purchase wire format."""
         headers = build_headers(auth_data)
-        headers["Content-Type"] = "application/x-www-form-urlencoded"
-        body = f"doc={package}&ot=1&vc={version_code}"
-        resp = httpx.post(api.PURCHASE_URL, headers=headers, content=body, timeout=30)
+        # Established Play API clients POST to /purchase with ot/doc/vc in the
+        # query string, not as a form body. Keep the request body empty.
+        headers.pop("Content-Type", None)
+        params = {
+            "doc": package,
+            "ot": "1",
+            "vc": str(version_code),
+        }
+        resp = httpx.post(
+            api.PURCHASE_URL,
+            headers=headers,
+            params=params,
+            timeout=30,
+        )
         if resp.status_code == 401:
             raise api.AuthExpiredError("Auth token expired.")
         if resp.status_code not in (200, 204):
             print(
-                f"gplaydl purchase diagnostics: http={resp.status_code} token=false",
+                f"gplaydl purchase diagnostics: http={resp.status_code} token=false wire=query",
                 file=sys.stderr,
             )
             return ""
@@ -64,7 +76,7 @@ def _install() -> None:
         print(
             "gplaydl purchase diagnostics: "
             f"http={resp.status_code} status={status if status is not None else 'unknown'} "
-            f"token={'true' if token else 'false'}"
+            f"token={'true' if token else 'false'} wire=query"
             + (f" message={safe_error}" if safe_error else ""),
             file=sys.stderr,
         )
