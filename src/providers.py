@@ -145,11 +145,11 @@ def _configured_identity_code(
     when the configured versionName is an exact match. This deliberately
     refuses stale pins when patch compatibility moves to another release.
 
-    A non-raw code is already an explicit/configured or provider-resolved
-    Android versionCode and must remain authoritative. A code attached to raw
-    patch CLI output is different: real build logs prove that some patch CLIs
-    put a display/build identifier in that position. In that case an exact
-    versionName-matched, hand-verified provider pin may replace the CLI value.
+    A non-raw code is already an explicit/configured Android versionCode and
+    must remain authoritative. A code attached to raw patch CLI output is
+    different: real build logs prove that some patch CLIs put a display/build
+    identifier in that position. In that case an exact versionName-matched,
+    hand-verified provider pin may replace the CLI value.
     """
     if candidate.code and candidate.raw is None:
         return candidate.code
@@ -187,14 +187,19 @@ def resolve_patch_candidates(
 ) -> list[VersionCandidate]:
     """Resolve live Android identities without changing patch compatibility.
 
-    Patch CLI output is authoritative. Provider metadata is allowed only to
-    fill in the missing half of an already-compatible release identity
-    (versionName or versionCode). A provider result that does not match the
-    patch candidate is discarded rather than substituted.
+    Patch CLI output is authoritative for compatibility. Provider metadata is
+    allowed only to verify/enrich an already-compatible release identity. A
+    provider result that does not match the patch candidate is discarded rather
+    than substituted.
     """
     resolved = list(candidates)
     if not package or not resolved:
         return resolved
+
+    # Track which slots received a versionCode from live provider metadata.
+    # VersionCandidate.raw deliberately preserves the patch CLI line for audit
+    # and matching semantics, so it cannot by itself identify code provenance.
+    live_verified = [False] * len(resolved)
 
     for provider in IDENTITY_RESOLUTION_PRIORITY:
         module = MODULES.get(provider)
@@ -220,11 +225,13 @@ def resolve_patch_candidates(
             continue
 
         accepted: list[VersionCandidate] = []
-        for requested, candidate in zip(resolved, proposed):
+        for index, (requested, candidate) in enumerate(zip(resolved, proposed)):
             if not isinstance(candidate, VersionCandidate):
                 accepted.append(requested)
                 continue
             if requested.matches(candidate.name, candidate.code):
+                if candidate.code and candidate is not requested:
+                    live_verified[index] = True
                 accepted.append(
                     VersionCandidate(
                         name=candidate.name,
@@ -242,15 +249,24 @@ def resolve_patch_candidates(
                 accepted.append(requested)
         resolved = accepted
 
-        if all(candidate.code for candidate in resolved):
+        # A raw patch CLI code is not evidence that Android versionCode has been
+        # resolved. Keep trying later resolvers until every raw identity has
+        # either been verified live or is an explicit/non-raw identity.
+        if all(
+            candidate.code and (candidate.raw is None or live_verified[index])
+            for index, candidate in enumerate(resolved)
+        ):
             break
 
     # If live package metadata could not supply a trustworthy versionCode,
     # allow an exact hand-verified provider pin to fill a missing code or
-    # replace a raw patch-CLI display id. Never replace an explicit/provider-
-    # resolved code and never carry a code across a versionName change.
+    # replace a raw patch-CLI display id. Never replace a code verified by a
+    # live resolver and never carry a code across a versionName change.
     enriched: list[VersionCandidate] = []
-    for candidate in resolved:
+    for index, candidate in enumerate(resolved):
+        if live_verified[index]:
+            enriched.append(candidate)
+            continue
         code = _configured_identity_code(app_name, candidate)
         if code and code != candidate.code:
             enriched.append(
