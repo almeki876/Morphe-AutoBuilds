@@ -5,6 +5,10 @@ explicitly GitHub-only (currently AdGuard). Downloads must use the linked
 ``gplaydl`` account configured through the ``GPLAYDL_API_KEY`` GitHub Actions
 secret. Anonymous Aurora/dispenser downloads are intentionally not supported.
 
+For explicitly versioned patch targets, Android ``versionCode`` is resolved
+at runtime before invoking gplaydl and passed through ``-v``. ``any`` remains
+the only path that intentionally asks Google Play for the current release.
+
 If the authenticated Google Play request fails, callers may continue with their
 configured non-Play providers, but this module never retries Google Play
 anonymously.
@@ -20,7 +24,7 @@ import tempfile
 import zipfile
 from pathlib import Path
 
-from src import apk_identity
+from src import apk_identity, play_version_resolver
 from src.versioning import VersionCandidate
 
 OFFICIAL_GPLAYDL_COMMAND = "gplaydl"
@@ -142,10 +146,13 @@ def _download_with_linked_gplaydl(
 ) -> Path:
     """Download through upstream gplaydl 4.x using ``GPLAYDL_API_KEY``.
 
-    When an exact versionCode lookup is unavailable, gplaydl can still serve the
-    same release through its normal current-release path. Probe that path once,
-    but only accept it after manifest identity matches the original exact
-    candidate. A different current release is deleted and treated as failure.
+    An explicit patch version always reaches this function with a resolved
+    versionCode and is sent to gplaydl through ``-v``. Only ``candidate=None``
+    (patch compatibility ``any``) intentionally requests the current release.
+
+    If a known exact versionCode is temporarily unavailable through a device
+    profile, probe the current release once and accept it only when its manifest
+    is exactly the requested release.
     """
     _require_linked_account()
 
@@ -224,12 +231,17 @@ def download_candidate(
             f"Google Play is disabled by repository policy for {package}; use GitHub"
         )
 
+    # Universal policy for every Play-enabled app:
+    #   any -> current release
+    #   explicit version -> dynamically resolve exact Android versionCode, then -v
+    play_candidate = play_version_resolver.resolve_candidate(package, candidate)
+
     output_dir = output_dir or Path(".")
     output_dir.mkdir(parents=True, exist_ok=True)
 
     # No anonymous fallback is permitted. Failure here intentionally bubbles up
     # to the caller, which can then try configured non-Play providers.
-    return _download_with_linked_gplaydl(package, candidate, output_dir)
+    return _download_with_linked_gplaydl(package, play_candidate, output_dir)
 
 
 def download_current(package: str, output_dir: Path | None = None) -> Path:
