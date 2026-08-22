@@ -38,15 +38,6 @@ jobs:
         run: |
           set -euo pipefail
 
-          before_ids=$(gh run list \
-            --repo "$REPO" \
-            --workflow build.yml \
-            --branch "$REF" \
-            --event workflow_dispatch \
-            --limit 20 \
-            --json databaseId \
-            --jq 'map(.databaseId) | join(" ")')
-
           gh workflow run build.yml \
             --repo "$REPO" \
             --ref "$REF" \
@@ -54,19 +45,16 @@ jobs:
 
           run_id=''
           for _ in $(seq 1 30); do
-            candidate=$(gh run list \
+            run_id=$(gh run list \
               --repo "$REPO" \
               --workflow build.yml \
               --branch "$REF" \
               --event workflow_dispatch \
-              --limit 20 \
-              --json databaseId,headSha,createdAt \
-              --jq --arg sha "$HEAD_SHA" --arg before " $before_ids " '
-                map(select(.headSha == $sha))
-                | map(select(($before | contains(" " + (.databaseId|tostring) + " ")) | not))
-                | sort_by(.createdAt) | reverse | .[0].databaseId // empty')
-            if [ -n "$candidate" ]; then
-              run_id="$candidate"
+              --commit "$HEAD_SHA" \
+              --limit 1 \
+              --json databaseId \
+              --jq '.[0].databaseId // empty')
+            if [ -n "$run_id" ]; then
               break
             fi
             sleep 5
