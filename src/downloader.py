@@ -264,15 +264,18 @@ def download_platform(
 
         cache_enabled = config.get("cache", True) is not False
 
-        # Support direct_url: skip version resolution and download directly
+        # Support direct_url: skip version resolution and download directly.
+        # If the caller already resolved patch compatibility, that version is
+        # authoritative over a hand-maintained provider pin.
         direct_url = config.get("direct_url")
         if direct_url:
             logging.info(f"🔗 {platform}: using direct_url for {app_name}")
             try:
-                # Try to resolve version: first check pinned version in config,
-                # then try the current platform's get_latest_version,
-                # then fall back through the configured provider priority.
-                version = config.get("version") or None
+                version = (
+                    version_candidates[0].canonical
+                    if version_candidates
+                    else config.get("version") or None
+                )
                 if not version:
                     try:
                         platform_mod = providers.MODULES.get(platform)
@@ -340,11 +343,13 @@ def download_platform(
                 return None, None
 
         pinned = pinned_candidate(config)
-        candidates: list[VersionCandidate] = [pinned] if pinned else []
         configured_fallbacks = configured_fallback_candidates(config)
-        if not candidates:
-            if platform == "github":
-                # GitHub releases carry the version in the tag — skip CLI invocation
+
+        if platform == "github":
+            # GitHub releases carry the version in the tag. A configured pin is
+            # provider metadata here rather than an APK-store release mapping.
+            candidates: list[VersionCandidate] = [pinned] if pinned else []
+            if not candidates:
                 try:
                     latest = providers.MODULES["github"].get_latest_version(
                         app_name, config
@@ -355,14 +360,27 @@ def download_platform(
                 except Exception as e:
                     logging.error(f"❌ github: get_latest_version failed for {app_name}: {e}")
                     return None, None
-            else:
-                candidates = (
-                    list(version_candidates)
-                    if version_candidates is not None
-                    else utils.get_supported_version_candidates(
-                        config["package"], cli, patches
-                    )
+        elif version_candidates is not None:
+            # The caller got these candidates from the patch bundle. They are
+            # authoritative for APK-store providers; configured version/versionCode
+            # pins are fallback metadata only and must never override them.
+            candidates = list(version_candidates)
+            if candidates and pinned:
+                logging.info(
+                    "🧩 %s: patch compatibility overrides configured pin %s for %s",
+                    platform,
+                    pinned.describe(),
+                    app_name,
                 )
+            elif not candidates and pinned:
+                candidates = [pinned]
+        else:
+            candidates = [pinned] if pinned else []
+            if not candidates:
+                candidates = utils.get_supported_version_candidates(
+                    config["package"], cli, patches
+                )
+
         candidates.extend(configured_fallbacks)
         platform_module = providers.MODULES[platform]
 
