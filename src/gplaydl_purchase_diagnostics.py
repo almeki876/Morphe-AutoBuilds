@@ -13,6 +13,11 @@ import re
 from typing import Iterable
 
 _SECRETISH = re.compile(r"^[A-Za-z0-9_./+=-]{48,}$")
+_EMAIL = re.compile(r"[A-Za-z0-9.!#$%&'*+/=?^_`{|}~-]+@[A-Za-z0-9.-]+")
+_URL = re.compile(r"https?://\S+", re.IGNORECASE)
+_AAS_TOKEN = re.compile(r"aas_et/[A-Za-z0-9_./+=-]+", re.IGNORECASE)
+_BEARER = re.compile(r"bearer\s+[A-Za-z0-9_./+=-]+", re.IGNORECASE)
+_LONG_TOKEN = re.compile(r"(?<![A-Za-z0-9_./+=-])[A-Za-z0-9_./+=-]{48,}(?![A-Za-z0-9_./+=-])")
 
 
 def _safe_human_strings(values: Iterable[str], limit: int = 8) -> list[str]:
@@ -38,6 +43,27 @@ def _safe_human_strings(values: Iterable[str], limit: int = 8) -> list[str]:
         if len(result) >= limit:
             break
     return result
+
+
+def _safe_response_preview(content: bytes, limit: int = 300) -> str:
+    """Return a compact, redacted preview of a non-success HTTP response body."""
+    if not content:
+        return "none"
+
+    text = content.decode("utf-8", errors="replace")
+    text = " ".join(text.split())
+    if not text:
+        return "none"
+
+    text = _AAS_TOKEN.sub("[redacted-aas-token]", text)
+    text = _BEARER.sub("[redacted-bearer]", text)
+    text = _EMAIL.sub("[redacted-email]", text)
+    text = _URL.sub("[redacted-url]", text)
+    text = _LONG_TOKEN.sub("[redacted-token]", text)
+
+    if len(text) > limit:
+        text = text[:limit] + "…"
+    return text
 
 
 def diagnose_purchase_failure(package: str, version_code: str | None = None) -> None:
@@ -82,6 +108,7 @@ def diagnose_purchase_failure(package: str, version_code: str | None = None) -> 
         if str(url) == api.PURCHASE_URL:
             observed["status"] = response.status_code
             observed["content"] = bytes(response.content)
+            observed["content_type"] = response.headers.get("content-type", "")
         return response
 
     api.httpx.post = recording_post
@@ -92,22 +119,31 @@ def diagnose_purchase_failure(package: str, version_code: str | None = None) -> 
 
     content = observed.get("content")
     messages: list[str] = []
-    if isinstance(content, bytes) and content:
-        try:
-            messages = _safe_human_strings(extract_strings(content))
-        except Exception:  # diagnostic parsing must never replace the real error
-            messages = []
+    response_bytes = 0
+    response_preview = "none"
+    if isinstance(content, bytes):
+        response_bytes = len(content)
+        response_preview = _safe_response_preview(content)
+        if content:
+            try:
+                messages = _safe_human_strings(extract_strings(content))
+            except Exception:  # diagnostic parsing must never replace the real error
+                messages = []
 
     headers = api.build_headers(auth_data)
     logging.error(
         "🧪 gplaydl purchase diagnostic: http=%s delivery_token=%s "
         "details_versionCode=%s mccmnc=%s accept_language=%s "
-        "user_languages=%s messages=%s",
+        "user_languages=%s response_content_type=%s response_bytes=%s "
+        "response_preview=%s messages=%s",
         observed.get("status", "unknown"),
         bool(delivery_token),
         vc,
         headers.get("X-DFE-MCCMNC", ""),
         headers.get("Accept-Language", ""),
         headers.get("X-DFE-UserLanguages", ""),
+        observed.get("content_type", "unknown"),
+        response_bytes,
+        response_preview,
         messages or "none",
     )
