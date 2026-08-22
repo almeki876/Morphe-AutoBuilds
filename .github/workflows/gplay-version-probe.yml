@@ -20,7 +20,7 @@ jobs:
         with:
           python-version: '3.12'
       - name: Install probe dependencies
-        run: python -m pip install --disable-pip-version-check 'gplaydl==4.2.1' 'beautifulsoup4==4.15.0' 'requests>=2.34' 'selenium==4.47.0'
+        run: python -m pip install --disable-pip-version-check 'gplaydl==4.2.1' 'beautifulsoup4==4.15.0' 'requests>=2.34' 'selenium==4.46.0'
       - name: Probe linked Play metadata
         shell: bash
         run: |
