@@ -11,7 +11,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from src import apk_cache, apk_identity, aurora_play, downloader, providers, utils
+from src import apk_cache, apk_identity, aurora_play, downloader, providers, utils, versioning
 from src.versioning import VersionCandidate, pinned_candidate
 
 # Yuucho apps intentionally track the current Google Play release. Their GitHub
@@ -52,15 +52,30 @@ def _expected_candidate(
     version: str,
     candidates: list[VersionCandidate],
 ) -> VersionCandidate:
-    """Recover the release identity that caused the provider/cache lookup."""
+    """Recover and enrich the release identity used by a provider lookup."""
     config = providers.load_config(app_name, platform) or {}
     pinned = pinned_candidate(config)
     if pinned and pinned.canonical == version:
         return pinned
-    return next(
+
+    candidate = next(
         (candidate for candidate in candidates if candidate.canonical == version),
         VersionCandidate(name=version),
     )
+    if candidate.code:
+        return candidate
+
+    package = providers.configured_package(app_name)
+    discovered_code = (
+        versioning.discovered_version_code(package, version) if package else None
+    )
+    if discovered_code:
+        return VersionCandidate(
+            name=candidate.name,
+            code=discovered_code,
+            raw=candidate.raw,
+        )
+    return candidate
 
 
 def _configured_candidate_for_version(
@@ -268,6 +283,13 @@ def _download(app_name: str, source: str, arch: str) -> tuple[Path, str]:
         (candidate for candidate in candidates if candidate.canonical == version),
         VersionCandidate(name=version),
     )
+    discovered_code = versioning.discovered_version_code(package, version)
+    if not fallback_candidate.code and discovered_code:
+        fallback_candidate = VersionCandidate(
+            name=fallback_candidate.name,
+            code=discovered_code,
+            raw=fallback_candidate.raw,
+        )
     fallback_errors: list[str] = []
     for fallback_name, fallback_downloader in (
         ("justapk", downloader.download_with_justapk),
