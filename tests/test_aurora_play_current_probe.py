@@ -81,7 +81,7 @@ class AuroraPlayCurrentProbeTests(unittest.TestCase):
             "APK version mismatch: current release differs"
         )
         repo_local.return_value = Path("repo-local-exact.apk")
-        candidate = VersionCandidate(name="32.13.2.100", code="1241322016")
+        candidate = VersionCandidate(name="32.13.2.100", code="1241320216")
 
         with mock.patch.dict(os.environ, {"GPLAYDL_API_KEY": "secret-key"}, clear=False):
             with tempfile.TemporaryDirectory() as directory:
