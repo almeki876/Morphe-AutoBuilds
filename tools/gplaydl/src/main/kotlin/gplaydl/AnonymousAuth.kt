@@ -58,7 +58,8 @@ class AnonymousAuthClient(
                 }
 
                 try {
-                    client.newCall(requestBuilder.build()).execute().use { response ->
+                    val response = client.newCall(requestBuilder.build()).execute()
+                    try {
                         val responseBody = response.body?.string().orEmpty()
                         if (!response.isSuccessful) {
                             failures += "$host HTTP ${response.code}"
@@ -80,6 +81,8 @@ class AnonymousAuthClient(
                             )
                         }
                         failures += "$host incomplete credentials"
+                    } finally {
+                        response.close()
                     }
                 } catch (exception: Exception) {
                     failures += "$host ${exception::class.simpleName ?: "request failure"}"

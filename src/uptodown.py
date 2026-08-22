@@ -2,6 +2,7 @@ import hashlib
 import logging
 import re
 from datetime import datetime, timezone
+from urllib.parse import urljoin
 
 from bs4 import BeautifulSoup
 
@@ -302,6 +303,60 @@ def _download_page_matches_candidate(
     return any(alias and alias in text for alias in aliases for text in primary_texts)
 
 
+def _historical_download_link_from_versions_page(
+    soup: BeautifulSoup, versions_url: str, candidate: VersionCandidate
+) -> str | None:
+    """Resolve an older release from Uptodown's current public HTML.
+
+    Uptodown now includes a per-release download path in the rendered version
+    cards. Prefer that public contract over the legacy /apps/<code>/versions/N
+    endpoint, which can return HTTP 410. The downloaded APK is still subjected
+    to the normal package/version manifest verification by the caller.
+    """
+    aliases = set(candidate.aliases("uptodown"))
+    for version_node in soup.select("#versions-items-list .version"):
+        text = version_node.get_text(" ", strip=True)
+        parsed = parse_candidate(text)
+        names = {text}
+        if parsed is not None:
+            names.add(parsed.name)
+            if parsed.code:
+                names.add(parsed.code)
+        if not aliases.intersection(names):
+            continue
+
+        containers = [version_node]
+        containers.extend(list(version_node.parents)[:4])
+        for container in containers:
+            getter = getattr(container, "get", None)
+            if getter is None:
+                continue
+            values = [getter("data-url"), getter("href")]
+            for value in values:
+                if not value:
+                    continue
+                value = str(value).strip()
+                if "download" not in value:
+                    continue
+                page_url = urljoin(versions_url, value)
+                try:
+                    direct = _download_url_from_page(page_url)
+                except Exception as error:
+                    logging.debug(
+                        "Uptodown historical page %s failed: %s",
+                        page_url,
+                        utils.safe_text_for_log(error),
+                    )
+                    continue
+                if direct:
+                    logging.info(
+                        "✓ Resolved historical Uptodown release %s from public versions page",
+                        candidate.describe(),
+                    )
+                    return direct
+    return None
+
+
 def get_latest_version(app_name: str, config: dict) -> str:
     possible_names = generate_possible_uptodown_names(config)
     logging.info(f"Trying {len(possible_names)} possible Uptodown names for {app_name}")
@@ -384,7 +439,8 @@ def get_download_link(
                     )
                     return current_link
 
-            response = utils.cf_aware_get(f"{base_url}/versions")
+            versions_url = f"{base_url}/versions"
+            response = utils.cf_aware_get(versions_url)
             if response.status_code != 200:
                 continue
 
@@ -403,6 +459,12 @@ def get_download_link(
                             app_name,
                         )
                         return current_link
+
+            historical_link = _historical_download_link_from_versions_page(
+                soup, versions_url, requested
+            )
+            if historical_link:
+                return historical_link
 
             app_heading = soup.find('h1', id='detail-app-name')
             if not app_heading or 'data-code' not in app_heading.attrs:

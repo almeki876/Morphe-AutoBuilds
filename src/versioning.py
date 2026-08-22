@@ -20,6 +20,8 @@ _CODE_AND_NAME_RE = re.compile(
 _NAME_AND_CODE_RE = re.compile(
     r"^(?P<name>\d[\w.+ -]*?)\((?P<code>\d+)\)\s*$"
 )
+_BUILD_VERSION_RE = re.compile(r"^(?:v\d+-)?build-\d+(?:[-\w.]*)$", re.IGNORECASE)
+_COMPOSITE_NAME_CODE_RE = re.compile(r"^(?P<name>.+)\.(?P<code>\d+)$")
 _DISCOVERED_VERSION_CODES: dict[tuple[str, str], str] = {}
 
 
@@ -54,11 +56,48 @@ class VersionCandidate:
     def matches(self, name: str, code: str | None = None) -> bool:
         """Return whether a provider result is the same release identity."""
         normalized_name = str(name).strip()
-        if normalized_name not in self.aliases(""):
-            return False
-        if self.code is None:
-            return True
-        return code is not None and str(code).strip() == self.code
+        normalized_code = str(code).strip() if code is not None else None
+
+        # A versionCode is the APK's immutable release identifier. Some base
+        # APKs extracted from split bundles omit versionName entirely. When we
+        # have an exact expected versionCode (configured or learned from a
+        # provider), the matching code is sufficient in that narrow case.
+        if self.code is not None and not normalized_name:
+            return normalized_code == self.code
+
+        # Some patch CLIs report only Android versionCode (for example Nova
+        # reports ``88600`` while the APK manifest versionName is ``8.8.6``).
+        # In that representation the code is authoritative and requiring the
+        # human-readable name to equal the numeric code rejects the right APK.
+        if self.code is not None and self.name == self.code:
+            return normalized_code == self.code
+
+        if normalized_name in self.aliases(""):
+            if self.code is None:
+                return True
+            return normalized_code == self.code
+
+        # Some APK manifests duplicate the patch CLI display form in
+        # versionName, e.g. Nova reports versionName ``88600 (8.8.6)`` and
+        # versionCode ``88600``. Accept this only when both exact components
+        # agree, rather than weakening general version-name matching.
+        if self.code is not None and normalized_code == self.code:
+            if normalized_name == f"{self.code} ({self.name})":
+                return True
+
+        # Some upstream asset names append versionCode to versionName, e.g.
+        # ``21.0.0.40`` while AndroidManifest.xml reports versionName=21.0.0
+        # and versionCode=40. Accept only when both components agree, avoiding
+        # a broad prefix match that could hide a genuinely wrong APK.
+        if self.code is None and normalized_code:
+            composite = _COMPOSITE_NAME_CODE_RE.match(self.name)
+            if composite:
+                return (
+                    composite.group("name") == normalized_name
+                    and composite.group("code") == normalized_code
+                )
+
+        return False
 
     def aliases(self, provider: str) -> tuple[str, ...]:
         """Return exact-match aliases in the order preferred by a provider."""
@@ -69,7 +108,6 @@ class VersionCandidate:
         if provider == "apkpure" and self.code:
             ordered = [self.code, *names]
         elif provider == "apkcombo" and self.code:
-            # APKCombo exposes both version code and name in anchor text.
             ordered = [*names, self.code]
         elif provider == "aptoide" and self.code:
             ordered = [*names, self.code]
@@ -122,7 +160,17 @@ def parse_candidate(line: str) -> VersionCandidate | None:
             raw=line,
         )
 
+    if value.isdigit():
+        return VersionCandidate(name=value, code=value, raw=line)
     if re.match(r"^\d", value):
+        return VersionCandidate(name=value, raw=line)
+
+    # Vendor version labels are not guaranteed to begin with a digit. Poweramp,
+    # for example, reports ``build-1025-bundle-play``. Its embedded build number
+    # is a display/build identifier, not Android versionCode (the corresponding
+    # APK uses 1025004). Keep only the exact versionName here; a provider may
+    # enrich the candidate with the real manifest versionCode once discovered.
+    if _BUILD_VERSION_RE.match(value):
         return VersionCandidate(name=value, raw=line)
     return None
 

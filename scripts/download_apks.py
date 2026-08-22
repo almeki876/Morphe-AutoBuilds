@@ -11,7 +11,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from src import apk_cache, apk_identity, aurora_play, downloader, providers, utils
+from src import apk_cache, apk_identity, aurora_play, browser_fallback, downloader, providers, utils, versioning
 from src.versioning import VersionCandidate, pinned_candidate
 
 # Yuucho apps intentionally track the current Google Play release. Their GitHub
@@ -52,15 +52,46 @@ def _expected_candidate(
     version: str,
     candidates: list[VersionCandidate],
 ) -> VersionCandidate:
-    """Recover the release identity that caused the provider/cache lookup."""
+    """Recover and enrich the release identity used by a provider lookup."""
     config = providers.load_config(app_name, platform) or {}
     pinned = pinned_candidate(config)
     if pinned and pinned.canonical == version:
         return pinned
-    return next(
+
+    candidate = next(
         (candidate for candidate in candidates if candidate.canonical == version),
         VersionCandidate(name=version),
     )
+    if candidate.code:
+        return candidate
+
+    package = providers.configured_package(app_name)
+    discovered_code = (
+        versioning.discovered_version_code(package, version) if package else None
+    )
+    if discovered_code:
+        return VersionCandidate(
+            name=candidate.name,
+            code=discovered_code,
+            raw=candidate.raw,
+        )
+    return candidate
+
+
+def _configured_candidate_for_version(
+    app_name: str,
+    version: str,
+) -> VersionCandidate | None:
+    """Return configured release metadata when it refers to ``version`` exactly."""
+    for platform in providers.download_priority(app_name):
+        try:
+            config = providers.load_config(app_name, platform) or {}
+        except Exception:
+            continue
+        pinned = pinned_candidate(config)
+        if pinned and pinned.canonical == version:
+            return pinned
+    return None
 
 
 def _preferred_play_candidate(
@@ -68,17 +99,28 @@ def _preferred_play_candidate(
     package: str,
     candidates: list[VersionCandidate],
 ) -> VersionCandidate | None:
-    """Choose the release Play should try without guessing a versionCode.
+    """Choose the exact release Play should try without guessing identifiers.
 
     Yuucho explicitly tracks the current Play release. For other apps patch-
-    bundle compatibility wins. If the bundle is unpinned/Any, retain an
-    explicit app-level pin when one exists. Otherwise ``None`` means current
-    Google Play release.
+    bundle compatibility wins, but a matching app config may enrich that
+    compatible versionName with a known Android versionCode. This lets Google
+    Play purchase historical patch-compatible releases directly instead of
+    downloading today's version and rejecting it afterwards.
     """
     if package in CURRENT_PLAY_PACKAGES:
         return None
     if candidates:
-        return candidates[0]
+        candidate = candidates[0]
+        if candidate.code:
+            return candidate
+        configured = _configured_candidate_for_version(app_name, candidate.canonical)
+        if configured and configured.code:
+            return VersionCandidate(
+                name=candidate.name,
+                code=configured.code,
+                raw=candidate.raw,
+            )
+        return candidate
     for platform in providers.download_priority(app_name):
         try:
             config = providers.load_config(app_name, platform) or {}
@@ -221,17 +263,11 @@ def _download(app_name: str, source: str, arch: str) -> tuple[Path, str]:
             )
             input_apk.unlink(missing_ok=True)
             downloader.remove_apk_origin(app_name, arch)
-            # download_platform stages provider results before returning. If
-            # identity validation rejects that result, remove only files newly
-            # staged by this provider attempt so the bad label cannot poison
-            # the durable cache upload.
             for staged in _new_cache_entries(cache_before):
                 staged.unlink(missing_ok=True)
             continue
         return input_apk, version
 
-    # A GitHub-only app must never fall through to justapk/apkeep or any other
-    # third-party mirror if its configured GitHub release is unavailable.
     if not play_enabled:
         suffix = f" Identity errors: {'; '.join(identity_errors)}" if identity_errors else ""
         raise RuntimeError(
@@ -247,6 +283,13 @@ def _download(app_name: str, source: str, arch: str) -> tuple[Path, str]:
         (candidate for candidate in candidates if candidate.canonical == version),
         VersionCandidate(name=version),
     )
+    discovered_code = versioning.discovered_version_code(package, version)
+    if not fallback_candidate.code and discovered_code:
+        fallback_candidate = VersionCandidate(
+            name=fallback_candidate.name,
+            code=discovered_code,
+            raw=fallback_candidate.raw,
+        )
     fallback_errors: list[str] = []
     for fallback_name, fallback_downloader in (
         ("justapk", downloader.download_with_justapk),
@@ -298,8 +341,63 @@ def _download(app_name: str, source: str, arch: str) -> tuple[Path, str]:
         )
         return input_apk, version
 
+    browser_name = "browser-uptodown"
+    browser_input: Path | None = None
+    try:
+        browser_input = browser_fallback.download_candidate(
+            app_name,
+            package,
+            fallback_candidate,
+            Path("."),
+        )
+        if not apk_cache.is_valid_apk_archive(browser_input):
+            browser_input.unlink(missing_ok=True)
+            raise RuntimeError("returned HTML or a corrupt APK archive")
+        _validate_downloaded_identity(browser_input, package, fallback_candidate)
+        apk_cache.stage(browser_input, package, version, browser_name)
+        from src import provenance
+
+        provenance.record(
+            app_name,
+            version,
+            browser_name,
+            browser_input,
+            arch,
+            config={"package": package},
+        )
+        logging.info(
+            "✅ %s selected as final APK origin for %s v%s",
+            browser_name,
+            app_name,
+            version,
+        )
+        return browser_input, version
+    except apk_identity.ApkIdentityError as error:
+        if browser_input is not None:
+            browser_input.unlink(missing_ok=True)
+        identity_errors.append(f"{browser_name}: {error}")
+        fallback_errors.append(f"{browser_name}: {error}")
+        logging.warning(
+            "⚠️  %s returned a mismatched APK for %s: %s",
+            browser_name,
+            app_name,
+            error,
+        )
+    except Exception as error:
+        if browser_input is not None:
+            browser_input.unlink(missing_ok=True)
+        fallback_errors.append(
+            f"{browser_name}: {type(error).__name__}: {utils.safe_text_for_log(error)}"
+        )
+        logging.warning(
+            "⚠️  %s fallback failed for %s: %s",
+            browser_name,
+            app_name,
+            utils.safe_text_for_log(error),
+        )
+
     detail = "; ".join(fallback_errors)
-    raise RuntimeError(f"all non-browser fallbacks failed for {app_name}: {detail}")
+    raise RuntimeError(f"all APK fallbacks failed for {app_name}: {detail}")
 
 
 def _configured_arch(app_name: str, source: str) -> str:

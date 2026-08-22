@@ -3,20 +3,20 @@
 Uptodown's current download page can advertise the exact release while its
 primary Download action points at the Uptodown installer rather than the XAPK.
 When an explicit Uptodown slug is configured, prefer the public All variants
-flow; fall back to the legacy resolver only if that exact flow fails.
+flow; fall back to exact public history cards and then the legacy resolver.
 """
 
 from __future__ import annotations
 
 import logging
 import re
-from urllib.parse import urlparse
+from urllib.parse import urljoin, urlparse
 
 from bs4 import BeautifulSoup
 
 from src import uptodown as legacy
 from src import utils
-from src.versioning import VersionCandidate
+from src.versioning import VersionCandidate, parse_candidate
 
 
 # These are official Uptodown locale frontends observed for the same app/release.
@@ -144,6 +144,141 @@ def _direct_from_post_download(base_url: str, token: str) -> str | None:
         logging.info("Uptodown post-download response had no direct data-url")
         return None
     return f"https://dw.uptodown.com/dwn/{data_url}"
+
+
+def _text_contains_version_alias(text: str, alias: str) -> bool:
+    """Match one version token inside a card without prefix false positives."""
+    if not text or not alias:
+        return False
+    return re.search(
+        rf"(?<![0-9A-Za-z]){re.escape(alias)}(?![0-9A-Za-z])",
+        text,
+        flags=re.IGNORECASE,
+    ) is not None
+
+
+def _history_card_matches_candidate(card, candidate: VersionCandidate) -> bool:
+    """Match history metadata without depending on one Uptodown CSS class.
+
+    Uptodown has used ``.version``, ``.v-version`` and plain card text for the
+    same public history rows. The opaque version/file id is not Android's
+    versionCode, so release identity remains enforced after download by the
+    repository-wide manifest validator.
+    """
+    texts: list[str] = []
+    for attr in ("data-version", "data-version-name"):
+        value = str(card.get(attr) or "").strip()
+        if value:
+            texts.append(value)
+    for node in card.select(".version, .v-version, [data-version]"):
+        value = node.get_text(" ", strip=True)
+        if value:
+            texts.append(value)
+        data_version = str(node.get("data-version") or "").strip()
+        if data_version:
+            texts.append(data_version)
+    card_text = card.get_text(" ", strip=True)
+    if card_text:
+        texts.append(card_text)
+
+    aliases = tuple(candidate.aliases("uptodown"))
+    return any(
+        _text_contains_version_alias(text, alias)
+        for text in texts
+        for alias in aliases
+    )
+
+
+def _history_download_page(card, base_url: str) -> str | None:
+    """Build the concrete release page from Uptodown's rendered card contract."""
+    version_id = str(card.get("data-version-id") or "").strip()
+    if not version_id:
+        return None
+
+    data_url = str(card.get("data-url") or "").strip()
+    extra_url = str(card.get("data-extra-url") or "download").strip(" /")
+    if not extra_url:
+        extra_url = "download"
+
+    root = urljoin(f"{base_url.rstrip('/')}/", data_url) if data_url else base_url
+    release_page = f"{root.rstrip('/')}/{extra_url}/{version_id}"
+    hostname = (urlparse(release_page).hostname or "").casefold()
+    if hostname != "uptodown.com" and not hostname.endswith(".uptodown.com"):
+        logging.warning(
+            "Rejected non-Uptodown history release URL for %s",
+            utils.safe_url_for_log(base_url),
+        )
+        return None
+    return release_page
+
+
+def _direct_link_from_history(
+    candidate: VersionCandidate,
+    app_name: str,
+    config: dict,
+) -> str | None:
+    """Resolve an exact historical release using current public version cards.
+
+    Current Uptodown pages render each release as a card carrying
+    ``data-version-id``, ``data-url`` and ``data-extra-url``.  This is more
+    stable than the retired ``/apps/<code>/versions/<page>`` JSON endpoint and
+    avoids guessing opaque IDs.  The caller still validates package,
+    versionName and versionCode from the downloaded artifact.
+    """
+    for slug in _configured_slugs(config):
+        for base_url in _base_urls(slug):
+            versions_url = f"{base_url}/versions"
+            try:
+                response = utils.cf_aware_get(versions_url)
+                logging.info(
+                    "Uptodown history page status=%s for %s via %s",
+                    response.status_code,
+                    app_name,
+                    utils.safe_url_for_log(base_url),
+                )
+                if response.status_code != 200:
+                    continue
+                soup = BeautifulSoup(response.content, "html.parser")
+                cards = soup.select("[data-version-id]")
+                logging.info(
+                    "Uptodown history found %d version cards for %s via %s",
+                    len(cards),
+                    app_name,
+                    utils.safe_url_for_log(base_url),
+                )
+                for card in cards:
+                    if not _history_card_matches_candidate(card, candidate):
+                        continue
+                    release_page = _history_download_page(card, base_url)
+                    if not release_page:
+                        continue
+                    try:
+                        direct = legacy._download_url_from_page(release_page)
+                    except Exception as error:
+                        logging.info(
+                            "Uptodown exact history release failed for %s %s via %s: %s",
+                            app_name,
+                            candidate.describe(),
+                            utils.safe_url_for_log(base_url),
+                            utils.safe_text_for_log(error),
+                        )
+                        continue
+                    if direct:
+                        logging.info(
+                            "✓ Uptodown history resolved exact release %s %s via %s",
+                            app_name,
+                            candidate.describe(),
+                            utils.safe_url_for_log(base_url),
+                        )
+                        return direct
+            except Exception as error:
+                logging.info(
+                    "Uptodown history failed for %s (%s): %s",
+                    app_name,
+                    utils.safe_url_for_log(base_url),
+                    utils.safe_text_for_log(error),
+                )
+    return None
 
 
 def _direct_link_from_variants(
@@ -344,6 +479,9 @@ def get_download_link(
         direct = _direct_link_from_variants(requested, app_name, config)
         if direct:
             return direct
+        historical = _direct_link_from_history(requested, app_name, config)
+        if historical:
+            return historical
     link = legacy.get_download_link(
         version,
         app_name,
@@ -353,6 +491,9 @@ def get_download_link(
     if link:
         return link
     if not config.get("name"):
+        historical = _direct_link_from_history(requested, app_name, config)
+        if historical:
+            return historical
         return _direct_link_from_variants(requested, app_name, config)
     return None
 
@@ -363,15 +504,21 @@ def get_download_link_for_candidate(
     config: dict,
 ) -> str | None:
     # A configured slug is direct evidence of the intended Uptodown listing.
-    # Try that exact public All variants route before generic legacy guesses.
+    # Try that exact public route before generic legacy guesses.
     if config.get("name"):
         direct = _direct_link_from_variants(candidate, app_name, config)
         if direct:
             return direct
+        historical = _direct_link_from_history(candidate, app_name, config)
+        if historical:
+            return historical
     link = _legacy_candidate_link(candidate, app_name, config)
     if link:
         return link
     if not config.get("name"):
+        historical = _direct_link_from_history(candidate, app_name, config)
+        if historical:
+            return historical
         return _direct_link_from_variants(candidate, app_name, config)
     return None
 
