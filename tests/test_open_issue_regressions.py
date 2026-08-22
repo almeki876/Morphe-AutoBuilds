@@ -74,7 +74,7 @@ class OpenIssueRegressionTests(unittest.TestCase):
     @mock.patch("scripts.download_apks.providers.download_priority", return_value=["apkpure"])
     @mock.patch(
         "scripts.download_apks.providers.load_config",
-        return_value={"version": "32.13.2.100", "version_code": "1241322016"},
+        return_value={"version": "32.13.2.100", "version_code": "1241320216"},
     )
     def test_patch_version_is_enriched_with_configured_version_code(
         self,
@@ -90,7 +90,7 @@ class OpenIssueRegressionTests(unittest.TestCase):
         self.assertIsNotNone(selected)
         assert selected is not None
         self.assertEqual(selected.name, "32.13.2.100")
-        self.assertEqual(selected.code, "1241322016")
+        self.assertEqual(selected.code, "1241320216")
 
     def test_uptodown_history_card_uses_current_data_attributes(self) -> None:
         soup = uptodown_direct.BeautifulSoup(
@@ -107,7 +107,7 @@ class OpenIssueRegressionTests(unittest.TestCase):
         card = soup.select_one("[data-version-id]")
         self.assertIsNotNone(card)
         assert card is not None
-        candidate = VersionCandidate(name="32.13.2.100", code="1241322016")
+        candidate = VersionCandidate(name="32.13.2.100", code="1241320216")
 
         self.assertTrue(
             uptodown_direct._history_card_matches_candidate(card, candidate)
