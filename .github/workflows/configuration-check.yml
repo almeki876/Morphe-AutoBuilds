@@ -58,7 +58,7 @@ jobs:
       - name: Run Unit Tests
         run: python3 -m unittest discover tests
 
-      - name: Diagnose Uptodown historical JS contract
+      - name: Diagnose Uptodown historical variants route
         shell: bash
         run: |
           python3 - <<'PY'
@@ -87,42 +87,40 @@ jobs:
             if (String(card.innerText||card.textContent||'').includes('32.13.2.100')) { card.click(); return; }
           }''')
               time.sleep(1.8)
-              dom = browser.execute_script(r'''
-          const out=[];
-          for (const e of document.querySelectorAll('a,button,div,span')) {
-            const text=String(e.innerText||e.textContent||'').replace(/\s+/g,' ').trim();
-            const cls=String(e.className||'');
-            const attrs=Array.from(e.attributes||[]).map(a=>a.name);
-            if (!/variant|xapk|apk|download|file/i.test(text+' '+cls+' '+attrs.join(' '))) continue;
-            if (text.length>180) continue;
-            out.push({tag:e.tagName,text,cls:cls.slice(0,140),attrs,href:e.getAttribute('href')||'',
-                      dataFileId:e.getAttribute('data-file-id')||'',dataVersion:e.getAttribute('data-version')||'',
-                      dataDownloadVersion:e.getAttribute('data-download-version')||'',dataDwldng:e.getAttribute('data-dwldng')||''});
-            if(out.length>=60) break;
-          }
-          return out;''')
-              print('interesting-dom', dom)
-              scripts = browser.execute_script(r'''
-          return Array.from(document.scripts).map(s=>s.src).filter(Boolean).filter(x=>/download|detail|app|android/i.test(x));''')
-              print('candidate-scripts', scripts)
-              for src in scripts[:12]:
-                  result = browser.execute_async_script(r'''
-          const done=arguments[arguments.length-1], url=arguments[0];
-          fetch(url).then(r=>r.text()).then(text=>{
-            const terms=['data-dwldng','data-download-version','data-file-id','post-download','/app/','downloadUrl','only-xapk'];
-            const hits=[];
-            for(const term of terms){
-              let pos=0,count=0;
-              while((pos=text.indexOf(term,pos))>=0 && count<8){
-                const start=Math.max(0,pos-220), end=Math.min(text.length,pos+term.length+350);
-                let snip=text.slice(start,end).replace(/[A-Za-z0-9_-]{40,}/g,'<opaque>');
-                hits.push({term,snip}); pos+=term.length; count++;
-              }
-            }
-            done({url,length:text.length,hits:hits.slice(0,24)});
-          }).catch(e=>done({url,error:String(e)}));''', src)
-                  if result.get('hits'):
-                      print('script-hits', result)
+              ids = browser.execute_script(r'''
+          const h=document.querySelector('#detail-app-name');
+          const variants=document.querySelector('.variants[data-version], button.variants[data-version]');
+          return {appID:h&&h.getAttribute('data-code')||'', versionID:variants&&variants.getAttribute('data-version')||''};''')
+              print('route-ids', ids)
+              result = browser.execute_async_script(r'''
+          const done=arguments[arguments.length-1], app=arguments[0], ver=arguments[1];
+          fetch(`/app/${app}/version/${ver}/files`,{credentials:'same-origin'}).then(async r=>{
+            const text=await r.text(); let payload=null; try{payload=JSON.parse(text)}catch(e){}
+            const content=payload&&payload.content?String(payload.content):'';
+            const box=document.createElement('div'); box.innerHTML=content;
+            const rows=Array.from(box.querySelectorAll('.variant')).slice(0,10).map(v=>{
+              const report=v.querySelector('.v-report[data-file-id]');
+              const type=v.querySelector('.v-file > span');
+              const html=String(v.outerHTML||'');
+              return {fileId:report&&report.getAttribute('data-file-id')||'', type:type&&String(type.textContent||'').trim()||'',
+                      hasPostDownload:/\/android\/post-download\//.test(html), hasDirect:/dw\.uptodown\.com\/dwn\//.test(html),
+                      hasOnclick:Boolean(v.getAttribute('onclick')||v.querySelector('[onclick]'))};
+            });
+            done({status:r.status,title:payload&&payload.title||'',rows});
+          }).catch(e=>done({status:0,error:String(e)}));''', ids['appID'], ids['versionID'])
+              print('variants-result', result)
+              clicked = browser.execute_script(r'''
+          const e=document.querySelector('.variants[data-version], button.variants[data-version]');
+          if(!e)return false; e.click(); return true;''')
+              print('variants-clicked', clicked)
+              time.sleep(1.5)
+              visible = browser.execute_script(r'''
+          return Array.from(document.querySelectorAll('.variant')).slice(0,10).map(v=>({
+            text:String(v.innerText||v.textContent||'').replace(/\s+/g,' ').trim().slice(0,180),
+            attrs:Array.from(v.attributes).map(a=>a.name),
+            hasPostDownload:/\/android\/post-download\//.test(String(v.outerHTML||''))
+          }));''')
+              print('visible-variants', visible)
           finally:
               browser.quit()
           PY
