@@ -22,16 +22,18 @@ def resolve_candidate(package: str, candidate: VersionCandidate | None) -> Versi
 
     ``None`` means the patch side has no version restriction (``any``), so the
     current Google Play release is intentionally used. Explicit candidates must
-    carry a versionCode before gplaydl is invoked; otherwise gplaydl would fetch
-    the current release and only fail after downloading the wrong APK.
+    carry a trustworthy Android versionCode before gplaydl is invoked; otherwise
+    gplaydl would fetch the current release and only fail after downloading the
+    wrong APK.
     """
     if candidate is None:
         return None
 
-    # Explicit/configured versionCode is already directly usable. Raw patch CLI
-    # values are also preserved because some patch sources provide code+name in
-    # one line; existing identity validation remains the final guard.
-    if candidate.code:
+    # A non-raw candidate comes from explicit provider/config identity metadata
+    # rather than unverified patch CLI display text, so its code is authoritative.
+    # Raw patch output is deliberately re-verified: several patch sources print
+    # numeric build/display identifiers that are not AndroidManifest versionCode.
+    if candidate.code and candidate.raw is None:
         return candidate
 
     remembered = discovered_version_code(package, candidate.name)
