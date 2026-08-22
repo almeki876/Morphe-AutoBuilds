@@ -9,9 +9,10 @@ For explicitly versioned patch targets, Android ``versionCode`` is resolved
 at runtime before invoking gplaydl and passed through ``-v``. ``any`` remains
 the only path that intentionally asks Google Play for the current release.
 
-The upstream gplaydl CLI owns Google Play authentication, device-profile
-selection, purchase, delivery, and request headers. This wrapper intentionally
-does not modify that wire protocol.
+The upstream gplaydl CLI continues to own details, purchase, delivery,
+protobuf handling, device-profile selection, and downloads. A thin local
+runner may correct only market metadata (locale and MCC/MNC) supplied by the
+hosted dispenser when CI explicitly configures those values.
 """
 
 from __future__ import annotations
@@ -20,6 +21,7 @@ import logging
 import os
 import shutil
 import subprocess
+import sys
 import tempfile
 import zipfile
 from pathlib import Path
@@ -28,6 +30,9 @@ from src import apk_identity, play_version_resolver
 from src.versioning import VersionCandidate
 
 OFFICIAL_GPLAYDL_COMMAND = "gplaydl"
+GPLAYDL_MARKET_RUNNER = (
+    Path(__file__).resolve().parent.parent / "tools" / "gplaydl_market_runner.py"
+)
 
 # Apps that are intentionally distributed from an upstream GitHub release
 # rather than Google Play. Keep this list narrow and explicit.
@@ -101,9 +106,14 @@ def _linked_gplaydl_command(
     downloads: Path,
     version_code: str | None,
 ) -> list[str]:
-    """Build one authenticated gplaydl command without putting credentials in argv."""
+    """Build one authenticated upstream-gplaydl command without credentials in argv."""
+    # ``executable`` is intentionally resolved first to prove the pinned
+    # upstream CLI is installed. The runner then imports that same installed
+    # package and adjusts only explicitly configured market metadata.
+    _ = executable
     command = [
-        executable,
+        sys.executable,
+        str(GPLAYDL_MARKET_RUNNER),
         "download",
         package,
         "-o",
@@ -161,6 +171,8 @@ def _download_with_linked_gplaydl(
         raise FileNotFoundError(
             "GPLAYDL_API_KEY is configured but the upstream gplaydl CLI is not installed"
         )
+    if not GPLAYDL_MARKET_RUNNER.is_file():
+        raise FileNotFoundError(f"missing gplaydl market runner: {GPLAYDL_MARKET_RUNNER}")
 
     with tempfile.TemporaryDirectory(prefix="linked-google-play-", dir=output_dir) as tmp:
         downloads = Path(tmp) / "downloads"
@@ -168,12 +180,16 @@ def _download_with_linked_gplaydl(
         exact_code = str(candidate.code) if candidate and candidate.code else None
         command = _linked_gplaydl_command(executable, package, downloads, exact_code)
 
+        market_locale = os.getenv("GPLAYDL_MARKET_LOCALE", "").strip() or "upstream"
+        market_mccmnc = os.getenv("GPLAYDL_MARKET_MCCMNC", "").strip() or "upstream"
         logging.info(
-            "🔐 Authenticated Google Play first: package=%s%s",
+            "🔐 Authenticated Google Play first: package=%s%s market_locale=%s market_mccmnc=%s",
             package,
             f" exact-versionCode={candidate.code} ({candidate.name})"
             if exact_code and candidate
             else " current release",
+            market_locale,
+            market_mccmnc,
         )
         result = _run(command)
         if result.returncode == 0:
