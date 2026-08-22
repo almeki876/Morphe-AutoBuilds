@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import json
 import tempfile
 import unittest
+from dataclasses import replace
 from pathlib import Path
 
 from scripts.scan_virustotal import _load_cache, _save_cache, _scan_all
@@ -68,6 +70,44 @@ class VirusTotalPersistentCacheTests(unittest.TestCase):
             self.assertTrue(
                 all(result.method == "persistent hash cache" for result in results)
             )
+
+    def test_cache_keeps_only_detection_engine_details(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            apk = root / "sample.apk"
+            apk.write_bytes(b"sample")
+            digest = sha256_file(apk)
+            result = replace(
+                _result(apk, digest),
+                malicious=1,
+                verdict="unsafe",
+                engines={
+                    "CleanEngine": {
+                        "category": "undetected",
+                        "result": None,
+                        "engine_version": "1",
+                    },
+                    "DetectedEngine": {
+                        "category": "malicious",
+                        "result": "Example.Test",
+                        "engine_version": "2",
+                    },
+                },
+            )
+            cache_path = root / "hash-results.json"
+
+            _save_cache(cache_path, {digest: result})
+
+            raw_text = cache_path.read_text(encoding="utf-8")
+            payload = json.loads(raw_text)
+            engines = payload["results"][digest]["engines"]
+            self.assertNotIn("CleanEngine", engines)
+            self.assertEqual(engines["DetectedEngine"]["category"], "malicious")
+            self.assertNotIn("\n  ", raw_text)
+
+            loaded = _load_cache(cache_path)[digest]
+            self.assertEqual(set(loaded.engines), {"DetectedEngine"})
+            self.assertEqual(loaded.verdict, "unsafe")
 
 
 if __name__ == "__main__":
