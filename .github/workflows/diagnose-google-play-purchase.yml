@@ -1,0 +1,53 @@
+name: Diagnose Google Play Purchase
+
+on:
+  workflow_dispatch:
+    inputs:
+      package:
+        description: 'Google Play package to diagnose'
+        required: true
+        type: string
+      version_code:
+        description: 'Optional exact Google Play versionCode; blank uses current release'
+        required: false
+        default: ''
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: diagnose-google-play-purchase
+  cancel-in-progress: true
+
+jobs:
+  diagnose:
+    name: Diagnose Google Play purchase
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v7
+
+      - name: Setup Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.11'
+
+      - name: Setup Go for current gplaydl-dispenser
+        uses: actions/setup-go@v6
+        with:
+          go-version: '1.26.1'
+          cache: false
+
+      - name: Install Python Dependencies
+        run: pip install -r requirements.txt -q
+
+      - name: Diagnose current upstream gplaydl purchase response
+        env:
+          GPLAY_DIAGNOSTIC_PACKAGE: ${{ inputs.package }}
+          GPLAY_DIAGNOSTIC_VERSION_CODE: ${{ inputs.version_code }}
+          GPLAY_EMAIL: ${{ secrets.GPLAY_EMAIL }}
+          GPLAY_AAS_TOKEN: ${{ secrets.GPLAY_AAS_TOKEN }}
+        run: python3 -m scripts.diagnose_gplay_purchase
