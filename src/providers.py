@@ -144,8 +144,14 @@ def _configured_identity_code(
     from a store release. It is safe enrichment for a patch candidate only
     when the configured versionName is an exact match. This deliberately
     refuses stale pins when patch compatibility moves to another release.
+
+    A non-raw code is already an explicit/configured or provider-resolved
+    Android versionCode and must remain authoritative. A code attached to raw
+    patch CLI output is different: real build logs prove that some patch CLIs
+    put a display/build identifier in that position. In that case an exact
+    versionName-matched, hand-verified provider pin may replace the CLI value.
     """
-    if candidate.code:
+    if candidate.code and candidate.raw is None:
         return candidate.code
     provider_order = (
         *CONFIG_SOURCE_PRIORITY,
@@ -161,15 +167,17 @@ def _configured_identity_code(
             continue
         pinned = pinned_candidate(config)
         if pinned and pinned.code and pinned.name == candidate.name:
+            action = "replacing patch CLI id" if candidate.code else "enriching patch release"
             logging.info(
-                "🪪 %s: enriching patch release %s with configured versionCode %s from %s",
+                "🪪 %s: %s %s with configured versionCode %s from %s",
                 app_name,
+                action,
                 candidate.name,
                 pinned.code,
                 provider,
             )
             return pinned.code
-    return None
+    return candidate.code
 
 
 def resolve_patch_candidates(
@@ -237,14 +245,14 @@ def resolve_patch_candidates(
         if all(candidate.code for candidate in resolved):
             break
 
-    # If live package metadata could not supply versionCode, allow an exact
-    # hand-verified provider pin to fill only the missing code. Never replace a
-    # code already learned from live metadata or the patch CLI, and never carry
-    # a code across a versionName change.
+    # If live package metadata could not supply a trustworthy versionCode,
+    # allow an exact hand-verified provider pin to fill a missing code or
+    # replace a raw patch-CLI display id. Never replace an explicit/provider-
+    # resolved code and never carry a code across a versionName change.
     enriched: list[VersionCandidate] = []
     for candidate in resolved:
         code = _configured_identity_code(app_name, candidate)
-        if code and not candidate.code:
+        if code and code != candidate.code:
             enriched.append(
                 VersionCandidate(name=candidate.name, code=code, raw=candidate.raw)
             )
