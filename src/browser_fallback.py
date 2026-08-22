@@ -76,8 +76,6 @@ def _safe_download_url(raw: str, page_url: str) -> str | None:
         return value
     if value.startswith("/dwn/"):
         return "https://dw.uptodown.com" + value
-    # Uptodown's detail-download-button exposes only the signed token in
-    # data-url. Do not log this value; safe_url_for_log redacts it later.
     if "/" not in value and len(value) > 20:
         return f"https://dw.uptodown.com/dwn/{value}"
     return urljoin(page_url, value)
@@ -252,7 +250,6 @@ def resolve_uptodown_download(
                 if page_url:
                     browser.get(page_url)
                 else:
-                    # A button with no URL: click the exact element by version text.
                     browser.execute_script(
                         r"""
 const aliases = arguments[0].map(v => String(v).trim().toLowerCase());
@@ -303,3 +300,27 @@ return false;
     raise BrowserFallbackError(
         "rendered Uptodown lookup failed: " + "; ".join(errors[-8:])
     )
+
+
+def download_candidate(
+    app_name: str,
+    package: str,
+    candidate: VersionCandidate,
+    output_dir: Path | None = None,
+) -> Path:
+    """Discover with Chrome, download through the normal hardened HTTP path."""
+    spec = resolve_uptodown_download(app_name, package, candidate)
+    from src import downloader
+
+    path = downloader.download_resource(
+        spec.url,
+        headers=spec.headers,
+        validate_apk=True,
+    )
+    if output_dir and path.parent.resolve() != output_dir.resolve():
+        output_dir.mkdir(parents=True, exist_ok=True)
+        target = output_dir / path.name
+        if target.resolve() != path.resolve():
+            shutil.move(str(path), str(target))
+            path = target
+    return path
