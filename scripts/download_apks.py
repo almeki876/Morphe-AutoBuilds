@@ -14,15 +14,6 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from src import apk_cache, apk_identity, aurora_play, browser_fallback, downloader, providers, utils, versioning
 from src.versioning import VersionCandidate, pinned_candidate
 
-# Yuucho apps intentionally track the current Google Play release. Their GitHub
-# configs remain as a fallback only when Google Play cannot serve the app.
-CURRENT_PLAY_PACKAGES = frozenset(
-    {
-        "jp.japanpost.jp_bank.FIDOapp",
-        "jp.japanpost.jp_bank.bankbookapp",
-    }
-)
-
 
 def _find_tools(source: str) -> tuple[list[Path], Path, Path]:
     files, source_name = downloader.download_required(source)
@@ -94,25 +85,16 @@ def _preferred_play_candidate(
     package: str,
     candidates: list[VersionCandidate],
 ) -> VersionCandidate | None:
-    """Choose the exact patch-required release Play should try first.
+    """Apply the universal patch-to-Play version selection rule.
 
-    Patch candidates have already been enriched from live provider metadata when
-    possible. A configured pin is therefore only a fallback when the patch CLI
-    produced no compatible release at all.
+    Patch compatibility is authoritative for every app. When upstream supplies
+    explicit supported releases, the already newest-first first candidate is
+    requested exactly. An empty candidate list means upstream compatibility is
+    ``any`` and therefore intentionally requests the current Google Play release.
+    Provider config pins never choose the primary Play release.
     """
-    if package in CURRENT_PLAY_PACKAGES:
-        return None
-    if candidates:
-        return candidates[0]
-    for platform in providers.download_priority(app_name):
-        try:
-            config = providers.load_config(app_name, platform) or {}
-        except Exception:
-            continue
-        pinned = pinned_candidate(config)
-        if pinned:
-            return pinned
-    return None
+    del app_name, package
+    return candidates[0] if candidates else None
 
 
 def _new_cache_entries(before: set[Path]) -> set[Path]:
@@ -186,14 +168,18 @@ def _download(app_name: str, source: str, arch: str) -> tuple[Path, str]:
             ", ".join(candidate.describe() for candidate in candidates),
         )
     identity_errors: list[str] = []
+    play_only = providers.google_play_only(app_name)
 
     # Google Play is the preferred origin for every app except explicit
-    # GitHub-only packages such as AdGuard. Aurora/GPlayApi asks Google Play for
-    # the base APK and all required split APKs. If the patch-required release
-    # has a resolved versionCode it is supplied to PurchaseHelper directly;
-    # otherwise Play's current AppDetails versionCode is used and still must
-    # pass strict manifest identity validation.
+    # GitHub-only packages such as AdGuard. The upstream gplaydl CLI owns the
+    # details/purchase/delivery flow. Version selection is universal:
+    # explicit upstream-supported release -> newest candidate; any -> current.
     play_enabled = aurora_play.google_play_enabled(package)
+    if play_only and not play_enabled:
+        raise RuntimeError(
+            f"Source policy for {app_name} requires Google Play, but Google Play is disabled"
+        )
+
     if play_enabled:
         play_candidate = _preferred_play_candidate(app_name, package, candidates)
         play_input: Path | None = None
@@ -203,12 +189,8 @@ def _download(app_name: str, source: str, arch: str) -> tuple[Path, str]:
                 play_input.unlink(missing_ok=True)
                 raise RuntimeError("Google Play returned a corrupt APK archive")
             identity = _validate_downloaded_identity(play_input, package, play_candidate)
-            # Some split/base APKs legitimately omit versionName. The same
-            # main workflow that produced issues #285/#286/#289 verified such
-            # APKs successfully, then passed an empty version to the build job,
-            # which rejected the otherwise valid pre-downloaded input. Keep a
-            # stable non-empty release identity by falling back to manifest
-            # versionCode when versionName is absent.
+            # Some split/base APKs legitimately omit versionName. Keep a stable
+            # non-empty release identity by falling back to manifest versionCode.
             version = identity.version_name or identity.version_code or "unknown"
             _record_play_download(app_name, package, arch, play_input, version)
             logging.info("✅ Google Play selected as APK origin for %s v%s", app_name, version)
@@ -217,6 +199,10 @@ def _download(app_name: str, source: str, arch: str) -> tuple[Path, str]:
             if play_input is not None:
                 play_input.unlink(missing_ok=True)
             identity_errors.append(f"aurora-google-play: {error}")
+            if play_only:
+                raise RuntimeError(
+                    f"Google Play-only source failed identity validation for {app_name}: {error}"
+                ) from error
             logging.warning(
                 "⚠️  Google Play release does not match the requested release for %s: %s; "
                 "trying configured providers",
@@ -226,6 +212,11 @@ def _download(app_name: str, source: str, arch: str) -> tuple[Path, str]:
         except Exception as error:
             if play_input is not None:
                 play_input.unlink(missing_ok=True)
+            if play_only:
+                raise RuntimeError(
+                    f"Google Play-only source failed for {app_name}: "
+                    f"{type(error).__name__}: {error}"
+                ) from error
             logging.warning(
                 "⚠️  Google Play first-choice download failed for %s: %s: %s; "
                 "trying configured providers",

@@ -1,13 +1,20 @@
 """Authenticated Google Play APK downloads.
 
 Google Play is the preferred APK origin for every app except packages that are
-explicitly GitHub-only (currently AdGuard). Downloads must use the linked
-``gplaydl`` account configured through the ``GPLAYDL_API_KEY`` GitHub Actions
-secret. Anonymous Aurora/dispenser downloads are intentionally not supported.
+explicitly GitHub-only (currently AdGuard). Downloads use upstream ``gplaydl``.
+When ``GPLAY_EMAIL`` and ``GPLAY_AAS_TOKEN`` are available, CI first starts an
+ephemeral self-hosted dispenser on the runner and points gplaydl at it; otherwise
+the configured ``GPLAYDL_API_KEY``/dispenser path remains available.
 
-If the authenticated Google Play request fails, callers may continue with their
-configured non-Play providers, but this module never retries Google Play
-anonymously.
+For explicitly versioned patch targets, Android ``versionCode`` is resolved
+at runtime before invoking gplaydl and passed through ``-v``. ``any`` remains
+the only path that intentionally asks Google Play for the current release.
+
+The upstream gplaydl CLI owns authentication, details, purchase, delivery,
+protobuf handling, device-profile selection, and downloads. This wrapper does
+not rewrite Play purchase/delivery requests. ``GPLAYDL_DISPENSER_URL`` may point
+gplaydl at a compatible self-hosted or future region-aware dispenser without
+changing app selection logic.
 """
 
 from __future__ import annotations
@@ -20,7 +27,7 @@ import tempfile
 import zipfile
 from pathlib import Path
 
-from src import apk_identity
+from src import apk_identity, local_gplaydl_dispenser, play_version_resolver
 from src.versioning import VersionCandidate
 
 OFFICIAL_GPLAYDL_COMMAND = "gplaydl"
@@ -97,7 +104,7 @@ def _linked_gplaydl_command(
     downloads: Path,
     version_code: str | None,
 ) -> list[str]:
-    """Build one authenticated gplaydl command without putting credentials in argv."""
+    """Build one authenticated upstream-gplaydl command without credentials in argv."""
     command = [
         executable,
         "download",
@@ -107,6 +114,9 @@ def _linked_gplaydl_command(
         "-a",
         os.getenv("GPLAYDL_ARCH", "arm64"),
     ]
+    configured_dispenser = os.getenv("GPLAYDL_DISPENSER_URL", "").strip()
+    if configured_dispenser:
+        command.extend(["--dispenser", configured_dispenser])
     configured_email = (
         os.getenv("GPLAYDL_EMAIL", "").strip()
         or os.getenv("GPLAY_EMAIL", "").strip()
@@ -140,13 +150,21 @@ def _download_with_linked_gplaydl(
     candidate: VersionCandidate | None,
     output_dir: Path,
 ) -> Path:
-    """Download through upstream gplaydl 4.x using ``GPLAYDL_API_KEY``.
+    """Download through upstream gplaydl 4.x using a linked account.
 
-    When an exact versionCode lookup is unavailable, gplaydl can still serve the
-    same release through its normal current-release path. Probe that path once,
-    but only accept it after manifest identity matches the original exact
-    candidate. A different current release is deleted and treated as failure.
+    An explicit patch version always reaches this function with a resolved
+    versionCode and is sent to gplaydl through ``-v``. Only ``candidate=None``
+    (patch compatibility ``any``) intentionally requests the current release.
+
+    If AAS credentials are present, ``ensure_running`` replaces the hosted
+    dispenser credentials in this process with an ephemeral localhost dispenser
+    before gplaydl is started.
+
+    If a known exact versionCode is temporarily unavailable through a device
+    profile, probe the current release once and accept it only when its manifest
+    is exactly the requested release.
     """
+    local_gplaydl_dispenser.ensure_running()
     _require_linked_account()
 
     executable = shutil.which(OFFICIAL_GPLAYDL_COMMAND)
@@ -162,11 +180,12 @@ def _download_with_linked_gplaydl(
         command = _linked_gplaydl_command(executable, package, downloads, exact_code)
 
         logging.info(
-            "🔐 Authenticated Google Play first: package=%s%s",
+            "🔐 Authenticated Google Play first: package=%s%s%s",
             package,
             f" exact-versionCode={candidate.code} ({candidate.name})"
             if exact_code and candidate
             else " current release",
+            " custom-dispenser" if os.getenv("GPLAYDL_DISPENSER_URL", "").strip() else "",
         )
         result = _run(command)
         if result.returncode == 0:
@@ -224,12 +243,17 @@ def download_candidate(
             f"Google Play is disabled by repository policy for {package}; use GitHub"
         )
 
+    # Universal policy for every Play-enabled app:
+    #   any -> current release
+    #   explicit version -> dynamically resolve exact Android versionCode, then -v
+    play_candidate = play_version_resolver.resolve_candidate(package, candidate)
+
     output_dir = output_dir or Path(".")
     output_dir.mkdir(parents=True, exist_ok=True)
 
     # No anonymous fallback is permitted. Failure here intentionally bubbles up
     # to the caller, which can then try configured non-Play providers.
-    return _download_with_linked_gplaydl(package, candidate, output_dir)
+    return _download_with_linked_gplaydl(package, play_candidate, output_dir)
 
 
 def download_current(package: str, output_dir: Path | None = None) -> Path:

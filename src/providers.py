@@ -34,6 +34,9 @@ IDENTITY_RESOLUTION_PRIORITY = (
 )
 
 PRIMARY_PROVIDER_KEY = "primary"
+APP_METADATA_DIR = Path("app-metadata")
+DEFAULT_SOURCE_POLICY = "provider-chain"
+SOURCE_POLICIES = frozenset({DEFAULT_SOURCE_POLICY, "google-play-only"})
 
 MODULES: dict[str, ModuleType] = {
     "github": github,
@@ -69,6 +72,40 @@ CONFIG_SOURCE_PRIORITY = (
     "aptoide",
     "github",
 )
+
+
+def load_app_metadata(app_name: str) -> dict:
+    """Load provider-neutral package/source policy metadata for one app."""
+    path = APP_METADATA_DIR / f"{app_name}.json"
+    if not path.is_file():
+        return {}
+    try:
+        metadata = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as error:
+        raise ValueError(f"invalid app metadata {path}: {error}") from error
+    if not isinstance(metadata, dict):
+        raise ValueError(f"app metadata must be an object: {path}")
+    package = metadata.get("package")
+    if not isinstance(package, str) or not package.strip():
+        raise ValueError(f"app metadata has no package ID: {path}")
+    policy = metadata.get("source_policy", DEFAULT_SOURCE_POLICY)
+    if policy not in SOURCE_POLICIES:
+        raise ValueError(
+            f"invalid source_policy {policy!r} in {path}; "
+            f"expected one of {', '.join(sorted(SOURCE_POLICIES))}"
+        )
+    return metadata
+
+
+def source_policy(app_name: str) -> str:
+    """Return the app's provider-neutral APK source policy."""
+    metadata = load_app_metadata(app_name)
+    return str(metadata.get("source_policy", DEFAULT_SOURCE_POLICY))
+
+
+def google_play_only(app_name: str) -> bool:
+    """Return whether non-Play APK origins are forbidden for this app."""
+    return source_policy(app_name) == "google-play-only"
 
 
 def load_config(
@@ -111,6 +148,10 @@ def load_config(
 def configured_package(app_name: str) -> str | None:
     """Return one consistently configured package ID for an app."""
     found: list[tuple[str, str]] = []
+    metadata = load_app_metadata(app_name)
+    if metadata:
+        found.append(("metadata", str(metadata["package"])))
+
     provider_order = (
         *CONFIG_SOURCE_PRIORITY,
         *(provider for provider in MODULES if provider not in CONFIG_SOURCE_PRIORITY),
@@ -281,6 +322,17 @@ def validate_all_configs() -> list[str]:
     """Return human-readable configuration errors without touching the network."""
     errors: list[str] = []
     app_packages: dict[str, set[str]] = {}
+
+    if APP_METADATA_DIR.is_dir():
+        for metadata_path in sorted(APP_METADATA_DIR.glob("*.json")):
+            app_name = metadata_path.stem
+            try:
+                metadata = load_app_metadata(app_name)
+            except ValueError as error:
+                errors.append(str(error))
+                continue
+            app_packages.setdefault(app_name, set()).add(str(metadata["package"]))
+
     for provider_dir in sorted(Path("apps").iterdir()):
         if not provider_dir.is_dir():
             continue

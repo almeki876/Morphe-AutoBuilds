@@ -55,7 +55,7 @@ jobs:
           gh workflow run build.yml \
             --repo "$REPO" \
             --ref "$REF" \
-            -f updated_apps='adobe-acrobat,amazon-shopping,crunchyroll,fing,ibs_paint,lightroom,nova,poweramp,twitch-android-tv,yuucho-tsucho'
+            -f updated_apps='adobe-acrobat,amazon-shopping,crunchyroll,fing,ibs_paint,lightroom,nova,poweramp,twitch-android-tv,yuucho-tsucho,yuucho-ninsho'
 
           run_id=''
           for _ in $(seq 1 30); do
