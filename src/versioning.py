@@ -65,15 +65,25 @@ class VersionCandidate:
         if self.code is not None and not normalized_name:
             return normalized_code == self.code
 
-        # Some patch CLIs report only Android versionCode (for example Nova
-        # reports ``88600`` while the APK manifest versionName is ``8.8.6``).
-        # In that representation the code is authoritative and requiring the
-        # human-readable name to equal the numeric code rejects the right APK.
+        # A numeric-only patch CLI value is ambiguous in practice: some patch
+        # sources emit Android versionCode (for example Nova's ``88600``), while
+        # others emit a numeric versionName (Sleep as Android's ``20260616``).
+        # Both are exact manifest identifiers, so accept an exact match against
+        # either field instead of assuming every numeric CLI value is a code.
         if self.code is not None and self.name == self.code:
-            return normalized_code == self.code
+            return normalized_code == self.code or normalized_name == self.name
 
         if normalized_name in self.aliases(""):
             if self.code is None:
+                return True
+            # ``raw`` marks identities parsed from patch CLI output. Real build
+            # logs show that the leading numeric component in forms such as
+            # ``931240252 (5.161.0.931240252)`` and
+            # ``2607250000 (7.22.5.2607250000)`` is not necessarily the APK's
+            # manifest versionCode. In that case the exact versionName is the
+            # empirically verified release identity. Explicit/configured
+            # version codes (raw=None) remain strict below.
+            if self.raw is not None:
                 return True
             return normalized_code == self.code
 
