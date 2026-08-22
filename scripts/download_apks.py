@@ -11,7 +11,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from src import apk_cache, apk_identity, aurora_play, downloader, providers, utils, versioning
+from src import apk_cache, apk_identity, aurora_play, browser_fallback, downloader, providers, utils, versioning
 from src.versioning import VersionCandidate, pinned_candidate
 
 # Yuucho apps intentionally track the current Google Play release. Their GitHub
@@ -341,8 +341,63 @@ def _download(app_name: str, source: str, arch: str) -> tuple[Path, str]:
         )
         return input_apk, version
 
+    browser_name = "browser-uptodown"
+    browser_input: Path | None = None
+    try:
+        browser_input = browser_fallback.download_candidate(
+            app_name,
+            package,
+            fallback_candidate,
+            Path("."),
+        )
+        if not apk_cache.is_valid_apk_archive(browser_input):
+            browser_input.unlink(missing_ok=True)
+            raise RuntimeError("returned HTML or a corrupt APK archive")
+        _validate_downloaded_identity(browser_input, package, fallback_candidate)
+        apk_cache.stage(browser_input, package, version, browser_name)
+        from src import provenance
+
+        provenance.record(
+            app_name,
+            version,
+            browser_name,
+            browser_input,
+            arch,
+            config={"package": package},
+        )
+        logging.info(
+            "✅ %s selected as final APK origin for %s v%s",
+            browser_name,
+            app_name,
+            version,
+        )
+        return browser_input, version
+    except apk_identity.ApkIdentityError as error:
+        if browser_input is not None:
+            browser_input.unlink(missing_ok=True)
+        identity_errors.append(f"{browser_name}: {error}")
+        fallback_errors.append(f"{browser_name}: {error}")
+        logging.warning(
+            "⚠️  %s returned a mismatched APK for %s: %s",
+            browser_name,
+            app_name,
+            error,
+        )
+    except Exception as error:
+        if browser_input is not None:
+            browser_input.unlink(missing_ok=True)
+        fallback_errors.append(
+            f"{browser_name}: {type(error).__name__}: {utils.safe_text_for_log(error)}"
+        )
+        logging.warning(
+            "⚠️  %s fallback failed for %s: %s",
+            browser_name,
+            app_name,
+            utils.safe_text_for_log(error),
+        )
+
     detail = "; ".join(fallback_errors)
-    raise RuntimeError(f"all non-browser fallbacks failed for {app_name}: {detail}")
+    raise RuntimeError(f"all APK fallbacks failed for {app_name}: {detail}")
 
 
 def _configured_arch(app_name: str, source: str) -> str:
