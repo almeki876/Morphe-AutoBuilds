@@ -1,3 +1,4 @@
+import os
 import tempfile
 import unittest
 import zipfile
@@ -28,6 +29,76 @@ class AuroraPlayTests(unittest.TestCase):
                     {"base.apk", "split_config.arm64_v8a.apk"},
                 )
 
+    @mock.patch("src.aurora_play.shutil.which", return_value="/usr/bin/gplaydl")
+    @mock.patch("src.aurora_play._run")
+    def test_linked_gplaydl_uses_api_key_route_and_exact_version_code(
+        self,
+        run: mock.Mock,
+        _which: mock.Mock,
+    ) -> None:
+        def fake_run(command, *, cwd=None, env=None):
+            output = Path(command[command.index("-o") + 1])
+            (output / "com.example.app-123-base.apk").write_bytes(b"base")
+            (output / "com.example.app-123-config.arm64_v8a.apk").write_bytes(b"split")
+            return mock.Mock(returncode=0, stdout="ok")
+
+        run.side_effect = fake_run
+        candidate = VersionCandidate(name="1.2.3", code="123")
+        with mock.patch.dict(os.environ, {"GPLAYDL_API_KEY": "secret-key"}, clear=False):
+            with tempfile.TemporaryDirectory() as directory:
+                result = aurora_play.download_candidate(
+                    "com.example.app", candidate, Path(directory)
+                )
+                self.assertEqual(result.suffix, ".apks")
+
+        command = run.call_args.args[0]
+        self.assertEqual(command[:3], ["/usr/bin/gplaydl", "download", "com.example.app"])
+        self.assertEqual(command[command.index("-v") + 1], "123")
+        self.assertEqual(command[command.index("-a") + 1], "arm64")
+        self.assertNotIn("secret-key", command)
+
+    @mock.patch("src.aurora_play._download_with_repo_local_gplaydl")
+    @mock.patch("src.aurora_play._download_with_linked_gplaydl")
+    def test_linked_account_failure_falls_back_to_repo_local(
+        self,
+        linked: mock.Mock,
+        repo_local: mock.Mock,
+    ) -> None:
+        linked.side_effect = RuntimeError("linked service unavailable")
+        repo_local.return_value = Path("fallback.apk")
+        candidate = VersionCandidate(name="1.2.3", code="123")
+
+        with mock.patch.dict(os.environ, {"GPLAYDL_API_KEY": "secret-key"}, clear=False):
+            result = aurora_play.download_candidate("com.example.app", candidate, Path("."))
+
+        self.assertEqual(result, Path("fallback.apk"))
+        linked.assert_called_once()
+        repo_local.assert_called_once()
+
+    @mock.patch("src.aurora_play._ensure_downloader", return_value=Path("helper.jar"))
+    @mock.patch("src.aurora_play._run")
+    def test_repo_local_fallback_does_not_receive_official_api_key(
+        self,
+        run: mock.Mock,
+        _ensure_downloader: mock.Mock,
+    ) -> None:
+        def fake_run(command, *, cwd=None, env=None):
+            self.assertIsNotNone(env)
+            self.assertNotIn("GPLAYDL_API_KEY", env)
+            output = Path(command[command.index("--output") + 1])
+            package_dir = output / "com.example.app"
+            package_dir.mkdir(parents=True)
+            (package_dir / "base.apk").write_bytes(b"base")
+            return mock.Mock(returncode=0, stdout="ok")
+
+        run.side_effect = fake_run
+        with mock.patch.dict(os.environ, {"GPLAYDL_API_KEY": "secret-key"}, clear=False):
+            with tempfile.TemporaryDirectory() as directory:
+                result = aurora_play._download_with_repo_local_gplaydl(
+                    "com.example.app", None, Path(directory)
+                )
+                self.assertEqual(result.read_bytes(), b"base")
+
     @mock.patch("src.aurora_play._ensure_downloader", return_value=Path("helper.jar"))
     @mock.patch("src.aurora_play._run")
     def test_download_candidate_passes_exact_version_code_and_keeps_splits(
@@ -45,16 +116,17 @@ class AuroraPlayTests(unittest.TestCase):
 
         run.side_effect = fake_run
         candidate = VersionCandidate(name="32.13.2.100", code="1241322016")
-        with tempfile.TemporaryDirectory() as directory:
-            result = aurora_play.download_candidate(
-                "com.amazon.mShop.android.shopping",
-                candidate,
-                Path(directory),
-            )
-            self.assertTrue(result.is_file())
-            with zipfile.ZipFile(result) as archive:
-                self.assertIn("base.apk", archive.namelist())
-                self.assertIn("split_config.arm64_v8a.apk", archive.namelist())
+        with mock.patch.dict(os.environ, {"GPLAYDL_API_KEY": ""}, clear=False):
+            with tempfile.TemporaryDirectory() as directory:
+                result = aurora_play.download_candidate(
+                    "com.amazon.mShop.android.shopping",
+                    candidate,
+                    Path(directory),
+                )
+                self.assertTrue(result.is_file())
+                with zipfile.ZipFile(result) as archive:
+                    self.assertIn("base.apk", archive.namelist())
+                    self.assertIn("split_config.arm64_v8a.apk", archive.namelist())
 
         command = run.call_args.args[0]
         self.assertEqual(command[command.index("download") + 1], "com.amazon.mShop.android.shopping")
@@ -76,9 +148,10 @@ class AuroraPlayTests(unittest.TestCase):
             return mock.Mock(returncode=0, stdout="ok")
 
         run.side_effect = fake_run
-        with tempfile.TemporaryDirectory() as directory:
-            result = aurora_play.download_current("com.example.app", Path(directory))
-            self.assertEqual(result.read_bytes(), b"base")
+        with mock.patch.dict(os.environ, {"GPLAYDL_API_KEY": ""}, clear=False):
+            with tempfile.TemporaryDirectory() as directory:
+                result = aurora_play.download_current("com.example.app", Path(directory))
+                self.assertEqual(result.read_bytes(), b"base")
 
         command = run.call_args.args[0]
         self.assertNotIn("--version-code", command)
