@@ -46,3 +46,14 @@ def validate_apk(path: Path, expected_abi: str | None = None) -> set[str]:
             f"found: {', '.join(sorted(abis))}"
         )
     return abis
+
+
+def assert_valid_apk_archive(path: Path, expected_abi: str | None = None) -> None:
+    """Assert that ``path`` is a structurally valid APK archive.
+
+    This small assertion-style wrapper is used by download/normalization code
+    that only needs success-or-exception semantics. Keeping it here ensures all
+    callers share the same manifest/DEX/ZIP checks instead of maintaining a
+    second, weaker archive validator.
+    """
+    validate_apk(path, expected_abi=expected_abi)
