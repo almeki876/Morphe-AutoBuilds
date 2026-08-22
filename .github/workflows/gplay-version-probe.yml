@@ -1,0 +1,51 @@
+name: GPlay Version Probe
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/gplay-version-probe.yml
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      GPLAYDL_API_KEY: ${{ secrets.GPLAYDL_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install upstream gplaydl
+        run: python -m pip install --disable-pip-version-check 'gplaydl==4.2.1'
+      - name: Probe exact Play metadata
+        shell: bash
+        run: |
+          set -u
+          if [[ -z "${GPLAYDL_API_KEY:-}" ]]; then
+            echo 'GPLAYDL_API_KEY is not available to this PR workflow'
+            exit 1
+          fi
+          for package in \
+            com.amazon.mShop.android.shopping \
+            com.adobe.reader \
+            com.adobe.lrmobile \
+            com.crunchyroll.crunchyroid \
+            com ibispaint package-placeholder
+          do
+            :
+          done
+          packages=(
+            'com.amazon.mShop.android.shopping'
+            'com.adobe.reader'
+            'com.adobe.lrmobile'
+            'com.crunchyroll.crunchyroid'
+            'jp.ne.ibis.ibispaintx.app'
+          )
+          for package in "${packages[@]}"; do
+            echo "===== ${package} ====="
+            gplaydl info "${package}" --arch arm64 || true
+          done
