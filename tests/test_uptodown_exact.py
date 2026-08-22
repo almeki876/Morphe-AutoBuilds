@@ -11,12 +11,12 @@ class UptodownExactTests(unittest.TestCase):
     def test_entry_matches_separate_version_name_and_code(self) -> None:
         entry = {
             "version": "32.13.2.100",
-            "versionCode": 1241322016,
+            "versionCode": 1241320216,
             "fileID": 99,
         }
         candidate = VersionCandidate(
             name="32.13.2.100",
-            code="1241322016",
+            code="1241320216",
         )
 
         self.assertTrue(uptodown_exact._entry_matches_candidate(entry, candidate))
@@ -29,10 +29,70 @@ class UptodownExactTests(unittest.TestCase):
         }
         candidate = VersionCandidate(
             name="32.13.2.100",
-            code="1241322016",
+            code="1241320216",
         )
 
         self.assertFalse(uptodown_exact._entry_matches_candidate(entry, candidate))
+
+    @mock.patch("src.uptodown_exact.legacy._api_get")
+    @mock.patch("src.uptodown_exact.legacy._api_app_id", return_value="12345")
+    def test_resolve_candidate_identities_enriches_patch_name_with_live_code(
+        self,
+        api_app_id: mock.Mock,
+        api_get: mock.Mock,
+    ) -> None:
+        versions = mock.Mock(status_code=200)
+        versions.json.return_value = {
+            "data": [
+                {
+                    "version": "32.13.2.100",
+                    "versionCode": 1241320216,
+                    "fileID": 67890,
+                }
+            ]
+        }
+        api_get.return_value = versions
+
+        resolved = uptodown_exact.resolve_candidate_identities(
+            "com.amazon.mShop.android.shopping",
+            [VersionCandidate(name="32.13.2.100")],
+        )
+
+        self.assertEqual(
+            resolved,
+            [VersionCandidate(name="32.13.2.100", code="1241320216")],
+        )
+        api_app_id.assert_called_once_with("com.amazon.mShop.android.shopping")
+
+    @mock.patch("src.uptodown_exact.legacy._api_get")
+    @mock.patch("src.uptodown_exact.legacy._api_app_id", return_value="12345")
+    def test_resolve_candidate_identities_recovers_name_from_patch_version_code(
+        self,
+        api_app_id: mock.Mock,
+        api_get: mock.Mock,
+    ) -> None:
+        versions = mock.Mock(status_code=200)
+        versions.json.return_value = {
+            "data": [
+                {
+                    "version": "8.8.6",
+                    "versionCode": 88600,
+                    "fileID": 42,
+                }
+            ]
+        }
+        api_get.return_value = versions
+
+        resolved = uptodown_exact.resolve_candidate_identities(
+            "com.teslacoilsw.launcher",
+            [VersionCandidate(name="88600", code="88600")],
+        )
+
+        self.assertEqual(
+            resolved,
+            [VersionCandidate(name="8.8.6", code="88600")],
+        )
+        api_app_id.assert_called_once_with("com.teslacoilsw.launcher")
 
     @mock.patch("src.uptodown_exact.legacy._api_get")
     @mock.patch("src.uptodown_exact.legacy._api_app_id", return_value="12345")
@@ -57,7 +117,7 @@ class UptodownExactTests(unittest.TestCase):
             "data": [
                 {
                     "version": "32.13.2.100",
-                    "versionCode": 1241322016,
+                    "versionCode": 1241320216,
                     "fileID": 67890,
                 }
             ]
@@ -74,7 +134,7 @@ class UptodownExactTests(unittest.TestCase):
             "com.amazon.mShop.android.shopping",
             VersionCandidate(
                 name="32.13.2.100",
-                code="1241322016",
+                code="1241320216",
             ),
         )
 
@@ -110,7 +170,7 @@ class UptodownExactTests(unittest.TestCase):
             "com.amazon.mShop.android.shopping",
             VersionCandidate(
                 name="32.13.2.100",
-                code="1241322016",
+                code="1241320216",
             ),
         )
 
