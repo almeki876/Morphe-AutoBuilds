@@ -25,6 +25,55 @@ VERSION_PATTERNS = (
     re.compile(r"(?:version|v)[=:\s]+([0-9][^\s,)]*)", re.IGNORECASE),
 )
 
+# Anddea currently keeps these as separate formal patch/option owners in
+# patches-list.json, while the CLI reports their successful application under
+# aggregate names. These aliases are deliberately scoped to the exact app and
+# source observed in workflow run 32552728764; do not apply fuzzy matching to
+# unrelated patch sources.
+_FEATURE_APPLIED_ALIASES: dict[tuple[str, str], dict[str, str]] = {
+    ("youtube", "revanced-anddea"): {
+        "Custom branding icon for YouTube": "Custom branding for YouTube",
+        "Custom branding name for YouTube": "Custom branding for YouTube",
+        "Custom header for YouTube": "Custom branding for YouTube",
+    },
+    ("youtube-music", "revanced-anddea"): {
+        "Custom branding icon for YouTube Music": "Custom branding for YouTube Music",
+        "Custom branding name for YouTube Music": "Custom branding for YouTube Music",
+        "Custom header for YouTube Music": "Custom branding for YouTube Music",
+        "Dark theme": "Theme",
+    },
+}
+
+
+def _feature_failures(report: dict) -> list[dict]:
+    """Return genuine feature failures after exact, evidence-backed aliases.
+
+    The build report intentionally preserves the CLI's raw applied names. This
+    normalization exists only for issue lifecycle decisions, where treating a
+    formally named option patch as missing after its aggregate patch was
+    reported as applied would create a false tracking issue.
+    """
+    failures = [
+        item for item in (report.get("feature_failures") or [])
+        if isinstance(item, dict)
+    ]
+    if not failures:
+        return []
+
+    key = (str(report.get("app_name") or ""), str(report.get("source") or ""))
+    aliases = _FEATURE_APPLIED_ALIASES.get(key, {})
+    if not aliases:
+        return failures
+
+    applied = {str(name) for name in (report.get("applied_patches") or [])}
+    genuine: list[dict] = []
+    for failure in failures:
+        requested = str(failure.get("name") or "")
+        aggregate = aliases.get(requested)
+        if not aggregate or aggregate not in applied:
+            genuine.append(failure)
+    return genuine
+
 
 def _configured_package(app_name: str) -> str | None:
     """Return the package ID from the app configs without importing src."""
@@ -280,7 +329,7 @@ def _manage_feature_lifecycle(
 ) -> None:
     app = str(report.get("app_name") or status.get("app"))
     source_name = str(report.get("source_name") or status.get("source"))
-    failures = report.get("feature_failures") or []
+    failures = _feature_failures(report)
     if failures:
         for patch in failures:
             patch_name = str(patch.get("name") or "unknown")
@@ -292,7 +341,16 @@ def _manage_feature_lifecycle(
             _publish(title, _feature_body(report, status, patch))
         return
 
-    if report.get("fully_applied") is True:
+    # A report produced before alias normalization can carry fully_applied=false
+    # solely because of one of the aggregate-name cases above. If the build
+    # itself succeeded and there are no genuine feature/patch failures, treat
+    # the tracking lifecycle as fully applied and close stale false positives.
+    tracking_fully_applied = (
+        report.get("status") == "success"
+        and not failures
+        and not (report.get("failed_patches") or [])
+    )
+    if report.get("fully_applied") is True or tracking_fully_applied:
         message = (
             f"CI verified that all requested patches are applied for {app} "
             f"with source {source_name}. Closing this resolved tracking issue."
