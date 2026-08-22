@@ -63,22 +63,49 @@ def _expected_candidate(
     )
 
 
+def _configured_candidate_for_version(
+    app_name: str,
+    version: str,
+) -> VersionCandidate | None:
+    """Return configured release metadata when it refers to ``version`` exactly."""
+    for platform in providers.download_priority(app_name):
+        try:
+            config = providers.load_config(app_name, platform) or {}
+        except Exception:
+            continue
+        pinned = pinned_candidate(config)
+        if pinned and pinned.canonical == version:
+            return pinned
+    return None
+
+
 def _preferred_play_candidate(
     app_name: str,
     package: str,
     candidates: list[VersionCandidate],
 ) -> VersionCandidate | None:
-    """Choose the release Play should try without guessing a versionCode.
+    """Choose the exact release Play should try without guessing identifiers.
 
     Yuucho explicitly tracks the current Play release. For other apps patch-
-    bundle compatibility wins. If the bundle is unpinned/Any, retain an
-    explicit app-level pin when one exists. Otherwise ``None`` means current
-    Google Play release.
+    bundle compatibility wins, but a matching app config may enrich that
+    compatible versionName with a known Android versionCode. This lets Google
+    Play purchase historical patch-compatible releases directly instead of
+    downloading today's version and rejecting it afterwards.
     """
     if package in CURRENT_PLAY_PACKAGES:
         return None
     if candidates:
-        return candidates[0]
+        candidate = candidates[0]
+        if candidate.code:
+            return candidate
+        configured = _configured_candidate_for_version(app_name, candidate.canonical)
+        if configured and configured.code:
+            return VersionCandidate(
+                name=candidate.name,
+                code=configured.code,
+                raw=candidate.raw,
+            )
+        return candidate
     for platform in providers.download_priority(app_name):
         try:
             config = providers.load_config(app_name, platform) or {}
@@ -221,17 +248,11 @@ def _download(app_name: str, source: str, arch: str) -> tuple[Path, str]:
             )
             input_apk.unlink(missing_ok=True)
             downloader.remove_apk_origin(app_name, arch)
-            # download_platform stages provider results before returning. If
-            # identity validation rejects that result, remove only files newly
-            # staged by this provider attempt so the bad label cannot poison
-            # the durable cache upload.
             for staged in _new_cache_entries(cache_before):
                 staged.unlink(missing_ok=True)
             continue
         return input_apk, version
 
-    # A GitHub-only app must never fall through to justapk/apkeep or any other
-    # third-party mirror if its configured GitHub release is unavailable.
     if not play_enabled:
         suffix = f" Identity errors: {'; '.join(identity_errors)}" if identity_errors else ""
         raise RuntimeError(
