@@ -25,6 +25,7 @@ KNOWN_PROVIDERS = {
     "aptoide",
     "apkcombo",
 }
+SOURCE_POLICIES = {"provider-chain", "google-play-only"}
 # Normal apps must follow the patch bundle's current default/recommended set.
 # These are deliberate exceptions with app-specific patch-selection semantics:
 # YouTube/YouTube Music carry user customizations, Gboard combines overlapping
@@ -85,6 +86,20 @@ def _string_list(
 
 def _configured_packages(validation: Validation) -> dict[str, set[str]]:
     result: dict[str, set[str]] = {}
+
+    metadata_root = ROOT / "app-metadata"
+    if metadata_root.is_dir():
+        for path in sorted(metadata_root.glob("*.json")):
+            data = _load_json(path, validation)
+            if not isinstance(data, dict):
+                validation.error(f"{path.relative_to(ROOT)} must be an object")
+                continue
+            package = data.get("package")
+            if not isinstance(package, str) or not package.strip():
+                validation.error(f"{path.relative_to(ROOT)}: missing package ID")
+                continue
+            result.setdefault(path.stem, set()).add(package)
+
     apps_root = ROOT / "apps"
     if not apps_root.is_dir():
         validation.error("missing required directory: apps")
@@ -111,6 +126,26 @@ def _configured_packages(validation: Validation) -> dict[str, set[str]]:
                 f"conflicting package IDs for {app}: {', '.join(sorted(packages))}"
             )
     return result
+
+
+def _validate_app_metadata(validation: Validation) -> None:
+    metadata_root = ROOT / "app-metadata"
+    if not metadata_root.is_dir():
+        return
+    for path in sorted(metadata_root.glob("*.json")):
+        data = _load_json(path, validation)
+        if not isinstance(data, dict):
+            continue
+        relative = path.relative_to(ROOT)
+        package = data.get("package")
+        if isinstance(package, str) and not PACKAGE_RE.fullmatch(package):
+            validation.error(f"{relative}: invalid Android package ID {package!r}")
+        policy = data.get("source_policy", "provider-chain")
+        if policy not in SOURCE_POLICIES:
+            validation.error(
+                f"{relative}: source_policy must be one of "
+                + ", ".join(sorted(SOURCE_POLICIES))
+            )
 
 
 def _validate_patch_config(
@@ -313,6 +348,7 @@ def validate() -> Validation:
     packages = _configured_packages(result)
     patch_pairs = _validate_patch_config(packages, result)
     _validate_arch_config(patch_pairs, result)
+    _validate_app_metadata(result)
     _validate_provider_configs(result)
     _validate_sources(result)
     _validate_state(result)
