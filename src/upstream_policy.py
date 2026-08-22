@@ -9,8 +9,9 @@ loaded:
 * ``force_enable`` is ignored so it cannot promote a non-recommended patch;
 * legacy per-app patch allowlists are ignored when recommendation metadata is
   unavailable, leaving selection to the CLI defaults;
-* when the patch side has no version restriction (``any``), provider version
-  pins are ignored for this run so Google Play's current release is selected.
+* when the patch side explicitly reports no version restriction (``any``),
+  provider version pins are ignored for this run so the current store release
+  is selected.
 
 Nothing here changes committed configuration. GitHub Actions starts from a clean
 checkout for every job, so these edits affect only the current process/worktree.
@@ -177,14 +178,44 @@ def _package_for_app(app_name: str, apps_root: Path = Path("apps")) -> str | Non
     return next(iter(packages)) if len(packages) == 1 else None
 
 
+def _list_versions_output(package: str, cli: Path, bundle: Path) -> str | None:
+    """Ask the current CLI directly so ``any`` is distinguishable from errors."""
+    try:
+        from src import cli_compat, utils
+
+        kind = cli_compat.detect_cli_kind(cli)
+        if kind == cli_compat.MORPHE:
+            command = [
+                "java", "-jar", str(cli), "list-versions",
+                "--patches", str(bundle), "-f", package,
+            ]
+        elif kind == cli_compat.REVANCED_V5PLUS:
+            command = [
+                "java", "-jar", str(cli), "list-versions",
+                str(bundle), "-f", package,
+            ]
+        else:
+            command = [
+                "java", "-jar", str(cli), "list-versions",
+                "-f", package, str(bundle),
+            ]
+        return utils.run_process(
+            command,
+            capture=True,
+            silent=True,
+            check=False,
+        )
+    except Exception as error:
+        logging.info("Could not inspect raw list-versions output for %s: %s", package, error)
+        return None
+
+
 def _patch_has_version_restriction(package: str, source: str) -> bool | None:
-    """Return False for ``any``, True for explicit versions, None if unknown."""
+    """Return False only for explicit ``any``, True for versions, else None."""
     cli, bundle = _tool_files(source)
     if cli is None or bundle is None:
         return None
     try:
-        # Import lazily: src.__init__ has already initialized shared globals by
-        # the time prepare_runtime_policy() calls this helper.
         from src import utils
 
         candidates = utils.get_supported_version_candidates(
@@ -195,7 +226,15 @@ def _patch_has_version_restriction(package: str, source: str) -> bool | None:
     except Exception as error:
         logging.info("Could not resolve upstream version policy for %s: %s", package, error)
         return None
-    return bool(candidates)
+    if candidates:
+        return True
+
+    output = _list_versions_output(package, cli, bundle)
+    if not output:
+        return None
+    if any(line.strip().casefold() == "any" for line in output.splitlines()):
+        return False
+    return None
 
 
 def _ignore_provider_version_pins_for_any(app_name: str, apps_root: Path = Path("apps")) -> None:
@@ -243,7 +282,7 @@ def prepare_runtime_policy() -> None:
     restriction = _patch_has_version_restriction(package, source)
     if restriction is False:
         logging.info(
-            "Patch side has no version restriction for %s; ignoring local version pins and using current store release",
+            "Patch side explicitly reports any for %s; ignoring local version pins and using current store release",
             app_name,
         )
         _ignore_provider_version_pins_for_any(app_name)
