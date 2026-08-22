@@ -4,7 +4,7 @@ from pathlib import Path
 from unittest import mock
 
 from scripts import download_apks
-from src import aurora_play
+from src import apk_identity, aurora_play, versioning
 from src.versioning import VersionCandidate, parse_candidate
 
 
@@ -24,6 +24,37 @@ class OpenIssueRegressionTests(unittest.TestCase):
         self.assertTrue(candidate.matches("88600 (8.8.6)", "88600"))
         self.assertFalse(candidate.matches("88600 (8.8.5)", "88600"))
         self.assertFalse(candidate.matches("88600 (8.8.6)", "88500"))
+
+    def test_exact_version_code_allows_missing_split_version_name(self) -> None:
+        candidate = VersionCandidate(name="12.12.0", code="121200004")
+        self.assertTrue(candidate.matches("", "121200004"))
+        self.assertFalse(candidate.matches("", "121200003"))
+        self.assertFalse(VersionCandidate(name="12.12.0").matches("", "121200004"))
+
+    def test_aapt_package_line_survives_later_resource_error(self) -> None:
+        completed = mock.Mock(
+            returncode=1,
+            stdout="package: name='tv.twitch.android.app' versionCode='1100000018' versionName='13.0.0.2'\n",
+            stderr="AndroidManifest.xml:26: error: ERROR getting 'android:icon' attribute",
+        )
+        with mock.patch("src.apk_identity.subprocess.run", return_value=completed):
+            identity = apk_identity._read_plain_apk_identity(Path("twitch.apk"), "aapt")
+        self.assertEqual(identity.package_name, "tv.twitch.android.app")
+        self.assertEqual(identity.version_name, "13.0.0.2")
+        self.assertEqual(identity.version_code, "1100000018")
+
+    def test_discovered_provider_code_enriches_expected_identity(self) -> None:
+        package = "com.overlook.android.fing"
+        versioning.remember_version_code(package, "12.12.0", "121200004")
+        with (
+            mock.patch("scripts.download_apks.providers.load_config", return_value={}),
+            mock.patch("scripts.download_apks.providers.configured_package", return_value=package),
+        ):
+            candidate = download_apks._expected_candidate(
+                "fing", "apkmirror", "12.12.0", [VersionCandidate(name="12.12.0")]
+            )
+        self.assertEqual(candidate.code, "121200004")
+        self.assertTrue(candidate.matches("", "121200004"))
 
     def test_poweramp_build_version_exposes_google_play_version_code(self) -> None:
         candidate = parse_candidate("build-1025-bundle-play (1 patch)")
