@@ -76,6 +76,21 @@ class UptodownHistoryMarkupTests(unittest.TestCase):
             "https://crunchyroll.en.uptodown.com/android/download/424242",
         )
 
+    def test_browser_history_card_keeps_concrete_data_url(self) -> None:
+        target = {
+            "dataVersionId": "424242",
+            "dataExtraUrl": "download",
+            "dataUrl": "https://crunchyroll.en.uptodown.com/android/download/424242",
+            "href": "",
+        }
+        self.assertEqual(
+            browser_fallback._version_target_page_url(
+                target,
+                "https://crunchyroll.en.uptodown.com/android/versions",
+            ),
+            "https://crunchyroll.en.uptodown.com/android/download/424242",
+        )
+
     def test_browser_rejects_generic_download_page_as_binary(self) -> None:
         target = {
             "dataUrl": "",
