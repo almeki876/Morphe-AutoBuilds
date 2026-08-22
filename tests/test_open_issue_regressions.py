@@ -17,6 +17,14 @@ class OpenIssueRegressionTests(unittest.TestCase):
         self.assertTrue(candidate.matches("8.8.6", "88600"))
         self.assertFalse(candidate.matches("8.8.9", "88900"))
 
+    def test_nova_code_prefixed_manifest_name_matches_exact_candidate(self) -> None:
+        candidate = parse_candidate("88600 (8.8.6)")
+        self.assertIsNotNone(candidate)
+        assert candidate is not None
+        self.assertTrue(candidate.matches("88600 (8.8.6)", "88600"))
+        self.assertFalse(candidate.matches("88600 (8.8.5)", "88600"))
+        self.assertFalse(candidate.matches("88600 (8.8.6)", "88500"))
+
     def test_poweramp_build_version_exposes_google_play_version_code(self) -> None:
         candidate = parse_candidate("build-1025-bundle-play (1 patch)")
         self.assertIsNotNone(candidate)
