@@ -36,4 +36,4 @@ jobs:
           gh workflow run build.yml \
             --repo "$REPO" \
             --ref "$REF" \
-            -f updated_apps='adobe-acrobat,amazon-shopping,crunchyroll,fing,ibs_paint,lightroom,nova,twitch-android-tv,youtube-music'
+            -f updated_apps='adobe-acrobat,amazon-shopping,crunchyroll,fing,ibs_paint,lightroom,nova,poweramp,twitch-android-tv,yuucho-tsucho'
