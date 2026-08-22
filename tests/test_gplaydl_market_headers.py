@@ -1,3 +1,4 @@
+import importlib.util
 import tempfile
 import unittest
 from pathlib import Path
@@ -35,6 +36,20 @@ class GPlayDlMarketHeadersTests(unittest.TestCase):
             self.assertNotIn("ja_JP", patched)
             self.assertNotIn("44010", patched)
             self.assertNotIn("jp.japanpost", patched)
+
+    def test_installed_gplaydl_auth_shape_is_supported(self) -> None:
+        spec = importlib.util.find_spec("gplaydl.auth")
+        self.assertIsNotNone(spec)
+        self.assertIsNotNone(spec.origin if spec else None)
+        installed = Path(spec.origin)  # type: ignore[arg-type]
+
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "auth.py"
+            path.write_text(installed.read_text(encoding="utf-8"), encoding="utf-8")
+            market_headers.patch_auth_headers(path)
+            patched = path.read_text(encoding="utf-8")
+            self.assertIn('auth.get("locale")', patched)
+            self.assertIn('"Accept-Language": accept_language', patched)
 
     def test_patch_is_idempotent(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
