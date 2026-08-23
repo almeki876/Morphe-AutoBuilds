@@ -23,19 +23,40 @@ on:
 permissions:
   actions: write
   contents: read
+  pull-requests: read
 
 jobs:
   verify:
-    name: Run and verify open-issue regression builds
+    name: Run targeted APK verification
     runs-on: ubuntu-latest
     timeout-minutes: 90
     steps:
-      - name: Dispatch regression build and wait for its conclusion
+      - name: Checkout Repository
+        uses: actions/checkout@v7
+
+      - name: Select minimal build scope
+        id: scope
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          gh pr diff "$PR_NUMBER" --repo "$REPO" --name-only \
+            | python3 scripts/pr_build_scope.py --github-output "$GITHUB_OUTPUT"
+
+      - name: Skip APK build when no runtime input changed
+        if: steps.scope.outputs.needs_build != 'true'
+        run: echo "No app, patch source, or build-runtime change requires an APK build." >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Dispatch targeted build and wait for its conclusion
+        if: steps.scope.outputs.needs_build == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
           REF: ${{ github.head_ref }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          UPDATED_APPS: ${{ steps.scope.outputs.updated_apps }}
+          UPDATED_SOURCES: ${{ steps.scope.outputs.updated_sources }}
         run: |
           set -euo pipefail
 
@@ -55,7 +76,8 @@ jobs:
           gh workflow run build.yml \
             --repo "$REPO" \
             --ref "$REF" \
-            -f updated_apps='adobe-acrobat,amazon-shopping,crunchyroll,fing,ibs_paint,lightroom,nova,poweramp,twitch-android-tv,yuucho-tsucho,yuucho-ninsho'
+            -f updated_apps="$UPDATED_APPS" \
+            -f updated_sources="$UPDATED_SOURCES"
 
           run_id=''
           for _ in $(seq 1 30); do
@@ -81,8 +103,10 @@ jobs:
           fi
 
           run_url="https://github.com/$REPO/actions/runs/$run_id"
-          echo "Regression build: $run_url" >> "$GITHUB_STEP_SUMMARY"
-          echo "Waiting for Build Apps run $run_id to finish..."
+          echo "Targeted build: $run_url" >> "$GITHUB_STEP_SUMMARY"
+          echo "Apps: ${UPDATED_APPS:-none}" >> "$GITHUB_STEP_SUMMARY"
+          echo "Sources: ${UPDATED_SOURCES:-none}" >> "$GITHUB_STEP_SUMMARY"
+          echo "Waiting for targeted Build Apps run $run_id to finish..."
 
           # --exit-status makes this PR check fail when any downstream build job fails.
           gh run watch "$run_id" --repo "$REPO" --interval 20 --exit-status
