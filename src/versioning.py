@@ -151,7 +151,10 @@ class ParsedCandidates(list[VersionCandidate]):
         self.unrestricted = unrestricted
 
     def __bool__(self) -> bool:
-        return super().__bool__() or self.unrestricted
+        # list does not implement __bool__; sequence truthiness is based on
+        # __len__. Use length explicitly while preserving the special truthy
+        # state for a recognized unrestricted (Any/null) policy.
+        return len(self) > 0 or self.unrestricted
 
 
 def remember_version_code(package: str, version: str, code: str) -> None:
