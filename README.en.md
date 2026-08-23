@@ -2,9 +2,9 @@
 
 [Japanese](README.md) | [English]
 
-[![Upstream Check](https://img.shields.io/github/actions/workflow/status/matchadaisuke/Morphe-AutoBuilds/check-upstream.yml?label=upstream%20check)](https://github.com/matchadaisuke/Morphe-AutoBuilds/actions/workflows/check-upstream.yml)
-[![Build Status](https://img.shields.io/github/actions/workflow/status/matchadaisuke/Morphe-AutoBuilds/build.yml?label=build)](https://github.com/matchadaisuke/Morphe-AutoBuilds/actions/workflows/build.yml)
-[![Latest Release](https://img.shields.io/github/v/release/matchadaisuke/Morphe-AutoBuilds?label=latest%20release)](https://github.com/matchadaisuke/Morphe-AutoBuilds/releases/latest)
+[![Upstream Check](https://img.shields.io/github/actions/workflow/status/almeki876/Morphe-AutoBuilds/check-upstream.yml?label=upstream%20check)](https://github.com/almeki876/Morphe-AutoBuilds/actions/workflows/check-upstream.yml)
+[![Build Status](https://img.shields.io/github/actions/workflow/status/almeki876/Morphe-AutoBuilds/build.yml?label=build)](https://github.com/almeki876/Morphe-AutoBuilds/actions/workflows/build.yml)
+[![Latest Release](https://img.shields.io/github/v/release/almeki876/Morphe-AutoBuilds?label=latest%20release)](https://github.com/almeki876/Morphe-AutoBuilds/releases/latest)
 
 Morphe AutoBuilds is an automated repository that applies community-made patches to Android applications and builds installable APK files. Patches are differential modifications designed to alter features, visual elements, or behaviors of the base app.
 
@@ -15,7 +15,7 @@ GitHub Actions automatically monitors updates for patch sources and target appli
 
 ## Downloading APKs
 
-Built APKs are available for download on the [Latest Release](https://github.com/matchadaisuke/Morphe-AutoBuilds/releases/latest) page. Release titles include the creation date and time in JST.
+Built APKs are available on the [Latest Release](https://github.com/almeki876/Morphe-AutoBuilds/releases/latest) page. Release titles include the creation date and time in JST. The [Obtainium / ObtainX link list](./Morphe-AutoBuilds-Obtainium.md) can register updates for each app and patch-source combination.
 
 Each release note includes:
 
@@ -28,7 +28,7 @@ APK filenames contain the app name, target architecture, and base APK version. `
 
 ## Supported Applications
 
-The current configuration builds the following combinations:
+The current configuration builds 74 combinations across 69 apps. An app built from multiple patch sources is counted once per source.
 
 | Patch Source | Target Applications |
 | --- | --- |
@@ -40,7 +40,7 @@ The current configuration builds the following combinations:
 | [RookieEnough](https://github.com/RookieEnough/De-Vanced) | Amazon Music, Google Photos, Google Recorder, Photomath, Adobe Photoshop Mix, Pixiv, Viber |
 | [ajstrick81](https://github.com/ajstrick81/morphe-androidtv-patches) | Disney+ (Android TV), Netflix, Prime Video (Android TV), Twitch (Android TV) |
 | [andrewliang25](https://github.com/andrewliang25/morphe-patches) | LINE |
-| [Hoomans](https://github.com/arandomhooman/hoomans-morphe-patches) | Adobe Acrobat, FolderSync, InShot, Poweramp, Twitch |
+| [Hoomans](https://github.com/arandomhooman/hoomans-morphe-patches) | Adobe Acrobat, FolderSync, InShot, Poweramp, Tumblr, Twitch |
 | [hxreborn](https://github.com/hxreborn/morphe-patches) | Proton Mail |
 | [icysymmetra](https://github.com/icysymmetra/tiktok-patches-for-morphe) | TikTok |
 | [durgesh0505](https://github.com/durgesh0505/chiggi_morphe_patches) | Threads |
@@ -57,6 +57,8 @@ The current configuration builds the following combinations:
 
 Targets and applied patches may change over time according to upstream updates. Please inspect individual release notes and GitHub Actions logs for exact details of applied patches.
 
+The Anddea YouTube build intentionally uses the Xisr Evergreen custom icon, while the Anddea YouTube Music build uses Xisr Yellow. These and other per-build patch options are maintained in `my-patch-config.json`.
+
 ## Automated Build Workflow
 
 This repository checks for updates to registered patch sources and target APKs daily around 18:00 (JST). Scheduled execution on GitHub Actions may be delayed depending on GitHub queue load.
@@ -68,9 +70,9 @@ A configuration check workflow runs on every push and pull request, validating J
 When updates are detected, the workflow performs:
 
 1. Resolving versions for patch tools and patch bundles
-2. Identifying compatible base APK versions for the patches
-3. Downloading base APKs from multiple providers
-4. Validating APK structure and download contents
+2. Resolving the patch-required versionName and any required Android versionCode from live metadata
+3. Trying Google Play first, then downloading from origins permitted by the app's source policy
+4. Validating package ID, versionName, versionCode, architecture, and APK structure
 5. Saving raw base APKs for security scanning
 6. Applying patches and signing output APKs with repository keystore
 7. Scanning raw base APKs on VirusTotal
@@ -82,7 +84,9 @@ A test workflow (`test-build.yml`) is also available for forcing all sources to 
 
 ## Base APK Retrieval Strategy
 
-Compatible versions are searched across the following providers in priority order:
+Except for AdGuard, Google Play is the preferred origin when linked credentials are configured. Unrestricted current releases use the pinned `playfetch`, `apkeep`, and `gplaydl` clients in order. For an explicitly versioned patch, `gplaydl` requests the exact Android versionCode.
+
+If Google Play fails and the app's source policy permits fallback, the following public providers are tried in order:
 
 1. APKMirror
 2. APKPure
@@ -91,15 +95,17 @@ Compatible versions are searched across the following providers in priority orde
 5. Aptoide
 6. APKCombo
 
-Even without app-specific settings, providers can be searched using package IDs. Network timeouts, rate limits, incomplete downloads, HTML challenge pages, or corrupted APK files automatically trigger fallback to the next provider.
+The workflow then has supplemental `justapk`, `apkeep`, and browser-driven Uptodown routes. Some providers can derive runtime settings from an existing package ID without an app-specific file. Network errors, rate limits, incomplete downloads, HTML challenge pages, corrupt archives, or mismatched package/version identities are rejected.
 
-When patch tools return both version code and version name (e.g. `88600 (8.8.6)`), both identifiers are retained to match provider-specific APIs. For APKPure, direct download endpoints (`d.apkpure.net`) are preferred if standard Web pages encounter Cloudflare challenges. Interactive CAPTCHA/bot challenges trigger immediate fallback to alternative providers.
+An explicit versionName from the patch tool remains authoritative for compatibility. Android versionCode is resolved dynamically from APKPure and Uptodown metadata. If those public histories do not contain it, the current Google Play metadata is accepted only when its versionName exactly matches the patch requirement. Storing fixed `version_code` values in `apps/` or `app-metadata/` is prohibited. If no trustworthy mapping can be established, the build fails instead of silently downloading Google's current release.
+
+Successful `any`, `null`, or no-version-constraint results select the latest release. Patch CLI errors, empty output, and unknown output do not mean “latest” and fail closed. APKPure may use its `d.apkpure.net` direct endpoint when normal pages are blocked by Cloudflare. Interactive bot challenges trigger fallback rather than repeated requests.
 
 On APKMirror, compatible older versions are verified using publisher/app slugs. Latest release monitoring targets dedicated category URLs (`/uploads/?appcategory=<name>`), parsing release links only for the target app to avoid unrelated versions. Version codes discovered from APKMirror variant tables are passed to APKPure fallbacks, preserving version accuracy.
 
 AdGuard is downloaded exclusively from official GitHub Releases ([AdguardTeam/AdguardForAndroid](https://github.com/AdguardTeam/AdguardForAndroid)). Third-party mirrors, pre-releases, and TV variants are excluded. If unavailable from GitHub, build stops rather than retrieving from unverified mirrors.
 
-Japan Post Bank apps prioritize release assets from [YuzuMikan404/Yuucho-Tuucho-and-Ninsho](https://github.com/YuzuMikan404/Yuucho-Tuucho-and-Ninsho), falling back to standard providers only when missing.
+Yuucho Tuucho and Yuucho Ninsho use the `google-play-only` policy. Their jobs connect through a Japanese Tailscale exit node with the registered Google account and never fall back to third-party mirrors. The account must have acquired both apps from the Japanese Google Play storefront before CI can download them.
 
 Downloaded raw APKs are stored in an internal cache with SHA-256 validation, reused only when package ID and version match exactly.
 
@@ -118,7 +124,7 @@ Scan results are attached to release notes and saved as GitHub Actions summary r
 
 ## Installation Basics
 
-1. Open [Latest Release](https://github.com/matchadaisuke/Morphe-AutoBuilds/releases/latest) and select the APK for your target app and patch source.
+1. Open [Latest Release](https://github.com/almeki876/Morphe-AutoBuilds/releases/latest) and select the APK for your target app and patch source.
 2. Check release notes for base APK provider, version, and VirusTotal results.
 3. Backup app data if necessary.
 4. Open APK on your Android device and follow on-screen prompts to install.
@@ -143,7 +149,8 @@ Main configurations:
 | --- | --- |
 | `my-patch-config.json` | Apps to build, patch sources, and patch options |
 | `arch-config.json` | Per-app target architecture rules |
-| `apps/` | Package IDs and provider configurations |
+| `app-metadata/` | Provider-neutral package IDs and `source_policy` |
+| `apps/` | Provider-specific search names, package IDs, and retrieval settings |
 | `sources/` | Patch tool and bundle source rules |
 | `scripts/probe_apk_sources.py` | Diagnostic script for provider testing |
 | `scripts/validate_repository.py` | JSON schema, package ID, and architecture consistency validator |
@@ -159,10 +166,13 @@ Main configurations:
 | `build.yml` | Tool download, matrix build, VirusTotal scan, release publishing |
 | `health-check.yml` | Configuration validation, tool release verification, daily APK provider health check |
 | `configuration-check.yml` | Push/PR configuration consistency check and Python compile check |
+| `pr-targeted-build-verification.yml` | Real regression builds for PRs that affect APK retrieval |
+| `register-google-play.yml` | Safe Google Play account registration through the official Authenticator |
+| `diagnose-google-play-purchase.yml` | Google Play purchase and device-profile diagnostics |
 | `test-build.yml` | Force build all sources for testing (manual trigger) |
 
 ## Disclaimer
 
 This repository is an unofficial project and is not affiliated with target app developers, Google, ReVanced, or Morphe projects. End users bear full responsibility for using distributed artifacts and managing their accounts, devices, and service agreements.
 
-To report issues, submit a report via [Issues](https://github.com/matchadaisuke/Morphe-AutoBuilds/issues) with execution time, target app name, and failed build steps (excluding sensitive information).
+To report issues, submit a report via [Issues](https://github.com/almeki876/Morphe-AutoBuilds/issues) with execution time, target app name, and failed build steps (excluding sensitive information).

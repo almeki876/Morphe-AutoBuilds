@@ -15,7 +15,7 @@ body:
     attributes:
       label: 提案の内容 (Proposal)
       description: 追加したいアプリや機能について簡潔に説明してください。
-      placeholder: 例: 〇〇アプリの自動ビルドに対応してほしい / 〇〇パッチを無効化するオプションを追加してほしい
+      placeholder: '例: 〇〇アプリの自動ビルドに対応してほしい / 〇〇パッチを無効化するオプションを追加してほしい'
     validations:
       required: true
 
@@ -28,7 +28,8 @@ body:
         - アプリ名: Example App
         - パッケージID: com.example.app
         - パッチソース: https://github.com/example/patches
-        - 元APK取得元: APKMirror / APKPure
+        - 元APK取得元: Google Play / 公式GitHub / 公開プロバイダー
+        - 取得ポリシー: provider-chain / google-play-only
 
   - type: textarea
     id: rationale
