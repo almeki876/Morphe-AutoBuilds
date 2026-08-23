@@ -42,6 +42,11 @@ class TailscaleFallbackWorkflowTests(unittest.TestCase):
         )
         self.assertIn("continue-on-error: true", self.retry)
 
+    def test_both_download_attempts_receive_exact_identity_metadata_key(self) -> None:
+        secret = "VIRUSTOTAL_API_KEY: ${{ secrets.VIRUSTOTAL_API_KEY }}"
+        self.assertIn(secret, self.primary)
+        self.assertIn(secret, self.retry)
+
     def test_final_result_accepts_primary_or_japan_success(self) -> None:
         self.assertIn("if: ${{ always() }}", self.result)
         self.assertIn(
