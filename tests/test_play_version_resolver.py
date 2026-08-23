@@ -61,14 +61,41 @@ class PlayVersionResolverTests(unittest.TestCase):
         self.assertEqual(resolved.code, "45699")
 
     def test_explicit_version_never_silently_becomes_current_release(self) -> None:
-        with patch.object(providers, "MODULES", {}), patch.object(
-            providers, "IDENTITY_RESOLUTION_PRIORITY", tuple()
+        with (
+            patch.object(providers, "MODULES", {}),
+            patch.object(providers, "IDENTITY_RESOLUTION_PRIORITY", tuple()),
+            patch(
+                "src.google_play_metadata.resolve_candidate_identities",
+                side_effect=lambda package, candidates: candidates,
+            ),
         ):
             with self.assertRaises(play_version_resolver.VersionCodeResolutionError):
                 play_version_resolver.resolve_candidate(
                     "com.example.app",
                     VersionCandidate(name="5.6.7", raw="5.6.7 (2 patches)"),
                 )
+
+    def test_public_history_falls_back_to_exact_current_play_metadata(self) -> None:
+        requested = VersionCandidate(name="32.13.2.100", raw="32.13.2.100")
+        with (
+            patch.object(providers, "MODULES", {}),
+            patch.object(providers, "IDENTITY_RESOLUTION_PRIORITY", tuple()),
+            patch(
+                "src.google_play_metadata.resolve_candidate_identities",
+                return_value=[
+                    VersionCandidate(
+                        name="32.13.2.100",
+                        code="1241320216",
+                        raw=requested.raw,
+                    )
+                ],
+            ),
+        ):
+            resolved = play_version_resolver.resolve_candidate(
+                "com.amazon.mShop.android.shopping",
+                requested,
+            )
+        self.assertEqual(resolved.code, "1241320216")
 
 
 class ApkPureIdentityResolverTests(unittest.TestCase):
