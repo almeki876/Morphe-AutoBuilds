@@ -1,4 +1,4 @@
-name: Verify Japanese Google Play Egress
+name: Verify Japanese APK Download Fallback
 
 on:
   workflow_dispatch:
