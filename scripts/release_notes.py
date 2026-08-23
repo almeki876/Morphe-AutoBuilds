@@ -1,7 +1,9 @@
-"""Generate integrated release notes from the actual build-selection inputs.
+"""Generate user-facing notes for APKs actually included in a release.
 
 Source -> apps is derived from my-patch-config.json using the same selection
-inputs as scripts/prepare_matrix.py. This avoids stale hand-maintained app lists.
+inputs as scripts/prepare_matrix.py. In CI, successful artifact directories are
+authoritative so failed jobs and their internal diagnostics never appear in the
+public release notes.
 """
 
 from __future__ import annotations
@@ -9,9 +11,7 @@ from __future__ import annotations
 import json
 import os
 from collections import defaultdict
-from datetime import datetime
 from pathlib import Path
-from zoneinfo import ZoneInfo
 
 
 MAX_RELEASE_NOTES_LENGTH = 120_000
@@ -147,6 +147,30 @@ def _load_event_inputs() -> dict[str, object]:
     return inputs if isinstance(inputs, dict) else {}
 
 
+def _successful_release_matrix() -> list[dict] | None:
+    """Return successful CI matrix entries, or None outside release CI."""
+    raw = os.environ.get("EXPECTED_MATRIX", "").strip()
+    if not raw:
+        return None
+    expected = json.loads(raw)
+    if not isinstance(expected, list):
+        raise ValueError("EXPECTED_MATRIX must be a JSON array")
+
+    artifact_root = Path(os.environ.get("ARTIFACT_ROOT", "all-apks"))
+    successful: list[dict] = []
+    for item in expected:
+        if (
+            not isinstance(item, dict)
+            or not item.get("app_name")
+            or not item.get("source")
+        ):
+            continue
+        artifact = artifact_root / f"apk-{item['app_name']}-{item['source']}"
+        if artifact.is_dir() and any(artifact.rglob("*.apk")):
+            successful.append(item)
+    return successful
+
+
 def _load_patch_config(path: Path | None = None) -> list[dict]:
     config_path = path or Path(
         os.environ.get("PATCH_CONFIG_PATH", "my-patch-config.json")
@@ -164,19 +188,6 @@ def _load_patch_config(path: Path | None = None) -> list[dict]:
         and item.get("app_name")
         and item.get("source")
     ]
-
-
-def _load_last_tags(path: Path | None = None) -> dict[str, str]:
-    tags_path = path or Path(os.environ.get("LAST_TAGS_PATH", "last-tags.json"))
-    try:
-        data = json.loads(tags_path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError):
-        return {}
-    return {
-        str(key): str(value)
-        for key, value in data.items()
-        if not str(key).startswith("apk_")
-    }
 
 
 def _source_url(source: str) -> str:
@@ -228,15 +239,13 @@ def _requested_matrix(items: list[dict], inputs: dict[str, object]) -> list[dict
 
     if build_all:
         return list(items)
-    if updated_sources:
+    if updated_sources or updated_apps:
         return [
             item for item in items
-            if str(item["source"]) in updated_sources
-        ]
-    if updated_apps:
-        return [
-            item for item in items
-            if str(item["app_name"]) in updated_apps
+            if (
+                str(item["source"]) in updated_sources
+                or str(item["app_name"]) in updated_apps
+            )
         ]
 
     # Backward-compatible workflow_dispatch path.
@@ -274,59 +283,26 @@ def _requested_matrix(items: list[dict], inputs: dict[str, object]) -> list[dict
     return list(items)
 
 
-def _status_for_source(
-    source: str,
-    apps: list[str],
-    inputs: dict[str, object],
-) -> str:
-    if _truthy(inputs.get("build_all_sources")):
-        return "Built"
-
-    updated_sources = _csv(inputs.get("updated_sources"))
-    if "anddea" in updated_sources:
-        updated_sources.add("revanced-anddea")
-    if source in updated_sources or _legacy_flag(source, "UPDATED"):
-        return "Patches updated"
-
-    updated_apps = _csv(inputs.get("updated_apps"))
-    if updated_apps and any(app in updated_apps for app in apps):
-        return "APK updated"
-
-    if _legacy_flag(source, "FORCE"):
-        return "APK updated"
-
-    return "Built"
-
-
-def _version_for_source(source: str, last_tags: dict[str, str]) -> str:
-    # Fresh legacy tags passed directly by the workflow take precedence.
-    env_key = LEGACY_ENV_KEYS.get(source)
-    if env_key:
-        fresh = os.environ.get(f"{env_key}_TAG", "").strip()
-        if fresh:
-            return fresh
-
-    # last-tags.json already stores dynamic source keys such as hoo-dles,
-    # hoomans, ajstrick81, etc. It is a fallback, not an app-grouping source.
-    return last_tags.get(source, "unknown")
-
-
-def _version_cell(url: str, tag: str) -> str:
-    if tag == "unknown" or not url:
-        return tag
-    return f"[{tag}]({url}/releases/tag/{tag})"
-
-
 def _source_cell(source: str, url: str) -> str:
     label = SOURCE_LABELS.get(source, source)
     return f"[{label}]({url})" if url else label
 
 
+def _readme_url() -> str:
+    repository = os.environ.get(
+        "GITHUB_REPOSITORY", "almeki876/Morphe-AutoBuilds"
+    ).strip()
+    return f"https://github.com/{repository}#readme"
+
+
 def render() -> str:
-    now = datetime.now(ZoneInfo("Asia/Tokyo")).strftime("%Y-%m-%d %H:%M JST")
     inputs = _load_event_inputs()
-    selected = _requested_matrix(_load_patch_config(), inputs)
-    last_tags = _load_last_tags()
+    successful = _successful_release_matrix()
+    selected = (
+        successful
+        if successful is not None
+        else _requested_matrix(_load_patch_config(), inputs)
+    )
 
     grouped: dict[str, list[str]] = defaultdict(list)
     seen: set[tuple[str, str]] = set()
@@ -340,10 +316,10 @@ def render() -> str:
         grouped[source].append(app)
 
     lines = [
-        now,
+        "## Included APKs",
         "",
-        "| Source | Version | Apps | Status |",
-        "| --- | --- | --- | --- |",
+        "| Apps | Patch source |",
+        "| --- | --- |",
     ]
 
     for source in sorted(
@@ -355,15 +331,10 @@ def render() -> str:
             key=lambda app: APP_LABELS.get(app, app).casefold(),
         )
         url = _source_url(source)
-        tag = _version_for_source(source, last_tags)
         apps_text = ", ".join(APP_LABELS.get(app, app) for app in apps)
-        lines.append(
-            f"| {_source_cell(source, url)} | "
-            f"{_version_cell(url, tag)} | "
-            f"{apps_text} | "
-            f"{_status_for_source(source, apps, inputs)} |"
-        )
+        lines.append(f"| {apps_text} | {_source_cell(source, url)} |")
 
+    lines.extend(["", f"[Details / 詳細]({_readme_url()})"])
     return "\n".join(lines) + "\n"
 
 
@@ -380,12 +351,10 @@ def _fit_release_notes(text: str) -> str:
 
 def main() -> None:
     output = Path(os.environ.get("RELEASE_NOTES_PATH", "release_notes.md"))
-    parts = [render()]
-    for name in ("build_status.md", "virustotal_base_results.md"):
-        path = Path(name)
-        if path.is_file() and path.stat().st_size:
-            parts.append(path.read_text(encoding="utf-8"))
-    output.write_text(_fit_release_notes("".join(parts)), encoding="utf-8")
+    # Internal build diagnostics and the successful VirusTotal report remain in
+    # the Actions job summary. Unsafe or inconclusive scans block the release,
+    # so neither report belongs in the public, user-facing release notes.
+    output.write_text(_fit_release_notes(render()), encoding="utf-8")
     print(f"Release notes generated: {output}")
 
 

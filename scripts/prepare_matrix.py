@@ -164,10 +164,15 @@ def should_build_item(item):
 all_true = build_all_sources or all(v == 'true' for v in upd.values())
 if build_all_sources:
     matrix = [i for i in all_items if is_enabled(i)]
-elif updated_sources:
-    matrix = [i for i in all_items if is_enabled(i) and i['source'] in updated_sources]
-elif updated_apps:
-    matrix = [i for i in all_items if is_enabled(i) and i['app_name'] in updated_apps]
+elif updated_sources or updated_apps:
+    matrix = [
+        i for i in all_items
+        if is_enabled(i)
+        and (
+            i['source'] in updated_sources
+            or i['app_name'] in updated_apps
+        )
+    ]
 else:
     matrix = [i for i in all_items if is_enabled(i)] if all_true else [
         i for i in all_items if is_enabled(i) and should_build_item(i)

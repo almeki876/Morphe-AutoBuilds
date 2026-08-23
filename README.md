@@ -80,7 +80,7 @@ push・プルリクエスト時には設定の整合性検査が自動で走り�
 
 一部のアプリだけビルドに失敗した場合は、成功したAPKのみを部分リリースとして公開することがあります。APKが1件も完成しなかった場合やVirusTotal検査を完了できなかった場合は、リリースを作成しません。
 
-全ソースを強制的にビルドするテストワークフロー (`test-build.yml`) も用意されています。手動で起動すると、各ソースの最新タグを取得し、すべてのソースに対して `force_build` フラグ付きでビルドを実行します。
+全ソースを手動で強制ビルドする場合は、`build.yml` の `build_all_sources` を有効にして実行します。
 
 ## 元APKの取得方法
 
@@ -97,7 +97,7 @@ Google Playで取得できず、アプリの取得ポリシーがフォールバ
 
 この後も`justapk`、`apkeep`、ブラウザー経由のUptodownを補助経路として試します。サイト別の設定がなくても、既存設定のpackage IDから実行時設定を作れる取得元があります。通信エラー、レート制限、不完全なダウンロード、HTMLの誤取得、壊れたAPK、要求と異なるpackage IDや版を検出した場合は採用しません。
 
-パッチツールが明示したversionNameは互換性の基準として変更しません。APKPureとUptodownの公開メタデータから対応するAndroid versionCodeを動的に探し、見つからない場合に限り、Google Playの現在版メタデータが同じversionNameを返したときだけそのversionCodeを採用します。`apps/`や`app-metadata/`へ`version_code`を固定保存する方式は禁止されています。正確な対応を実証できなければ、誤ってGoogle Playの現在版を取得せず、そのビルドを失敗させます。
+パッチツールが明示したversionNameは互換性の基準として変更しません。APKPureとUptodownの公開メタデータから対応するAndroid versionCodeを動的に探し、見つからない場合は、同じversionNameを返すGoogle Play現在版、またはUptodownが公開する完全一致APKのSHA-256に対するVirusTotalのAndroguard解析結果で実証します。`apps/`や`app-metadata/`へ`version_code`を固定保存する方式は禁止されています。正確な対応を実証できなければ、誤って近い版や現在版を取得せず、そのビルドを失敗させます。
 
 パッチ側が`any`、`null`、または制約なしを正常に返した場合は最新版を選びます。一方、パッチCLIのエラー、空出力、解釈できない出力は「最新版」とみなさず停止します。APKPureは通常のWeb画面がCloudflare検証で利用できない場合、`d.apkpure.net`のAPK直接配信エンドポイントを試します。対話操作が必要なボット検証を検出した場合は、同じ画面を繰り返し要求せず次の取得元へ進みます。
 
@@ -105,7 +105,7 @@ APKMirrorでは、アプリトップに表示されない少し古い互換版�
 
 AdGuardは、公式の[AdguardTeam/AdguardForAndroid](https://github.com/AdguardTeam/AdguardForAndroid)にある最新の安定版GitHub Releaseからのみ取得します。通常版APKをバージョン込みのファイル名で特定し、Android TV版、プレリリース、第三者配布APK、取得元を確認できないキャッシュを選びません。公式GitHubから取得できない場合は、別サイトのAPKで続行せずビルドを停止します。
 
-ゆうちょ通帳アプリとゆうちょ認証アプリは`google-play-only`です。日本のGoogle Playへ接続する登録済みアカウントと日本のTailscale exit nodeを使い、Google Playから取得できない場合は第三者ミラーへフォールバックしません。登録するGoogleアカウントでは、事前に日本のGoogle Play上で両アプリを入手済みにしてください。
+通常経路で元APKを取得できなかった場合は、アプリ名に関係なく日本のTailscale exit nodeへ接続し、日本からの通信であることを検証してから同じ取得処理を一度だけ再試行します。ゆうちょ通帳アプリとゆうちょ認証アプリは`google-play-only`のため、この再試行でも第三者ミラーは使いません。登録するGoogleアカウントでは、事前に日本のGoogle Play上で両アプリを入手済みにしてください。
 
 一度正常に取得できた元APKは、ハッシュ検証付きの内部キャッシュへ保存されることがあります。次回以降もpackage IDとバージョンが完全に一致する場合だけ再利用されます。
 
@@ -163,13 +163,11 @@ Androidの設定によっては、ブラウザやファイル管理アプリに�
 | ワークフロー | 内容 |
 | --- | --- |
 | `check-upstream.yml` | パッチソースとAPKの更新確認、ビルドのトリガー |
-| `build.yml` | ツールダウンロード、マトリックスビルド、VirusTotal検査、リリース公開 |
+| `build.yml` | ツールダウンロード、マトリックスビルド、VirusTotal検査、リリース公開、手動の全件ビルド |
 | `health-check.yml` | 設定検証、ツールリリース確認、APK取得元の定期ヘルスチェック |
 | `configuration-check.yml` | push/PR時の設定整合性検査とPythonコンパイルチェック |
-| `pr-targeted-build-verification.yml` | 取得処理に関わるPRで回帰対象アプリを実ビルド |
 | `register-google-play.yml` | 公式AuthenticatorからGoogle Playアカウントを安全に登録 |
 | `diagnose-google-play-purchase.yml` | Google Playの購入・端末プロファイル問題を診断 |
-| `test-build.yml` | 全ソースの強制ビルドテスト（手動起動） |
 
 ## 免責事項
 

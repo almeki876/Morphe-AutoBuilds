@@ -9,7 +9,7 @@
 - `matchadaisuke/morphe-patches`の読み取りと、運用リポジトリのActions Secrets更新に使えるPersonal Access Token
 - VirusTotal Communityまたは上位プランのAPIキー
 - Google Play取得用の`gplaydl` APIキーと、公式gplaydl Authenticatorを利用できるGoogleアカウント
-- ゆうちょ2アプリをビルドする場合は、日本のGoogle Playで両アプリを入手済みのアカウントと、日本にあるTailscale exit node
+- 通常の取得経路が失敗した全アプリの共通再試行に使う、日本にあるTailscale exit node
 - コマンド操作を行う場合は[GitHub CLI](https://cli.github.com/)のログイン済み環境
 
 このリポジトリはPython 3.11、Java 21、GitHub CLIなどをActions内で準備します。通常はローカル環境へビルドツールを導入する必要はありません。
@@ -50,16 +50,16 @@ Actionsが次の操作を行うため、対象ブランチの保護ルールも�
 | `GPLAYDL_API_KEY` | `gplaydl` 4.2.1によるGoogle Playの詳細取得とダウンロード |
 | `GPLAY_EMAIL` | Google Playへリンクしたアカウント。登録ワークフローが保存 |
 | `GPLAY_AAS_TOKEN` | 公式Authenticatorで同期したAASトークン。登録ワークフローが保存 |
-| `TS_OAUTH_CLIENT_ID` | ゆうちょジョブをTailscaleへ接続するOAuthクライアント |
+| `TS_OAUTH_CLIENT_ID` | 通常取得に失敗したジョブをTailscaleへ接続するOAuthクライアント |
 | `TS_OAUTH_SECRET` | 上記OAuthクライアントのSecret |
 
-ゆうちょ2アプリを除外する場合、Tailscale用の2 Secretsと後述の`TS_EXIT_NODE`は不要です。Google Play認証がない通常アプリは公開プロバイダーへフォールバックできますが、`google-play-only`のアプリは認証や取得に失敗すると必ず停止します。
+Tailscale用の2 Secretsと後述の`TS_EXIT_NODE`は、通常取得に失敗した全アプリの共通再試行に使います。Google Play認証がない通常アプリは公開プロバイダーへフォールバックできますが、`google-play-only`のアプリはGoogle Play以外へ切り替えません。
 
 Repository Variablesは必要に応じて次を登録します。
 
 | Variable名 | 用途 |
 | --- | --- |
-| `TS_EXIT_NODE` | ゆうちょ取得時に使う日本のTailscale exit node |
+| `TS_EXIT_NODE` | 通常取得に失敗したときの再試行に使う日本のTailscale exit node |
 | `GPLAYDL_PREFERRED_PROFILE` | `gplaydl`で優先する端末プロファイル。未指定時は自動試行 |
 
 `GPLAY_EMAIL`と`GPLAY_AAS_TOKEN`があれば、実行ごとに一時dispenserを起動します。`GITHUB_TOKEN`はActions実行時にGitHubが自動発行します。更新管理は`last-tags.json`を使用しており、古い`LAST_MORPHE_TAG`などのVariablesも不要です。
@@ -101,7 +101,7 @@ gh secret set GPLAYDL_API_KEY
 
 一時サーバーとデータベースは登録中だけ起動し、AASトークンをログやアーティファクトへ出しません。登録完了後はAuthenticatorのDispenser URLを普段使用する値へ戻してください。
 
-ゆうちょ通帳・ゆうちょ認証では、同じアカウントを日本のGoogle Playで使用し、両アプリを事前に入手済みにします。さらにTailscaleの`tag:ci`を利用できるOAuthクライアントを`TS_OAUTH_CLIENT_ID`と`TS_OAUTH_SECRET`へ登録し、日本のexit nodeを`TS_EXIT_NODE`へ設定します。ジョブは取得前に外向きIPが日本であることを検証します。
+ゆうちょ通帳・ゆうちょ認証では、同じアカウントを日本のGoogle Playで使用し、両アプリを事前に入手済みにします。さらにTailscaleの`tag:ci`を利用できるOAuthクライアントを`TS_OAUTH_CLIENT_ID`と`TS_OAUTH_SECRET`へ登録し、日本のexit nodeを`TS_EXIT_NODE`へ設定します。どのアプリでも通常取得が失敗した場合だけTailscaleへ接続し、外向きIPが日本であることを検証してから同じ取得処理を再試行します。
 
 ### VirusTotal APIキー
 
@@ -128,7 +128,7 @@ APIキーが未設定、無効、利用上限超過、または解析がタイ�
 | `sources/<source>.json` | CLIとパッチバンドルのGitHubリリース |
 | `last-tags.json` | 前回確認したパッチとAPKのバージョン |
 
-パッチCLIが明示したversionNameが互換性の基準です。`any`、`null`、または正常な制約なし結果は最新版を意味しますが、CLIのエラー、空出力、未知の形式を最新版扱いにはしません。明示版に必要なAndroid versionCodeは、APKPure、Uptodown、完全一致するGoogle Play現在版メタデータから実行時に解決します。`apps/`と`app-metadata/`へ`version_code`を固定すると検証エラーになります。
+パッチCLIが明示したversionNameが互換性の基準です。`any`、`null`、または正常な制約なし結果は最新版を意味しますが、CLIのエラー、空出力、未知の形式を最新版扱いにはしません。明示版に必要なAndroid versionCodeは、APKPure、Uptodown、完全一致するGoogle Play現在版メタデータ、またはUptodownの完全一致SHA-256に対するVirusTotal Androguard解析から実行時に解決します。`apps/`と`app-metadata/`へ`version_code`を固定すると検証エラーになります。
 
 `apps/`の`version`はプロバイダー検索やヘルスチェックを補助する値であり、パッチが返した明示的な互換版を上書きしません。APKMirror設定の`org`やアプリ名が古い場合も、package IDから検索できる取得元があります。
 
@@ -140,7 +140,7 @@ Anddea版のカスタムアイコン設定は`my-patch-config.json`にあり、Y
 
 GitHubの「Actions」タブから、最初に「Build and Release APKs」を手動実行します。全対象なら`build_all_sources=true`、一部なら`updated_sources`へソース名、`updated_apps`へカンマ区切りのアプリ名を指定します。両方を指定した場合は、どちらかに該当する有効な組み合わせをビルドします。従来の`*_updated`と`*_force_build`入力も利用できます。
 
-すべての入力を空または`false`のままにすると、ビルドマトリクスが空になる場合があります。全ソースを簡単に検証する場合は「Trigger Test Build All (Release)」を使えます。
+すべての入力を空または`false`のままにすると、ビルドマトリクスが空になる場合があります。全件を検証する場合は`build.yml`を手動実行し、`build_all_sources=true`を指定します。
 
 実行中は次の順番で確認します。
 
@@ -171,7 +171,7 @@ gh run watch
 
 `Repository and APK Provider Health`は毎日03:17 UTC（日本時間12:17頃）に、設定、パッチツール資産、APK取得元を検査します。障害時は`Automated APK build health check failed` Issueを作成または追記し、復旧すると自動で閉じます。レポートはActionsアーティファクトへ30日間保存されます。
 
-DependabotはGitHub ActionsとPython依存関係を週1回確認し、更新をまとめたPull Requestを作成します。Pull Requestでは`Configuration Check`がJSON設定、Python構文、Google Playダウンローダーのコンパイル、プロバイダー登録、ユニットテスト、Uptodown履歴経路を検査します。取得処理へ影響するPRでは`PR Targeted Build Verification`が既知の回帰対象を実ビルドします。
+DependabotはGitHub ActionsとPython依存関係を週1回確認し、更新をまとめたPull Requestを作成します。Pull Requestでは`Configuration Check`がJSON設定、Python構文、プロバイダー登録、ユニットテスト、取得経路の整合性を検査します。
 
 手動確認はActions画面、または次のコマンドから実行できます。
 
@@ -241,7 +241,7 @@ APKMirrorのreleaseページは読めても最終`download.php`だけが403に�
 
 - `GPLAYDL_API_KEY`、`GPLAY_EMAIL`、`GPLAY_AAS_TOKEN`が正しいSecret名で登録されているか確認する
 - `Register Google Play Account`を再実行し、期限切れ・失効したAASトークンを更新する
-- 明示versionNameのversionCodeを解決できない場合、固定値をJSONへ追加せず、公開履歴か同一versionNameのGoogle Play現在版で確認できるまで失敗させる
+- 明示versionNameのversionCodeを解決できない場合、固定値をJSONへ追加せず、公開履歴、同一versionNameのGoogle Play現在版、または完全一致SHA-256のVirusTotal解析で確認できるまで失敗させる
 - ゆうちょでは`TS_EXIT_NODE`の外向きIPが日本か、登録アカウントが日本のGoogle Playで対象アプリを入手済みか確認する
 - 購入状態や端末プロファイルを調べる場合は「Diagnose Google Play Purchase」を手動実行する
 

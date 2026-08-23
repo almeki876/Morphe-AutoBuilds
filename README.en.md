@@ -80,7 +80,7 @@ When updates are detected, the workflow performs:
 
 If only certain apps fail to build, partial releases containing only successful APKs may be published. If zero APKs are built or VirusTotal inspection fails, no release is published.
 
-A test workflow (`test-build.yml`) is also available for forcing all sources to build. When triggered manually, it fetches the latest tag for each source and runs the build with `force_build` flags set for every source.
+To force-build every source manually, run `build.yml` with `build_all_sources` enabled.
 
 ## Base APK Retrieval Strategy
 
@@ -97,7 +97,7 @@ If Google Play fails and the app's source policy permits fallback, the following
 
 The workflow then has supplemental `justapk`, `apkeep`, and browser-driven Uptodown routes. Some providers can derive runtime settings from an existing package ID without an app-specific file. Network errors, rate limits, incomplete downloads, HTML challenge pages, corrupt archives, or mismatched package/version identities are rejected.
 
-An explicit versionName from the patch tool remains authoritative for compatibility. Android versionCode is resolved dynamically from APKPure and Uptodown metadata. If those public histories do not contain it, the current Google Play metadata is accepted only when its versionName exactly matches the patch requirement. Storing fixed `version_code` values in `apps/` or `app-metadata/` is prohibited. If no trustworthy mapping can be established, the build fails instead of silently downloading Google's current release.
+An explicit versionName from the patch tool remains authoritative for compatibility. Android versionCode is resolved dynamically from APKPure and Uptodown metadata. If those histories do not contain it, the resolver accepts either current Google Play metadata with the exact same versionName or VirusTotal Androguard metadata for the SHA-256 of Uptodown's exact public APK. Storing fixed `version_code` values in `apps/` or `app-metadata/` is prohibited. If no trustworthy exact mapping can be established, the build fails instead of substituting a nearby or current release.
 
 Successful `any`, `null`, or no-version-constraint results select the latest release. Patch CLI errors, empty output, and unknown output do not mean “latest” and fail closed. APKPure may use its `d.apkpure.net` direct endpoint when normal pages are blocked by Cloudflare. Interactive bot challenges trigger fallback rather than repeated requests.
 
@@ -105,7 +105,7 @@ On APKMirror, compatible older versions are verified using publisher/app slugs. 
 
 AdGuard is downloaded exclusively from official GitHub Releases ([AdguardTeam/AdguardForAndroid](https://github.com/AdguardTeam/AdguardForAndroid)). Third-party mirrors, pre-releases, and TV variants are excluded. If unavailable from GitHub, build stops rather than retrieving from unverified mirrors.
 
-Yuucho Tuucho and Yuucho Ninsho use the `google-play-only` policy. Their jobs connect through a Japanese Tailscale exit node with the registered Google account and never fall back to third-party mirrors. The account must have acquired both apps from the Japanese Google Play storefront before CI can download them.
+When the normal base-APK retrieval path fails, every app—not a hard-coded subset—gets one retry through a verified Japanese Tailscale exit node. Yuucho Tuucho and Yuucho Ninsho use the `google-play-only` policy, so even that retry never uses third-party mirrors. The registered account must have acquired both apps from the Japanese Google Play storefront.
 
 Downloaded raw APKs are stored in an internal cache with SHA-256 validation, reused only when package ID and version match exactly.
 
@@ -163,13 +163,11 @@ Main configurations:
 | Workflow | Purpose |
 | --- | --- |
 | `check-upstream.yml` | Patch source and APK update detection, build triggering |
-| `build.yml` | Tool download, matrix build, VirusTotal scan, release publishing |
+| `build.yml` | Tool download, matrix build, VirusTotal scan, release publishing, and manual full builds |
 | `health-check.yml` | Configuration validation, tool release verification, daily APK provider health check |
 | `configuration-check.yml` | Push/PR configuration consistency check and Python compile check |
-| `pr-targeted-build-verification.yml` | Real regression builds for PRs that affect APK retrieval |
 | `register-google-play.yml` | Safe Google Play account registration through the official Authenticator |
 | `diagnose-google-play-purchase.yml` | Google Play purchase and device-profile diagnostics |
-| `test-build.yml` | Force build all sources for testing (manual trigger) |
 
 ## Disclaimer
 
