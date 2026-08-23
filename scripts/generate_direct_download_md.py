@@ -1,4 +1,4 @@
-"""Generate a Markdown catalog of direct APK links from the latest release."""
+"""Generate a Markdown catalog of the newest APK available for every build target."""
 
 from __future__ import annotations
 
@@ -60,9 +60,10 @@ class ApkAsset:
     version: str
     name: str
     url: str
+    release_tag: str = "latest"
 
 
-def parse_asset(asset: dict) -> ApkAsset | None:
+def parse_asset(asset: dict, *, release_tag: str = "latest") -> ApkAsset | None:
     name = str(asset.get("name") or "")
     url = str(asset.get("browser_download_url") or "")
     if not name.lower().endswith(".apk") or not url:
@@ -70,7 +71,56 @@ def parse_asset(asset: dict) -> ApkAsset | None:
     match = ASSET_RE.match(name)
     if not match:
         return None
-    return ApkAsset(name=name, url=url, **match.groupdict())
+    return ApkAsset(name=name, url=url, release_tag=release_tag, **match.groupdict())
+
+
+def _flatten_releases(payload: object) -> list[dict]:
+    """Accept one release, a release list, or gh --paginate --slurp output."""
+    if isinstance(payload, dict):
+        return [payload]
+    if not isinstance(payload, list):
+        return []
+    releases: list[dict] = []
+    for item in payload:
+        if isinstance(item, dict):
+            releases.append(item)
+        elif isinstance(item, list):
+            releases.extend(value for value in item if isinstance(value, dict))
+    return releases
+
+
+def _release_timestamp(release: dict) -> str:
+    return str(release.get("published_at") or release.get("created_at") or "")
+
+
+def newest_assets(payload: object) -> tuple[list[ApkAsset], list[dict], list[dict]]:
+    """Return the newest known asset for each app/source/architecture identity.
+
+    Build and Release APKs intentionally supports partial releases. Therefore a
+    catalog generated from only releases/latest would drop every unaffected app
+    whenever a small incremental build becomes the newest release. Walk release
+    history newest-first and keep the first asset for each stable build target.
+    """
+    releases = [release for release in _flatten_releases(payload) if not release.get("draft")]
+    releases.sort(key=_release_timestamp, reverse=True)
+
+    parsed_by_key: dict[tuple[str, str, str], ApkAsset] = {}
+    unmatched_by_name: dict[str, dict] = {}
+    for release in releases:
+        tag = str(release.get("tag_name") or "latest")
+        for asset in release.get("assets") or []:
+            if not isinstance(asset, dict):
+                continue
+            name = str(asset.get("name") or "")
+            if not name.lower().endswith(".apk"):
+                continue
+            item = parse_asset(asset, release_tag=tag)
+            if item is None:
+                unmatched_by_name.setdefault(name, asset)
+                continue
+            parsed_by_key.setdefault((item.app, item.source, item.arch), item)
+
+    return list(parsed_by_key.values()), list(unmatched_by_name.values()), releases
 
 
 def source_metadata(root: Path = Path("sources")) -> dict[str, tuple[str, str | None]]:
@@ -108,31 +158,27 @@ def app_label(slug: str) -> str:
     return " ".join(part.upper() if len(part) <= 2 else part.capitalize() for part in slug.split("-"))
 
 
-def render(release: dict, *, source_root: Path = Path("sources")) -> str:
-    parsed: list[ApkAsset] = []
-    unmatched: list[dict] = []
-    for asset in release.get("assets") or []:
-        if not isinstance(asset, dict) or not str(asset.get("name") or "").lower().endswith(".apk"):
-            continue
-        item = parse_asset(asset)
-        if item is None:
-            unmatched.append(asset)
-        else:
-            parsed.append(item)
-
+def render(payload: object, *, source_root: Path = Path("sources")) -> str:
+    parsed, unmatched, releases = newest_assets(payload)
     metadata = source_metadata(source_root)
-    published = str(release.get("published_at") or "")
+
+    newest_release = releases[0] if releases else {}
+    published = _release_timestamp(newest_release)
     updated = published[:10] if published else datetime.now(timezone.utc).date().isoformat()
-    tag = str(release.get("tag_name") or "latest")
-    release_url = str(release.get("html_url") or "https://github.com/almeki876/Morphe-AutoBuilds/releases/latest")
+    tag = str(newest_release.get("tag_name") or "latest")
+    release_url = str(
+        newest_release.get("html_url")
+        or "https://github.com/almeki876/Morphe-AutoBuilds/releases/latest"
+    )
 
     lines = [
         "# Direct APK Download Links",
         "",
-        f"最終更新: {updated} | 掲載APK数: {len(parsed) + len(unmatched)} | Release: `{tag}`",
+        f"最終更新: {updated} | 掲載APK数: {len(parsed) + len(unmatched)} | 最新Release: `{tag}`",
         "",
         "Obtainium / ObtainX 用とは別の、**APKを直接ダウンロードするための一覧**です。",
-        "各リンクは現在の最新リリースに実在する GitHub Release asset の直リンクです。",
+        "各リンクは、そのアプリ・パッチソース・アーキテクチャについて現在入手できる最新の GitHub Release asset を直接指します。",
+        "部分リリースで更新対象にならなかったアプリは、直前の有効なリリースへのリンクを保持します。",
         "新しい `Build and Release APKs` が正常完了すると、このファイルも自動更新されます。",
         "",
         f"リリース全体: [最新リリースを開く]({release_url})",
@@ -156,7 +202,7 @@ def render(release: dict, *, source_root: Path = Path("sources")) -> str:
             lines.append("")
 
     if unmatched:
-        lines.extend(["## Other APK assets", "", "命名規則に一致しないAPKです。削除せず直リンクを掲載します。", ""])
+        lines.extend(["## Other APK assets", "", "命名規則に一致しないAPKです。削除せず、確認できる最新の直リンクを掲載します。", ""])
         for asset in sorted(unmatched, key=lambda item: str(item.get("name") or "")):
             name = str(asset.get("name") or "APK")
             url = str(asset.get("browser_download_url") or "")
@@ -165,18 +211,18 @@ def render(release: dict, *, source_root: Path = Path("sources")) -> str:
         lines.append("")
 
     if not parsed and not unmatched:
-        lines.extend(["現在の最新リリースには APK asset がありません。", ""])
+        lines.extend(["参照したリリースには APK asset がありません。", ""])
 
     return "\n".join(lines).rstrip() + "\n"
 
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("release_json", nargs="?", default="latest-release.json")
+    parser.add_argument("release_json", nargs="?", default="release-history.json")
     parser.add_argument("--output", default="Morphe-AutoBuilds-Direct-Download.md")
     args = parser.parse_args()
-    release = json.loads(Path(args.release_json).read_text(encoding="utf-8"))
-    Path(args.output).write_text(render(release), encoding="utf-8")
+    payload = json.loads(Path(args.release_json).read_text(encoding="utf-8"))
+    Path(args.output).write_text(render(payload), encoding="utf-8")
 
 
 if __name__ == "__main__":
