@@ -24,6 +24,8 @@ _BUILD_VERSION_RE = re.compile(r"^(?:v\d+-)?build-\d+(?:[-\w.]*)$", re.IGNORECAS
 _COMPOSITE_NAME_CODE_RE = re.compile(r"^(?P<name>.+)\.(?P<code>\d+)$")
 _DISCOVERED_VERSION_CODES: dict[tuple[str, str], str] = {}
 _UNRESTRICTED_POLICIES = frozenset({"any", "null"})
+_LIST_VERSIONS_HEADINGS = frozenset({"most common compatible versions:"})
+_LOG_PREFIXES = ("info:", "warning:", "error:", "usage:")
 
 
 @dataclass(frozen=True)
@@ -134,9 +136,9 @@ class ParsedCandidates(list[VersionCandidate]):
     distinguish malformed CLI output from a recognized result. An unrestricted
     policy (``Any``/``null``) legitimately has zero concrete candidates, so a
     plain empty list loses the information that parsing succeeded. Preserve
-    list behavior for callers while making a recognized unrestricted result
-    truthy; iteration and length remain empty so downstream code still selects
-    the latest available APK.
+    list behavior for callers while making a *fully recognized* unrestricted
+    result truthy; iteration and length remain empty so downstream code still
+    selects the latest available APK.
     """
 
     def __init__(
@@ -175,7 +177,7 @@ def parse_candidate(line: str) -> VersionCandidate | None:
     value = line.strip()
     if not value or value.casefold() in _UNRESTRICTED_POLICIES:
         return None
-    if value.casefold().startswith(("info:", "warning:", "error:", "usage:")):
+    if value.casefold().startswith(_LOG_PREFIXES):
         return None
 
     value = _PATCH_COUNT_RE.sub("", value).strip()
@@ -212,23 +214,42 @@ def parse_candidate(line: str) -> VersionCandidate | None:
 
 
 def parse_candidates(output: str) -> ParsedCandidates:
-    """Parse compatible releases and retain a recognized unrestricted policy."""
+    """Parse compatible releases and retain only a fully recognized Any policy."""
     candidates: list[VersionCandidate] = []
     seen: set[tuple[str, str | None]] = set()
     unrestricted = False
+    unrecognized = False
+
     for line in output.splitlines():
-        value = line.strip().casefold()
+        stripped = line.strip()
+        if not stripped:
+            continue
+        value = stripped.casefold()
+
         if value in _UNRESTRICTED_POLICIES:
             unrestricted = True
             continue
+
         candidate = parse_candidate(line)
-        if candidate is None:
+        if candidate is not None:
+            key = (candidate.name, candidate.code)
+            if key not in seen:
+                candidates.append(candidate)
+                seen.add(key)
             continue
-        key = (candidate.name, candidate.code)
-        if key not in seen:
-            candidates.append(candidate)
-            seen.add(key)
-    return ParsedCandidates(candidates, unrestricted=unrestricted and not candidates)
+
+        # The CLI's human-readable heading is structural output, not a policy
+        # value. Log-prefixed lines are likewise metadata. Anything else must
+        # remain fail-closed so an upstream format change cannot silently turn
+        # into an unrestricted APK selection.
+        if value in _LIST_VERSIONS_HEADINGS or value.startswith(_LOG_PREFIXES):
+            continue
+        unrecognized = True
+
+    return ParsedCandidates(
+        candidates,
+        unrestricted=unrestricted and not candidates and not unrecognized,
+    )
 
 
 def canonical_version(value: object) -> str:
