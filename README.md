@@ -2,9 +2,9 @@
 
 [日本語] | [English](README.en.md)
 
-[![Upstream Check](https://img.shields.io/github/actions/workflow/status/matchadaisuke/Morphe-AutoBuilds/check-upstream.yml?label=upstream%20check)](https://github.com/matchadaisuke/Morphe-AutoBuilds/actions/workflows/check-upstream.yml)
-[![Build Status](https://img.shields.io/github/actions/workflow/status/matchadaisuke/Morphe-AutoBuilds/build.yml?label=build)](https://github.com/matchadaisuke/Morphe-AutoBuilds/actions/workflows/build.yml)
-[![Latest Release](https://img.shields.io/github/v/release/matchadaisuke/Morphe-AutoBuilds?label=latest%20release)](https://github.com/matchadaisuke/Morphe-AutoBuilds/releases/latest)
+[![Upstream Check](https://img.shields.io/github/actions/workflow/status/almeki876/Morphe-AutoBuilds/check-upstream.yml?label=upstream%20check)](https://github.com/almeki876/Morphe-AutoBuilds/actions/workflows/check-upstream.yml)
+[![Build Status](https://img.shields.io/github/actions/workflow/status/almeki876/Morphe-AutoBuilds/build.yml?label=build)](https://github.com/almeki876/Morphe-AutoBuilds/actions/workflows/build.yml)
+[![Latest Release](https://img.shields.io/github/v/release/almeki876/Morphe-AutoBuilds?label=latest%20release)](https://github.com/almeki876/Morphe-AutoBuilds/releases/latest)
 
 Morphe AutoBuildsは、Androidアプリへコミュニティ製パッチを適用し、インストール可能なAPKを自動作成するリポジトリです。パッチは、元アプリの機能や表示、動作を変更するための差分データです。
 
@@ -15,7 +15,7 @@ GitHub Actionsがパッチや対象アプリの更新を確認し、互換性の
 
 ## APKをダウンロードする
 
-完成したAPKは[最新リリース](https://github.com/matchadaisuke/Morphe-AutoBuilds/releases/latest)からダウンロードできます。リリース名には作成日時がJSTで記録されます。
+完成したAPKは[最新リリース](https://github.com/almeki876/Morphe-AutoBuilds/releases/latest)からダウンロードできます。リリース名には作成日時がJSTで記録されます。[Obtainium / ObtainX用リンク一覧](./Morphe-AutoBuilds-Obtainium.md)から、アプリとパッチソースの組み合わせごとに更新を登録することもできます。
 
 各リリースの説明には、次の情報が掲載されます。
 
@@ -28,7 +28,7 @@ APKファイル名には、アプリ名、対象アーキテクチャ、元APK�
 
 ## 対象アプリ
 
-現在の設定では、以下の組み合わせをビルドします。
+現在の設定では、69アプリ・74組み合わせをビルドします。同じアプリを複数のパッチソースで作る場合は、組み合わせごとに数えています。
 
 | パッチソース | 対象アプリ |
 | --- | --- |
@@ -40,7 +40,7 @@ APKファイル名には、アプリ名、対象アーキテクチャ、元APK�
 | [RookieEnough](https://github.com/RookieEnough/De-Vanced) | Amazon Music、Google Photos、Google Recorder、Photomath、Adobe Photoshop Mix、Pixiv、Viber |
 | [ajstrick81](https://github.com/ajstrick81/morphe-androidtv-patches) | Disney+ (Android TV)、Netflix、Prime Video (Android TV)、Twitch (Android TV) |
 | [andrewliang25](https://github.com/andrewliang25/morphe-patches) | LINE |
-| [Hoomans](https://github.com/arandomhooman/hoomans-morphe-patches) | Adobe Acrobat、FolderSync、InShot、Poweramp、Twitch |
+| [Hoomans](https://github.com/arandomhooman/hoomans-morphe-patches) | Adobe Acrobat、FolderSync、InShot、Poweramp、Tumblr、Twitch |
 | [hxreborn](https://github.com/hxreborn/morphe-patches) | Proton Mail |
 | [icysymmetra](https://github.com/icysymmetra/tiktok-patches-for-morphe) | TikTok |
 | [durgesh0505](https://github.com/durgesh0505/chiggi_morphe_patches) | Threads |
@@ -57,6 +57,8 @@ APKファイル名には、アプリ名、対象アーキテクチャ、元APK�
 
 対象やパッチ内容はアップストリームの変更に応じて変わることがあります。実際に適用された内容は、各リリースとGitHub Actionsのログを確認してください。
 
+Anddea版YouTubeはXisr Evergreen、Anddea版YouTube MusicはXisr Yellowのカスタムアイコンを使用する設定です。この設定を含む個別のパッチオプションは`my-patch-config.json`で管理します。
+
 ## 自動ビルドの流れ
 
 このリポジトリは毎日18:00頃（JST）に、登録されたパッチソースと監視対象APKの更新を確認します。GitHub Actionsのスケジュール実行は混雑状況により遅れる場合があります。
@@ -68,9 +70,9 @@ push・プルリクエスト時には設定の整合性検査が自動で走り�
 更新が見つかると、次の処理が実行されます。
 
 1. 使用するパッチツールとパッチバンドルのバージョンを確定する
-2. パッチが対応する元APKバージョンを調べる
-3. 複数の取得元から元APKをダウンロードする
-4. APKの形式とダウンロード内容を検証する
+2. パッチが要求するversionNameと、必要なAndroid versionCodeを実データから解決する
+3. Google Playを第一候補として、ポリシーで許可された取得元から元APKをダウンロードする
+4. APK内のpackage ID、versionName、versionCode、アーキテクチャを検証する
 5. 取得した未加工の元APKを検査用に保存する
 6. パッチを適用し、リポジトリのキーストアで署名する
 7. 保存した元APKをVirusTotalで検査する
@@ -82,7 +84,9 @@ push・プルリクエスト時には設定の整合性検査が自動で走り�
 
 ## 元APKの取得方法
 
-通常は、パッチと互換性のあるバージョンを次の順番で探します。
+AdGuardを除き、認証情報が設定されている場合はGoogle Playを第一候補にします。制約のない最新版は、固定バージョンのクライアント`playfetch`、`apkeep`、`gplaydl`を順に使用します。過去版を指定するパッチでは、Android versionCodeを指定できる`gplaydl`で完全一致する版を要求します。
+
+Google Playで取得できず、アプリの取得ポリシーがフォールバックを許可する場合は、次の公開プロバイダーを順番に試します。
 
 1. APKMirror
 2. APKPure
@@ -91,15 +95,17 @@ push・プルリクエスト時には設定の整合性検査が自動で走り�
 5. Aptoide
 6. APKCombo
 
-サイト別の設定がなくても、既存設定のpackage IDを利用して検索できる取得元があります。通信エラー、レート制限、不完全なダウンロード、HTMLの誤取得、壊れたAPKを検出した場合は、その取得元を失敗として次へ進みます。
+この後も`justapk`、`apkeep`、ブラウザー経由のUptodownを補助経路として試します。サイト別の設定がなくても、既存設定のpackage IDから実行時設定を作れる取得元があります。通信エラー、レート制限、不完全なダウンロード、HTMLの誤取得、壊れたAPK、要求と異なるpackage IDや版を検出した場合は採用しません。
 
-パッチツールが`88600 (8.8.6)`のようにversion codeとversion nameを返す場合は、両方を保持し、取得元のAPIや画面に合う識別子を使います。APKPureは通常のWeb画面がCloudflare検証で利用できない場合、`d.apkpure.net`のAPK直接配信エンドポイントを先に試します。対話操作が必要なボット検証を検出した場合は、同じ画面を繰り返し要求せず次の取得元へ進みます。
+パッチツールが明示したversionNameは互換性の基準として変更しません。APKPureとUptodownの公開メタデータから対応するAndroid versionCodeを動的に探し、見つからない場合は、同じversionNameを返すGoogle Play現在版、またはUptodownが公開する完全一致APKのSHA-256に対するVirusTotalのAndroguard解析結果で実証します。`apps/`や`app-metadata/`へ`version_code`を固定保存する方式は禁止されています。正確な対応を実証できなければ、誤って近い版や現在版を取得せず、そのビルドを失敗させます。
+
+パッチ側が`any`、`null`、または制約なしを正常に返した場合は最新版を選びます。一方、パッチCLIのエラー、空出力、解釈できない出力は「最新版」とみなさず停止します。APKPureは通常のWeb画面がCloudflare検証で利用できない場合、`d.apkpure.net`のAPK直接配信エンドポイントを試します。対話操作が必要なボット検証を検出した場合は、同じ画面を繰り返し要求せず次の取得元へ進みます。
 
 APKMirrorでは、アプリトップに表示されない少し古い互換版も、設定済みpublisher/app slugからrelease URLを直接検証して探します。最新版の監視は全アプリで`name`から生成した専用の`/uploads/?appcategory=<name>`を最初に使い、対象アプリのreleaseリンクだけを解析します。ページ内に混在する別アプリや広告の版番号は採用しません。APKMirrorのvariant表でversion codeを取得できた場合は同じビルド中のAPKPureフォールバックへ引き継ぐため、APKMirrorの最終ダウンロードだけが403になっても同一バージョンを取得できます。
 
 AdGuardは、公式の[AdguardTeam/AdguardForAndroid](https://github.com/AdguardTeam/AdguardForAndroid)にある最新の安定版GitHub Releaseからのみ取得します。通常版APKをバージョン込みのファイル名で特定し、Android TV版、プレリリース、第三者配布APK、取得元を確認できないキャッシュを選びません。公式GitHubから取得できない場合は、別サイトのAPKで続行せずビルドを停止します。
 
-ゆうちょ通帳アプリとゆうちょ認証アプリは、[YuzuMikan404/Yuucho-Tuucho-and-Ninsho](https://github.com/YuzuMikan404/Yuucho-Tuucho-and-Ninsho)のGitHubリリースを最優先にします。対象APKが見つからない場合のみ、上記6サイトを順番に試します。
+通常経路で元APKを取得できなかった場合は、アプリ名に関係なく日本のTailscale exit nodeへ接続し、日本からの通信であることを検証してから同じ取得処理を一度だけ再試行します。ゆうちょ通帳アプリとゆうちょ認証アプリは`google-play-only`のため、この再試行でも第三者ミラーは使いません。登録するGoogleアカウントでは、事前に日本のGoogle Play上で両アプリを入手済みにしてください。
 
 一度正常に取得できた元APKは、ハッシュ検証付きの内部キャッシュへ保存されることがあります。次回以降もpackage IDとバージョンが完全に一致する場合だけ再利用されます。
 
@@ -118,7 +124,7 @@ AdGuardは、公式の[AdguardTeam/AdguardForAndroid](https://github.com/Adguard
 
 ## インストールの基本
 
-1. [最新リリース](https://github.com/matchadaisuke/Morphe-AutoBuilds/releases/latest)を開き、目的のアプリとパッチソースが含まれるAPKを選ぶ
+1. [最新リリース](https://github.com/almeki876/Morphe-AutoBuilds/releases/latest)を開き、目的のアプリとパッチソースが含まれるAPKを選ぶ
 2. リリースノートで元APKの取得元、バージョン、VirusTotal結果を確認する
 3. 必要に応じて既存アプリのデータをバックアップする
 4. Android端末でAPKを開き、画面の案内に従ってインストールする
@@ -143,7 +149,8 @@ Androidの設定によっては、ブラウザやファイル管理アプリに�
 | --- | --- |
 | `my-patch-config.json` | ビルドするアプリ、パッチソース、パッチオプション |
 | `arch-config.json` | アプリごとのアーキテクチャ指定 |
-| `apps/` | 元APKのpackage IDと取得元設定 |
+| `app-metadata/` | 取得元に依存しないpackage IDと`source_policy` |
+| `apps/` | プロバイダー別の検索名、package ID、取得元設定 |
 | `sources/` | パッチツールとパッチバンドルの取得設定 |
 | `scripts/probe_apk_sources.py` | 指定版を各取得元で実通信確認する診断コマンド |
 | `scripts/validate_repository.py` | JSON、package ID、source、architectureの整合性検査 |
@@ -159,9 +166,11 @@ Androidの設定によっては、ブラウザやファイル管理アプリに�
 | `build.yml` | ツールダウンロード、マトリックスビルド、VirusTotal検査、リリース公開、手動の全件ビルド |
 | `health-check.yml` | 設定検証、ツールリリース確認、APK取得元の定期ヘルスチェック |
 | `configuration-check.yml` | push/PR時の設定整合性検査とPythonコンパイルチェック |
+| `register-google-play.yml` | 公式AuthenticatorからGoogle Playアカウントを安全に登録 |
+| `diagnose-google-play-purchase.yml` | Google Playの購入・端末プロファイル問題を診断 |
 
 ## 免責事項
 
 このリポジトリは、各アプリおよびパッチプロジェクトと提携していない非公式プロジェクトです。配布物の利用、アカウント、端末、データ、サービス利用条件に関する判断と責任は利用者にあります。
 
-問題を報告する場合は、秘密情報や個人情報を除いたうえで[Issues](https://github.com/matchadaisuke/Morphe-AutoBuilds/issues)へ実行日時、対象アプリ、失敗したステップを記載してください。
+問題を報告する場合は、秘密情報や個人情報を除いたうえで[Issues](https://github.com/almeki876/Morphe-AutoBuilds/issues)へ実行日時、対象アプリ、失敗したステップを記載してください。

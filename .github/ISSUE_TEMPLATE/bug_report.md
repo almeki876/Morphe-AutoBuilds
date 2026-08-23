@@ -15,7 +15,7 @@ body:
     attributes:
       label: 不具合の概要 (Summary)
       description: どのような問題が発生したか簡潔に説明してください。
-      placeholder: 例: YouTube Musicのパッチ適用済みAPKで起動時にクラッシュする
+      placeholder: '例: YouTube Musicのパッチ適用済みAPKで起動時にクラッシュする'
     validations:
       required: true
 
@@ -25,42 +25,83 @@ body:
       label: 対象アプリ (Target App)
       description: 問題が発生したアプリを選択してください。
       options:
+        - 1.1.1.1
+        - AccuBattery
+        - Adobe Acrobat
+        - Adobe Scan
+        - Alarmy
+        - AliExpress
+        - Amazon Music
+        - Amazon Shopping
+        - Brave
+        - Brave Beta
+        - Brave Nightly
+        - Call Recorder
+        - CamScanner
+        - Countdown Widget
+        - Crunchyroll
+        - Disney+ (Android TV)
         - YouTube
         - YouTube Music
         - AdGuard
         - Prime Video
+        - Prime Video (Android TV)
         - Duolingo
-        - ibis Paint X
-        - Icon Packer
-        - Nova Launcher
-        - Proton VPN
-        - Smart Launcher
-        - SoundCloud
-        - WPS Office
-        - Crunchyroll
+        - Excel
+        - File Manager
+        - Fing
+        - FolderSync
+        - Gboard
         - GitHub
-        - Lightroom Mobile
-        - Windy
-        - Xodo
-        - XRecorder
-        - MEGA
-        - Proton Mail
-        - Disney+
-        - Photomath
-        - Pixiv
-        - Adobe Photoshop Mix
-        - Amazon Shopping
         - Google News
         - Google Photos
         - Google Recorder
+        - ibis Paint X
+        - Icon Packer
+        - iLovePDF
+        - InShot
+        - Kahoot
+        - KineMaster
+        - KineStop
+        - Lightroom Mobile
+        - LINE
+        - MEGA
+        - Netflix
+        - Ninja VPN
+        - Nova Launcher
+        - Adobe Photoshop Mix
+        - Photomath
+        - Pixiv
+        - Poweramp
+        - Proton Mail
+        - Proton VPN
+        - SD Maid SE
+        - Sleep as Android
+        - Smart Launcher
+        - SoundCloud
+        - Speedtest
         - Threads
         - TikTok
         - Tumblr
         - Twitch
+        - Twitch (Android TV)
         - Viber
+        - Windscribe VPN
+        - Windy
+        - Word
+        - WPS Office
+        - Xodo
+        - XRecorder
         - ゆうちょ通帳アプリ
         - ゆうちょ認証アプリ
         - その他 / その他全般
+
+  - type: input
+    id: patch_source
+    attributes:
+      label: パッチソース (Patch Source)
+      description: リリースのファイル名または説明にあるパッチソース名を記入してください。
+      placeholder: '例: morphe / revanced-anddea / rushiranpise'
 
   - type: textarea
     id: steps
@@ -95,4 +136,4 @@ body:
       placeholder: |
         - OS: Android 14
         - 端末: Pixel 8
-        - リリースバージョン: 2026-08-08 18:00 JST
+        - リリースバージョン: 2026-08-23 18:00 JST
