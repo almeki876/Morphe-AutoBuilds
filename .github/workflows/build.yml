@@ -323,29 +323,9 @@ jobs:
           "$HOME/.local/bin/playfetch" version
           "$HOME/.local/bin/apkeep" --version
 
-      - name: Connect Yuucho downloads to Japanese Tailscale exit node
-        if: ${{ matrix.app_name == 'yuucho-tsucho' || matrix.app_name == 'yuucho-ninsho' }}
-        uses: tailscale/github-action@v4
-        with:
-          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
-          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
-          tags: tag:ci
-
-      - name: Select advertised Japanese Tailscale exit node
-        if: ${{ matrix.app_name == 'yuucho-tsucho' || matrix.app_name == 'yuucho-ninsho' }}
-        env:
-          TS_EXIT_NODE: ${{ vars.TS_EXIT_NODE }}
-        run: |
-          exit_node_ip="$(python3 scripts/resolve_tailscale_exit_node.py "$TS_EXIT_NODE")"
-          sudo tailscale set --exit-node="$exit_node_ip"
-          tailscale ping "$exit_node_ip"
-
-      - name: Verify Yuucho Google Play egress is in Japan
-        if: ${{ matrix.app_name == 'yuucho-tsucho' || matrix.app_name == 'yuucho-ninsho' }}
-        run: python3 scripts/verify_japan_egress.py
-
       - name: Download Base APK
-        id: download-apk
+        id: download-apk-primary
+        continue-on-error: true
         env:
           APP_NAME: ${{ matrix.app_name }}
           SOURCE: ${{ matrix.source }}
@@ -365,8 +345,87 @@ jobs:
           BASE_APK_CACHE_TAG: 'base-apk-cache-v2'
           BASE_APK_CACHE_REPOSITORY: ${{ github.repository }}
         run: |
-          python3 scripts/download_apks.py 2>&1 | tee download.log
+          python3 scripts/download_apks.py 2>&1 | tee download-primary.log
           exit ${PIPESTATUS[0]}
+
+      - name: Connect failed download to Japanese Tailscale exit node
+        id: tailscale-fallback
+        if: ${{ steps.download-apk-primary.outcome == 'failure' }}
+        uses: tailscale/github-action@v4
+        with:
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+          tags: tag:ci
+
+      - name: Select advertised Japanese Tailscale exit node
+        id: select-tailscale-exit-node
+        if: ${{ steps.download-apk-primary.outcome == 'failure' && steps.tailscale-fallback.outcome == 'success' }}
+        env:
+          TS_EXIT_NODE: ${{ vars.TS_EXIT_NODE }}
+        run: |
+          exit_node_ip="$(python3 scripts/resolve_tailscale_exit_node.py "$TS_EXIT_NODE")"
+          sudo tailscale set --exit-node="$exit_node_ip"
+          tailscale ping "$exit_node_ip"
+
+      - name: Verify fallback egress is in Japan
+        id: verify-japan-egress
+        if: ${{ steps.select-tailscale-exit-node.outcome == 'success' }}
+        run: python3 scripts/verify_japan_egress.py
+
+      - name: Retry Base APK download through Japan
+        id: download-apk-japan
+        if: ${{ steps.verify-japan-egress.outcome == 'success' }}
+        continue-on-error: true
+        env:
+          APP_NAME: ${{ matrix.app_name }}
+          SOURCE: ${{ matrix.source }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GPLAYDL_API_KEY: ${{ secrets.GPLAYDL_API_KEY }}
+          GPLAY_EMAIL: ${{ secrets.GPLAY_EMAIL }}
+          GPLAY_AAS_TOKEN: ${{ secrets.GPLAY_AAS_TOKEN }}
+          GPLAYDL_PREFERRED_PROFILE: ${{ vars.GPLAYDL_PREFERRED_PROFILE }}
+          GPLAY_AUTH_TOKEN: ${{ secrets.GPLAY_AUTH_TOKEN }}
+          AURORA_DISPENSER_URL: ${{ vars.AURORA_DISPENSER_URL }}
+          HTTP_RETRIES: '4'
+          HTTP_RETRY_BASE_SECONDS: '5'
+          HTTP_RETRY_MAX_SECONDS: '60'
+          APK_VERSION_CANDIDATES: '5'
+          APKMIRROR_REQUEST_INTERVAL_SECONDS: '3.5'
+          BASE_APK_CACHE: 'true'
+          BASE_APK_CACHE_TAG: 'base-apk-cache-v2'
+          BASE_APK_CACHE_REPOSITORY: ${{ github.repository }}
+        run: |
+          python3 scripts/download_apks.py 2>&1 | tee download-japan.log
+          exit ${PIPESTATUS[0]}
+
+      - name: Resolve Download Result
+        id: download-apk
+        if: ${{ always() }}
+        env:
+          PRIMARY_OUTCOME: ${{ steps.download-apk-primary.outcome }}
+          JAPAN_OUTCOME: ${{ steps.download-apk-japan.outcome }}
+        run: |
+          {
+            if [ -f download-primary.log ]; then
+              echo "===== Primary download ====="
+              cat download-primary.log
+            fi
+            if [ -f download-japan.log ]; then
+              echo "===== Japan fallback download ====="
+              cat download-japan.log
+            fi
+          } > download.log
+
+          if [ "$PRIMARY_OUTCOME" = "success" ]; then
+            echo "Primary download succeeded; Japan fallback was not used."
+            exit 0
+          fi
+          if [ "$JAPAN_OUTCOME" = "success" ]; then
+            echo "Primary download failed; Japan fallback succeeded."
+            exit 0
+          fi
+          echo "Primary download and Japan fallback did not succeed." >&2
+          exit 1
 
       - name: Record Download Result
         if: always()
