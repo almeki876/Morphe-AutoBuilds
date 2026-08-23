@@ -56,6 +56,32 @@ class ListVersionsPolicyTests(unittest.TestCase):
                 "patches.rvp",
             )
 
+    def test_any_policy_with_unknown_extra_line_remains_fail_closed(self):
+        output = "\n".join(
+            [
+                "INFO: Package name: com.example.app",
+                "Most common compatible versions:",
+                "\tAny",
+                "Unexpected upstream format",
+            ]
+        )
+
+        candidates = parse_candidates(output)
+        self.assertEqual(candidates, [])
+        self.assertFalse(candidates)
+        self.assertFalse(candidates.unrestricted)
+
+        with (
+            patch.object(cli_compat, "detect_cli_kind", return_value=cli_compat.MORPHE),
+            patch.object(utils, "run_process", return_value=output),
+            self.assertRaises(utils.SupportedVersionLookupError),
+        ):
+            utils.get_supported_version_candidates(
+                "com.example.app",
+                "morphe-cli.jar",
+                "patches.rvp",
+            )
+
 
 if __name__ == "__main__":
     unittest.main()
