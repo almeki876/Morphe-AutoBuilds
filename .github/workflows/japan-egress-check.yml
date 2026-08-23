@@ -1,0 +1,40 @@
+name: Verify Japanese APK Download Fallback
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Verify Tailscale exit node is in Japan
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v7
+
+      - name: Setup Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.11'
+
+      - name: Connect to Japanese Tailscale exit node
+        uses: tailscale/github-action@v4
+        with:
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+          tags: tag:ci
+
+      - name: Select advertised Japanese Tailscale exit node
+        env:
+          TS_EXIT_NODE: ${{ vars.TS_EXIT_NODE }}
+        run: |
+          exit_node_ip="$(python3 scripts/resolve_tailscale_exit_node.py "$TS_EXIT_NODE")"
+          sudo tailscale set --exit-node="$exit_node_ip"
+          tailscale ping "$exit_node_ip"
+
+      - name: Verify outbound country
+        run: python3 scripts/verify_japan_egress.py

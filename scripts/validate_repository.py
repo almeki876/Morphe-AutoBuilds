@@ -42,6 +42,13 @@ EXPLICIT_PATCH_SELECTION_EXCEPTIONS = {
     ("yuucho-ninsho", "rushiranpise"),
 }
 PACKAGE_RE = re.compile(r"^[A-Za-z0-9_]+(?:\.[A-Za-z0-9_]+)+$")
+WORKFLOW_SCRIPT_RE = re.compile(
+    r"\bpython(?:3(?:\.\d+)?)?\s+(?:-m\s+)?"
+    r"(?P<target>scripts(?:[./][A-Za-z0-9_.-]+)+)"
+)
+WORKFLOW_DISPATCH_RE = re.compile(
+    r"\bgh\s+workflow\s+run\s+(?P<target>[^\s\\]+\.ya?ml)\b"
+)
 
 
 class Validation:
@@ -347,6 +354,43 @@ def _validate_state(validation: Validation) -> None:
             )
 
 
+def _workflow_script_path(target: str) -> Path:
+    if "/" in target:
+        path = Path(target)
+    else:
+        path = Path(*target.split("."))
+    return path if path.suffix == ".py" else path.with_suffix(".py")
+
+
+def _validate_workflows(validation: Validation) -> None:
+    """Reject workflow commands whose repository-local targets are missing."""
+    workflow_root = ROOT / ".github" / "workflows"
+    if not workflow_root.is_dir():
+        validation.error("missing required directory: .github/workflows")
+        return
+
+    workflows = sorted((*workflow_root.glob("*.yml"), *workflow_root.glob("*.yaml")))
+    if not workflows:
+        validation.error(".github/workflows contains no workflow files")
+        return
+
+    for workflow in workflows:
+        try:
+            text = workflow.read_text(encoding="utf-8")
+        except OSError as error:
+            validation.error(f"cannot read {workflow.relative_to(ROOT)}: {error}")
+            continue
+        relative = workflow.relative_to(ROOT)
+        for match in WORKFLOW_SCRIPT_RE.finditer(text):
+            script = _workflow_script_path(match.group("target"))
+            if not (ROOT / script).is_file():
+                validation.error(f"{relative}: missing referenced script {script}")
+        for match in WORKFLOW_DISPATCH_RE.finditer(text):
+            target = match.group("target").strip("'\"")
+            if not (workflow_root / target).is_file():
+                validation.error(f"{relative}: missing dispatched workflow {target}")
+
+
 def validate() -> Validation:
     result = Validation()
     packages = _configured_packages(result)
@@ -356,6 +400,7 @@ def validate() -> Validation:
     _validate_provider_configs(result)
     _validate_sources(result)
     _validate_state(result)
+    _validate_workflows(result)
     return result
 
 

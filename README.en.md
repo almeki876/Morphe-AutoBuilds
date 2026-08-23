@@ -78,7 +78,7 @@ When updates are detected, the workflow performs:
 
 If only certain apps fail to build, partial releases containing only successful APKs may be published. If zero APKs are built or VirusTotal inspection fails, no release is published.
 
-A test workflow (`test-build.yml`) is also available for forcing all sources to build. When triggered manually, it fetches the latest tag for each source and runs the build with `force_build` flags set for every source.
+To force-build every source manually, run `build.yml` with `build_all_sources` enabled.
 
 ## Base APK Retrieval Strategy
 
@@ -156,10 +156,9 @@ Main configurations:
 | Workflow | Purpose |
 | --- | --- |
 | `check-upstream.yml` | Patch source and APK update detection, build triggering |
-| `build.yml` | Tool download, matrix build, VirusTotal scan, release publishing |
+| `build.yml` | Tool download, matrix build, VirusTotal scan, release publishing, and manual full builds |
 | `health-check.yml` | Configuration validation, tool release verification, daily APK provider health check |
 | `configuration-check.yml` | Push/PR configuration consistency check and Python compile check |
-| `test-build.yml` | Force build all sources for testing (manual trigger) |
 
 ## Disclaimer
 

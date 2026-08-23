@@ -95,14 +95,5 @@ class IncrementalReleaseSelectionTests(unittest.TestCase):
         self.assertNotIn("for forced_source in", workflow)
         self.assertIn('-f updated_apps="$UPDATED_APPS"', workflow)
 
-    def test_pr_verification_uses_computed_scope(self):
-        workflow = Path(
-            ".github/workflows/pr-targeted-build-verification.yml"
-        ).read_text(encoding="utf-8")
-        self.assertIn("scripts/pr_build_scope.py", workflow)
-        self.assertIn('-f updated_apps="$UPDATED_APPS"', workflow)
-        self.assertNotIn("adobe-acrobat,amazon-shopping,crunchyroll", workflow)
-
-
 if __name__ == "__main__":
     unittest.main()

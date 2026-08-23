@@ -87,11 +87,15 @@ class GboardMultiSourceTests(unittest.TestCase):
             rewritten = gboard_multi.prepare_morphe_command(command)
 
         self.assertNotIn("--exclusive", rewritten)
-        self.assertIn("tools/adobo/adobo.mpp", rewritten)
-        self.assertIn("tools/morning-entree/morning-entree.mpp", rewritten)
+        normalized = [value.replace("\\", "/") for value in rewritten]
+        self.assertIn("tools/adobo/adobo.mpp", normalized)
+        self.assertIn("tools/morning-entree/morning-entree.mpp", normalized)
         self.assertEqual(rewritten.count("-p"), 3)
         options_index = rewritten.index("--options-file")
-        self.assertEqual(rewritten[options_index + 1], "/tmp/gboard-options.json")
+        self.assertEqual(
+            rewritten[options_index + 1].replace("\\", "/"),
+            "/tmp/gboard-options.json",
+        )
         self.assertEqual(rewritten[-1], "input.apk")
 
     def test_adobo_update_collapses_to_one_integrated_gboard_matrix_item(self):
