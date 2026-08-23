@@ -1,204 +1,95 @@
+import json
+import types
 import unittest
+from pathlib import Path
 from unittest import mock
 
 from src import providers
 from src.versioning import VersionCandidate
 
 
-class ConfiguredIdentityEnrichmentTests(unittest.TestCase):
-    def test_manifest_verified_app_identities_only_enrich_the_exact_release(self) -> None:
-        # These immutable name/code pairs were verified from downloaded APK
-        # manifests. They identify a release; they do not select a patch version.
-        verified = (
-            (
-                "amazon-shopping",
-                "apkpure",
-                "com.amazon.mShop.android.shopping",
-                "32.13.2.100",
-                "1241320216",
-                "32.13.2.101",
-            ),
-            (
-                "adobe-acrobat",
-                "aptoide",
-                "com.adobe.reader",
-                "26.7.1.47181",
-                "1931947181",
-                "26.7.1.47182",
-            ),
+class DynamicIdentityEnrichmentTests(unittest.TestCase):
+    def test_repository_provider_configs_do_not_pin_version_codes(self) -> None:
+        pinned = []
+        for path in Path("apps").glob("*/*.json"):
+            payload = json.loads(path.read_text(encoding="utf-8"))
+            if "version_code" in payload:
+                pinned.append(str(path))
+        self.assertEqual(pinned, [])
+
+    def test_all_opted_in_live_resolvers_are_used_without_priority_entry(self) -> None:
+        requested = VersionCandidate(name="9.8.7", raw="9.8.7 (2 patches)")
+        unresolved = types.SimpleNamespace(
+            resolve_candidate_identities=lambda package, candidates: candidates
+        )
+        resolved = types.SimpleNamespace(
+            resolve_candidate_identities=lambda package, candidates: [
+                VersionCandidate(name="9.8.7", code="98742")
+            ]
+        )
+        modules = {"first": unresolved, "future-provider": resolved}
+
+        with (
+            mock.patch.object(providers, "MODULES", modules),
+            mock.patch.object(providers, "IDENTITY_RESOLUTION_PRIORITY", ("first",)),
+        ):
+            candidates = providers.resolve_patch_candidates(
+                "example", "com.example.app", [requested]
+            )
+
+        self.assertEqual(
+            candidates,
+            [VersionCandidate(name="9.8.7", code="98742", raw=requested.raw)],
         )
 
-        with mock.patch.object(providers, "IDENTITY_RESOLUTION_PRIORITY", ()):
-            for app, provider, package, version, code, changed_version in verified:
-                with self.subTest(app=app):
-                    config = providers.load_config(
-                        app,
-                        provider,
-                        allow_synthetic=False,
-                    )
-                    self.assertIsNotNone(config)
-                    assert config is not None
-                    self.assertEqual(config.get("version"), version)
-                    self.assertEqual(config.get("version_code"), code)
-
-                    candidate = VersionCandidate(
-                        name=version,
-                        raw=f"{version} (1 patch)",
-                    )
-                    self.assertEqual(
-                        providers.resolve_patch_candidates(app, package, [candidate]),
-                        [
-                            VersionCandidate(
-                                name=version,
-                                code=code,
-                                raw=candidate.raw,
-                            )
-                        ],
-                    )
-
-                    changed = VersionCandidate(
-                        name=changed_version,
-                        raw=f"{changed_version} (1 patch)",
-                    )
-                    self.assertEqual(
-                        providers.resolve_patch_candidates(app, package, [changed]),
-                        [changed],
-                    )
-
-    def test_exact_config_version_adds_missing_version_code(self) -> None:
-        candidate = VersionCandidate(name="26.32.1")
+    def test_identity_resolution_order_is_unique_and_live_only(self) -> None:
+        resolver = types.SimpleNamespace(resolve_candidate_identities=lambda p, c: c)
+        modules = {
+            "metadata": resolver,
+            "download-only": types.SimpleNamespace(),
+            "fallback": resolver,
+        }
         with (
-            mock.patch.object(providers, "IDENTITY_RESOLUTION_PRIORITY", ()),
-            mock.patch(
-                "src.providers.load_config",
-                side_effect=lambda app, provider, allow_synthetic=False: (
-                    {
-                        "name": "alarmy-alarm-clock-sleep-tracker",
-                        "package": "droom.sleepIfUCan",
-                        "version": "26.32.1",
-                        "version_code": "263201",
-                    }
-                    if provider == "apkpure"
-                    else None
-                ),
+            mock.patch.object(providers, "MODULES", modules),
+            mock.patch.object(
+                providers,
+                "IDENTITY_RESOLUTION_PRIORITY",
+                ("metadata", "download-only", "metadata"),
             ),
         ):
-            resolved = providers.resolve_patch_candidates(
-                "alarmy", "droom.sleepIfUCan", [candidate]
+            self.assertEqual(
+                providers.identity_resolution_order(),
+                ("metadata", "fallback"),
             )
 
-        self.assertEqual(resolved[0].name, "26.32.1")
-        self.assertEqual(resolved[0].code, "263201")
-        self.assertTrue(resolved[0].matches("", "263201"))
-
-    def test_verified_config_replaces_cli_display_id_for_exact_version(self) -> None:
-        candidate = VersionCandidate(
-            name="16.0.20326.20034",
-            code="20326",
-            raw="20326 (16.0.20326.20034) (1 patch)",
+    def test_mismatched_live_identity_is_rejected(self) -> None:
+        requested = VersionCandidate(name="9.8.7", raw="9.8.7 (2 patches)")
+        wrong = types.SimpleNamespace(
+            resolve_candidate_identities=lambda package, candidates: [
+                VersionCandidate(name="9.8.8", code="98842")
+            ]
         )
         with (
-            mock.patch.object(providers, "IDENTITY_RESOLUTION_PRIORITY", ()),
-            mock.patch(
-                "src.providers.load_config",
-                side_effect=lambda app, provider, allow_synthetic=False: (
-                    {
-                        "name": "microsoft-word",
-                        "package": "com.microsoft.office.word",
-                        "version": "16.0.20326.20034",
-                        "version_code": "2005292331",
-                    }
-                    if provider == "apkmirror"
-                    else None
-                ),
-            ),
+            mock.patch.object(providers, "MODULES", {"metadata": wrong}),
+            mock.patch.object(providers, "IDENTITY_RESOLUTION_PRIORITY", ("metadata",)),
         ):
-            resolved = providers.resolve_patch_candidates(
-                "word", "com.microsoft.office.word", [candidate]
+            candidates = providers.resolve_patch_candidates(
+                "example", "com.example.app", [requested]
             )
+        self.assertEqual(candidates, [requested])
 
-        self.assertEqual(resolved[0].name, "16.0.20326.20034")
-        self.assertEqual(resolved[0].code, "2005292331")
-        self.assertEqual(resolved[0].raw, candidate.raw)
-
-    def test_live_resolved_code_beats_configured_pin(self) -> None:
-        candidate = VersionCandidate(
-            name="16.0.20326.20034",
-            code="20326",
-            raw="20326 (16.0.20326.20034) (1 patch)",
-        )
-
-        class LiveResolver:
-            @staticmethod
-            def resolve_candidate_identities(package, candidates):
-                return [
-                    VersionCandidate(
-                        name="16.0.20326.20034",
-                        code="2005292331",
-                    )
-                ]
-
+    def test_unresolved_identity_does_not_fall_back_to_local_config(self) -> None:
+        requested = VersionCandidate(name="9.8.7", raw="9.8.7 (2 patches)")
         with (
-            mock.patch.object(providers, "IDENTITY_RESOLUTION_PRIORITY", ("live",)),
-            mock.patch.dict(providers.MODULES, {"live": LiveResolver}),
-            mock.patch(
-                "src.providers.load_config",
-                return_value={
-                    "package": "com.microsoft.office.word",
-                    "version": "16.0.20326.20034",
-                    "version_code": "9999999999",
-                },
-            ),
-        ):
-            resolved = providers.resolve_patch_candidates(
-                "word", "com.microsoft.office.word", [candidate]
-            )
-
-        self.assertEqual(resolved[0].code, "2005292331")
-
-    def test_stale_config_version_cannot_enrich_new_patch_version(self) -> None:
-        candidate = VersionCandidate(name="26.33.1")
-        with (
+            mock.patch.object(providers, "MODULES", {}),
             mock.patch.object(providers, "IDENTITY_RESOLUTION_PRIORITY", ()),
-            mock.patch(
-                "src.providers.load_config",
-                side_effect=lambda app, provider, allow_synthetic=False: (
-                    {
-                        "name": "alarmy-alarm-clock-sleep-tracker",
-                        "package": "droom.sleepIfUCan",
-                        "version": "26.32.1",
-                        "version_code": "263201",
-                    }
-                    if provider == "apkpure"
-                    else None
-                ),
-            ),
+            mock.patch("src.providers.load_config") as load_config,
         ):
-            resolved = providers.resolve_patch_candidates(
-                "alarmy", "droom.sleepIfUCan", [candidate]
+            candidates = providers.resolve_patch_candidates(
+                "example", "com.example.app", [requested]
             )
-
-        self.assertEqual(resolved, [candidate])
-        self.assertIsNone(resolved[0].code)
-
-    def test_existing_explicit_or_live_code_is_never_overwritten(self) -> None:
-        candidate = VersionCandidate(name="26.32.1", code="999999")
-        with (
-            mock.patch.object(providers, "IDENTITY_RESOLUTION_PRIORITY", ()),
-            mock.patch(
-                "src.providers.load_config",
-                return_value={
-                    "package": "droom.sleepIfUCan",
-                    "version": "26.32.1",
-                    "version_code": "263201",
-                },
-            ),
-        ):
-            resolved = providers.resolve_patch_candidates(
-                "alarmy", "droom.sleepIfUCan", [candidate]
-            )
-
-        self.assertEqual(resolved[0].code, "999999")
+        self.assertEqual(candidates, [requested])
+        load_config.assert_not_called()
 
 
 if __name__ == "__main__":

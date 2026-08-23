@@ -20,11 +20,11 @@ class VersionCodeResolutionError(RuntimeError):
 def resolve_candidate(package: str, candidate: VersionCandidate | None) -> VersionCandidate | None:
     """Return a Play-ready candidate with an exact versionCode when required.
 
-    ``None`` means the patch side has no version restriction (``any``), so the
-    current Google Play release is intentionally used. Explicit candidates must
-    carry a trustworthy Android versionCode before gplaydl is invoked; otherwise
-    gplaydl would fetch the current release and only fail after downloading the
-    wrong APK.
+    ``None`` means the patch side has no version restriction
+    (``any``/``null``), so the current Google Play release is intentionally
+    used. Explicit candidates must carry a trustworthy Android versionCode
+    before gplaydl is invoked; otherwise gplaydl would fetch the current release
+    and only fail after downloading the wrong APK.
     """
     if candidate is None:
         return None
@@ -52,12 +52,8 @@ def resolve_candidate(package: str, candidate: VersionCandidate | None) -> Versi
     # Prefer the registry's dedicated identity resolvers, then automatically use
     # any future provider that implements the same hook. This keeps the policy
     # generic as providers are added or removed.
-    order = [
-        *providers.IDENTITY_RESOLUTION_PRIORITY,
-        *(name for name in providers.MODULES if name not in providers.IDENTITY_RESOLUTION_PRIORITY),
-    ]
     current = candidate
-    for provider_name in order:
+    for provider_name in providers.identity_resolution_order():
         module = providers.MODULES.get(provider_name)
         resolver = getattr(module, "resolve_candidate_identities", None) if module else None
         if resolver is None:

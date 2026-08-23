@@ -9,6 +9,14 @@ from src.versioning import VersionCandidate
 
 
 class DownloadApksTests(unittest.TestCase):
+    def setUp(self) -> None:
+        resolver = mock.patch(
+            "scripts.download_apks.providers.resolve_patch_candidates",
+            side_effect=lambda app_name, package, candidates: candidates,
+        )
+        resolver.start()
+        self.addCleanup(resolver.stop)
+
     def test_explicit_patch_candidate_is_primary_play_release(self) -> None:
         newest = VersionCandidate(name="9.9.9", code="999")
         older = VersionCandidate(name="9.8.0", code="980")

@@ -9,8 +9,8 @@ ephemeral self-hosted dispenser on the runner. apkeep reads the same account
 from a short-lived owner-only INI file and never accepts Play terms for users.
 
 For explicitly versioned patch targets, Android ``versionCode`` is resolved
-at runtime before invoking gplaydl and passed through ``-v``. ``any`` remains
-the only path that intentionally asks Google Play for the current release.
+at runtime before invoking gplaydl and passed through ``-v``. ``any``/``null``
+remain the only path that intentionally asks Google Play for the current release.
 
 The upstream clients own authentication, details, purchase, delivery, protobuf
 handling, device-profile selection, and downloads. This wrapper does not
@@ -495,7 +495,8 @@ def _download_with_linked_gplaydl(
 
     An explicit patch version always reaches this function with a resolved
     versionCode and is sent to gplaydl through ``-v``. Only ``candidate=None``
-    (patch compatibility ``any``) intentionally requests the current release.
+    (patch compatibility ``any``/``null``) intentionally requests the current
+    release.
 
     If AAS credentials are present, ``ensure_running`` replaces the hosted
     dispenser credentials in this process with an ephemeral localhost dispenser
@@ -555,7 +556,7 @@ def download_candidate(
         )
 
     # Universal policy for every Play-enabled app:
-    #   any -> current release
+    #   any/null -> current release
     #   explicit version -> dynamically resolve exact Android versionCode, then -v
     play_candidate = play_version_resolver.resolve_candidate(package, candidate)
 

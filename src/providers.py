@@ -14,7 +14,7 @@ from types import ModuleType
 
 from src import apkcombo, apkmirror_latest, apkpure, aptoide, github, softonic
 from src import uptodown_exact as uptodown
-from src.versioning import VersionCandidate, pinned_candidate
+from src.versioning import VersionCandidate
 
 
 DOWNLOAD_PRIORITY = (
@@ -29,8 +29,8 @@ DOWNLOAD_PRIORITY = (
 # Prefer package-addressed machine-readable metadata for patch identity
 # enrichment. More resolvers can opt in by exposing resolve_candidate_identities.
 IDENTITY_RESOLUTION_PRIORITY = (
+    "apkpure",
     "uptodown",
-    "apkmirror",
 )
 
 PRIMARY_PROVIDER_KEY = "primary"
@@ -175,50 +175,21 @@ def configured_package(app_name: str) -> str | None:
     return found[0][1] if found else None
 
 
-def _configured_identity_code(
-    app_name: str,
-    candidate: VersionCandidate,
-) -> str | None:
-    """Return a hand-verified code only for the exact same versionName.
+def identity_resolution_order() -> tuple[str, ...]:
+    """Return every live identity resolver once, in deterministic order.
 
-    Provider configs sometimes contain a version/version_code pair captured
-    from a store release. It is safe enrichment for a patch candidate only
-    when the configured versionName is an exact match. This deliberately
-    refuses stale pins when patch compatibility moves to another release.
-
-    A non-raw code is already an explicit/configured Android versionCode and
-    must remain authoritative. A code attached to raw patch CLI output is
-    different: real build logs prove that some patch CLIs put a display/build
-    identifier in that position. In that case an exact versionName-matched,
-    hand-verified provider pin may replace the CLI value.
+    Dedicated package-addressed metadata providers are tried first. Any future
+    provider can opt in by exposing ``resolve_candidate_identities`` and will
+    automatically participate without a second registry update.
     """
-    if candidate.code and candidate.raw is None:
-        return candidate.code
-    provider_order = (
-        *CONFIG_SOURCE_PRIORITY,
-        *(provider for provider in MODULES if provider not in CONFIG_SOURCE_PRIORITY),
+    ordered = (*IDENTITY_RESOLUTION_PRIORITY, *MODULES)
+    return tuple(
+        provider
+        for index, provider in enumerate(ordered)
+        if provider in MODULES
+        and provider not in ordered[:index]
+        and callable(getattr(MODULES[provider], "resolve_candidate_identities", None))
     )
-    for provider in provider_order:
-        try:
-            config = load_config(app_name, provider, allow_synthetic=False)
-        except ValueError as error:
-            logging.warning("Ignoring invalid identity config for %s: %s", app_name, error)
-            continue
-        if not config:
-            continue
-        pinned = pinned_candidate(config)
-        if pinned and pinned.code and pinned.name == candidate.name:
-            action = "replacing patch CLI id" if candidate.code else "enriching patch release"
-            logging.info(
-                "🪪 %s: %s %s with configured versionCode %s from %s",
-                app_name,
-                action,
-                candidate.name,
-                pinned.code,
-                provider,
-            )
-            return pinned.code
-    return candidate.code
 
 
 def resolve_patch_candidates(
@@ -242,7 +213,7 @@ def resolve_patch_candidates(
     # and matching semantics, so it cannot by itself identify code provenance.
     live_verified = [False] * len(resolved)
 
-    for provider in IDENTITY_RESOLUTION_PRIORITY:
+    for provider in identity_resolution_order():
         module = MODULES.get(provider)
         resolver = getattr(module, "resolve_candidate_identities", None) if module else None
         if resolver is None:
@@ -299,23 +270,7 @@ def resolve_patch_candidates(
         ):
             break
 
-    # If live package metadata could not supply a trustworthy versionCode,
-    # allow an exact hand-verified provider pin to fill a missing code or
-    # replace a raw patch-CLI display id. Never replace a code verified by a
-    # live resolver and never carry a code across a versionName change.
-    enriched: list[VersionCandidate] = []
-    for index, candidate in enumerate(resolved):
-        if live_verified[index]:
-            enriched.append(candidate)
-            continue
-        code = _configured_identity_code(app_name, candidate)
-        if code and code != candidate.code:
-            enriched.append(
-                VersionCandidate(name=candidate.name, code=code, raw=candidate.raw)
-            )
-        else:
-            enriched.append(candidate)
-    return enriched
+    return resolved
 
 
 def validate_all_configs() -> list[str]:
@@ -351,6 +306,10 @@ def validate_all_configs() -> list[str]:
             except ValueError as error:
                 errors.append(str(error))
                 continue
+            if "version_code" in config:
+                errors.append(
+                    f"{config_path}: version_code must be resolved from live metadata"
+                )
             package = str(config["package"])
             app_packages.setdefault(app_name, set()).add(package)
 

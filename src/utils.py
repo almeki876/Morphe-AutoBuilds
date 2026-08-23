@@ -22,6 +22,10 @@ class BotProtectionError(RuntimeError):
     """A host returned an interactive anti-bot page instead of the resource."""
 
 
+class SupportedVersionLookupError(RuntimeError):
+    """The patch CLI failed to state a trustworthy version policy."""
+
+
 def is_bot_challenge(response) -> bool:
     """Recognize Cloudflare challenge pages without relying on one status code."""
     if response is None:
@@ -431,8 +435,9 @@ def get_supported_version_candidates(
     output = run_process(cmd, capture=True, silent=True, check=False)
 
     if not output:
-        logging.warning("No output returned from list-versions command")
-        return []
+        raise SupportedVersionLookupError(
+            "list-versions returned no output; refusing to assume the latest release"
+        )
 
     lines = output.splitlines()
     logging.info(f"CLI raw output lines: {lines}")
@@ -441,17 +446,32 @@ def get_supported_version_candidates(
     # Check all lines because Morphe CLI prefixes output with "INFO: Running in Headless environment..."
     all_output_lower = output.lower()
     if 'missing required option' in all_output_lower or 'unmatched argument' in all_output_lower:
-        logging.warning(f"CLI returned error/usage output (missing option or unmatched arg), cannot determine version")
-        return []
-    first_line = lines[0].strip().lower()
-    if 'usage:' in first_line or 'error' in first_line:
-        logging.warning(f"CLI returned error/usage output, cannot determine version")
-        return []
+        raise SupportedVersionLookupError(
+            "list-versions returned error/usage output (missing option or unmatched argument)"
+        )
+    if any(
+        line.strip().casefold().startswith(("usage:", "error:", "exception:"))
+        for line in lines
+    ):
+        raise SupportedVersionLookupError("list-versions returned error/usage output")
 
     candidates = parse_candidates(output)
     if not candidates:
-        logging.warning("No supported versions found")
-        return []
+        policy_lines = {
+            line.strip().casefold()
+            for line in lines
+            if line.strip()
+            and not line.strip().casefold().startswith(("info:", "warning:"))
+        }
+        if not policy_lines or policy_lines <= {"any", "null"}:
+            logging.info(
+                "Patch compatibility is unrestricted (%s); using the latest release",
+                ", ".join(sorted(policy_lines)) or "no version constraint",
+            )
+            return []
+        raise SupportedVersionLookupError(
+            "list-versions output contained no recognized version, any, or null policy"
+        )
 
     candidates.sort(key=lambda item: normalize_version(item.name), reverse=True)
     logging.info(

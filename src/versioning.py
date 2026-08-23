@@ -147,7 +147,7 @@ def discovered_version_code(package: str, version: str) -> str | None:
 def parse_candidate(line: str) -> VersionCandidate | None:
     """Parse one non-log line from a Morphe/ReVanced list-versions command."""
     value = line.strip()
-    if not value or value.casefold() == "any":
+    if not value or value.casefold() in {"any", "null"}:
         return None
     if value.casefold().startswith(("info:", "warning:", "error:", "usage:")):
         return None

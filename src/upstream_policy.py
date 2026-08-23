@@ -9,7 +9,7 @@ loaded:
 * ``force_enable`` is ignored so it cannot promote a non-recommended patch;
 * legacy per-app patch allowlists are ignored when recommendation metadata is
   unavailable, leaving selection to the CLI defaults;
-* when the patch side explicitly reports no version restriction (``any``),
+* when the patch side explicitly reports no version restriction (``any``/``null``),
   provider version pins are ignored for this run so the current store release
   is selected.
 
@@ -179,7 +179,7 @@ def _package_for_app(app_name: str, apps_root: Path = Path("apps")) -> str | Non
 
 
 def _list_versions_output(package: str, cli: Path, bundle: Path) -> str | None:
-    """Ask the current CLI directly so ``any`` is distinguishable from errors."""
+    """Ask the CLI so ``any``/``null`` are distinguishable from errors."""
     try:
         from src import cli_compat, utils
 
@@ -211,7 +211,7 @@ def _list_versions_output(package: str, cli: Path, bundle: Path) -> str | None:
 
 
 def _patch_has_version_restriction(package: str, source: str) -> bool | None:
-    """Return False only for explicit ``any``, True for versions, else None."""
+    """Return False for ``any``/``null``, True for versions, else None."""
     cli, bundle = _tool_files(source)
     if cli is None or bundle is None:
         return None
@@ -232,7 +232,10 @@ def _patch_has_version_restriction(package: str, source: str) -> bool | None:
     output = _list_versions_output(package, cli, bundle)
     if not output:
         return None
-    if any(line.strip().casefold() == "any" for line in output.splitlines()):
+    if any(
+        line.strip().casefold() in {"any", "null"}
+        for line in output.splitlines()
+    ):
         return False
     return None
 

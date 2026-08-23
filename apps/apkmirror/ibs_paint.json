@@ -4,6 +4,5 @@
   "type": "APK",
   "arch": "arm64-v8a",
   "dpi": "nodpi",
-  "version": "14.0.6",
-  "version_code": "1400060037"
+  "version": "14.0.6"
 }

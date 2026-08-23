@@ -7,7 +7,6 @@
   "arch": "arm64-v8a",
   "dpi": "nodpi",
   "version": "3.112.2",
-  "version_code": "1157",
   "fallback_versions": [
     "3.113.2"
   ]

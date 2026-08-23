@@ -54,6 +54,30 @@ class UpstreamVersionPolicyTests(unittest.TestCase):
                 )
             )
 
+    def test_explicit_null_means_no_version_restriction(self) -> None:
+        with (
+            patch.object(
+                upstream_policy,
+                "_tool_files",
+                return_value=(Path("cli.jar"), Path("bundle.mpp")),
+            ),
+            patch(
+                "src.utils.get_supported_version_candidates",
+                return_value=[],
+            ),
+            patch.object(
+                upstream_policy,
+                "_list_versions_output",
+                return_value="INFO: Package name: com.example.app\nnull\n",
+            ),
+        ):
+            self.assertFalse(
+                upstream_policy._patch_has_version_restriction(
+                    "com.example.app",
+                    "source",
+                )
+            )
+
     def test_explicit_versions_are_restricted(self) -> None:
         candidate = object()
         with (

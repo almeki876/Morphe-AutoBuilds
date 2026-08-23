@@ -90,7 +90,8 @@ def _preferred_play_candidate(
     Patch compatibility is authoritative for every app. When upstream supplies
     explicit supported releases, the already newest-first first candidate is
     requested exactly. An empty candidate list means upstream compatibility is
-    ``any`` and therefore intentionally requests the current Google Play release.
+    ``any``/``null`` and therefore intentionally requests the current Google
+    Play release.
     Provider config pins never choose the primary Play release.
     """
     del app_name, package
@@ -173,7 +174,7 @@ def _download(app_name: str, source: str, arch: str) -> tuple[Path, str]:
     # Google Play is the preferred origin for every app except explicit
     # GitHub-only packages such as AdGuard. The pinned apkeep/gplaydl clients
     # own the details/purchase/delivery flows. Version selection is universal:
-    # explicit upstream-supported release -> newest candidate; any -> current.
+    # explicit upstream-supported release -> newest candidate; any/null -> current.
     play_enabled = aurora_play.google_play_enabled(package)
     if play_only and not play_enabled:
         raise RuntimeError(

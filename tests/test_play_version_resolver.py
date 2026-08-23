@@ -32,8 +32,7 @@ class PlayVersionResolverTests(unittest.TestCase):
             return [VersionCandidate(name="9.8.7", code="98742")]
 
         fake_module = types.SimpleNamespace(resolve_candidate_identities=resolver)
-        modules = dict(providers.MODULES)
-        modules["future-provider"] = fake_module
+        modules = {"future-provider": fake_module}
 
         with patch.object(providers, "MODULES", modules), patch.object(
             providers, "IDENTITY_RESOLUTION_PRIORITY", tuple()

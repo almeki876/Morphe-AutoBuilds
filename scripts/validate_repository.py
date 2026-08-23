@@ -137,6 +137,10 @@ def _validate_app_metadata(validation: Validation) -> None:
         if not isinstance(data, dict):
             continue
         relative = path.relative_to(ROOT)
+        if "version_code" in data:
+            validation.error(
+                f"{relative}: version_code must be resolved from live metadata"
+            )
         package = data.get("package")
         if isinstance(package, str) and not PACKAGE_RE.fullmatch(package):
             validation.error(f"{relative}: invalid Android package ID {package!r}")
