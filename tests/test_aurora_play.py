@@ -273,11 +273,37 @@ class AuroraPlayTests(unittest.TestCase):
 
     @mock.patch("src.aurora_play._download_with_linked_gplaydl")
     @mock.patch("src.aurora_play._download_with_apkeep_google_play")
-    def test_current_release_prefers_apkeep_google_play(
+    @mock.patch("src.aurora_play._download_with_playfetch_google_play")
+    def test_current_release_prefers_playfetch_google_play(
         self,
+        playfetch: mock.Mock,
         apkeep: mock.Mock,
         gplaydl: mock.Mock,
     ) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            expected = Path(directory) / "fallback.apk"
+            expected.write_bytes(b"official")
+            playfetch.return_value = expected
+            result = aurora_play.download_current(
+                "jp.example.bank",
+                Path(directory),
+            )
+
+        self.assertIs(result, expected)
+        playfetch.assert_called_once_with("jp.example.bank", Path(directory))
+        apkeep.assert_not_called()
+        gplaydl.assert_not_called()
+
+    @mock.patch("src.aurora_play._download_with_linked_gplaydl")
+    @mock.patch("src.aurora_play._download_with_apkeep_google_play")
+    @mock.patch("src.aurora_play._download_with_playfetch_google_play")
+    def test_current_release_playfetch_failure_uses_apkeep(
+        self,
+        playfetch: mock.Mock,
+        apkeep: mock.Mock,
+        gplaydl: mock.Mock,
+    ) -> None:
+        playfetch.side_effect = RuntimeError("current DFE temporarily unavailable")
         with tempfile.TemporaryDirectory() as directory:
             expected = Path(directory) / "fallback.apk"
             expected.write_bytes(b"official")
@@ -293,12 +319,15 @@ class AuroraPlayTests(unittest.TestCase):
 
     @mock.patch("src.aurora_play._download_with_linked_gplaydl")
     @mock.patch("src.aurora_play._download_with_apkeep_google_play")
-    def test_current_release_apkeep_failure_uses_gplaydl_profile_retry(
+    @mock.patch("src.aurora_play._download_with_playfetch_google_play")
+    def test_current_release_two_failures_use_gplaydl_profile_retry(
         self,
+        playfetch: mock.Mock,
         apkeep: mock.Mock,
         gplaydl: mock.Mock,
     ) -> None:
-        apkeep.side_effect = RuntimeError("current DFE temporarily unavailable")
+        playfetch.side_effect = RuntimeError("playfetch unavailable")
+        apkeep.side_effect = RuntimeError("apkeep unavailable")
         with tempfile.TemporaryDirectory() as directory:
             expected = Path(directory) / "fallback.apk"
             expected.write_bytes(b"official")

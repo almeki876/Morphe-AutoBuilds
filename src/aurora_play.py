@@ -1,8 +1,9 @@
 """Authenticated Google Play APK downloads.
 
 Google Play is the preferred APK origin for every app except packages that are
-explicitly GitHub-only (currently AdGuard). Current releases use apkeep 1.0.0's
-Google Play implementation first; exact versionCodes use upstream ``gplaydl``.
+explicitly GitHub-only (currently AdGuard). Current releases use playfetch's
+current Google Play implementation first, with apkeep 1.0.0 and upstream
+``gplaydl`` as independent fallbacks; exact versionCodes use upstream gplaydl.
 When ``GPLAY_EMAIL`` and ``GPLAY_AAS_TOKEN`` are available, gplaydl starts an
 ephemeral self-hosted dispenser on the runner. apkeep reads the same account
 from a short-lived owner-only INI file and never accepts Play terms for users.
@@ -19,6 +20,8 @@ against its Android manifest before it can enter the build pipeline.
 
 from __future__ import annotations
 
+import hashlib
+import json
 import logging
 import os
 import re
@@ -35,7 +38,9 @@ from src.versioning import VersionCandidate
 
 OFFICIAL_GPLAYDL_COMMAND = "gplaydl"
 OFFICIAL_APKEEP_COMMAND = "apkeep"
+OFFICIAL_PLAYFETCH_COMMAND = "playfetch"
 SUPPORTED_APKEEP_VERSION = "1.0.0"
+SUPPORTED_PLAYFETCH_VERSION = "v0.9.1"
 APKEEP_GOOGLE_PLAY_OPTIONS = (
     "device=px_9a,locale=ja_JP,timezone=Asia/Tokyo,split_apk=true"
 )
@@ -191,6 +196,198 @@ def _write_apkeep_ini(path: Path, email: str, aas_token: str) -> None:
     if os.name != "nt" and stat.S_IMODE(path.stat().st_mode) != 0o600:
         path.unlink(missing_ok=True)
         raise RuntimeError("apkeep credential file is not owner-only")
+
+
+def _write_playfetch_credentials(path: Path, email: str, aas_token: str) -> None:
+    """Create a playfetch v2 account store without exposing secrets in argv."""
+    if any(char in email or char in aas_token for char in "\r\n"):
+        raise RuntimeError("Google Play credentials contain an invalid newline")
+    payload = {
+        "version": 2,
+        "default": "ci",
+        "accounts": [
+            {
+                "name": "ci",
+                "email": email,
+                "aas_token": aas_token,
+                "region": "JP",
+                "added_at": "0001-01-01T00:00:00Z",
+            }
+        ],
+    }
+    descriptor = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+    try:
+        with os.fdopen(descriptor, "w", encoding="utf-8", newline="\n") as handle:
+            json.dump(payload, handle, ensure_ascii=True, separators=(",", ":"))
+            handle.write("\n")
+    except Exception:
+        path.unlink(missing_ok=True)
+        raise
+    if os.name != "nt" and stat.S_IMODE(path.stat().st_mode) != 0o600:
+        path.unlink(missing_ok=True)
+        raise RuntimeError("playfetch credential file is not owner-only")
+
+
+def _verified_playfetch_files(manifest_path: Path, package: str) -> list[Path]:
+    """Validate playfetch provenance and re-hash every Play-verified APK."""
+    try:
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as error:
+        raise RuntimeError(f"playfetch produced an invalid manifest: {error}") from error
+
+    if not isinstance(manifest, dict):
+        raise RuntimeError("playfetch manifest root must be a JSON object")
+    source = manifest.get("source") or {}
+    app = manifest.get("app") or {}
+    records = manifest.get("files")
+    if not isinstance(source, dict) or source.get("kind") != "google-play":
+        raise RuntimeError("playfetch manifest does not identify Google Play as its source")
+    if not isinstance(app, dict) or app.get("package") != package:
+        raise RuntimeError(
+            "playfetch manifest package mismatch: "
+            f"expected {package}, found "
+            f"{app.get('package') if isinstance(app, dict) else 'unknown'}"
+        )
+    if not isinstance(records, list) or not records:
+        raise RuntimeError("playfetch manifest contains no downloaded files")
+
+    root = manifest_path.parent.resolve()
+    apk_files: list[Path] = []
+    for record in records:
+        name = record.get("name") if isinstance(record, dict) else None
+        if not name or not name.endswith(".apk") or not record.get("verified"):
+            raise RuntimeError(
+                "playfetch did not verify every APK against a Play-published digest"
+            )
+        path = (root / name).resolve()
+        try:
+            path.relative_to(root)
+        except ValueError as error:
+            raise RuntimeError("playfetch manifest contains an unsafe file path") from error
+        if not path.is_file() or path.stat().st_size != record.get("size"):
+            raise RuntimeError(f"playfetch output size mismatch for {name}")
+        local_hashes = record.get("local") or {}
+        if not isinstance(local_hashes, dict):
+            raise RuntimeError(f"playfetch manifest has invalid local hashes for {name}")
+        sha256_digest = hashlib.sha256()
+        sha1_digest = hashlib.sha1(usedforsecurity=False)
+        with path.open("rb") as handle:
+            for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+                sha256_digest.update(chunk)
+                sha1_digest.update(chunk)
+        actual_sha256 = sha256_digest.hexdigest()
+        actual_sha1 = sha1_digest.hexdigest()
+        local_sha256 = (local_hashes.get("sha256") or "").lower()
+        play_sha256 = (record.get("play_sha256") or "").lower()
+        play_sha1 = (record.get("play_sha1") or "").lower()
+        if not local_sha256 or actual_sha256 != local_sha256:
+            raise RuntimeError(f"playfetch output SHA256 mismatch for {name}")
+        if not play_sha256 and not play_sha1:
+            raise RuntimeError(f"Google Play published no digest for {name}")
+        if play_sha256 and actual_sha256 != play_sha256:
+            raise RuntimeError(f"Google Play SHA256 mismatch for {name}")
+        if play_sha1 and actual_sha1 != play_sha1:
+            raise RuntimeError(f"Google Play SHA1 mismatch for {name}")
+        apk_files.append(path)
+    return apk_files
+
+
+def _download_with_playfetch_google_play(package: str, output_dir: Path) -> Path:
+    """Download a current release with strict Google Play hash provenance."""
+    executable = shutil.which(OFFICIAL_PLAYFETCH_COMMAND)
+    if not executable:
+        raise FileNotFoundError(
+            f"playfetch {SUPPORTED_PLAYFETCH_VERSION} is required for Google Play"
+        )
+
+    email = os.getenv("GPLAY_EMAIL", "").strip()
+    aas_token = os.getenv("GPLAY_AAS_TOKEN", "").strip()
+    if not email or not aas_token:
+        raise RuntimeError("playfetch requires GPLAY_EMAIL and GPLAY_AAS_TOKEN")
+    if not aas_token.startswith("aas_et/"):
+        raise RuntimeError("GPLAY_AAS_TOKEN does not look like an AAS token")
+
+    env = os.environ.copy()
+    for name in (
+        "GPLAY_EMAIL",
+        "GPLAYDL_EMAIL",
+        "GPLAY_AAS_TOKEN",
+        "GPLAY_AUTH_TOKEN",
+        "GPLAYDL_API_KEY",
+        "PLAYFETCH_CREDENTIALS",
+    ):
+        env.pop(name, None)
+
+    version_result = _run([executable, "version"], env=env)
+    version_output = " ".join((version_result.stdout or "").split())
+    if (
+        version_result.returncode != 0
+        or version_output != f"playfetch {SUPPORTED_PLAYFETCH_VERSION}"
+    ):
+        raise RuntimeError(
+            "Google Play download requires exactly playfetch "
+            f"{SUPPORTED_PLAYFETCH_VERSION}, found {version_output or 'unknown'}"
+        )
+
+    with tempfile.TemporaryDirectory(prefix="playfetch-google-play-", dir=output_dir) as tmp:
+        root = Path(tmp)
+        credentials = root / "credentials.json"
+        session = root / "session.json"
+        downloads = root / "downloads"
+        downloads.mkdir()
+        _write_playfetch_credentials(credentials, email, aas_token)
+
+        command = [
+            executable,
+            "pull",
+            package,
+            "-out",
+            str(downloads),
+            "-mode",
+            "split",
+            "-profile",
+            "px_9a",
+            "-locale",
+            "ja_JP",
+            "-tz",
+            "Asia/Tokyo",
+            "-session",
+            str(session),
+            "-refresh",
+            "-credentials",
+            str(credentials),
+            "-account",
+            "ci",
+        ]
+        logging.info(
+            "🔐 Downloading current release through playfetch Google Play: "
+            "package=%s device=px_9a locale=ja_JP timezone=Asia/Tokyo",
+            package,
+        )
+        result = _run(command, env=env)
+        if result.returncode != 0:
+            tail = "\n".join((result.stdout or "").splitlines()[-40:])
+            raise RuntimeError(
+                "playfetch Google Play download failed: "
+                f"{_secret_safe_text(tail).strip() or 'no diagnostic output'}"
+            )
+
+        apk_files = _verified_playfetch_files(downloads / "manifest.json", package)
+        packaged = _package_apks(apk_files, package, output_dir)
+        try:
+            identity = apk_identity.validate_identity(packaged, package, None)
+        except Exception:
+            packaged.unlink(missing_ok=True)
+            raise
+        logging.info(
+            "✅ playfetch Google Play hashes and manifest verified: package=%s "
+            "versionName=%s versionCode=%s files=%d",
+            identity.package_name,
+            identity.version_name or "unknown",
+            identity.version_code or "unknown",
+            len(apk_files),
+        )
+        return packaged
 
 
 def _download_with_apkeep_google_play(package: str, output_dir: Path) -> Path:
@@ -361,26 +558,35 @@ def download_candidate(
     output_dir.mkdir(parents=True, exist_ok=True)
 
     if play_candidate is None:
-        # Current releases use apkeep/rs-google-play first.  Its FDFE wire is
-        # independent of gplaydl 4.2.1 and current (query + empty purchase POST,
-        # current DFE headers), while still downloading only from Google Play.
+        # playfetch has current DFE headers, strict non-zero failures, and
+        # verifies every delivered file against hashes published by Play.
         try:
-            return _download_with_apkeep_google_play(package, output_dir)
-        except Exception as apkeep_error:
+            return _download_with_playfetch_google_play(package, output_dir)
+        except Exception as playfetch_error:
             logging.warning(
-                "⚠️  Primary apkeep Google Play current-release download failed "
-                "for %s: %s; trying authenticated gplaydl with fresh-profile retry",
+                "⚠️  Primary playfetch Google Play download failed for %s: %s; "
+                "trying independent apkeep Google Play implementation",
                 package,
-                _secret_safe_text(str(apkeep_error)),
+                _secret_safe_text(str(playfetch_error)),
             )
             try:
-                return _download_with_linked_gplaydl(package, None, output_dir)
-            except Exception as gplaydl_error:
-                raise RuntimeError(
-                    "both official Google Play download paths failed. apkeep: "
-                    f"{_secret_safe_text(str(apkeep_error))}; gplaydl: "
-                    f"{_secret_safe_text(str(gplaydl_error))}"
-                ) from gplaydl_error
+                return _download_with_apkeep_google_play(package, output_dir)
+            except Exception as apkeep_error:
+                logging.warning(
+                    "⚠️  apkeep Google Play download failed for %s: %s; trying "
+                    "authenticated gplaydl with fresh-profile retry",
+                    package,
+                    _secret_safe_text(str(apkeep_error)),
+                )
+                try:
+                    return _download_with_linked_gplaydl(package, None, output_dir)
+                except Exception as gplaydl_error:
+                    raise RuntimeError(
+                        "all three Google Play download paths failed. playfetch: "
+                        f"{_secret_safe_text(str(playfetch_error))}; apkeep: "
+                        f"{_secret_safe_text(str(apkeep_error))}; gplaydl: "
+                        f"{_secret_safe_text(str(gplaydl_error))}"
+                    ) from gplaydl_error
 
     # Exact versionCodes remain gplaydl-first because apkeep exposes only the
     # current Play release.  If the exact attempt fails, apkeep may still be

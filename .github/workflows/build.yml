@@ -310,13 +310,18 @@ jobs:
       - name: Install Dependencies
         run: pip install -r requirements.txt
 
-      - name: Install apkeep
+      - name: Install pinned Google Play clients
         run: |
           mkdir -p "$HOME/.local/bin"
+          curl -fsSL "https://github.com/Exmeaning/playfetch/releases/download/v0.9.1/playfetch-v0.9.1-linux-amd64" -o "$HOME/.local/bin/playfetch"
+          echo "7c91fa249309ee2e4105b12a7dedcbdba5d8c20d2f978442d59669c3e5350293  $HOME/.local/bin/playfetch" | sha256sum -c -
+          chmod +x "$HOME/.local/bin/playfetch"
           curl -fsSL "https://github.com/EFForg/apkeep/releases/download/1.0.0/apkeep-x86_64-unknown-linux-gnu" -o "$HOME/.local/bin/apkeep"
           echo "a23579a3ba366d25a6d69848189b983d65662f4ecf4b9e11e16510811659de4e  $HOME/.local/bin/apkeep" | sha256sum -c -
           chmod +x "$HOME/.local/bin/apkeep"
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          "$HOME/.local/bin/playfetch" version
+          "$HOME/.local/bin/apkeep" --version
 
       - name: Download Base APK
         id: download-apk
@@ -495,13 +500,17 @@ jobs:
         run: |
           pip install -r requirements.txt
 
-      - name: Install apkeep
+      - name: Install pinned Google Play clients
         run: |
           mkdir -p "$HOME/.local/bin"
+          curl -fsSL "https://github.com/Exmeaning/playfetch/releases/download/v0.9.1/playfetch-v0.9.1-linux-amd64" -o "$HOME/.local/bin/playfetch"
+          echo "7c91fa249309ee2e4105b12a7dedcbdba5d8c20d2f978442d59669c3e5350293  $HOME/.local/bin/playfetch" | sha256sum -c -
+          chmod +x "$HOME/.local/bin/playfetch"
           curl -fsSL "https://github.com/EFForg/apkeep/releases/download/1.0.0/apkeep-x86_64-unknown-linux-gnu" -o "$HOME/.local/bin/apkeep"
           echo "a23579a3ba366d25a6d69848189b983d65662f4ecf4b9e11e16510811659de4e  $HOME/.local/bin/apkeep" | sha256sum -c -
           chmod +x "$HOME/.local/bin/apkeep"
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          "$HOME/.local/bin/playfetch" version
           "$HOME/.local/bin/apkeep" --version
 
       - name: Download APK Input Artifact

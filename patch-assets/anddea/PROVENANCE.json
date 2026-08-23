@@ -27,9 +27,8 @@
       "monochrome_source": "patches/src/main/resources/music/branding/xisr_yellow/monochrome/drawable/ic_app_icons_themed_youtube_music.xml"
     }
   ],
-  "transform": "Files are byte-for-byte copies from the pinned commit with only the names required by Anddea customIcon. Each upstream monochrome vector is also copied as the notification vector, matching the aggregate patch's built-in icon behavior.",
+  "transform": "Files are byte-for-byte copies from the pinned commit with only the names required by Anddea customIcon. The upstream vectors are installed only as notification icons: dev.2 incorrectly emits an Android resource reference containing the .xml suffix when the optional custom monochrome layer is present, so that optional layer is deliberately omitted while all launcher layers remain intact.",
   "sha256": {
-    "youtube-music/xisr_yellow/drawable/morphe_adaptive_monochrome_custom.xml": "986a94c891f81a8d3c1eaa4cb790a1b6b7e7f473a83e32fad8497d0889680597",
     "youtube-music/xisr_yellow/drawable/morphe_notification_icon_custom.xml": "986a94c891f81a8d3c1eaa4cb790a1b6b7e7f473a83e32fad8497d0889680597",
     "youtube-music/xisr_yellow/mipmap-hdpi/morphe_adaptive_background_custom.png": "cb0b7c8f66297bd8da10b1befc3e8712e7d5528146c4e9fea3676ed3f65a59fe",
     "youtube-music/xisr_yellow/mipmap-hdpi/morphe_adaptive_foreground_custom.png": "215db66800b77310dc5bdcfcb37cffa006d79c04d7a2276d621d831014f601e8",
@@ -41,7 +40,6 @@
     "youtube-music/xisr_yellow/mipmap-xxhdpi/morphe_adaptive_foreground_custom.png": "4d3575114ec32b2fbdb6da327fb8bf2f53a30e47bb9c6c33a97e22066460d133",
     "youtube-music/xisr_yellow/mipmap-xxxhdpi/morphe_adaptive_background_custom.png": "89229eb4c926140dc3d329a6e5159130bf82efcf8bad6fae52f2ec642fdb3b08",
     "youtube-music/xisr_yellow/mipmap-xxxhdpi/morphe_adaptive_foreground_custom.png": "0aedbbedbb7638f1b55fcd5d692d74bcf6bb22e4739342cdb8192c20328ff119",
-    "youtube/xisr_evergreen/drawable/morphe_adaptive_monochrome_custom.xml": "9f14c16e357349e02362f7f702d9869b0aa3fc07f0fcdeee93fd29ad6f6e78e5",
     "youtube/xisr_evergreen/drawable/morphe_notification_icon_custom.xml": "9f14c16e357349e02362f7f702d9869b0aa3fc07f0fcdeee93fd29ad6f6e78e5",
     "youtube/xisr_evergreen/mipmap-hdpi/morphe_adaptive_background_custom.png": "bd0e2d707c7fed5b6d7761e416cb541046358ecefde76f35d72d994d3fda228c",
     "youtube/xisr_evergreen/mipmap-hdpi/morphe_adaptive_foreground_custom.png": "ae4f7023ef2abaf46699830a8084902e8e347802540cfb229f5f28e3054b28b0",

@@ -153,9 +153,12 @@ class AnddeaCustomIconTests(unittest.TestCase):
             drawable_path = icon_path / "drawable"
             monochrome = drawable_path / "morphe_adaptive_monochrome_custom.xml"
             notification = drawable_path / "morphe_notification_icon_custom.xml"
-            ET.parse(monochrome)
+            # Anddea dev.2 writes the optional monochrome resource reference
+            # with a literal `.xml` suffix, which aapt treats as a missing
+            # resource. Omitting that optional input avoids the upstream bug;
+            # the launcher's adaptive foreground/background remain complete.
+            self.assertFalse(monochrome.exists())
             ET.parse(notification)
-            self.assertEqual(monochrome.read_bytes(), notification.read_bytes())
 
     def test_vendored_assets_match_pinned_upstream_checksums(self) -> None:
         upstream = self.provenance["upstream"]
