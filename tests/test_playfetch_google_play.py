@@ -12,6 +12,16 @@ from src.apk_identity import ApkIdentity
 
 
 class PlayfetchGooglePlayTests(unittest.TestCase):
+    def test_redacts_url_encoded_email_from_child_diagnostics(self) -> None:
+        diagnostic = (
+            "POST http://127.0.0.1/api/auth?email="
+            "private%40example.com&device=px_9a"
+        )
+        self.assertEqual(
+            aurora_play._secret_safe_text(diagnostic),
+            "POST http://127.0.0.1/api/auth?email=[redacted-email]&device=px_9a",
+        )
+
     @mock.patch("src.aurora_play.apk_identity.validate_identity")
     @mock.patch("src.aurora_play.shutil.which", return_value="/usr/bin/playfetch")
     @mock.patch("src.aurora_play._run")

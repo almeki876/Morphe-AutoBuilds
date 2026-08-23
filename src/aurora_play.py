@@ -179,6 +179,11 @@ def _secret_safe_text(text: str) -> str:
             safe = safe.replace(value, f"[redacted-{name.lower()}]")
     safe = re.sub(r"aas_et/[A-Za-z0-9_./+=-]+", "[redacted-aas-token]", safe)
     safe = re.sub(r"ya29\.[A-Za-z0-9_./+=-]+", "[redacted-auth-token]", safe)
+    safe = re.sub(
+        r"(?i)(email=)[^&\s\"']+",
+        r"\1[redacted-email]",
+        safe,
+    )
     return safe
 
 
