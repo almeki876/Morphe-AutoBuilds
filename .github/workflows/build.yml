@@ -329,6 +329,7 @@ jobs:
           APP_NAME: ${{ matrix.app_name }}
           SOURCE: ${{ matrix.source }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VIRUSTOTAL_API_KEY: ${{ secrets.VIRUSTOTAL_API_KEY }}
           GPLAYDL_API_KEY: ${{ secrets.GPLAYDL_API_KEY }}
           GPLAY_EMAIL: ${{ secrets.GPLAY_EMAIL }}
           GPLAY_AAS_TOKEN: ${{ secrets.GPLAY_AAS_TOKEN }}
