@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import unittest
 from unittest import mock
 
@@ -8,6 +9,73 @@ from src.versioning import VersionCandidate
 
 
 class UptodownExactTests(unittest.TestCase):
+    @mock.patch("src.uptodown_exact.utils.cf_aware_get")
+    def test_current_page_hash_requires_exact_package_and_version(
+        self,
+        get: mock.Mock,
+    ) -> None:
+        response = mock.Mock(status_code=200)
+        response.content = b"""
+            <html><head><title>Amazon Shopping 32.13.2.100</title></head>
+            <body><div class="version">32.13.2.100</div><table>
+              <tr><td></td><th>SHA256</th><td>2fd6af83751c86ce3822f8f8bc874d2a64db462c5e798364d54fac00b8b1c109</td></tr>
+              <tr><td></td><th>Package Name</th><td>com.amazon.mShop.android.shopping</td></tr>
+            </table></body></html>
+        """
+        get.return_value = response
+
+        self.assertEqual(
+            uptodown_exact._current_page_hash(
+                "com.amazon.mShop.android.shopping",
+                VersionCandidate(name="32.13.2.100"),
+                "amazon-shopping",
+            ),
+            "2fd6af83751c86ce3822f8f8bc874d2a64db462c5e798364d54fac00b8b1c109",
+        )
+        self.assertIsNone(
+            uptodown_exact._current_page_hash(
+                "com.example.other",
+                VersionCandidate(name="32.13.2.100"),
+                "amazon-shopping",
+            )
+        )
+
+    @mock.patch("src.virustotal_identity.identities_for_sha256")
+    @mock.patch("src.uptodown_exact._current_page_hash", return_value="a" * 64)
+    @mock.patch("src.uptodown_exact._configured_slugs", return_value=["amazon-shopping"])
+    @mock.patch("src.uptodown_exact._iter_api_version_entries", return_value=iter(()))
+    def test_current_page_sha_and_vt_manifest_enrich_exact_identity(
+        self,
+        api_entries: mock.Mock,
+        configured_slugs: mock.Mock,
+        current_page_hash: mock.Mock,
+        identities_for_sha256: mock.Mock,
+    ) -> None:
+        identities_for_sha256.return_value = [
+            VersionCandidate(name="32.13.2.100", code="1241320216")
+        ]
+        requested = VersionCandidate(name="32.13.2.100", raw="32.13.2.100")
+        with mock.patch.dict(os.environ, {"VIRUSTOTAL_API_KEY": "test-key"}):
+            resolved = uptodown_exact.resolve_candidate_identities(
+                "com.amazon.mShop.android.shopping",
+                [requested],
+            )
+
+        self.assertEqual(
+            resolved,
+            [
+                VersionCandidate(
+                    name="32.13.2.100",
+                    code="1241320216",
+                    raw=requested.raw,
+                )
+            ],
+        )
+        identities_for_sha256.assert_called_once_with(
+            "a" * 64,
+            "com.amazon.mShop.android.shopping",
+        )
+
     def test_entry_matches_separate_version_name_and_code(self) -> None:
         entry = {
             "version": "32.13.2.100",

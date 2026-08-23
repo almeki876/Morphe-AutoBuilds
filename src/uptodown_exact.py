@@ -11,8 +11,14 @@ pagination, hardened HTTP handling, and public-page fallback.
 from __future__ import annotations
 
 import logging
+import json
+import os
+import re
 from collections.abc import Iterator
+from pathlib import Path
 from urllib.parse import urlparse
+
+from bs4 import BeautifulSoup
 
 from src import uptodown as legacy
 from src import uptodown_machine as fallback
@@ -23,6 +29,8 @@ from src.versioning import VersionCandidate, remember_version_code
 _API_PAGE_LIMIT = 50
 _API_MAX_PAGES = 20
 _OFFICIAL_DOWNLOAD_HOST_SUFFIXES = ("uptodown.com", "uptodown.net")
+_CONFIG_DIR = Path("apps/uptodown")
+_SHA256_RE = re.compile(r"\b[0-9a-fA-F]{64}\b")
 
 
 def _entry_identity(entry: dict) -> VersionCandidate | None:
@@ -137,7 +145,144 @@ def resolve_candidate_identities(
         if not pending:
             break
 
+    if pending:
+        _resolve_current_page_identities(package, candidates, resolved, pending)
+
     return resolved
+
+
+def _configured_slugs(package: str) -> list[str]:
+    """Return exact configured Uptodown slugs for one package."""
+    slugs: list[str] = []
+    if not _CONFIG_DIR.is_dir():
+        return slugs
+    for path in sorted(_CONFIG_DIR.glob("*.json")):
+        try:
+            config = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            continue
+        if not isinstance(config, dict) or str(config.get("package") or "") != package:
+            continue
+        slug = str(config.get("name") or "").strip()
+        if slug and slug not in slugs:
+            slugs.append(slug)
+    return slugs
+
+
+def _row_value(soup: BeautifulSoup, label: str) -> str | None:
+    wanted = label.casefold()
+    for row in soup.select("tr"):
+        cells = row.find_all(["th", "td"])
+        if len(cells) < 2:
+            continue
+        if cells[-2].get_text(" ", strip=True).casefold() != wanted:
+            continue
+        value = cells[-1].get_text(" ", strip=True)
+        if value:
+            return value
+    return None
+
+
+def _current_page_hash(
+    package: str,
+    candidate: VersionCandidate,
+    slug: str,
+) -> str | None:
+    """Read an exact current release SHA-256 from public Uptodown HTML."""
+    url = f"https://{slug}.en.uptodown.com/android/download"
+    response = utils.cf_aware_get(url, timeout=30, retries=2)
+    logging.info(
+        "Uptodown exact current metadata status=%s package=%s",
+        response.status_code,
+        package,
+    )
+    if response.status_code != 200:
+        return None
+    soup = BeautifulSoup(response.content, "html.parser")
+    if _row_value(soup, "Package Name") != package:
+        return None
+
+    primary: list[str] = []
+    if soup.title and soup.title.string:
+        primary.append(soup.title.string.strip())
+    current = soup.select_one("div.version")
+    if current:
+        primary.append(current.get_text(" ", strip=True))
+    for attrs in ({"property": "og:title"}, {"name": "twitter:title"}):
+        meta = soup.find("meta", attrs=attrs)
+        if meta and meta.get("content"):
+            primary.append(str(meta["content"]).strip())
+    if not any(
+        re.search(
+            rf"(?<![0-9A-Za-z]){re.escape(alias)}(?![0-9A-Za-z])",
+            text,
+            flags=re.IGNORECASE,
+        )
+        for alias in candidate.aliases("uptodown")
+        for text in primary
+    ):
+        return None
+
+    digest_text = _row_value(soup, "SHA256") or ""
+    match = _SHA256_RE.search(digest_text)
+    return match.group(0).casefold() if match else None
+
+
+def _resolve_current_page_identities(
+    package: str,
+    candidates: list[VersionCandidate],
+    resolved: list[VersionCandidate],
+    pending: set[int],
+) -> None:
+    """Enrich current releases via provider SHA-256 and VT manifest metadata."""
+    if not os.getenv("VIRUSTOTAL_API_KEY", "").strip():
+        return
+    from src import virustotal_identity
+
+    for slug in _configured_slugs(package):
+        for index in list(pending):
+            requested = candidates[index]
+            try:
+                digest = _current_page_hash(package, requested, slug)
+                if not digest:
+                    continue
+                identities = virustotal_identity.identities_for_sha256(
+                    digest,
+                    package,
+                )
+            except Exception as error:
+                logging.info(
+                    "Uptodown/VirusTotal identity lookup failed for %s %s: %s",
+                    package,
+                    requested.describe(),
+                    type(error).__name__,
+                )
+                continue
+            identity = next(
+                (
+                    item
+                    for item in identities
+                    if requested.matches(item.name, item.code)
+                ),
+                None,
+            )
+            if identity is None or not identity.code:
+                continue
+            resolved[index] = VersionCandidate(
+                name=identity.name,
+                code=identity.code,
+                raw=requested.raw,
+            )
+            remember_version_code(package, identity.name, identity.code)
+            pending.remove(index)
+            logging.info(
+                "✓ Uptodown SHA-256 and VirusTotal manifest resolved exact "
+                "Android identity %s -> %s",
+                requested.describe(),
+                resolved[index].describe(),
+            )
+        if not pending:
+            break
 
 
 def _safe_download_url(value: object) -> str | None:
