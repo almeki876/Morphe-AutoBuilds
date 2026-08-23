@@ -13,6 +13,13 @@ def _step(step_id: str) -> str:
     return WORKFLOW[start : end if end >= 0 else None]
 
 
+def _named_step(name: str) -> str:
+    marker = f"\n      - name: {name}\n"
+    start = WORKFLOW.index(marker)
+    end = WORKFLOW.find("\n      - name:", start + len(marker))
+    return WORKFLOW[start : end if end >= 0 else None]
+
+
 class TailscaleFallbackWorkflowTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
@@ -57,6 +64,15 @@ class TailscaleFallbackWorkflowTests(unittest.TestCase):
             "JAPAN_OUTCOME: ${{ steps.download-apk-japan.outcome }}",
             self.result,
         )
+
+    def test_verified_cache_candidate_reaches_successful_build_gate(self) -> None:
+        base_input = _named_step("Upload Base APK Input")
+        cache_upload = _named_step("Upload Verified Base APK Cache Candidate")
+
+        self.assertIn("if: success()", base_input)
+        self.assertIn("base-apk-cache-out/*", base_input)
+        self.assertIn("if: success()", cache_upload)
+        self.assertIn("base-apk-cache-out/*", cache_upload)
 
 
 if __name__ == "__main__":

@@ -462,6 +462,7 @@ jobs:
           name: base-input-${{ matrix.app_name }}-${{ matrix.source }}
           path: |
             base-apk-input/*
+            base-apk-cache-out/*
             build-metadata/apk-sources.json
           retention-days: 1
 
