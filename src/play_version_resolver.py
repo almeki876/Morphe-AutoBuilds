@@ -95,6 +95,28 @@ def resolve_candidate(package: str, candidate: VersionCandidate | None) -> Versi
                 raw=current.raw,
             )
 
+    # Public history indexes can lag a new or regional Play release. Google
+    # Play's own details response safely fills that gap only for its current
+    # release: both versionName and versionCode must exactly match the patch
+    # candidate. Historical mismatches still fail closed below.
+    from src import google_play_metadata
+
+    proposed = google_play_metadata.resolve_candidate_identities(package, [current])
+    if len(proposed) == 1 and isinstance(proposed[0], VersionCandidate):
+        resolved = proposed[0]
+        if current.matches(resolved.name, resolved.code) and resolved.code:
+            logging.info(
+                "🪪 Google Play dynamically resolved %s -> versionCode %s "
+                "via current Play metadata",
+                current.name,
+                resolved.code,
+            )
+            return VersionCandidate(
+                name=resolved.name,
+                code=resolved.code,
+                raw=current.raw,
+            )
+
     raise VersionCodeResolutionError(
         f"could not dynamically resolve Android versionCode for {package} {candidate.name}; "
         "refusing to fetch Google Play current release for an explicitly versioned patch"
