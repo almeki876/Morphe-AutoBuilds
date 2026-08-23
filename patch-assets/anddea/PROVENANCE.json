@@ -1,0 +1,57 @@
+{
+  "schema": 1,
+  "upstream": {
+    "repository": "https://github.com/anddea/revanced-patches",
+    "release_tag": "v4.3.0-dev.2",
+    "commit": "288ce738437c20e3887641f3a0eb367a79099e77",
+    "commit_url": "https://github.com/anddea/revanced-patches/tree/288ce738437c20e3887641f3a0eb367a79099e77",
+    "license": "GPL-3.0-only (see the repository root LICENSE)"
+  },
+  "asset_sets": [
+    {
+      "application": "youtube",
+      "preset": "Xisr Evergreen",
+      "destination": "youtube/xisr_evergreen",
+      "launcher_source": "patches/src/main/resources/youtube/branding/xisr_evergreen/launcher",
+      "background_source_name": "adaptiveproduct_youtube_background_color_108.png",
+      "foreground_source_name": "adaptiveproduct_youtube_foreground_color_108.png",
+      "monochrome_source": "patches/src/main/resources/youtube/branding/xisr_evergreen/monochrome/drawable/adaptive_monochrome_ic_youtube_launcher.xml"
+    },
+    {
+      "application": "youtube-music",
+      "preset": "Xisr Yellow",
+      "destination": "youtube-music/xisr_yellow",
+      "launcher_source": "patches/src/main/resources/music/branding/xisr_yellow/launcher",
+      "background_source_name": "adaptiveproduct_youtube_music_background_color_108.png",
+      "foreground_source_name": "adaptiveproduct_youtube_music_foreground_color_108.png",
+      "monochrome_source": "patches/src/main/resources/music/branding/xisr_yellow/monochrome/drawable/ic_app_icons_themed_youtube_music.xml"
+    }
+  ],
+  "transform": "Files are byte-for-byte copies from the pinned commit with only the names required by Anddea customIcon. Each upstream monochrome vector is also copied as the notification vector, matching the aggregate patch's built-in icon behavior.",
+  "sha256": {
+    "youtube-music/xisr_yellow/drawable/morphe_adaptive_monochrome_custom.xml": "986a94c891f81a8d3c1eaa4cb790a1b6b7e7f473a83e32fad8497d0889680597",
+    "youtube-music/xisr_yellow/drawable/morphe_notification_icon_custom.xml": "986a94c891f81a8d3c1eaa4cb790a1b6b7e7f473a83e32fad8497d0889680597",
+    "youtube-music/xisr_yellow/mipmap-hdpi/morphe_adaptive_background_custom.png": "cb0b7c8f66297bd8da10b1befc3e8712e7d5528146c4e9fea3676ed3f65a59fe",
+    "youtube-music/xisr_yellow/mipmap-hdpi/morphe_adaptive_foreground_custom.png": "215db66800b77310dc5bdcfcb37cffa006d79c04d7a2276d621d831014f601e8",
+    "youtube-music/xisr_yellow/mipmap-mdpi/morphe_adaptive_background_custom.png": "02a146dc4e4d115a517f4030c728ada62f26e11575fb4b75e8693f58fa64cfeb",
+    "youtube-music/xisr_yellow/mipmap-mdpi/morphe_adaptive_foreground_custom.png": "67916423ccb3a9759d4b7a2f7588196f8b260421f7f4fed045b8250f6369f99a",
+    "youtube-music/xisr_yellow/mipmap-xhdpi/morphe_adaptive_background_custom.png": "e038c49628ff42d1933fac69dfdef3d9e2be2d2cc91890b3f329a92092c32f13",
+    "youtube-music/xisr_yellow/mipmap-xhdpi/morphe_adaptive_foreground_custom.png": "390ad0c21b1ef8c9f29962da5f3fd3134671f3f3a9309f7b9437856f7aade3b0",
+    "youtube-music/xisr_yellow/mipmap-xxhdpi/morphe_adaptive_background_custom.png": "18ed03dc1e30dcd6c1bce03cffc80cd1aeb0713e4a5a3da725b4eab8e3c00c5d",
+    "youtube-music/xisr_yellow/mipmap-xxhdpi/morphe_adaptive_foreground_custom.png": "4d3575114ec32b2fbdb6da327fb8bf2f53a30e47bb9c6c33a97e22066460d133",
+    "youtube-music/xisr_yellow/mipmap-xxxhdpi/morphe_adaptive_background_custom.png": "89229eb4c926140dc3d329a6e5159130bf82efcf8bad6fae52f2ec642fdb3b08",
+    "youtube-music/xisr_yellow/mipmap-xxxhdpi/morphe_adaptive_foreground_custom.png": "0aedbbedbb7638f1b55fcd5d692d74bcf6bb22e4739342cdb8192c20328ff119",
+    "youtube/xisr_evergreen/drawable/morphe_adaptive_monochrome_custom.xml": "9f14c16e357349e02362f7f702d9869b0aa3fc07f0fcdeee93fd29ad6f6e78e5",
+    "youtube/xisr_evergreen/drawable/morphe_notification_icon_custom.xml": "9f14c16e357349e02362f7f702d9869b0aa3fc07f0fcdeee93fd29ad6f6e78e5",
+    "youtube/xisr_evergreen/mipmap-hdpi/morphe_adaptive_background_custom.png": "bd0e2d707c7fed5b6d7761e416cb541046358ecefde76f35d72d994d3fda228c",
+    "youtube/xisr_evergreen/mipmap-hdpi/morphe_adaptive_foreground_custom.png": "ae4f7023ef2abaf46699830a8084902e8e347802540cfb229f5f28e3054b28b0",
+    "youtube/xisr_evergreen/mipmap-mdpi/morphe_adaptive_background_custom.png": "03e9c8d2402643ad2e076d0a6875eab645864eb525667519fea1e3c8f8b4d38d",
+    "youtube/xisr_evergreen/mipmap-mdpi/morphe_adaptive_foreground_custom.png": "c4d03e4062ca698e48b0a3e25c3f3d2ffed9a8348c3abf24c081f2961395b0b0",
+    "youtube/xisr_evergreen/mipmap-xhdpi/morphe_adaptive_background_custom.png": "91e63f3bd2dcabd93d35fd5ca1dd8e95d3cf7650e436dc6339e083387433ee5a",
+    "youtube/xisr_evergreen/mipmap-xhdpi/morphe_adaptive_foreground_custom.png": "603c846300859cc0e0bac86f5126ddc2821eb160d3bebb3af263763384d02ca9",
+    "youtube/xisr_evergreen/mipmap-xxhdpi/morphe_adaptive_background_custom.png": "d75e616f3ab59cf97ce34eec2adbca7a1a69628c41313e5cc931eb765fca7867",
+    "youtube/xisr_evergreen/mipmap-xxhdpi/morphe_adaptive_foreground_custom.png": "14e96e26b433afca92ba2f8b03ac7c58812aeca686d65281347fcf2fe4aa91ed",
+    "youtube/xisr_evergreen/mipmap-xxxhdpi/morphe_adaptive_background_custom.png": "d053cc06a0371865a982bef86e93c6412441fb15ead07db440c0a26655b410b8",
+    "youtube/xisr_evergreen/mipmap-xxxhdpi/morphe_adaptive_foreground_custom.png": "7143f264582c38290bafc0b79c571cea9a7cc6d1fadf92f4001819fd6161eb12"
+  }
+}

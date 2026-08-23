@@ -25,9 +25,7 @@
       "options": [
         {"patch":"Change version code","key":"versionCode","value":"2147483647"},
         {"patch":"Custom Shorts action buttons","key":"iconType","value":"round"},
-        {"patch":"Custom branding icon for YouTube","key":"appIcon","value":"xisr_evergreen"},
-        {"patch":"Custom branding icon for YouTube","key":"changeSplashIcon","value":true},
-        {"patch":"Custom branding icon for YouTube","key":"restoreOldSplashAnimation","value":false},
+        {"patch":"Custom branding for YouTube","key":"customIcon","value":"patch-assets/anddea/youtube/xisr_evergreen"},
         {"patch":"Custom branding name for YouTube","key":"appName","value":"RVA"},
         {"patch":"Custom double tap length","key":"doubleTapLengthArrays","value":"3, 5, 10, 15, 20, 30, 60, 120, 180"},
         {"patch":"Custom header for YouTube","key":"customHeader","value":"custom_branding_icon"},
@@ -68,9 +66,7 @@
       "app_name": "youtube-music",
       "source": "revanced-anddea",
       "options": [
-        {"patch":"Custom branding icon for YouTube Music","key":"appIcon","value":"xisr_yellow"},
-        {"patch":"Custom branding icon for YouTube Music","key":"changeSplashIcon","value":true},
-        {"patch":"Custom branding icon for YouTube Music","key":"restoreOldSplashIcon","value":false},
+        {"patch":"Custom branding for YouTube Music","key":"customIcon","value":"patch-assets/anddea/youtube-music/xisr_yellow"},
         {"patch":"Custom branding name for YouTube Music","key":"appNameNotification","value":"RVA Music"},
         {"patch":"Custom branding name for YouTube Music","key":"appNameLauncher","value":"RVA Music"},
         {"patch":"Custom header for YouTube Music","key":"customHeader","value":"custom_branding_icon"},

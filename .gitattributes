@@ -3,3 +3,5 @@
 *.py text eol=lf
 *.sh text eol=lf
 *.json text eol=lf
+patch-assets/anddea/**/*.png -text
+patch-assets/anddea/**/drawable/*.xml -text

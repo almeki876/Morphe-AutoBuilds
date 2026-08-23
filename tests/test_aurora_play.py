@@ -1,4 +1,6 @@
 import os
+import stat
+import sys
 import tempfile
 import unittest
 import zipfile
@@ -6,6 +8,7 @@ from pathlib import Path
 from unittest import mock
 
 from src import aurora_play
+from src.apk_identity import ApkIdentity
 from src.versioning import VersionCandidate
 
 
@@ -59,8 +62,8 @@ class AuroraPlayTests(unittest.TestCase):
                 self.assertEqual(result.suffix, ".apks")
 
         command = run.call_args.args[0]
-        self.assertEqual(command[0], "/usr/bin/gplaydl")
-        self.assertEqual(command[1:3], ["download", "com.example.app"])
+        self.assertEqual(command[:3], [sys.executable, "-m", "src.gplaydl_profile_retry"])
+        self.assertEqual(command[3:5], ["download", "com.example.app"])
         self.assertEqual(command[command.index("-v") + 1], "123")
         self.assertEqual(command[command.index("-a") + 1], "arm64")
         self.assertNotIn("--dispenser", command)
@@ -151,7 +154,11 @@ class AuroraPlayTests(unittest.TestCase):
         run.side_effect = fake_run
         with mock.patch.dict(os.environ, {"GPLAYDL_API_KEY": "secret-key"}, clear=False):
             with tempfile.TemporaryDirectory() as directory:
-                result = aurora_play.download_current("com.example.app", Path(directory))
+                result = aurora_play._download_with_linked_gplaydl(
+                    "com.example.app",
+                    None,
+                    Path(directory),
+                )
                 self.assertEqual(result.read_bytes(), b"base")
 
         command = run.call_args.args[0]
@@ -163,6 +170,146 @@ class AuroraPlayTests(unittest.TestCase):
         with self.assertRaises(aurora_play.GooglePlayDisabled):
             aurora_play.download_current("com.adguard.android", Path("."))
         linked.assert_not_called()
+
+    @mock.patch("src.aurora_play.apk_identity.validate_identity")
+    @mock.patch("src.aurora_play.shutil.which", return_value="/usr/bin/apkeep")
+    @mock.patch("src.aurora_play._run")
+    def test_apkeep_fallback_uses_google_play_ini_without_accepting_tos(
+        self,
+        run: mock.Mock,
+        _which: mock.Mock,
+        validate_identity: mock.Mock,
+    ) -> None:
+        observed: dict[str, object] = {}
+
+        def fake_run(command, *, cwd=None, env=None):
+            if command == ["/usr/bin/apkeep", "--version"]:
+                return mock.Mock(returncode=0, stdout="apkeep 1.0.0\n")
+            config = Path(command[command.index("-i") + 1])
+            observed["command"] = list(command)
+            observed["env"] = dict(env)
+            observed["config"] = config.read_text(encoding="utf-8")
+            observed["mode"] = stat.S_IMODE(config.stat().st_mode)
+            output = Path(command[-1]) / "split-output"
+            output.mkdir()
+            (output / "base.apk").write_bytes(b"official-google-play-apk")
+            return mock.Mock(returncode=0, stdout="downloaded successfully")
+
+        run.side_effect = fake_run
+        validate_identity.return_value = ApkIdentity(
+            "jp.example.bank",
+            "1.2.3",
+            "40",
+        )
+        with (
+            mock.patch.dict(
+                os.environ,
+                {
+                    "GPLAY_EMAIL": "secret@example.com",
+                    "GPLAY_AAS_TOKEN": "aas_et/secret-token",
+                    "GPLAYDL_API_KEY": "secret-api-key",
+                },
+                clear=False,
+            ),
+            tempfile.TemporaryDirectory() as directory,
+        ):
+            result = aurora_play._download_with_apkeep_google_play(
+                "jp.example.bank",
+                Path(directory),
+            )
+            self.assertEqual(result.read_bytes(), b"official-google-play-apk")
+
+        command = observed["command"]
+        self.assertEqual(command[command.index("-d") + 1], "google-play")
+        self.assertEqual(
+            command[command.index("-o") + 1],
+            "device=px_9a,locale=ja_JP,timezone=Asia/Tokyo,split_apk=true",
+        )
+        self.assertNotIn("--accept-tos", command)
+        rendered_command = " ".join(command)
+        self.assertNotIn("secret@example.com", rendered_command)
+        self.assertNotIn("aas_et/secret-token", rendered_command)
+        self.assertEqual(
+            observed["config"],
+            "[google]\nemail = secret@example.com\naas_token = aas_et/secret-token\n",
+        )
+        if os.name != "nt":
+            self.assertEqual(observed["mode"], 0o600)
+        self.assertNotIn("GPLAY_EMAIL", observed["env"])
+        self.assertNotIn("GPLAY_AAS_TOKEN", observed["env"])
+        self.assertNotIn("GPLAYDL_API_KEY", observed["env"])
+        validate_identity.assert_called_once_with(result, "jp.example.bank", None)
+
+    @mock.patch("src.aurora_play.apk_identity.validate_identity")
+    @mock.patch("src.aurora_play.shutil.which", return_value="/usr/bin/apkeep")
+    @mock.patch("src.aurora_play._run")
+    def test_apkeep_zero_exit_without_apk_is_failure(
+        self,
+        run: mock.Mock,
+        _which: mock.Mock,
+        validate_identity: mock.Mock,
+    ) -> None:
+        run.side_effect = [
+            mock.Mock(returncode=0, stdout="apkeep 1.0.0\n"),
+            mock.Mock(returncode=0, stdout="Invalid app response. Skipping..."),
+        ]
+        with (
+            mock.patch.dict(
+                os.environ,
+                {
+                    "GPLAY_EMAIL": "secret@example.com",
+                    "GPLAY_AAS_TOKEN": "aas_et/secret-token",
+                },
+                clear=False,
+            ),
+            tempfile.TemporaryDirectory() as directory,
+        ):
+            with self.assertRaisesRegex(RuntimeError, "no usable APKs"):
+                aurora_play._download_with_apkeep_google_play(
+                    "jp.example.bank",
+                    Path(directory),
+                )
+        validate_identity.assert_not_called()
+
+    @mock.patch("src.aurora_play._download_with_linked_gplaydl")
+    @mock.patch("src.aurora_play._download_with_apkeep_google_play")
+    def test_current_release_prefers_apkeep_google_play(
+        self,
+        apkeep: mock.Mock,
+        gplaydl: mock.Mock,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            expected = Path(directory) / "fallback.apk"
+            expected.write_bytes(b"official")
+            apkeep.return_value = expected
+            result = aurora_play.download_current(
+                "jp.example.bank",
+                Path(directory),
+            )
+
+        self.assertIs(result, expected)
+        apkeep.assert_called_once_with("jp.example.bank", Path(directory))
+        gplaydl.assert_not_called()
+
+    @mock.patch("src.aurora_play._download_with_linked_gplaydl")
+    @mock.patch("src.aurora_play._download_with_apkeep_google_play")
+    def test_current_release_apkeep_failure_uses_gplaydl_profile_retry(
+        self,
+        apkeep: mock.Mock,
+        gplaydl: mock.Mock,
+    ) -> None:
+        apkeep.side_effect = RuntimeError("current DFE temporarily unavailable")
+        with tempfile.TemporaryDirectory() as directory:
+            expected = Path(directory) / "fallback.apk"
+            expected.write_bytes(b"official")
+            gplaydl.return_value = expected
+            result = aurora_play.download_current(
+                "jp.example.bank",
+                Path(directory),
+            )
+
+        self.assertIs(result, expected)
+        gplaydl.assert_called_once_with("jp.example.bank", None, Path(directory))
 
 
 if __name__ == "__main__":

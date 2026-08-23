@@ -6,6 +6,65 @@ from src.versioning import VersionCandidate
 
 
 class ConfiguredIdentityEnrichmentTests(unittest.TestCase):
+    def test_manifest_verified_app_identities_only_enrich_the_exact_release(self) -> None:
+        # These immutable name/code pairs were verified from downloaded APK
+        # manifests. They identify a release; they do not select a patch version.
+        verified = (
+            (
+                "amazon-shopping",
+                "apkpure",
+                "com.amazon.mShop.android.shopping",
+                "32.13.2.100",
+                "1241320216",
+                "32.13.2.101",
+            ),
+            (
+                "adobe-acrobat",
+                "aptoide",
+                "com.adobe.reader",
+                "26.7.1.47181",
+                "1931947181",
+                "26.7.1.47182",
+            ),
+        )
+
+        with mock.patch.object(providers, "IDENTITY_RESOLUTION_PRIORITY", ()):
+            for app, provider, package, version, code, changed_version in verified:
+                with self.subTest(app=app):
+                    config = providers.load_config(
+                        app,
+                        provider,
+                        allow_synthetic=False,
+                    )
+                    self.assertIsNotNone(config)
+                    assert config is not None
+                    self.assertEqual(config.get("version"), version)
+                    self.assertEqual(config.get("version_code"), code)
+
+                    candidate = VersionCandidate(
+                        name=version,
+                        raw=f"{version} (1 patch)",
+                    )
+                    self.assertEqual(
+                        providers.resolve_patch_candidates(app, package, [candidate]),
+                        [
+                            VersionCandidate(
+                                name=version,
+                                code=code,
+                                raw=candidate.raw,
+                            )
+                        ],
+                    )
+
+                    changed = VersionCandidate(
+                        name=changed_version,
+                        raw=f"{changed_version} (1 patch)",
+                    )
+                    self.assertEqual(
+                        providers.resolve_patch_candidates(app, package, [changed]),
+                        [changed],
+                    )
+
     def test_exact_config_version_adds_missing_version_code(self) -> None:
         candidate = VersionCandidate(name="26.32.1")
         with (

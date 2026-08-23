@@ -69,6 +69,61 @@ class UpstreamPolicyTests(unittest.TestCase):
             )
             self.assertEqual(result["required"], ["Recommended"])
 
+    def test_anddea_aggregate_custom_icon_survives_dev2_policy(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            config = Path(tmp) / "my-patch-config.json"
+            config.write_text(
+                json.dumps(
+                    {
+                        "patch_list": [
+                            {
+                                "app_name": "youtube",
+                                "source": "revanced-anddea",
+                                "options": [
+                                    {
+                                        "patch": "Custom branding for YouTube",
+                                        "key": "customIcon",
+                                        "value": "patch-assets/anddea/youtube/xisr_evergreen",
+                                    },
+                                    {
+                                        "patch": "Custom branding name for YouTube",
+                                        "key": "appName",
+                                        "value": "RVA",
+                                    },
+                                    {
+                                        "patch": "Custom header for YouTube",
+                                        "key": "customHeader",
+                                        "value": "custom_branding_icon",
+                                    },
+                                ],
+                            }
+                        ]
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            upstream_policy._sanitize_patch_config(
+                "youtube",
+                "revanced-anddea",
+                {"Custom branding for YouTube"},
+                config_path=config,
+            )
+
+            options = json.loads(config.read_text(encoding="utf-8"))["patch_list"][0][
+                "options"
+            ]
+            self.assertEqual(
+                options,
+                [
+                    {
+                        "patch": "Custom branding for YouTube",
+                        "key": "customIcon",
+                        "value": "patch-assets/anddea/youtube/xisr_evergreen",
+                    }
+                ],
+            )
+
     def test_missing_recommendation_metadata_ignores_legacy_allowlist(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

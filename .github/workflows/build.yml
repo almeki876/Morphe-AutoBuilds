@@ -313,7 +313,8 @@ jobs:
       - name: Install apkeep
         run: |
           mkdir -p "$HOME/.local/bin"
-          curl -fsSL "https://github.com/EFForg/apkeep/releases/latest/download/apkeep-x86_64-unknown-linux-gnu" -o "$HOME/.local/bin/apkeep"
+          curl -fsSL "https://github.com/EFForg/apkeep/releases/download/1.0.0/apkeep-x86_64-unknown-linux-gnu" -o "$HOME/.local/bin/apkeep"
+          echo "a23579a3ba366d25a6d69848189b983d65662f4ecf4b9e11e16510811659de4e  $HOME/.local/bin/apkeep" | sha256sum -c -
           chmod +x "$HOME/.local/bin/apkeep"
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
 
@@ -326,6 +327,7 @@ jobs:
           GPLAYDL_API_KEY: ${{ secrets.GPLAYDL_API_KEY }}
           GPLAY_EMAIL: ${{ secrets.GPLAY_EMAIL }}
           GPLAY_AAS_TOKEN: ${{ secrets.GPLAY_AAS_TOKEN }}
+          GPLAYDL_PREFERRED_PROFILE: ${{ vars.GPLAYDL_PREFERRED_PROFILE }}
           GPLAY_AUTH_TOKEN: ${{ secrets.GPLAY_AUTH_TOKEN }}
           AURORA_DISPENSER_URL: ${{ vars.AURORA_DISPENSER_URL }}
           HTTP_RETRIES: '4'
@@ -496,7 +498,8 @@ jobs:
       - name: Install apkeep
         run: |
           mkdir -p "$HOME/.local/bin"
-          curl -fsSL "https://github.com/EFForg/apkeep/releases/latest/download/apkeep-x86_64-unknown-linux-gnu" -o "$HOME/.local/bin/apkeep"
+          curl -fsSL "https://github.com/EFForg/apkeep/releases/download/1.0.0/apkeep-x86_64-unknown-linux-gnu" -o "$HOME/.local/bin/apkeep"
+          echo "a23579a3ba366d25a6d69848189b983d65662f4ecf4b9e11e16510811659de4e  $HOME/.local/bin/apkeep" | sha256sum -c -
           chmod +x "$HOME/.local/bin/apkeep"
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
           "$HOME/.local/bin/apkeep" --version

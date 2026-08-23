@@ -171,8 +171,8 @@ def _download(app_name: str, source: str, arch: str) -> tuple[Path, str]:
     play_only = providers.google_play_only(app_name)
 
     # Google Play is the preferred origin for every app except explicit
-    # GitHub-only packages such as AdGuard. The upstream gplaydl CLI owns the
-    # details/purchase/delivery flow. Version selection is universal:
+    # GitHub-only packages such as AdGuard. The pinned apkeep/gplaydl clients
+    # own the details/purchase/delivery flows. Version selection is universal:
     # explicit upstream-supported release -> newest candidate; any -> current.
     play_enabled = aurora_play.google_play_enabled(package)
     if play_only and not play_enabled:

@@ -9,14 +9,16 @@ from src.versioning import VersionCandidate
 
 
 class AuroraPlayCurrentProbeTests(unittest.TestCase):
+    @mock.patch("src.aurora_play._download_with_apkeep_google_play")
     @mock.patch("src.aurora_play.apk_identity.validate_identity")
     @mock.patch("src.aurora_play.shutil.which", return_value="/usr/bin/gplaydl")
     @mock.patch("src.aurora_play._run")
-    def test_exact_failure_probes_current_and_accepts_only_exact_identity(
+    def test_exact_failure_probes_apkeep_current_and_accepts_only_exact_identity(
         self,
         run: mock.Mock,
         _which: mock.Mock,
         validate_identity: mock.Mock,
+        apkeep: mock.Mock,
     ) -> None:
         commands: list[list[str]] = []
 
@@ -38,7 +40,10 @@ class AuroraPlayCurrentProbeTests(unittest.TestCase):
 
         with mock.patch.dict(os.environ, {"GPLAYDL_API_KEY": "secret-key"}, clear=False):
             with tempfile.TemporaryDirectory() as directory:
-                result = aurora_play._download_with_linked_gplaydl(
+                current = Path(directory) / "apkeep-current.apk"
+                current.write_bytes(b"base")
+                apkeep.return_value = current
+                result = aurora_play.download_candidate(
                     "jp.ne.ibis.ibispaintx.app",
                     candidate,
                     Path(directory),
@@ -47,15 +52,15 @@ class AuroraPlayCurrentProbeTests(unittest.TestCase):
                 self.assertTrue(result.is_file())
                 self.assertEqual(result.read_bytes(), b"base")
 
-        self.assertEqual(len(commands), 2)
+        self.assertEqual(len(commands), 1)
         self.assertEqual(commands[0][commands[0].index("-v") + 1], "1400060037")
-        self.assertNotIn("-v", commands[1])
         validate_identity.assert_called_once_with(
             result,
             "jp.ne.ibis.ibispaintx.app",
             candidate,
         )
 
+    @mock.patch("src.aurora_play._download_with_apkeep_google_play")
     @mock.patch("src.aurora_play.apk_identity.validate_identity")
     @mock.patch("src.aurora_play.shutil.which", return_value="/usr/bin/gplaydl")
     @mock.patch("src.aurora_play._run")
@@ -64,6 +69,7 @@ class AuroraPlayCurrentProbeTests(unittest.TestCase):
         run: mock.Mock,
         _which: mock.Mock,
         validate_identity: mock.Mock,
+        apkeep: mock.Mock,
     ) -> None:
         commands: list[list[str]] = []
 
@@ -84,6 +90,9 @@ class AuroraPlayCurrentProbeTests(unittest.TestCase):
         with mock.patch.dict(os.environ, {"GPLAYDL_API_KEY": "secret-key"}, clear=False):
             with tempfile.TemporaryDirectory() as directory:
                 root = Path(directory)
+                current = root / "apkeep-current.apk"
+                current.write_bytes(b"wrong-current")
+                apkeep.return_value = current
                 with self.assertRaises(apk_identity.ApkIdentityError):
                     aurora_play.download_candidate(
                         "com.amazon.mShop.android.shopping",
@@ -93,10 +102,10 @@ class AuroraPlayCurrentProbeTests(unittest.TestCase):
                 self.assertFalse(
                     (root / "com.amazon.mShop.android.shopping-google-play.apk").exists()
                 )
+                self.assertFalse(current.exists())
 
-        self.assertEqual(len(commands), 2)
+        self.assertEqual(len(commands), 1)
         self.assertIn("-v", commands[0])
-        self.assertNotIn("-v", commands[1])
 
 
 if __name__ == "__main__":
