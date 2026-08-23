@@ -1,0 +1,55 @@
+name: Update Direct Download Links
+
+on:
+  workflow_dispatch:
+  workflow_run:
+    workflows:
+      - Build and Release APKs
+    types:
+      - completed
+  push:
+    branches:
+      - main
+    paths:
+      - scripts/generate_direct_download_md.py
+      - tests/test_direct_download_md.py
+      - .github/workflows/update-direct-download-links.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: direct-download-links
+  cancel-in-progress: true
+
+jobs:
+  update:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v7
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Fetch latest release metadata
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh api "repos/${{ github.repository }}/releases/latest" > latest-release.json
+
+      - name: Generate direct download catalog
+        run: python3 scripts/generate_direct_download_md.py latest-release.json
+
+      - name: Commit catalog when changed
+        run: |
+          if git diff --quiet -- Morphe-AutoBuilds-Direct-Download.md; then
+            echo "Direct download catalog is already current."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add Morphe-AutoBuilds-Direct-Download.md
+          git commit -m "docs: update direct APK download links"
+          git pull --rebase origin main
+          git push origin HEAD:main
