@@ -239,15 +239,13 @@ def _requested_matrix(items: list[dict], inputs: dict[str, object]) -> list[dict
 
     if build_all:
         return list(items)
-    if updated_sources:
+    if updated_sources or updated_apps:
         return [
             item for item in items
-            if str(item["source"]) in updated_sources
-        ]
-    if updated_apps:
-        return [
-            item for item in items
-            if str(item["app_name"]) in updated_apps
+            if (
+                str(item["source"]) in updated_sources
+                or str(item["app_name"]) in updated_apps
+            )
         ]
 
     # Backward-compatible workflow_dispatch path.

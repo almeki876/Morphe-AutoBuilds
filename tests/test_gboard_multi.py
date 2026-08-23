@@ -11,6 +11,33 @@ from src import gboard_multi
 
 
 class GboardMultiSourceTests(unittest.TestCase):
+    def _prepare_matrix(self, **environment: str) -> list[dict]:
+        with tempfile.NamedTemporaryFile(mode="r+", delete=False) as output:
+            output_path = output.name
+        self.addCleanup(lambda: Path(output_path).unlink(missing_ok=True))
+
+        env = os.environ.copy()
+        env.update(
+            {
+                "GITHUB_OUTPUT": output_path,
+                "BUILD_ALL_SOURCES": "false",
+                "UPDATED_SOURCES": "",
+                "UPDATED_APPS": "",
+                **environment,
+            }
+        )
+        result = subprocess.run(
+            [sys.executable, "scripts/prepare_matrix.py"],
+            env=env,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        line = Path(output_path).read_text(encoding="utf-8").strip()
+        self.assertTrue(line.startswith("matrix="))
+        return json.loads(line.removeprefix("matrix="))
+
     def test_conflicting_supplemental_patches_are_suppressed(self):
         self.assertEqual(
             gboard_multi._effective_selection("adobo"),
@@ -60,43 +87,55 @@ class GboardMultiSourceTests(unittest.TestCase):
             rewritten = gboard_multi.prepare_morphe_command(command)
 
         self.assertNotIn("--exclusive", rewritten)
-        self.assertIn("tools/adobo/adobo.mpp", rewritten)
-        self.assertIn("tools/morning-entree/morning-entree.mpp", rewritten)
+        normalized = [value.replace("\\", "/") for value in rewritten]
+        self.assertIn("tools/adobo/adobo.mpp", normalized)
+        self.assertIn("tools/morning-entree/morning-entree.mpp", normalized)
         self.assertEqual(rewritten.count("-p"), 3)
         options_index = rewritten.index("--options-file")
-        self.assertEqual(rewritten[options_index + 1], "/tmp/gboard-options.json")
+        self.assertEqual(
+            rewritten[options_index + 1].replace("\\", "/"),
+            "/tmp/gboard-options.json",
+        )
         self.assertEqual(rewritten[-1], "input.apk")
 
     def test_adobo_update_collapses_to_one_integrated_gboard_matrix_item(self):
-        with tempfile.NamedTemporaryFile(mode="r+", delete=False) as output:
-            output_path = output.name
-        self.addCleanup(lambda: Path(output_path).unlink(missing_ok=True))
-
-        env = os.environ.copy()
-        env.update(
-            {
-                "GITHUB_OUTPUT": output_path,
-                "UPDATED_SOURCES": "adobo",
-                "BUILD_ALL_SOURCES": "false",
-            }
-        )
-        result = subprocess.run(
-            [sys.executable, "scripts/prepare_matrix.py"],
-            env=env,
-            capture_output=True,
-            text=True,
-            check=False,
-        )
-        self.assertEqual(result.returncode, 0, result.stderr)
-        line = Path(output_path).read_text(encoding="utf-8").strip()
-        self.assertTrue(line.startswith("matrix="))
-        matrix = json.loads(line.removeprefix("matrix="))
+        matrix = self._prepare_matrix(UPDATED_SOURCES="adobo")
         gboard_items = [item for item in matrix if item.get("app_name") == "gboard"]
         self.assertEqual(len(gboard_items), 1)
         self.assertEqual(gboard_items[0]["source"], "jason")
         self.assertEqual(
             gboard_items[0]["patch_sources"],
             ["jason", "adobo", "morning-entree"],
+        )
+
+    def test_apk_update_builds_only_that_app(self):
+        matrix = self._prepare_matrix(UPDATED_APPS="amazon-shopping")
+        self.assertTrue(matrix)
+        self.assertEqual(
+            {item["app_name"] for item in matrix},
+            {"amazon-shopping"},
+        )
+
+    def test_anddea_update_builds_only_anddea_targets(self):
+        matrix = self._prepare_matrix(UPDATED_SOURCES="anddea")
+        self.assertTrue(matrix)
+        self.assertEqual(
+            {item["source"] for item in matrix},
+            {"revanced-anddea"},
+        )
+
+    def test_source_and_apk_updates_are_combined_without_expanding_apk_source(self):
+        matrix = self._prepare_matrix(
+            UPDATED_SOURCES="anddea",
+            UPDATED_APPS="amazon-shopping",
+        )
+        selected = {(item["app_name"], item["source"]) for item in matrix}
+        self.assertIn(("amazon-shopping", "rushiranpise"), selected)
+        self.assertTrue(
+            all(
+                source == "revanced-anddea" or app == "amazon-shopping"
+                for app, source in selected
+            )
         )
 
 

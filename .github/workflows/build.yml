@@ -926,11 +926,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           release_tag="${{ steps.tag.outputs.release_tag }}"
-          failed_count="${{ steps.check-apks.outputs.failed_count }}"
           release_title="Morphe AutoBuilds $release_tag"
-          if [ "${failed_count:-0}" -gt 0 ]; then
-            release_title="$release_title (Partial)"
-          fi
 
           echo "Creating release: $release_tag"
           gh release delete "$release_tag" --yes 2>/dev/null || true
