@@ -1,0 +1,23 @@
+{
+  "results": [
+    {
+      "file": "alarmy-fluffy-universal.apks",
+      "sha256": "dc13bc166b278e6d0a62bf271f7c2a697193215cf4aa7dbe21ed35afb33fa620",
+      "size": 113750812,
+      "analysis_id": "YmQyZjQ0NDA5Y2M4MDIyNzZjYzZkOTc1M2VkZjMwMzA6MTc4NzU0MDQ2Nw==",
+      "malicious": 0,
+      "suspicious": 0,
+      "harmless": 0,
+      "undetected": 63,
+      "timeout": 2,
+      "failure": 1,
+      "unsupported": 9,
+      "verdict": "clean",
+      "method": "persistent hash cache",
+      "engines": {},
+      "permalink": "https://www.virustotal.com/gui/file/dc13bc166b278e6d0a62bf271f7c2a697193215cf4aa7dbe21ed35afb33fa620/detection",
+      "last_analysis_date": 1787540467,
+      "reanalyzed": false
+    }
+  ]
+}

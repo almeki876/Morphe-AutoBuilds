@@ -1,0 +1,16 @@
+# Poweramp — VirusTotal
+
+**対象:** パッチ適用前に取得したBase APK（配布元から取得/キャッシュ復元した原本）
+
+- **結果:** ✅ Clean
+- **スキャン対象:** 1 file(s)
+
+| File | SHA-256 | Malicious | Suspicious | Method | VirusTotal |
+| --- | --- | ---: | ---: | --- | --- |
+| `poweramp-hoomans-arm64-v8a.apks` | `2ddbd7089d8b5debbea33b775438125753f821c336ab6c68c727e6044420afd1` | 0 | 0 | `persistent hash cache` | [Open](https://www.virustotal.com/gui/file/2ddbd7089d8b5debbea33b775438125753f821c336ab6c68c727e6044420afd1/detection) |
+
+## Scanner telemetry
+
+- Persistent cache hits: `71`
+- New hashes: `-`
+- Analyses started: `-`

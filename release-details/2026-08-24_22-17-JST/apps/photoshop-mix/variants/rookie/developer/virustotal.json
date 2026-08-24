@@ -1,0 +1,23 @@
+{
+  "results": [
+    {
+      "file": "photoshop-mix-rookie-universal.apk",
+      "sha256": "52293753e8484cba57e2c57ecf8515d9ce49da65f7b529d18ad11e08c40b8256",
+      "size": 51702443,
+      "analysis_id": "",
+      "malicious": 0,
+      "suspicious": 0,
+      "harmless": 0,
+      "undetected": 62,
+      "timeout": 5,
+      "failure": 0,
+      "unsupported": 9,
+      "verdict": "clean",
+      "method": "persistent hash cache",
+      "engines": {},
+      "permalink": "https://www.virustotal.com/gui/file/52293753e8484cba57e2c57ecf8515d9ce49da65f7b529d18ad11e08c40b8256/detection",
+      "last_analysis_date": 1764821380,
+      "reanalyzed": false
+    }
+  ]
+}

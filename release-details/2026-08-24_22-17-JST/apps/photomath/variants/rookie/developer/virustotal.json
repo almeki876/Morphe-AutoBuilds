@@ -1,0 +1,23 @@
+{
+  "results": [
+    {
+      "file": "photomath-rookie-universal.apks",
+      "sha256": "48c838530358686a4a9659b2f375e30b842accd2d2a94810c43c320b861e9f6c",
+      "size": 8939869,
+      "analysis_id": "MzYxNWY3NGFiNGIxZjk5ZjBmYjZjM2E4NjY3YjE3ZTI6MTc4NzU0MDMyNg==",
+      "malicious": 0,
+      "suspicious": 0,
+      "harmless": 0,
+      "undetected": 65,
+      "timeout": 0,
+      "failure": 1,
+      "unsupported": 9,
+      "verdict": "clean",
+      "method": "persistent hash cache",
+      "engines": {},
+      "permalink": "https://www.virustotal.com/gui/file/48c838530358686a4a9659b2f375e30b842accd2d2a94810c43c320b861e9f6c/detection",
+      "last_analysis_date": 1787540326,
+      "reanalyzed": false
+    }
+  ]
+}

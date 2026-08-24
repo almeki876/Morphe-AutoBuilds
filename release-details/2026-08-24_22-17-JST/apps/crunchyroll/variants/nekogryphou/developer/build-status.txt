@@ -1,0 +1,89 @@
+app=crunchyroll
+source=nekogryphou
+source_name=nekogryphou
+phase=Patch
+status=success
+run=https://github.com/almeki876/Morphe-AutoBuilds/actions/runs/32730060819
+
+traceback_or_error_tail<<EOF
+2026-08-24 13:09:41 CLI raw output lines: ['INFO: Package name: com.crunchyroll.crunchyroid', 'Most common compatible versions:', '\t3.112.2 (1 patch)']
+2026-08-24 13:09:41 CLI parsed compatible versions: ['3.112.2']
+2026-08-24 13:09:41 🔨 Building 'crunchyroll' for arm64-v8a…
+2026-08-24 13:09:41 📦 Using pre-downloaded tools from tools/nekogryphou (2 files)
+2026-08-24 13:09:41 📦 Downloaded 2 file(s) for 'nekogryphou':
+2026-08-24 13:09:41    • patches-1.1.0.mpp  (50580 bytes)
+2026-08-24 13:09:41    • morphe-desktop-1.14.0-dev.1-all.jar  (40383637 bytes)
+2026-08-24 13:09:41 🔍 Detected: Morphe patching system
+2026-08-24 13:09:41 ✅ CLI:    morphe-desktop-1.14.0-dev.1-all.jar
+2026-08-24 13:09:41 ✅ Bundle: patches-1.1.0.mpp
+2026-08-24 13:09:42 ✅ Using pre-downloaded APK input: .build-input-arm64-v8a.apks
+2026-08-24 13:09:42 [SIZE] downloaded: 109704068 bytes (.build-input-arm64-v8a.apks)
+2026-08-24 13:09:42 Preserved unmodified base APK for VirusTotal: base-apk-scan-out/crunchyroll-nekogryphou-arm64-v8a-v3.112.2.apks
+2026-08-24 13:09:42 Input is not a plain .apk — merging with APKEditor…
+2026-08-24 13:09:43 Fetched latest release: V1.4.9
+2026-08-24 13:09:43 URL: https://release-assets.githubusercontent.com/github-production-release-asset/576398953/c64f423b-578f-44d0-9c3c-d016189acc1e [7733037/7733037] -> "APKEditor-1.4.9.jar" [1]
+2026-08-24 13:09:48 Merged APK: .build-input-arm64-v8a.apk
+2026-08-24 13:09:48 Processing APK for 'arm64-v8a' architecture…
+2026-08-24 13:09:49 Validated input APK: 119900650 bytes (ABIs: arm64-v8a)
+2026-08-24 13:09:49 [SIZE] prepared: 119900650 bytes (.build-input-arm64-v8a.apk)
+2026-08-24 13:09:49 ℹ️  No explicit patch allowlist for patches/crunchyroll-nekogryphou.txt; using patch bundle defaults
+2026-08-24 13:09:49 Checking APK integrity…
+2026-08-24 13:09:50 APK integrity check passed.
+2026-08-24 13:09:50 🔧 Patching with morphe CLI (morphe-desktop-1.14.0-dev.1-all.jar)…
+2026-08-24 13:09:50 Available patches in patches-1.1.0.mpp:
+INFO: Index: 0
+Name: Enable Picture-in-Picture
+Description: Enables automatic Android Picture-in-Picture when leaving Crunchyroll playback.
+Enabled: true
+
+Index: 1
+Name: Hide shared-devices incident popup
+Description: Prevents the GetReceivedShares-003 incident popup from appearing.
+Enabled: true
+
+Index: 2
+Name: Disable login location requirement
+Description: Allows login and registration without granting location permission.
+Enabled: true
+
+Index: 3
+Name: Disable notification permission prompt
+Description: Prevents De'Longhi Comfort from asking to enable notifications.
+Enabled: true
+2026-08-24 13:09:50 enable_patches=[]  disable_patches=[]
+2026-08-24 13:09:51 Running: java -Djava.awt.headless=true -Xmx6g -Xms3g -Dfile.encoding=UTF-8 -XX:-UsePerfData -XX:+UseG1GC -XX:MaxGCPauseMillis=150 -XX:G1HeapRegionSize=2m -XX:+UseStringDeduplication -XX:+ParallelRefProcEnabled -XX:ConcGCThreads=2 -XX:ParallelGCThreads=4 -XX:CICompilerCount=3 -XX:+UseCompressedOops -XX:+OptimizeStringConcat -XX:+DisableExplicitGC -XX:+TieredCompilation -XX:ReservedCodeCacheSize=128m -XX:InitialCodeCacheSize=32m -XX:MaxMetaspaceSize=128m -XX:SoftRefLRUPolicyMSPerMB=50 --add-opens=java.base/java.lang=ALL-UNNAMED --add-opens=java.base/java.util=ALL-UNNAMED --add-opens=java.base/java.io=ALL-UNNAMED -jar morphe-desktop-1.14.0-dev.1-all.jar patch --force --continue-on-error -p patches-1.1.0.mpp --out=crunchyroll-arm64-v8a-patch-v3.112.2.apk --bytecode-mode=STRIP_FAST .build-input-arm64-v8a.apk
+INFO: Morphe data root: /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/morphe-data (JAR-adjacent)
+INFO: Loading patches...
+INFO: Initializing patcher...
+INFO: Filtering patches for com.crunchyroll.crunchyroid v3.112.2...
+INFO: Applying 1 patches...
+INFO: Deleting existing temporary files directory
+INFO: Decoding all resources
+INFO: Sanitizing unpatched strings
+INFO: Escaping strings
+INFO: Executing patches
+INFO: Applied: Enable Picture-in-Picture
+INFO: Compiling patched dex files (mode: STRIP_FAST)
+INFO: Writing 1 new classes to new DEX files
+INFO: Processing 1 classes (single threaded mode)
+INFO: Wrote 1 dex files to /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/morphe-data/tmp/patching-1787576992103/patched/dex
+INFO: Stripping 1 modified classes from original DEX files
+INFO: Compiling modified resources
+INFO: Unescaping strings
+INFO: Processing aapt macros
+INFO: Generating new resource IDs
+INFO: Writing resource APK
+INFO: Aligning APK
+INFO: Signing APK
+INFO: Saved to /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/crunchyroll-arm64-v8a-patch-v3.112.2.apk
+INFO: Purged this session's temp files: patching-1787576992103
+2026-08-24 13:10:12 Validated patched APK: 120396257 bytes (ABIs: arm64-v8a)
+2026-08-24 13:10:12 [SIZE] patched: 120396257 bytes (crunchyroll-arm64-v8a-patch-v3.112.2.apk)
+Signed
+2026-08-24 13:10:15 [SIZE] signed: 120392161 bytes (crunchyroll-arm64-v8a-nekogryphou-v3.112.2.apk)
+✅ APK built: crunchyroll-arm64-v8a-nekogryphou-v3.112.2.apk
+✅ Built arm64-v8a: crunchyroll-arm64-v8a-nekogryphou-v3.112.2.apk
+
+🎯 1 APK(s) built for 'crunchyroll':
+   📱 crunchyroll-arm64-v8a-nekogryphou-v3.112.2.apk
+EOF

@@ -1,0 +1,23 @@
+{
+  "results": [
+    {
+      "file": "sd-maid-se-rushiranpise-universal.apks",
+      "sha256": "e5851472d756b5e041bc3cf93c32910b35877f0f141d570c7a107733cb37e2b5",
+      "size": 6590082,
+      "analysis_id": "NTIwYzA3NzYxY2ZjODczNjRlNzJjZjU3N2E0MjZjZGI6MTc4NzU0MDQzOA==",
+      "malicious": 0,
+      "suspicious": 0,
+      "harmless": 0,
+      "undetected": 64,
+      "timeout": 1,
+      "failure": 1,
+      "unsupported": 9,
+      "verdict": "clean",
+      "method": "persistent hash cache",
+      "engines": {},
+      "permalink": "https://www.virustotal.com/gui/file/e5851472d756b5e041bc3cf93c32910b35877f0f141d570c7a107733cb37e2b5/detection",
+      "last_analysis_date": 1787540438,
+      "reanalyzed": false
+    }
+  ]
+}

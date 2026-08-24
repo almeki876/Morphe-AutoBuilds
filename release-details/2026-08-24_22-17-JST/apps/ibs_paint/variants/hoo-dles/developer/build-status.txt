@@ -1,0 +1,89 @@
+app=ibs_paint
+source=hoo-dles
+source_name=hoo-dles
+phase=Patch
+status=success
+run=https://github.com/almeki876/Morphe-AutoBuilds/actions/runs/32730060819
+
+traceback_or_error_tail<<EOF
+
+Index: 67
+Name: Unlock all lessons
+Description: Only unlocks lessons on the client UI! This is useful for pre-downloading content during free trial periods.
+Enabled: true
+
+Index: 68
+Name: Enable Premium
+Description: Enables app features locked behind the subscription paywall. There is a strict version requirement for this patch.
+Enabled: true
+
+Index: 69
+Name: Enable Premium
+Description: Enables app features locked behind the subscription paywall.
+Enabled: true
+
+Index: 70
+Name: Enable Premium
+Description: Enables app features locked behind the subscription paywall.
+Enabled: true
+
+Index: 71
+Name: Enable Premium
+Description: Enables app features locked behind the subscription paywall.
+Enabled: true
+
+Index: 72
+Name: Enable Premium
+Description: Enables some app features locked behind the subscription paywall. Not all premium functionality is available.
+Enabled: true
+
+Index: 73
+Name: Disable anti-tamper
+Description: Disables various anti-tamper checks that causes the app to force-close.
+Enabled: true
+
+Index: 74
+Name: Enable Pro
+Description: Enables app features locked behind the subscription paywall. Login is required and AI functionality is unavailable.
+Enabled: true
+
+Index: 75
+Name: Enable Pro
+Description: Enables app features locked behind the subscription paywall.
+Enabled: true
+
+Index: 76
+Name: Enable Pro
+Description: null
+Enabled: true
+2026-08-24 13:08:50 enable_patches=[]  disable_patches=[]
+2026-08-24 13:08:51 Running: java -Djava.awt.headless=true -Xmx6g -Xms3g -Dfile.encoding=UTF-8 -XX:-UsePerfData -XX:+UseG1GC -XX:MaxGCPauseMillis=150 -XX:G1HeapRegionSize=2m -XX:+UseStringDeduplication -XX:+ParallelRefProcEnabled -XX:ConcGCThreads=2 -XX:ParallelGCThreads=4 -XX:CICompilerCount=3 -XX:+UseCompressedOops -XX:+OptimizeStringConcat -XX:+DisableExplicitGC -XX:+TieredCompilation -XX:ReservedCodeCacheSize=128m -XX:InitialCodeCacheSize=32m -XX:MaxMetaspaceSize=128m -XX:SoftRefLRUPolicyMSPerMB=50 --add-opens=java.base/java.lang=ALL-UNNAMED --add-opens=java.base/java.util=ALL-UNNAMED --add-opens=java.base/java.io=ALL-UNNAMED -jar morphe-desktop-1.14.0-dev.1-all.jar patch --force --continue-on-error -p patches-1.42.0-dev.1.mpp --out=ibs_paint-arm64-v8a-patch-v14.0.6.apk --bytecode-mode=STRIP_FAST .build-input-arm64-v8a.apk
+INFO: Morphe data root: /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/morphe-data (JAR-adjacent)
+INFO: Loading patches...
+INFO: Initializing patcher...
+INFO: Filtering patches for jp.ne.ibis.ibispaintx.app v14.0.6...
+INFO: Skipping disabled: Hide app icon (default)
+INFO: Skipping disabled: Enable debug (default)
+INFO: Skipping disabled: Change package name (default)
+INFO: Skipping disabled: Disable Pairip license check (default)
+INFO: Applying 1 patches...
+INFO: Deleting existing temporary files directory
+INFO: Decoding resources in raw mode
+INFO: Executing patches
+INFO: Applied: Enable Prime membership
+INFO: Compiling patched dex files (mode: NONE)
+INFO: Moving 2 resource files
+INFO: Aligning APK
+INFO: Signing APK
+INFO: Saved to /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/ibs_paint-arm64-v8a-patch-v14.0.6.apk
+INFO: Purged this session's temp files: patching-1787576933276
+2026-08-24 13:09:00 Validated patched APK: 54078830 bytes (ABIs: arm64-v8a)
+2026-08-24 13:09:00 [SIZE] patched: 54078830 bytes (ibs_paint-arm64-v8a-patch-v14.0.6.apk)
+Signed
+2026-08-24 13:09:02 [SIZE] signed: 54074734 bytes (ibs_paint-arm64-v8a-hoo-dles-v14.0.6.apk)
+✅ APK built: ibs_paint-arm64-v8a-hoo-dles-v14.0.6.apk
+✅ Built arm64-v8a: ibs_paint-arm64-v8a-hoo-dles-v14.0.6.apk
+
+🎯 1 APK(s) built for 'ibs_paint':
+   📱 ibs_paint-arm64-v8a-hoo-dles-v14.0.6.apk
+EOF

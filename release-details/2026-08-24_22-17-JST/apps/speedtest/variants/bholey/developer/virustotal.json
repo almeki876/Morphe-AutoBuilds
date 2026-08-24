@@ -1,0 +1,23 @@
+{
+  "results": [
+    {
+      "file": "speedtest-bholey-universal.apk",
+      "sha256": "4e7f7d4bf2917f9fee982754efc1592528180f00fd75c698aa6fb9b8e65df4ea",
+      "size": 28311331,
+      "analysis_id": "",
+      "malicious": 0,
+      "suspicious": 0,
+      "harmless": 0,
+      "undetected": 66,
+      "timeout": 0,
+      "failure": 0,
+      "unsupported": 7,
+      "verdict": "clean",
+      "method": "persistent hash cache",
+      "engines": {},
+      "permalink": "https://www.virustotal.com/gui/file/4e7f7d4bf2917f9fee982754efc1592528180f00fd75c698aa6fb9b8e65df4ea/detection",
+      "last_analysis_date": 1783622350,
+      "reanalyzed": false
+    }
+  ]
+}

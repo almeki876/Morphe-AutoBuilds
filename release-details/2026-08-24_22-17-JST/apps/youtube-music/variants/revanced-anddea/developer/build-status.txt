@@ -1,0 +1,89 @@
+app=youtube-music
+source=revanced-anddea
+source_name=Anddea
+phase=Patch
+status=success
+run=https://github.com/almeki876/Morphe-AutoBuilds/actions/runs/32730060819
+
+traceback_or_error_tail<<EOF
+INFO: Skipping disabled: Spoof signature (default)
+INFO: Applying 44 patches...
+INFO: Deleting existing temporary files directory
+INFO: Decoding all resources
+INFO: Sanitizing unpatched strings
+INFO: Escaping strings
+INFO: Executing patches
+INFO: Applied: Bitrate default value
+INFO: Applied: Bypass image region restrictions
+INFO: Applied: Certificate spoof
+INFO: Applied: Change share sheet
+INFO: Applied: Change start page
+INFO: Applied: Change version code
+INFO: Applied: Custom branding for YouTube Music
+INFO: Applied: Disable Cairo splash animation
+INFO: Applied: Disable QUIC protocol
+INFO: Applied: Disable dislike redirection
+INFO: Applied: Disable forced auto captions
+INFO: Applied: Disable music video in album
+INFO: Applied: Enable debug logging
+INFO: Applied: Enable landscape mode
+WARNING: "Enable compact dialog" is not supported in this version. Use YouTube Music 8.30.54 or earlier.
+INFO: Applied: Flyout menu components
+INFO: Applied: Force original audio
+INFO: Applied: GmsCore support
+WARNING: "Hide handle" is not supported in this version. Use YouTube Music 8.30.54 or earlier.
+INFO: Applied: Hide account components
+INFO: Applied: Hide action bar components
+INFO: Applied: Hide ads
+INFO: Applied: Hide layout components
+INFO: Applied: Hide overlay filter
+INFO: Applied: Hide player overlay filter
+INFO: Applied: Navigation bar components
+WARNING: "Enable smooth transition animation" is not supported in this version. Use YouTube Music 8.30.54 or earlier.
+WARNING: "Restore old comments popup panels" is not supported in this version. Use YouTube Music 8.30.54 or earlier.
+INFO: Applied: Player components
+INFO: Applied: Remove background playback restrictions
+INFO: Applied: Remove viewer discretion dialog
+INFO: Applied: Restore old style library shelf
+INFO: Applied: Return YouTube Dislike
+INFO: Applied: Return YouTube Username
+INFO: Applied: Sanitize sharing links
+INFO: Applied: Settings menu filter
+INFO: Applied: SponsorBlock
+WARNING: "Spoof app version" is not supported in this version. Use YouTube Music versions up to 8.03.
+INFO: Applied: Spoof app version
+INFO: Applied: Spoof app version for lyrics
+INFO: Applied: Spoof video streams
+INFO: Applied: Theme
+INFO: Applied: Third-party lyrics
+INFO: Applied: Track crossfade
+INFO: Applied: Translations for YouTube Music
+INFO: Applied: Video playback
+INFO: Applied: Watch history
+INFO: Applied: Visual preferences icons for YouTube Music
+INFO: Applied: Settings for YouTube Music
+INFO: Compiling patched dex files (mode: STRIP_FAST)
+INFO: Writing 6559 new classes to new DEX files
+INFO: Processing 6559 classes in parallel (4 threads)
+INFO: Wrote 4 dex files to /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/morphe-data/tmp/patching-1787576926654/patched/dex
+INFO: Stripping 526 modified classes from original DEX files
+INFO: Compiling modified resources
+INFO: Unescaping strings
+INFO: Post-processing package name change
+INFO: Processing aapt macros
+INFO: Generating new resource IDs
+INFO: Writing resource APK
+INFO: Aligning APK
+INFO: Signing APK
+INFO: Saved to /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/youtube-music-arm64-v8a-patch-v9.15.51.apk
+INFO: Purged this session's temp files: patching-1787576926654
+2026-08-24 13:09:33 Validated patched APK: 84596674 bytes (ABIs: arm64-v8a)
+2026-08-24 13:09:33 [SIZE] patched: 84596674 bytes (youtube-music-arm64-v8a-patch-v9.15.51.apk)
+Signed
+2026-08-24 13:09:36 [SIZE] signed: 84592578 bytes (youtube-music-arm64-v8a-revanced-anddea-v9.15.51.apk)
+✅ APK built: youtube-music-arm64-v8a-revanced-anddea-v9.15.51.apk
+✅ Built arm64-v8a: youtube-music-arm64-v8a-revanced-anddea-v9.15.51.apk
+
+🎯 1 APK(s) built for 'youtube-music':
+   📱 youtube-music-arm64-v8a-revanced-anddea-v9.15.51.apk
+EOF
