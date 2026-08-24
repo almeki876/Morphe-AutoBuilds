@@ -132,6 +132,52 @@ def _require_japan_fallback_before_providers(app_name: str, error: Exception) ->
     ) from error
 
 
+def _final_tailscale_provider_retry_enabled(app_name: str) -> bool:
+    """Use the existing tailnet only in the final provider-rescue child process."""
+    return (
+        bool(os.getenv("GITHUB_RUN_ID", "").strip())
+        and not os.getenv("GITHUB_ACTIONS", "").strip()
+        and os.getenv("APP_NAME", "") == app_name
+        and os.getenv("MORPHE_TAILSCALE_PROVIDER_RETRY", "") != "1"
+        and _tailscale_fallback_active()
+    )
+
+
+def _enable_unique_japan_exit_node() -> None:
+    """Re-enable the one advertised Tailscale exit node and verify JP egress."""
+    from scripts.resolve_tailscale_exit_node import resolve_exit_node_ip
+
+    executable = shutil.which("tailscale")
+    if not executable:
+        raise RuntimeError("tailscale CLI is unavailable for final provider retry")
+    status_result = subprocess.run(
+        [executable, "status", "--json"],
+        check=True,
+        capture_output=True,
+        text=True,
+        timeout=10,
+    )
+    status = json.loads(status_result.stdout)
+    exit_node_ip = resolve_exit_node_ip(status, "")
+    subprocess.run(
+        ["sudo", executable, "set", f"--exit-node={exit_node_ip}"],
+        check=True,
+        timeout=15,
+    )
+    subprocess.run(
+        [executable, "ping", exit_node_ip],
+        check=True,
+        timeout=15,
+    )
+    verify = subprocess.run(
+        [sys.executable, "scripts/verify_japan_egress.py"],
+        check=False,
+        timeout=60,
+    )
+    if verify.returncode != 0:
+        raise RuntimeError("final Tailscale provider retry did not verify Japanese egress")
+
+
 def _validate_downloaded_identity(
     input_apk: Path,
     package: str,
@@ -166,7 +212,13 @@ def _record_play_download(
     )
 
 
-def _download(app_name: str, source: str, arch: str) -> tuple[Path, str]:
+def _download(
+    app_name: str,
+    source: str,
+    arch: str,
+    *,
+    skip_play: bool = False,
+) -> tuple[Path, str]:
     package = providers.configured_package(app_name)
     if not package:
         raise RuntimeError(f"No package ID configured for {app_name}")
@@ -186,8 +238,12 @@ def _download(app_name: str, source: str, arch: str) -> tuple[Path, str]:
         raise RuntimeError(
             f"Source policy for {app_name} requires Google Play, but Google Play is disabled"
         )
+    if play_only and skip_play:
+        raise RuntimeError(
+            f"Source policy for {app_name} requires Google Play; refusing provider-only retry"
+        )
 
-    if play_enabled:
+    if play_enabled and not skip_play:
         play_candidate = _preferred_play_candidate(app_name, package, candidates)
         play_input: Path | None = None
         try:
@@ -230,6 +286,11 @@ def _download(app_name: str, source: str, arch: str) -> tuple[Path, str]:
                 type(error).__name__,
                 error,
             )
+    elif skip_play:
+        logging.info(
+            "⏭️  Final Tailscale rescue skips Google Play and retries provider/CDN origins only for %s",
+            app_name,
+        )
     else:
         logging.info(
             "⏭️  Google Play disabled by repository policy for %s; using configured provider only",
@@ -367,6 +428,25 @@ def _download(app_name: str, source: str, arch: str) -> tuple[Path, str]:
         )
 
     detail = "; ".join(fallback_errors)
+    if _final_tailscale_provider_retry_enabled(app_name):
+        logging.warning(
+            "🛟 All normal provider/CDN paths failed for %s; trying them once more through Tailscale JP",
+            app_name,
+        )
+        try:
+            _enable_unique_japan_exit_node()
+            os.environ["MORPHE_TAILSCALE_PROVIDER_RETRY"] = "1"
+            return _download(app_name, source, arch, skip_play=True)
+        except Exception as error:
+            logging.warning(
+                "⚠️  Final Tailscale provider retry failed for %s: %s",
+                app_name,
+                utils.safe_text_for_log(error),
+            )
+            detail = f"{detail}; tailscale-provider-retry: {type(error).__name__}: {utils.safe_text_for_log(error)}"
+        finally:
+            os.environ.pop("MORPHE_TAILSCALE_PROVIDER_RETRY", None)
+
     raise RuntimeError(f"all APK fallbacks failed for {app_name}: {detail}")
 
 

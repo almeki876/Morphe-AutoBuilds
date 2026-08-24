@@ -67,6 +67,63 @@ class JapanFallbackPolicyTests(unittest.TestCase):
             )
         active.assert_not_called()
 
+    @mock.patch("scripts.download_apks._tailscale_fallback_active", return_value=True)
+    def test_final_provider_rescue_can_retry_through_existing_tailnet(
+        self,
+        _active: mock.Mock,
+    ) -> None:
+        with mock.patch.dict(
+            os.environ,
+            {
+                "GITHUB_RUN_ID": "12345",
+                "GITHUB_ACTIONS": "",
+                "APP_NAME": "yuucho-tsucho",
+                "MORPHE_TAILSCALE_PROVIDER_RETRY": "",
+            },
+            clear=False,
+        ):
+            self.assertTrue(
+                download_apks._final_tailscale_provider_retry_enabled("yuucho-tsucho")
+            )
+
+    @mock.patch("scripts.download_apks._tailscale_fallback_active", return_value=True)
+    def test_final_provider_rescue_never_loops(
+        self,
+        _active: mock.Mock,
+    ) -> None:
+        with mock.patch.dict(
+            os.environ,
+            {
+                "GITHUB_RUN_ID": "12345",
+                "GITHUB_ACTIONS": "",
+                "APP_NAME": "yuucho-tsucho",
+                "MORPHE_TAILSCALE_PROVIDER_RETRY": "1",
+            },
+            clear=False,
+        ):
+            self.assertFalse(
+                download_apks._final_tailscale_provider_retry_enabled("yuucho-tsucho")
+            )
+
+    @mock.patch("scripts.download_apks._tailscale_fallback_active", return_value=True)
+    def test_final_provider_rescue_is_not_used_by_normal_actions_stage(
+        self,
+        _active: mock.Mock,
+    ) -> None:
+        with mock.patch.dict(
+            os.environ,
+            {
+                "GITHUB_RUN_ID": "12345",
+                "GITHUB_ACTIONS": "true",
+                "APP_NAME": "yuucho-tsucho",
+                "MORPHE_TAILSCALE_PROVIDER_RETRY": "",
+            },
+            clear=False,
+        ):
+            self.assertFalse(
+                download_apks._final_tailscale_provider_retry_enabled("yuucho-tsucho")
+            )
+
 
 class SuccessfulStateMergeTests(unittest.TestCase):
     def test_concurrent_unrelated_state_is_preserved(self) -> None:
