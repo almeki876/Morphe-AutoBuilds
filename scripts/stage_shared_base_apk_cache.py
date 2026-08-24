@@ -1,19 +1,10 @@
-"""Stage durable Base APK cache candidates from the single shared input artifact.
-
-The download job uploads each original APK exactly once. Build, VirusTotal, and
-cache publication download that same artifact. This helper promotes only inputs
-whose matching build report completed successfully, preserving the old rule
-that failed builds do not advance the durable cache. Origin sidecars are copied
-with the staged cache asset so future cache hits can identify the original APK
-provider and source URL.
-"""
+"""Stage durable Base APK cache candidates from the single shared input artifact."""
 
 from __future__ import annotations
 
 import json
 import logging
 import os
-import shutil
 from pathlib import Path
 
 from src import apk_cache, apk_identity, providers
@@ -49,21 +40,41 @@ def _artifact_input(manifest_path: Path, manifest: dict) -> Path | None:
     return candidate if candidate.is_file() else None
 
 
+def _origin(manifest_path: Path) -> dict | None:
+    path = manifest_path.parent / "origin.json"
+    if not path.is_file():
+        return None
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None
+    return payload if isinstance(payload, dict) else None
+
+
 def _copy_origin_sidecar(manifest_path: Path, staged: Path) -> None:
-    origin = manifest_path.parent / "origin.json"
-    if not origin.is_file():
+    payload = _origin(manifest_path)
+    if payload is None:
         return
     target = staged.with_name(staged.name + ".origin.json")
     try:
-        payload = json.loads(origin.read_text(encoding="utf-8"))
-        if not isinstance(payload, dict):
-            return
         target.write_text(
             json.dumps(payload, ensure_ascii=False, indent=2) + "\n",
             encoding="utf-8",
         )
-    except (OSError, json.JSONDecodeError) as error:
-        logging.warning("Could not promote APK origin metadata %s: %s", origin, error)
+    except OSError as error:
+        logging.warning("Could not promote APK origin metadata %s: %s", manifest_path, error)
+
+
+def _cache_provider(manifest_path: Path) -> str | None:
+    """Recover the provider that actually acquired the APK.
+
+    The shared artifact is transport, not an acquisition provider. Treating it
+    as a provider was the critical bug that converted a Japanese Google Play
+    payload into a generic cache entry. Missing provenance now fails closed.
+    """
+    payload = _origin(manifest_path)
+    provider = str((payload or {}).get("provider") or "").strip()
+    return provider or None
 
 
 def main() -> int:
@@ -90,8 +101,13 @@ def main() -> int:
             continue
         package = providers.configured_package(app)
         input_apk = _artifact_input(manifest_path, manifest)
-        if not package or input_apk is None:
-            logging.warning("Shared input incomplete for %s/%s", app, source)
+        provider = _cache_provider(manifest_path)
+        if not package or input_apk is None or not provider:
+            logging.warning(
+                "Refusing cache promotion without complete acquisition provenance for %s/%s",
+                app,
+                source,
+            )
             continue
         key = (package, version, str(input_apk.resolve()))
         if key in seen:
@@ -104,7 +120,7 @@ def main() -> int:
                 "Refusing durable cache promotion for %s %s: %s", app, version, error
             )
             continue
-        staged = apk_cache.stage(input_apk, package, version, "shared-base-input")
+        staged = apk_cache.stage(input_apk, package, version, provider)
         if staged is not None:
             _copy_origin_sidecar(manifest_path, staged)
             staged_count += 1
