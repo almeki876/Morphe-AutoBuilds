@@ -1,0 +1,89 @@
+app=youtube
+source=revanced-anddea
+source_name=Anddea
+phase=Patch
+status=success
+run=https://github.com/almeki876/Morphe-AutoBuilds/actions/runs/32718032950
+
+traceback_or_error_tail<<EOF
+INFO: Applied: Custom double tap length
+INFO: Applied: Description components
+INFO: Applied: Disable QUIC protocol
+INFO: Applied: Disable forced auto captions
+INFO: Applied: Disable haptic feedback
+INFO: Applied: Disable layout updates
+INFO: Applied: Disable resuming Miniplayer on startup
+INFO: Applied: Disable resuming Shorts on startup
+INFO: Applied: Disable sign in to TV popup
+INFO: Applied: Enable debug logging
+INFO: Applied: Enable gradient loading screen
+INFO: Applied: Force original audio
+INFO: Applied: Force player buttons background
+INFO: Applied: Fullscreen components
+INFO: Applied: GmsCore support
+INFO: Applied: Hide action buttons
+INFO: Applied: Hide ads
+INFO: Applied: Hide comments components
+INFO: Applied: Hide feed components
+INFO: Applied: Hide feed flyout menu
+INFO: Applied: Hide layout components
+INFO: Applied: Hide player buttons
+INFO: Applied: Hide player flyout menu
+INFO: Applied: Hide shortcuts
+INFO: Applied: Hook download actions
+INFO: Applied: Miniplayer
+INFO: Applied: Navigation bar components
+INFO: Applied: Open links externally
+INFO: Applied: Overlay buttons
+INFO: Applied: Override YouTube Music buttons
+INFO: Applied: Playback in feeds
+INFO: Applied: Player components
+INFO: Applied: Remove background playback restrictions
+INFO: Applied: Remove viewer discretion dialog
+INFO: Applied: Return YouTube Dislike
+INFO: Applied: Return YouTube Username
+INFO: Applied: Sanitize sharing links
+INFO: Applied: Seekbar components
+INFO: Applied: Set transcript cookies
+INFO: Applied: Settings menu filter
+INFO: Applied: Shorts components
+INFO: Applied: Snack bar components
+INFO: Applied: SponsorBlock
+INFO: Applied: Spoof app version
+INFO: Applied: Spoof video streams
+INFO: Applied: Spoof watch history
+INFO: Applied: Swipe controls
+INFO: Applied: Theme
+INFO: Applied: Toolbar components
+INFO: Applied: Translations for YouTube
+INFO: Applied: Video playback
+INFO: Applied: Voice Over Translation
+INFO: Applied: Wide search bar
+INFO: Applied: Visual preferences icons for YouTube
+INFO: Applied: Reload video
+INFO: Applied: Settings for YouTube
+INFO: Compiling patched dex files (mode: STRIP_FAST)
+INFO: Writing 6841 new classes to new DEX files
+INFO: Processing 6841 classes in parallel (4 threads)
+INFO: Wrote 4 dex files to /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/morphe-data/tmp/patching-1787568671056/patched/dex
+INFO: Stripping 808 modified classes from original DEX files
+INFO: Compiling modified resources
+INFO: Unescaping strings
+INFO: Post-processing package name change
+INFO: Processing aapt macros
+INFO: Generating new resource IDs
+INFO: Writing resource APK
+INFO: Aligning APK
+INFO: Signing APK
+INFO: Saved to /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/youtube-arm64-v8a-patch-v20.51.39.apk
+INFO: Purged this session's temp files: patching-1787568671056
+2026-08-24 10:52:35 Validated patched APK: 105436905 bytes (ABIs: arm64-v8a)
+2026-08-24 10:52:35 [SIZE] patched: 105436905 bytes (youtube-arm64-v8a-patch-v20.51.39.apk)
+Signed
+2026-08-24 10:52:39 [SIZE] signed: 105432809 bytes (youtube-arm64-v8a-revanced-anddea-v20.51.39.apk)
+✅ APK built: youtube-arm64-v8a-revanced-anddea-v20.51.39.apk
+✅ Built arm64-v8a: youtube-arm64-v8a-revanced-anddea-v20.51.39.apk
+
+🎯 1 APK(s) built for 'youtube':
+   📱 youtube-arm64-v8a-revanced-anddea-v20.51.39.apk
+EOF

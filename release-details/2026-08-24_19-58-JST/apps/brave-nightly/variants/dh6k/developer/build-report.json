@@ -1,0 +1,38 @@
+{
+  "app_name": "brave-nightly",
+  "source": "dh6k",
+  "patch_source": "dh6k",
+  "source_name": "dh6k",
+  "version": "1.96.3",
+  "status": "success",
+  "lifecycle_status": "success_full",
+  "requested_patches": [],
+  "requested_options": [],
+  "applying_count": 1,
+  "applied_patches": [
+    "Brave Origin"
+  ],
+  "excluded_patches": [],
+  "disabled_patches": [],
+  "feature_failures": [
+    {
+      "name": "Change app icon",
+      "reason": "[runtime-skipped-default] default"
+    },
+    {
+      "name": "Change app name",
+      "reason": "[runtime-skipped-default] default"
+    },
+    {
+      "name": "Disable analytics",
+      "reason": "[runtime-skipped-default] default"
+    }
+  ],
+  "failed_patches": [],
+  "required_patches": [],
+  "required_failures": [],
+  "required_patches_satisfied": true,
+  "fully_applied": true,
+  "error_category": null,
+  "error_summary": null
+}

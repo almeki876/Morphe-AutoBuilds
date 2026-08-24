@@ -1,0 +1,23 @@
+{
+  "results": [
+    {
+      "file": "icon-packer-hoo-dles-universal.apks",
+      "sha256": "44d367a268c02c778dd9e5aa6b3627b5e285ecd553e0861242391b76f7ad80b7",
+      "size": 15488651,
+      "analysis_id": "N2M4NjIwMDk2N2YwYmYwNjViMGRjMGVlODg4YjFhZjk6MTc4NzU0MDI4Mg==",
+      "malicious": 0,
+      "suspicious": 0,
+      "harmless": 0,
+      "undetected": 65,
+      "timeout": 1,
+      "failure": 0,
+      "unsupported": 9,
+      "verdict": "clean",
+      "method": "persistent hash cache",
+      "engines": {},
+      "permalink": "https://www.virustotal.com/gui/file/44d367a268c02c778dd9e5aa6b3627b5e285ecd553e0861242391b76f7ad80b7/detection",
+      "last_analysis_date": 1787540282,
+      "reanalyzed": false
+    }
+  ]
+}

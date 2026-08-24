@@ -1,0 +1,23 @@
+{
+  "results": [
+    {
+      "file": "github-hoo-dles-universal.apks",
+      "sha256": "2ec93d8acdfa796a441e35f2598440e9663360cb62ea0e033070c493ea21ba3f",
+      "size": 17277358,
+      "analysis_id": "OTM2NDhhY2QzYTdjZjIxN2VjZTc2NjRhNGU4ZDYyZGM6MTc4NzU0MDMyMw==",
+      "malicious": 0,
+      "suspicious": 0,
+      "harmless": 0,
+      "undetected": 63,
+      "timeout": 2,
+      "failure": 1,
+      "unsupported": 9,
+      "verdict": "clean",
+      "method": "persistent hash cache",
+      "engines": {},
+      "permalink": "https://www.virustotal.com/gui/file/2ec93d8acdfa796a441e35f2598440e9663360cb62ea0e033070c493ea21ba3f/detection",
+      "last_analysis_date": 1787540323,
+      "reanalyzed": false
+    }
+  ]
+}
