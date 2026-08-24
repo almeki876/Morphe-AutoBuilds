@@ -2,6 +2,9 @@ name: "手動: 全アプリをビルド"
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - ops/dispatch-main-e2e-a08480dc
 
 permissions:
   actions: write
