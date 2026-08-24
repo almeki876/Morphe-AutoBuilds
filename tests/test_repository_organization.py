@@ -12,7 +12,7 @@ class RepositoryOrganizationTests(unittest.TestCase):
         "build.yml": "Build and Release APKs",
         "build-all-apps.yml": "手動: 全アプリをビルド",
         "check-upstream.yml": "自動: アップストリーム更新を確認",
-        "close-resolved-build-issues.yml": "Finalize Successful Build",
+        "close-resolved-build-issues.yml": "Close Resolved Build Issues",
         "configuration-check.yml": "CI: 設定・テスト検証",
         "diagnose-google-play-purchase.yml": "保守: Google Play取得を診断",
         "health-check.yml": "保守: 取得元とビルド環境を点検",
@@ -34,12 +34,13 @@ class RepositoryOrganizationTests(unittest.TestCase):
         for filename, expected in self.EXPECTED_WORKFLOW_NAMES.items():
             self.assertEqual(self._workflow_name(WORKFLOWS / filename), expected)
 
-    def test_only_success_finalizer_depends_on_primary_build_completion(self):
-        finalizer = (WORKFLOWS / "close-resolved-build-issues.yml").read_text(
+    def test_only_issue_closer_depends_on_primary_build_completion(self):
+        closer = (WORKFLOWS / "close-resolved-build-issues.yml").read_text(
             encoding="utf-8"
         )
-        self.assertIn("workflow_run:", finalizer)
-        self.assertIn("Build and Release APKs", finalizer)
+        self.assertIn("workflow_run:", closer)
+        self.assertIn("Build and Release APKs", closer)
+        self.assertNotIn("virustotal-cache-v1.json", closer)
 
         for filename in (
             "publish-release-details.yml",
