@@ -1,0 +1,25 @@
+name: その他の問題
+description: 上の分類に当てはまらない問題や、どこに分類すべきか分からない場合はこちら。
+title: "[Other] "
+labels:
+  - bug
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: 何が起きましたか？
+      description: 分かる範囲だけで構いません。状況をそのまま書いてください。
+    validations:
+      required: true
+
+  - type: input
+    id: app
+    attributes:
+      label: 関係するアプリ
+      placeholder: 例：YouTube / 分からない場合は空欄
+
+  - type: textarea
+    id: evidence
+    attributes:
+      label: ログ・スクリーンショット・補足
+      description: エラー、画像、再現方法、端末情報などがあればまとめて貼り付けてください。
