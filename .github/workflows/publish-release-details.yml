@@ -1,0 +1,195 @@
+name: Publish Release Details
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: 'Release tag to rebuild details for (optional; latest matching build when empty)'
+        required: false
+        default: ''
+      run_id:
+        description: 'Build and Release APKs run ID whose artifacts should be used'
+        required: true
+  workflow_run:
+    workflows:
+      - Build and Release APKs
+    types:
+      - completed
+
+permissions:
+  actions: read
+  contents: write
+
+concurrency:
+  group: release-details-${{ github.event.workflow_run.id || github.event.inputs.run_id }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: >-
+      ${{
+        github.event_name == 'workflow_dispatch' ||
+        github.event.workflow_run.conclusion == 'success'
+      }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v7
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Setup Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.11'
+
+      - name: Resolve source workflow run
+        id: source-run
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          AUTO_RUN_ID: ${{ github.event.workflow_run.id }}
+          MANUAL_RUN_ID: ${{ github.event.inputs.run_id }}
+          AUTO_RUN_URL: ${{ github.event.workflow_run.html_url }}
+        run: |
+          if [ "$EVENT_NAME" = "workflow_run" ]; then
+            run_id="$AUTO_RUN_ID"
+            run_url="$AUTO_RUN_URL"
+          else
+            run_id="$MANUAL_RUN_ID"
+            run_url="https://github.com/${{ github.repository }}/actions/runs/$run_id"
+          fi
+          test -n "$run_id"
+          echo "run_id=$run_id" >> "$GITHUB_OUTPUT"
+          echo "run_url=$run_url" >> "$GITHUB_OUTPUT"
+
+      - name: Download build result artifacts
+        uses: actions/download-artifact@v8
+        with:
+          path: details-input/build
+          pattern: build-status-*
+          merge-multiple: true
+          github-token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          run-id: ${{ steps.source-run.outputs.run_id }}
+
+      - name: Download download result artifacts
+        continue-on-error: true
+        uses: actions/download-artifact@v8
+        with:
+          path: details-input/download
+          pattern: download-status-*
+          merge-multiple: true
+          github-token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          run-id: ${{ steps.source-run.outputs.run_id }}
+
+      - name: Download shared base APK provenance artifacts
+        continue-on-error: true
+        uses: actions/download-artifact@v8
+        with:
+          path: details-input/base
+          pattern: base-input-*
+          merge-multiple: false
+          github-token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          run-id: ${{ steps.source-run.outputs.run_id }}
+
+      - name: Download VirusTotal report
+        uses: actions/download-artifact@v8
+        with:
+          path: .
+          name: virustotal-report
+          github-token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          run-id: ${{ steps.source-run.outputs.run_id }}
+
+      - name: Resolve matching Release tag
+        id: release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          MANUAL_TAG: ${{ github.event.inputs.release_tag }}
+          EVENT_NAME: ${{ github.event_name }}
+          RUN_CREATED: ${{ github.event.workflow_run.created_at }}
+          RUN_UPDATED: ${{ github.event.workflow_run.updated_at }}
+        run: |
+          if [ -n "$MANUAL_TAG" ]; then
+            gh release view "$MANUAL_TAG" >/dev/null
+            release_tag="$MANUAL_TAG"
+          elif [ "$EVENT_NAME" = "workflow_run" ]; then
+            release_tag="$(gh api --paginate "repos/${{ github.repository }}/releases?per_page=100" \
+              --jq ".[] | select(.draft == false and .created_at >= \"$RUN_CREATED\" and .created_at <= \"$RUN_UPDATED\") | .tag_name" \
+              | head -n 1)"
+          else
+            echo "::error::Manual runs require release_tag."
+            exit 1
+          fi
+          if [ -z "$release_tag" ]; then
+            echo "::error::Could not identify the Release created by workflow run ${{ steps.source-run.outputs.run_id }}."
+            exit 1
+          fi
+          echo "release_tag=$release_tag" >> "$GITHUB_OUTPUT"
+          echo "Release tag: $release_tag"
+
+      - name: Pin patch metadata to successful-state tags
+        run: |
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+          tags = json.loads(Path('last-tags.json').read_text(encoding='utf-8'))
+          with open(os.environ['GITHUB_ENV'], 'a', encoding='utf-8') as out:
+              for key, value in tags.items():
+                  if key.startswith('apk_') or not isinstance(value, str):
+                      continue
+                  env_key = 'SOURCE_TAG_' + key.upper().replace('-', '_')
+                  print(f'{env_key}={value}', file=out)
+          PY
+
+      - name: Download exact patch metadata for descriptions
+        continue-on-error: true
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          PAT: ${{ secrets.PAT }}
+        run: |
+          pip install -r requirements.txt -q
+          python3 scripts/download_all_tools.py
+
+      - name: Generate persistent Release details
+        env:
+          RELEASE_TAG: ${{ steps.release.outputs.release_tag }}
+          RUN_URL: ${{ steps.source-run.outputs.run_url }}
+        run: |
+          python3 scripts/generate_release_details.py
+
+      - name: Commit Release detail index and app pages
+        env:
+          RELEASE_TAG: ${{ steps.release.outputs.release_tag }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -- "release-details/$RELEASE_TAG"
+          if git diff --cached --quiet; then
+            echo "Release details are already current."
+          else
+            git commit -m "docs: archive build details for $RELEASE_TAG [skip ci]"
+            git pull --rebase origin main
+            git push origin HEAD:main
+          fi
+
+      - name: Replace public Release notes with concise linked index
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ steps.release.outputs.release_tag }}
+        run: |
+          gh release edit "$RELEASE_TAG" --notes-file release-notes-details.md
+
+      - name: Summary
+        env:
+          RELEASE_TAG: ${{ steps.release.outputs.release_tag }}
+        run: |
+          echo "## Release details published" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Release: \`$RELEASE_TAG\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Index: https://github.com/${{ github.repository }}/blob/main/release-details/$RELEASE_TAG/README.md" >> "$GITHUB_STEP_SUMMARY"
