@@ -23,6 +23,7 @@ class FakeResponse:
 class FakeClient(VirusTotalClient):
     def __init__(self, responses: list[FakeResponse], **kwargs):
         kwargs.setdefault("analysis_timeout", 120)
+        kwargs.setdefault("initial_poll_delay", 0)
         super().__init__(
             "test-key", request_interval=0, poll_interval=0, max_retries=0, **kwargs
         )
@@ -148,8 +149,9 @@ class VirusTotalTests(unittest.TestCase):
         self.assertEqual([call[0] for call in client.calls], ["GET", "POST", "GET"])
 
     def test_stale_clean_hash_is_not_reanalyzed(self):
+        old_date = int(time.time()) - 91 * 86400
         client = FakeClient(
-            [clean_report(int(time.time()) - 91 * 86400)],
+            [clean_report(old_date)],
             max_analysis_age_days=90,
         )
 
@@ -163,7 +165,7 @@ class VirusTotalTests(unittest.TestCase):
         self.assertEqual(engines, {})
         self.assertEqual(method, "hash lookup")
         self.assertFalse(reanalyzed)
-        self.assertEqual(date, int(time.time()) - 91 * 86400)
+        self.assertEqual(date, old_date)
         self.assertEqual([call[0] for call in client.calls], ["GET"])
 
     def test_timeout_can_fall_back_to_old_result(self):
@@ -183,6 +185,39 @@ class VirusTotalTests(unittest.TestCase):
         self.assertFalse(result.reanalyzed)
         self.assertEqual(result.malicious, 1)
         self.assertEqual(result.verdict, "clean")
+
+    def test_adaptive_rate_limiter_speeds_up_only_after_success_window(self):
+        client = VirusTotalClient(
+            "test-key",
+            request_interval=8,
+            min_request_interval=2,
+            rate_success_window=2,
+            poll_interval=0,
+            initial_poll_delay=0,
+            analysis_timeout=1,
+            max_retries=0,
+        )
+        self.assertEqual(client.current_request_interval, 8)
+        client._observe_success()
+        self.assertEqual(client.current_request_interval, 8)
+        client._observe_success()
+        self.assertAlmostEqual(client.current_request_interval, 6.4)
+
+    def test_adaptive_rate_limiter_backs_off_immediately_on_429(self):
+        client = VirusTotalClient(
+            "test-key",
+            request_interval=8,
+            min_request_interval=2,
+            rate_success_window=1,
+            poll_interval=0,
+            initial_poll_delay=0,
+            analysis_timeout=1,
+            max_retries=0,
+        )
+        client._observe_success()
+        self.assertAlmostEqual(client.current_request_interval, 6.4)
+        client._observe_rate_limit(20)
+        self.assertEqual(client.current_request_interval, 20)
 
 
 if __name__ == "__main__":
