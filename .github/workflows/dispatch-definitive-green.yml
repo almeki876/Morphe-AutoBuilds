@@ -1,0 +1,54 @@
+name: "Ops: dispatch definitive GREEN E2E"
+
+on:
+  push:
+    branches:
+      - ops/dispatch-definitive-green
+    paths:
+      - .github/workflows/dispatch-definitive-green.yml
+
+permissions:
+  actions: write
+  contents: read
+  issues: write
+
+jobs:
+  dispatch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Dispatch full build from latest main
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          started="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          main_sha="$(gh api "repos/${REPO}/git/ref/heads/main" --jq '.object.sha')"
+          gh workflow run build.yml --repo "${REPO}" --ref main -f build_all_sources=true
+
+          run_id=""
+          for _ in $(seq 1 12); do
+            run_id="$(gh run list \
+              --repo "${REPO}" \
+              --workflow build.yml \
+              --branch main \
+              --event workflow_dispatch \
+              --limit 10 \
+              --json databaseId,headSha,createdAt \
+              --jq ".[] | select(.headSha == \"${main_sha}\" and .createdAt >= \"${started}\") | .databaseId" \
+              | head -n1)"
+            if [ -n "${run_id}" ]; then
+              break
+            fi
+            sleep 5
+          done
+
+          if [ -z "${run_id}" ]; then
+            echo "::error::Dispatched build run could not be resolved."
+            exit 1
+          fi
+
+          run_url="https://github.com/${REPO}/actions/runs/${run_id}"
+          gh api "repos/${REPO}/issues/1416/comments" \
+            -f body="Definitive GREEN E2E dispatched from latest main ${main_sha}: ${run_url}"
+          echo "${run_url}"
