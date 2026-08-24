@@ -1,4 +1,4 @@
-"""Generate a Markdown catalog of the newest APK available for every build target."""
+"""Generate a compact Markdown catalog of the newest APK for every build target."""
 
 from __future__ import annotations
 
@@ -49,6 +49,14 @@ APP_LABELS = {
     "instagram": "Instagram",
     "tiktok": "TikTok",
     "twitter": "X (Twitter)",
+}
+
+ARCH_ORDER = {
+    "universal": 0,
+    "arm64-v8a": 1,
+    "armeabi-v7a": 2,
+    "x86_64": 3,
+    "x86": 4,
 }
 
 
@@ -122,9 +130,9 @@ def newest_assets(
     to contribute historical assets; otherwise a legacy filename can be
     misparsed as a bogus patch source.
 
-    Unmatched assets are retained only from the newest release. This preserves
-    visibility for a current unusual filename without resurrecting obsolete APKs
-    from years of release history.
+    Unmatched assets are returned for diagnostics but intentionally omitted from
+    the public catalog. The public page stays compact and only exposes stable,
+    identifiable app/source/architecture download targets.
     """
     releases = [release for release in _flatten_releases(payload) if not release.get("draft")]
     releases.sort(key=_release_timestamp, reverse=True)
@@ -191,29 +199,19 @@ def render(
     config_path: Path = Path("my-patch-config.json"),
 ) -> str:
     targets = configured_targets(config_path)
-    parsed, unmatched, releases = newest_assets(payload, targets=targets or None)
+    parsed, _unmatched, releases = newest_assets(payload, targets=targets or None)
     metadata = source_metadata(source_root)
 
     newest_release = releases[0] if releases else {}
     published = _release_timestamp(newest_release)
     updated = published[:10] if published else datetime.now(timezone.utc).date().isoformat()
-    tag = str(newest_release.get("tag_name") or "latest")
-    release_url = str(
-        newest_release.get("html_url")
-        or "https://github.com/almeki876/Morphe-AutoBuilds/releases/latest"
-    )
 
     lines = [
         "# Direct APK Download Links",
         "",
-        f"最終更新: {updated} | 掲載APK数: {len(parsed) + len(unmatched)} | 最新Release: `{tag}`",
+        f"最終更新: {updated}",
         "",
-        "Obtainium / ObtainX 用とは別の、**APKを直接ダウンロードするための一覧**です。",
-        "各リンクは、そのアプリ・パッチソース・アーキテクチャについて現在入手できる最新の GitHub Release asset を直接指します。",
-        "部分リリースで更新対象にならなかったアプリは、直前の有効なリリースへのリンクを保持します。",
-        "新しい `Build and Release APKs` が正常完了すると、このファイルも自動更新されます。",
-        "",
-        f"リリース全体: [最新リリースを開く]({release_url})",
+        "アプリとパッチソースを選び、端末に合うアーキテクチャをダウンロードしてください。",
         "",
     ]
 
@@ -226,24 +224,16 @@ def render(
         lines.append(f"## [{label}]({source_url})" if source_url else f"## {label}")
         lines.append("")
         for app in sorted(grouped[source], key=lambda value: app_label(value).casefold()):
-            assets = sorted(grouped[source][app], key=lambda item: (item.arch != "universal", item.arch, item.version))
-            versions = ", ".join(dict.fromkeys(item.version for item in assets))
-            lines.extend([f"### {app_label(app)} ({label})", "", f"Version: `{versions}`", ""])
-            for item in assets:
-                lines.append(f"- [⬇️ {item.arch} — {item.name}]({item.url})")
-            lines.append("")
+            assets = sorted(
+                grouped[source][app],
+                key=lambda item: (ARCH_ORDER.get(item.arch, 99), item.arch),
+            )
+            lines.extend([f"### {app_label(app)}", ""])
+            links = [f"[⬇️ {item.arch}]({item.url})" for item in assets]
+            lines.extend([" · ".join(links), ""])
 
-    if unmatched:
-        lines.extend(["## Other APK assets", "", "最新リリースにある、現行の標準命名規則へ一致しないAPKです。", ""])
-        for asset in sorted(unmatched, key=lambda item: str(item.get("name") or "")):
-            name = str(asset.get("name") or "APK")
-            url = str(asset.get("browser_download_url") or "")
-            if url:
-                lines.append(f"- [⬇️ {name}]({url})")
-        lines.append("")
-
-    if not parsed and not unmatched:
-        lines.extend(["参照したリリースには APK asset がありません。", ""])
+    if not parsed:
+        lines.extend(["現在ダウンロードできるAPKはありません。", ""])
 
     return "\n".join(lines).rstrip() + "\n"
 
