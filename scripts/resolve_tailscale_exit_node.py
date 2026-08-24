@@ -40,11 +40,15 @@ def resolve_exit_node_ip(status: dict[str, Any], requested: str) -> str:
     matches = [
         peer
         for peer in candidates
-        if wanted in _normalized_names(peer)
-        or wanted in {
-            str(value).strip().casefold()
-            for value in peer.get("TailscaleIPs", [])
-        }
+        if wanted
+        and (
+            wanted in _normalized_names(peer)
+            or wanted
+            in {
+                str(value).strip().casefold()
+                for value in peer.get("TailscaleIPs", [])
+            }
+        )
     ]
 
     if len(matches) == 1:
@@ -52,17 +56,29 @@ def resolve_exit_node_ip(status: dict[str, Any], requested: str) -> str:
     elif not matches and len(candidates) == 1:
         selected = candidates[0]
         hostname = str(selected.get("HostName", "unknown"))
-        print(
-            f"Configured exit node {requested!r} did not match; using the only "
-            f"advertised exit node {hostname!r}",
-            file=sys.stderr,
-        )
+        if wanted:
+            print(
+                f"Configured exit node {requested!r} did not match; using the only "
+                f"advertised exit node {hostname!r}",
+                file=sys.stderr,
+            )
+        else:
+            print(
+                f"No exit node was configured; using the only advertised exit node "
+                f"{hostname!r}",
+                file=sys.stderr,
+            )
     elif not matches:
         available = ", ".join(
             str(peer.get("HostName", "unknown")) for peer in candidates
         ) or "none"
+        if wanted:
+            raise ExitNodeResolutionError(
+                f"configured exit node {requested!r} was not found; "
+                f"advertised exit nodes: {available}"
+            )
         raise ExitNodeResolutionError(
-            f"configured exit node {requested!r} was not found; "
+            "no exit node was configured and automatic selection is ambiguous; "
             f"advertised exit nodes: {available}"
         )
     else:
@@ -82,8 +98,8 @@ def resolve_exit_node_ip(status: dict[str, Any], requested: str) -> str:
 
 
 def main(argv: list[str]) -> int:
-    if len(argv) != 2 or not argv[1].strip():
-        print("usage: resolve_tailscale_exit_node.py <hostname-or-ip>", file=sys.stderr)
+    if len(argv) != 2:
+        print("usage: resolve_tailscale_exit_node.py [hostname-or-ip]", file=sys.stderr)
         return 2
     try:
         output = subprocess.run(
