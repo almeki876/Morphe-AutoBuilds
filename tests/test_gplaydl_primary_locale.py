@@ -3,6 +3,7 @@ import unittest
 from src import aurora_play
 
 
+# Regression guard: the normal gplaydl path must request the Japanese language split.
 class GPlayDlPrimaryLocaleTests(unittest.TestCase):
     def test_primary_gplaydl_requests_japanese_language_split_by_default(self) -> None:
         command = aurora_play._linked_gplaydl_command(
