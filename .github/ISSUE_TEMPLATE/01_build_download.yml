@@ -1,0 +1,64 @@
+name: ビルド・ダウンロードの問題
+description: APK取得、ビルド、パッチ適用、署名などの失敗を報告します。
+title: "[Build] "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ビルドやAPK取得に関する問題はこちらから報告してください。分かる範囲で構いません。
+
+  - type: dropdown
+    id: stage
+    attributes:
+      label: どの段階で問題が起きましたか？
+      options:
+        - APKのダウンロード・取得
+        - 対応バージョンの解決
+        - パッチ適用・ビルド
+        - 署名・成果物生成
+        - VirusTotalスキャン
+        - 分からない
+    validations:
+      required: true
+
+  - type: input
+    id: app
+    attributes:
+      label: 対象アプリ
+      placeholder: 例：YouTube
+    validations:
+      required: true
+
+  - type: input
+    id: patch_source
+    attributes:
+      label: パッチソース
+      placeholder: 例：morphe / revanced-anddea / rushiranpise
+
+  - type: input
+    id: architecture
+    attributes:
+      label: アーキテクチャ
+      placeholder: 例：arm64-v8a / armeabi-v7a / universal
+
+  - type: textarea
+    id: symptom
+    attributes:
+      label: 何が起きましたか？
+      description: 表示されたエラーや、どこまで進んだかを書いてください。
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: ログ・Actions情報
+      description: Actionsのrun番号、job名、エラー部分などを貼り付けてください。スクリーンショットも貼れます。
+
+  - type: textarea
+    id: extra
+    attributes:
+      label: 補足
+      description: 再現条件や気付いたことがあれば入力してください。
