@@ -1,0 +1,74 @@
+name: "TEMP: Workflow history audit"
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/_audit-workflow-history.yml
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+  issues: write
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Collect recent workflow runs
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          gh api --paginate "repos/$GH_REPO/actions/runs?per_page=100" --slurp > runs-pages.json
+          python3 - <<'PY'
+          import json
+          from collections import defaultdict
+          from pathlib import Path
+
+          pages = json.loads(Path('runs-pages.json').read_text())
+          runs = []
+          for page in pages:
+              if isinstance(page, dict):
+                  runs.extend(page.get('workflow_runs') or [])
+
+          grouped = defaultdict(list)
+          for run in runs:
+              path = run.get('path') or '(unknown)'
+              grouped[path].append(run)
+
+          lines = [
+              '# Temporary workflow history audit',
+              '',
+              'Generated from the GitHub Actions REST API. Latest 5 runs per workflow are shown.',
+              '',
+          ]
+          for path in sorted(grouped):
+              lines.extend([f'## `{path}`', '', '| Run | Event | Conclusion | Created | SHA |', '| --- | --- | --- | --- | --- |'])
+              ordered = sorted(grouped[path], key=lambda r: r.get('created_at') or '', reverse=True)[:5]
+              for r in ordered:
+                  conclusion = r.get('conclusion') or r.get('status') or '-'
+                  url = r.get('html_url') or ''
+                  rid = r.get('id')
+                  num = r.get('run_number')
+                  sha = (r.get('head_sha') or '')[:12]
+                  lines.append(f'| [#{num} / {rid}]({url}) | `{r.get("event")}` | `{conclusion}` | `{r.get("created_at")}` | `{sha}` |')
+              lines.append('')
+          Path('workflow-audit.md').write_text('\n'.join(lines) + '\n', encoding='utf-8')
+          PY
+
+      - name: Publish audit issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          title="TEMP Workflow history audit"
+          existing=$(gh issue list --repo "$GH_REPO" --state all --search "$title in:title" --json number,title --jq ".[] | select(.title == \"$title\") | .number" | head -n 1)
+          if [ -n "$existing" ]; then
+            gh issue edit "$existing" --repo "$GH_REPO" --body-file workflow-audit.md
+            gh issue reopen "$existing" --repo "$GH_REPO" 2>/dev/null || true
+          else
+            gh issue create --repo "$GH_REPO" --title "$title" --body-file workflow-audit.md
+          fi
