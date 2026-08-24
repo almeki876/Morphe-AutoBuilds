@@ -6,7 +6,9 @@ import argparse
 import json
 import re
 from dataclasses import dataclass
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
+from urllib.parse import quote
 
 
 ASSET_RE = re.compile(
@@ -14,6 +16,9 @@ ASSET_RE = re.compile(
     r"(?P<source>.+)-v(?P<version>.+)\.apk$",
     re.IGNORECASE,
 )
+
+RELEASE_BASE_URL = "https://github.com/almeki876/Morphe-AutoBuilds/releases/tag"
+JST = timezone(timedelta(hours=9), name="JST")
 
 SOURCE_LABELS = {
     "morphe": "Morphe",
@@ -129,6 +134,19 @@ def _release_timestamp(release: dict) -> str:
     return str(release.get("published_at") or release.get("created_at") or "")
 
 
+def _format_release_timestamp(release: dict) -> str:
+    timestamp = _release_timestamp(release)
+    if not timestamp:
+        return "不明"
+    try:
+        parsed = datetime.fromisoformat(timestamp.replace("Z", "+00:00"))
+    except ValueError:
+        return timestamp
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=timezone.utc)
+    return parsed.astimezone(JST).strftime("%Y-%m-%d %H:%M JST")
+
+
 def newest_assets(
     payload: object,
     *,
@@ -201,10 +219,22 @@ def render(
 ) -> str:
     target_order = configured_target_order(config_path)
     targets = set(target_order)
-    parsed, _unmatched, _releases = newest_assets(payload, targets=targets or None)
+    parsed, _unmatched, releases = newest_assets(payload, targets=targets or None)
     metadata = source_metadata(source_root)
 
     lines = ["# Direct APK Download Links", ""]
+    if releases:
+        latest_release = releases[0]
+        release_tag = str(latest_release.get("tag_name") or "")
+        if release_tag:
+            release_url = str(latest_release.get("html_url") or "")
+            if not release_url:
+                release_url = f"{RELEASE_BASE_URL}/{quote(release_tag, safe='')}"
+            lines.append(f"- 参照Release: [{release_tag}]({release_url})")
+        else:
+            lines.append("- 参照Release: 不明")
+        lines.append(f"- 最終更新日時: {_format_release_timestamp(latest_release)}")
+        lines.append("")
 
     grouped: dict[str, dict[str, list[ApkAsset]]] = {}
     for item in parsed:
