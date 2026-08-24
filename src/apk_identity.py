@@ -11,6 +11,7 @@ import tempfile
 import zipfile
 from pathlib import Path
 
+from src.apk_language import JapaneseResourceError, contains_japanese
 from src.versioning import VersionCandidate
 
 
@@ -45,12 +46,7 @@ def _build_tools_dirs() -> list[Path]:
     for root in roots:
         build_tools = root / "build-tools"
         if build_tools.is_dir():
-            directories.extend(
-                sorted(
-                    (path for path in build_tools.iterdir() if path.is_dir()),
-                    reverse=True,
-                )
-            )
+            directories.extend(sorted((path for path in build_tools.iterdir() if path.is_dir()), reverse=True))
     return directories
 
 
@@ -60,10 +56,7 @@ def find_aapt() -> str | None:
         found = shutil.which(name)
         if found:
             return found
-
-    executable_names = (
-        ("aapt.exe", "aapt2.exe") if os.name == "nt" else ("aapt", "aapt2")
-    )
+    executable_names = (("aapt.exe", "aapt2.exe") if os.name == "nt" else ("aapt", "aapt2"))
     for directory in _build_tools_dirs():
         for name in executable_names:
             candidate = directory / name
@@ -73,7 +66,6 @@ def find_aapt() -> str | None:
 
 
 def parse_badging(output: str) -> ApkIdentity:
-    """Parse the package line emitted by ``aapt dump badging``."""
     match = _PACKAGE_RE.search(output)
     if not match:
         raise ApkIdentityError("aapt output did not contain APK package identity")
@@ -97,22 +89,13 @@ def _read_plain_apk_identity(path: Path, aapt: str) -> ApkIdentity:
         )
     except OSError as error:
         raise ApkIdentityError(f"could not start aapt for {path}: {error}") from error
-
-    # aapt can emit the complete package identity first and then return nonzero
-    # because a later, unrelated resource reference (commonly android:icon in a
-    # split-derived APK) cannot be resolved. Identity validation only needs the
-    # package line, so use it whenever it was successfully decoded instead of
-    # discarding trustworthy metadata because a later badging field failed.
     try:
         identity = parse_badging(result.stdout)
     except ApkIdentityError:
         if result.returncode != 0:
             diagnostics = (result.stderr or result.stdout or "unknown error").strip()
-            raise ApkIdentityError(
-                f"aapt could not read APK identity for {path}: {diagnostics[:300]}"
-            )
+            raise ApkIdentityError(f"aapt could not read APK identity for {path}: {diagnostics[:300]}")
         raise
-
     return identity
 
 
@@ -127,20 +110,10 @@ def _nested_apk_priority(name: str) -> tuple[int, str]:
 
 
 def read_identity(path: Path) -> ApkIdentity:
-    """Return package/version identity for a plain APK or split container.
-
-    Google Play split bundles can contain configuration APKs whose manifests
-    carry package/versionCode but omit versionName.  Do not return the first
-    parseable split blindly: inspect every nested APK and prefer an identity
-    with a non-empty versionName, while retaining base-APK ordering as the
-    tie-breaker.  This prevents valid authenticated Play bundles from being
-    rejected as a numeric versionCode with an empty versionName.
-    """
+    """Return package/version identity for a plain APK or split container."""
     aapt = find_aapt()
     if not aapt:
-        raise ApkIdentityError(
-            "Android build-tools aapt/aapt2 was not found; cannot verify APK identity"
-        )
+        raise ApkIdentityError("Android build-tools aapt/aapt2 was not found; cannot verify APK identity")
 
     if path.suffix.casefold() == ".apk":
         return _read_plain_apk_identity(path, aapt)
@@ -148,18 +121,11 @@ def read_identity(path: Path) -> ApkIdentity:
     try:
         with zipfile.ZipFile(path) as archive:
             nested = sorted(
-                (
-                    name
-                    for name in archive.namelist()
-                    if name.casefold().endswith(".apk") and not name.endswith("/")
-                ),
+                (name for name in archive.namelist() if name.casefold().endswith(".apk") and not name.endswith("/")),
                 key=_nested_apk_priority,
             )
             if not nested:
-                raise ApkIdentityError(
-                    f"split container contains no nested APK files: {path}"
-                )
-
+                raise ApkIdentityError(f"split container contains no nested APK files: {path}")
             errors: list[str] = []
             identities: list[tuple[int, ApkIdentity]] = []
             with tempfile.TemporaryDirectory(prefix="apk-identity-") as directory:
@@ -173,22 +139,13 @@ def read_identity(path: Path) -> ApkIdentity:
                         errors.append(f"{name}: {error}")
                         continue
                     identities.append((index, identity))
-
             if identities:
-                # Prefer a manifest that actually exposes versionName. Among
-                # equally complete identities the original base-first ordering
-                # remains authoritative.
-                _, best = min(
-                    identities,
-                    key=lambda item: (0 if item[1].version_name else 1, item[0]),
-                )
+                _, best = min(identities, key=lambda item: (0 if item[1].version_name else 1, item[0]))
                 return best
     except zipfile.BadZipFile as error:
         raise ApkIdentityError(f"APK input is not a readable ZIP archive: {path}") from error
 
-    raise ApkIdentityError(
-        f"could not read identity from nested APKs in {path}: {'; '.join(errors[:3])}"
-    )
+    raise ApkIdentityError(f"could not read identity from nested APKs in {path}: {'; '.join(errors[:3])}")
 
 
 def validate_identity(
@@ -196,20 +153,18 @@ def validate_identity(
     expected_package: str,
     expected_candidate: VersionCandidate | None = None,
 ) -> ApkIdentity:
-    """Verify package and optional release identity for one APK input."""
+    """Verify package/version and require Japanese resources in the actual payload."""
     identity = read_identity(path)
     if identity.package_name != expected_package:
-        raise ApkIdentityError(
-            f"APK package mismatch: expected {expected_package}, "
-            f"actual {identity.package_name}"
-        )
-    if expected_candidate and not expected_candidate.matches(
-        identity.version_name,
-        identity.version_code,
-    ):
+        raise ApkIdentityError(f"APK package mismatch: expected {expected_package}, actual {identity.package_name}")
+    if expected_candidate and not expected_candidate.matches(identity.version_name, identity.version_code):
         raise ApkIdentityError(
             "APK version mismatch: expected "
-            f"{expected_candidate.describe()}, actual "
-            f"{identity.version_code or '?'} ({identity.version_name})"
+            f"{expected_candidate.describe()}, actual {identity.version_code or '?'} ({identity.version_name})"
         )
+    try:
+        if not contains_japanese(path):
+            raise JapaneseResourceError("Japanese resources were not detected")
+    except JapaneseResourceError as error:
+        raise ApkIdentityError(f"APK does not contain Japanese resources: {error}") from error
     return identity
