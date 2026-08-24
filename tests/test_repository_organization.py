@@ -12,6 +12,7 @@ class RepositoryOrganizationTests(unittest.TestCase):
         "build.yml": "Build and Release APKs",
         "build-all-apps.yml": "手動: 全アプリをビルド",
         "check-upstream.yml": "自動: アップストリーム更新を確認",
+        "close-resolved-build-issues.yml": "Close Resolved Build Issues",
         "configuration-check.yml": "CI: 設定・テスト検証",
         "diagnose-google-play-purchase.yml": "保守: Google Play取得を診断",
         "health-check.yml": "保守: 取得元とビルド環境を点検",
@@ -36,6 +37,7 @@ class RepositoryOrganizationTests(unittest.TestCase):
 
     def test_workflow_run_dependencies_still_target_primary_build_name(self):
         for filename in (
+            "close-resolved-build-issues.yml",
             "publish-release-details.yml",
             "publish-virustotal-cache.yml",
             "update-direct-download-links.yml",
