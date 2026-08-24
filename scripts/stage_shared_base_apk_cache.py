@@ -14,6 +14,7 @@ from src.versioning import VersionCandidate
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(message)s")
 INPUT_ROOT = Path(os.getenv("BASE_APK_SHARED_INPUT_DIR", "base-input-artifacts"))
 BUILD_RESULT_ROOT = Path(os.getenv("BASE_APK_BUILD_RESULT_DIR", "build-results"))
+GOOGLE_PLAY_PROVIDERS = frozenset({"aurora-google-play", "google-play"})
 
 
 def _successful_builds() -> set[tuple[str, str]]:
@@ -66,15 +67,17 @@ def _copy_origin_sidecar(manifest_path: Path, staged: Path) -> None:
 
 
 def _cache_provider(manifest_path: Path) -> str | None:
-    """Recover the provider that actually acquired the APK.
-
-    The shared artifact is transport, not an acquisition provider. Treating it
-    as a provider was the critical bug that converted a Japanese Google Play
-    payload into a generic cache entry. Missing provenance now fails closed.
-    """
+    """Recover a Google Play provider; non-Play origins are never durable-cached."""
     payload = _origin(manifest_path)
     provider = str((payload or {}).get("provider") or "").strip()
-    return provider or None
+    if provider not in GOOGLE_PLAY_PROVIDERS:
+        if provider:
+            logging.info(
+                "⏭️  Not promoting non-Play APK to durable cache: provider=%s",
+                provider,
+            )
+        return None
+    return provider
 
 
 def main() -> int:
@@ -102,9 +105,9 @@ def main() -> int:
         package = providers.configured_package(app)
         input_apk = _artifact_input(manifest_path, manifest)
         provider = _cache_provider(manifest_path)
-        if not package or input_apk is None or not provider:
+        if not package or input_apk is None or provider is None:
             logging.warning(
-                "Refusing cache promotion without complete acquisition provenance for %s/%s",
+                "Refusing durable cache promotion without a verified Japanese Google Play origin for %s/%s",
                 app,
                 source,
             )
