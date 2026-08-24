@@ -1,17 +1,16 @@
-"""Scan every release APK with VirusTotal before publishing it.
+"""Scan release APKs with VirusTotal before publishing them.
 
-The scanner is intentionally fail-closed: a missing API key, an incomplete
-analysis, a VirusTotal API failure, or an unreviewed malicious/suspicious
-detection prevents the release job from continuing.
+The client is intentionally fail-closed. It uses SHA-256 lookups before uploads,
+thread-local HTTP sessions, adaptive request pacing, and a two-phase API that lets
+callers start every required analysis before spending quota polling for results.
 """
 
 from __future__ import annotations
 
 import hashlib
-import os
 import threading
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 from urllib.parse import quote
 
@@ -22,10 +21,7 @@ API_BASE = "https://www.virustotal.com/api/v3"
 SMALL_UPLOAD_LIMIT = 32 * 1024 * 1024
 MAX_UPLOAD_SIZE = 650 * 1024 * 1024
 RETRYABLE_STATUS_CODES = {408, 424, 429, 500, 502, 503, 504}
-LOW_CONFIDENCE_ENGINES = {
-    "MaxSecure",
-    "Gridinsoft",
-}
+LOW_CONFIDENCE_ENGINES = {"MaxSecure", "Gridinsoft"}
 MAJOR_ENGINES = {
     "Google",
     "Microsoft",
@@ -77,6 +73,14 @@ class HashLookup:
 
 
 class VirusTotalClient:
+    """VirusTotal v3 client with adaptive global request pacing.
+
+    ``request_interval`` is the conservative starting interval. After a window of
+    successful requests the limiter probes faster intervals down to
+    ``min_request_interval``. HTTP 429 immediately backs off, so high-quota keys
+    become faster without making lower-quota keys brittle.
+    """
+
     def __init__(
         self,
         api_key: str,
@@ -86,23 +90,83 @@ class VirusTotalClient:
         analysis_timeout: float,
         max_retries: int,
         max_analysis_age_days: float = 90,
+        min_request_interval: float | None = None,
+        rate_success_window: int = 8,
+        initial_poll_delay: float = 20,
     ) -> None:
-        self.session = requests.Session()
         self.headers = {"x-apikey": api_key, "accept": "application/json"}
-        self.request_interval = request_interval
-        self.poll_interval = poll_interval
-        self.analysis_timeout = analysis_timeout
-        self.max_retries = max_retries
+        self.request_interval = max(0.0, request_interval)
+        if min_request_interval is None:
+            min_request_interval = self.request_interval
+        self.min_request_interval = max(
+            0.0, min(min_request_interval, self.request_interval)
+        )
+        self.poll_interval = max(0.0, poll_interval)
+        self.initial_poll_delay = max(0.0, initial_poll_delay)
+        self.analysis_timeout = max(0.0, analysis_timeout)
+        self.max_retries = max(0, max_retries)
         self.max_analysis_age_seconds = max(0.0, max_analysis_age_days) * 86400
+        self.rate_success_window = max(1, rate_success_window)
+
+        self._local = threading.local()
         self._last_request = 0.0
+        self._current_request_interval = self.request_interval
+        self._successful_requests = 0
         self._rate_limit_lock = threading.Lock()
+
+    def _session(self) -> requests.Session:
+        session = getattr(self._local, "session", None)
+        if session is None:
+            session = requests.Session()
+            self._local.session = session
+        return session
+
+    @property
+    def current_request_interval(self) -> float:
+        with self._rate_limit_lock:
+            return self._current_request_interval
 
     def _rate_limit(self) -> None:
         with self._rate_limit_lock:
-            delay = self.request_interval - (time.monotonic() - self._last_request)
+            delay = self._current_request_interval - (
+                time.monotonic() - self._last_request
+            )
             if delay > 0:
                 time.sleep(delay)
             self._last_request = time.monotonic()
+
+    def _observe_success(self) -> None:
+        with self._rate_limit_lock:
+            self._successful_requests += 1
+            if self._successful_requests < self.rate_success_window:
+                return
+            self._successful_requests = 0
+            old_interval = self._current_request_interval
+            self._current_request_interval = max(
+                self.min_request_interval,
+                self._current_request_interval * 0.8,
+            )
+            if self._current_request_interval < old_interval:
+                print(
+                    "VirusTotal rate probe succeeded; request interval "
+                    f"{old_interval:.2f}s -> {self._current_request_interval:.2f}s",
+                    flush=True,
+                )
+
+    def _observe_rate_limit(self, retry_after: float) -> None:
+        with self._rate_limit_lock:
+            self._successful_requests = 0
+            old_interval = self._current_request_interval
+            self._current_request_interval = max(
+                self.request_interval,
+                old_interval * 2,
+                retry_after,
+            )
+            print(
+                "::warning::VirusTotal rate limit reached; request interval "
+                f"{old_interval:.2f}s -> {self._current_request_interval:.2f}s",
+                flush=True,
+            )
 
     @staticmethod
     def _error_message(response: requests.Response) -> str:
@@ -128,14 +192,8 @@ class VirusTotalClient:
             response: requests.Response | None = None
             multipart: CurlMime | None = None
             try:
-                kwargs = {
-                    "headers": self.headers,
-                    "timeout": 180,
-                }
+                kwargs = {"headers": self.headers, "timeout": 180}
                 if file_path is not None:
-                    # curl_cffi intentionally does not implement requests'
-                    # ``files=`` shortcut. Build a native libcurl MIME form
-                    # for every attempt so retries start from a fresh file.
                     multipart = CurlMime()
                     multipart.addpart(
                         "file",
@@ -148,12 +206,13 @@ class VirusTotalClient:
                         local_path=file_path,
                     )
                     kwargs["multipart"] = multipart
-                response = self.session.request(method, url, **kwargs)
+                response = self._session().request(method, url, **kwargs)
             except requests.RequestsError as error:
                 last_error = f"{type(error).__name__}: {error}"
                 retryable = True
             else:
                 if response.status_code in expected:
+                    self._observe_success()
                     return response
                 last_error = self._error_message(response)
                 retryable = response.status_code in RETRYABLE_STATUS_CODES
@@ -161,15 +220,18 @@ class VirusTotalClient:
                 if multipart is not None:
                     multipart.close()
 
-            if not retryable or attempt >= self.max_retries:
-                raise VirusTotalError(f"{method} {url} failed: {last_error}")
-
             retry_after = 0.0
             if response is not None:
                 try:
                     retry_after = float(response.headers.get("retry-after", 0))
                 except (TypeError, ValueError):
                     retry_after = 0.0
+                if response.status_code == 429:
+                    self._observe_rate_limit(retry_after)
+
+            if not retryable or attempt >= self.max_retries:
+                raise VirusTotalError(f"{method} {url} failed: {last_error}")
+
             delay = max(retry_after, min(120.0, 15.0 * (2**attempt)))
             print(
                 f"::warning::VirusTotal request failed ({last_error}); "
@@ -185,14 +247,12 @@ class VirusTotalClient:
             raise VirusTotalError(
                 f"{path.name} is larger than VirusTotal's 650 MiB upload limit"
             )
-
         upload_url = f"{API_BASE}/files"
         if path.stat().st_size > SMALL_UPLOAD_LIMIT:
             response = self.request("GET", f"{API_BASE}/files/upload_url")
             upload_url = str(response.json().get("data") or "")
             if not upload_url.startswith(("https://", "http://")):
                 raise VirusTotalError("VirusTotal returned an invalid upload URL")
-
         print(f"Uploading {path.name} to VirusTotal...", flush=True)
         response = self.request("POST", upload_url, file_path=path)
         analysis_id = str(response.json().get("data", {}).get("id") or "")
@@ -235,11 +295,8 @@ class VirusTotalClient:
     def lookup_hash(self, path: Path, sha256: str) -> HashLookup:
         report_url = f"{API_BASE}/files/{quote(sha256)}"
         response = self.request("GET", report_url, expected=(200, 404))
-
         if response.status_code == 404:
-            return HashLookup(
-                sha256, None, {}, {}, "uploaded", None, False
-            )
+            return HashLookup(sha256, None, {}, {}, "uploaded", None, False)
 
         attributes = response.json().get("data", {}).get("attributes", {})
         stats = self._stats(attributes)
@@ -277,7 +334,13 @@ class VirusTotalClient:
                     f"VirusTotal did not return an analysis ID for {path.name}"
                 )
             return HashLookup(
-                sha256, analysis_id, stats, engines, "reanalyzed", last_analysis_date, True
+                sha256,
+                analysis_id,
+                stats,
+                engines,
+                "reanalyzed",
+                last_analysis_date,
+                True,
             )
 
         print(
@@ -288,6 +351,12 @@ class VirusTotalClient:
         return HashLookup(
             sha256, None, stats, engines, "hash lookup", last_analysis_date, False
         )
+
+    def prepare_lookup(self, path: Path, lookup: HashLookup) -> HashLookup:
+        """Start an upload when needed, but never poll for completion here."""
+        if lookup.method != "uploaded" or lookup.analysis_id is not None:
+            return lookup
+        return replace(lookup, analysis_id=self._start_upload(path))
 
     def start_analysis(
         self,
@@ -301,17 +370,15 @@ class VirusTotalClient:
         int | None,
         bool,
     ]:
-        lookup = self.lookup_hash(path, sha256)
-        if lookup.analysis_id is not None or lookup.method != "uploaded":
-            return (
-                lookup.analysis_id,
-                lookup.stats,
-                lookup.engines,
-                lookup.method,
-                lookup.last_analysis_date,
-                lookup.reanalyzed,
-            )
-        return self._start_upload(path), {}, {}, "uploaded", None, False
+        lookup = self.prepare_lookup(path, self.lookup_hash(path, sha256))
+        return (
+            lookup.analysis_id,
+            lookup.stats,
+            lookup.engines,
+            lookup.method,
+            lookup.last_analysis_date,
+            lookup.reanalyzed,
+        )
 
     def wait_for_analysis(
         self,
@@ -320,7 +387,15 @@ class VirusTotalClient:
     ) -> tuple[dict[str, int], dict[str, dict[str, object]], int | None]:
         deadline = time.monotonic() + self.analysis_timeout
         encoded_id = quote(analysis_id, safe="")
+        first_poll = True
         while time.monotonic() < deadline:
+            delay = self.initial_poll_delay if first_poll else self.poll_interval
+            first_poll = False
+            if delay > 0:
+                remaining = deadline - time.monotonic()
+                if remaining <= 0:
+                    break
+                time.sleep(min(delay, remaining))
             response = self.request("GET", f"{API_BASE}/analyses/{encoded_id}")
             attributes = response.json().get("data", {}).get("attributes", {})
             status = attributes.get("status")
@@ -349,25 +424,18 @@ class VirusTotalClient:
                 f"VirusTotal analysis for {filename}: {status}; waiting...",
                 flush=True,
             )
-            time.sleep(self.poll_interval)
         raise VirusTotalAnalysisTimeout(
             f"VirusTotal analysis timed out after "
             f"{self.analysis_timeout / 60:.0f} minutes for {filename}"
         )
 
-    def scan(self, path: Path) -> ScanResult:
-        sha256 = sha256_file(path)
-        return self.scan_lookup(path, self.lookup_hash(path, sha256))
-
-    def scan_lookup(self, path: Path, lookup: HashLookup) -> ScanResult:
+    def _result_from_lookup(self, path: Path, lookup: HashLookup) -> ScanResult:
         analysis_id = lookup.analysis_id
         stats = lookup.stats
         engines = lookup.engines
         method = lookup.method
         last_analysis_date = lookup.last_analysis_date
         reanalyzed = lookup.reanalyzed
-        if method == "uploaded":
-            analysis_id = self._start_upload(path)
         if analysis_id:
             try:
                 stats, engines, completed_date = self.wait_for_analysis(
@@ -385,6 +453,7 @@ class VirusTotalClient:
                     reanalyzed = False
                 else:
                     raise
+
         malicious = stats.get("malicious", 0)
         suspicious = stats.get("suspicious", 0)
         completed_engines = (
@@ -435,17 +504,29 @@ class VirusTotalClient:
             suspicious=suspicious,
             harmless=stats.get("harmless", 0),
             undetected=stats.get("undetected", 0),
-            timeout=stats.get("timeout", 0)
-            + stats.get("confirmed-timeout", 0),
+            timeout=stats.get("timeout", 0) + stats.get("confirmed-timeout", 0),
             failure=stats.get("failure", 0),
             unsupported=stats.get("type-unsupported", 0),
             verdict=verdict,
             method=method,
             engines=engines,
-            permalink=f"https://www.virustotal.com/gui/file/{lookup.sha256}/detection",
+            permalink=(
+                f"https://www.virustotal.com/gui/file/{lookup.sha256}/detection"
+            ),
             last_analysis_date=last_analysis_date,
             reanalyzed=reanalyzed,
         )
+
+    def finish_lookup(self, path: Path, lookup: HashLookup) -> ScanResult:
+        """Poll an already prepared lookup and convert it to a final result."""
+        return self._result_from_lookup(path, lookup)
+
+    def scan(self, path: Path) -> ScanResult:
+        sha256 = sha256_file(path)
+        return self.scan_lookup(path, self.lookup_hash(path, sha256))
+
+    def scan_lookup(self, path: Path, lookup: HashLookup) -> ScanResult:
+        return self.finish_lookup(path, self.prepare_lookup(path, lookup))
 
 
 def sha256_file(path: Path) -> str:
@@ -471,10 +552,7 @@ def markdown_report(results: list[ScanResult]) -> str:
         "| --- | --- | --- | --- | --- | ---: | ---: | ---: | --- |",
     ]
     for result in results:
-        if result.verdict == "clean":
-            label = "No detections"
-        else:
-            label = "Blocked"
+        label = "No detections" if result.verdict == "clean" else "Blocked"
         escaped_file = result.file.replace("|", r"\|")
         lines.append(
             f"| {escaped_file} | "
