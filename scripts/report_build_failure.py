@@ -45,8 +45,9 @@ _FEATURE_APPLIED_ALIASES: dict[tuple[str, str], dict[str, str]] = {
 }
 
 # These outcomes are intentionally preserved in Release Details as evidence,
-# but they are not actionable feature failures.  Keep unsupported/failed and
-# ordinary configuration exclusions in the issue lifecycle.
+# but they are not actionable feature failures.  When requested_patches metadata
+# is available, unsupported/failed outcomes are actionable only for explicit
+# repository-owned requested/required patches; upstream defaults are normal.
 _REPORT_ONLY_FEATURE_PREFIXES = (
     "[runtime-skipped]",
     "[runtime-skipped-default]",
@@ -67,9 +68,32 @@ def _feature_failures(report: dict) -> list[dict]:
     reported as applied would create a false tracking issue. Runtime-only
     skips remain in the report for Release Details but are report-only here.
     """
+    requested_values = report.get("requested_patches")
+    requested: set[str] | None = None
+    if isinstance(requested_values, list):
+        requested = {
+            str(name).strip()
+            for name in requested_values
+            if str(name).strip()
+        }
+        required_values = report.get("required_patches") or []
+        if isinstance(required_values, list):
+            requested.update(
+                str(name).strip()
+                for name in required_values
+                if str(name).strip()
+            )
+
     failures = [
         item for item in (report.get("feature_failures") or [])
-        if isinstance(item, dict) and not _report_only_feature_outcome(item)
+        if (
+            isinstance(item, dict)
+            and not _report_only_feature_outcome(item)
+            and (
+                requested is None
+                or str(item.get("name") or "").strip() in requested
+            )
+        )
     ]
     if not failures:
         return []
