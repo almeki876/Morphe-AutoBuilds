@@ -1,25 +1,7 @@
-name: "自動: APK直リンク一覧を更新"
+name: "保守: APK直リンク一覧を再生成"
 
 on:
   workflow_dispatch:
-  workflow_run:
-    workflows:
-      - Build and Release APKs
-    types:
-      - completed
-  push:
-    branches:
-      - main
-    paths:
-      # Primary path: a successful integrated release now refreshes this catalog
-      # inside scripts/save_successful_state.py.  Keep this workflow as a
-      # recovery/fallback path and trigger it when the integration changes too.
-      - last-tags.json
-      - scripts/save_successful_state.py
-      - scripts/generate_direct_download_md.py
-      - tests/test_direct_download_md.py
-      - tests/test_successful_state_direct_download.py
-      - .github/workflows/update-direct-download-links.yml
 
 permissions:
   contents: write
@@ -31,7 +13,6 @@ concurrency:
 jobs:
   update:
     name: APK直リンク一覧を再生成
-    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout main
