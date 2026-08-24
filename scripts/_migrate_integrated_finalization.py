@@ -1,29 +1,40 @@
+from __future__ import annotations
+
 from pathlib import Path
 
 
-BUILD = Path('.github/workflows/build.yml')
-CONFIG = Path('.github/workflows/configuration-check.yml')
-VT_TEST = Path('tests/test_virustotal_pipeline_workflow.py')
-CLOSER = Path('.github/workflows/close-resolved-build-issues.yml')
-SELF = Path('scripts/_migrate_integrated_finalization.py')
+BUILD = Path(".github/workflows/build.yml")
+CONFIG = Path(".github/workflows/configuration-check.yml")
+VT_TEST = Path("tests/test_virustotal_pipeline_workflow.py")
+CLOSER = Path(".github/workflows/close-resolved-build-issues.yml")
+SELF = Path("scripts/_migrate_integrated_finalization.py")
 
 
-def replace_once(text: str, old: str, new: str, label: str) -> str:
-    count = text.count(old)
-    if count != 1:
-        raise SystemExit(f'{label}: expected exactly one match, found {count}')
-    return text.replace(old, new, 1)
+def insert_after_once(text: str, anchor: str, payload: str, label: str) -> str:
+    if payload.strip() in text:
+        return text
+    if text.count(anchor) != 1:
+        raise SystemExit(f"{label}: expected exactly one anchor, found {text.count(anchor)}")
+    return text.replace(anchor, anchor + payload, 1)
 
 
-build = BUILD.read_text(encoding='utf-8')
+def remove_named_step(text: str, name: str) -> str:
+    marker = f"      - name: {name}\n"
+    start = text.find(marker)
+    if start < 0:
+        return text
+    next_step = text.find("      - name: ", start + len(marker))
+    if next_step < 0:
+        return text[:start].rstrip() + "\n"
+    return text[:start] + text[next_step:]
 
-release_old = '''          find ./release-apks -name '*.apk' -print0 \\
+
+build = BUILD.read_text(encoding="utf-8")
+
+release_anchor = '''          find ./release-apks -name '*.apk' -print0 \\
             | xargs -0 -r -P 8 -I {} gh release upload "$release_tag" "{}"
-
-          echo "Release created and APK assets uploaded successfully!"
 '''
-release_new = '''          find ./release-apks -name '*.apk' -print0 \\
-            | xargs -0 -r -P 8 -I {} gh release upload "$release_tag" "{}"
+vt_upload = '''
 
           python3 scripts/export_virustotal_cache.py \\
             virustotal_base_results.json \\
@@ -33,19 +44,22 @@ release_new = '''          find ./release-apks -name '*.apk' -print0 \\
             --repo "${{ github.repository }}" \\
             --clobber
           echo "VirusTotal SHA cache attached to $release_tag"
-
-          echo "Release created and APK assets uploaded successfully!"
 '''
-build = replace_once(build, release_old, release_new, 'Release upload integration')
+if "virustotal-cache-v1.json" not in build.split("  create-release:\n", 1)[1]:
+    build = insert_after_once(build, release_anchor, vt_upload, "VirusTotal release cache")
 
-prefix, persist_and_after = build.split('  persist-successful-state:\n', 1)
-persist, suffix = persist_and_after.split('  handle-build-failure:\n', 1)
-persist = replace_once(
-    persist,
-    '    permissions:\n      contents: write\n',
-    '    permissions:\n      contents: write\n      issues: write\n',
-    'Persist permissions',
-)
+prefix, persist_and_after = build.split("  persist-successful-state:\n", 1)
+persist, suffix = persist_and_after.split("  handle-build-failure:\n", 1)
+if "      issues: write\n" not in persist:
+    permission_anchor = "    permissions:\n      contents: write\n"
+    if permission_anchor not in persist:
+        raise SystemExit("persist-successful-state permissions anchor not found")
+    persist = persist.replace(
+        permission_anchor,
+        permission_anchor + "      issues: write\n",
+        1,
+    )
+
 close_step = '''      - name: Close resolved auto-generated build issues
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -53,16 +67,17 @@ close_step = '''      - name: Close resolved auto-generated build issues
         run: python3 scripts/close_resolved_build_issues.py --directory ./build-results
 
 '''
-persist = replace_once(
-    persist,
-    '      - name: Save Resolved Patch and APK Versions\n',
-    close_step + '      - name: Save Resolved Patch and APK Versions\n',
-    'Issue closer integration',
-)
-build = prefix + '  persist-successful-state:\n' + persist + '  handle-build-failure:\n' + suffix
-BUILD.write_text(build, encoding='utf-8')
+if "close_resolved_build_issues.py" not in persist:
+    save_marker = "      - name: Save Resolved Patch and APK Versions\n"
+    if save_marker not in persist:
+        raise SystemExit("successful-state save step anchor not found")
+    persist = persist.replace(save_marker, close_step + save_marker, 1)
 
-VT_TEST.write_text('''from __future__ import annotations
+build = prefix + "  persist-successful-state:\n" + persist + "  handle-build-failure:\n" + suffix
+BUILD.write_text(build, encoding="utf-8")
+
+VT_TEST.write_text(
+    '''from __future__ import annotations
 
 import unittest
 from pathlib import Path
@@ -107,53 +122,23 @@ class VirusTotalPipelineWorkflowTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-''', encoding='utf-8')
+''',
+    encoding="utf-8",
+)
 
 if CLOSER.exists():
     CLOSER.unlink()
 
-config = CONFIG.read_text(encoding='utf-8')
-config = replace_once(
-    config,
-    '  contents: write\n',
-    '  contents: read\n',
-    'Restore configuration-check permissions',
-)
-if '  issues: write\n' in config:
-    config = config.replace('  issues: write\n', '', 1)
-migration_step = '''      - name: Apply one-time integrated finalization migration
-        run: python3 scripts/_migrate_integrated_finalization.py
+config = CONFIG.read_text(encoding="utf-8")
+config = config.replace("  contents: write\n", "  contents: read\n", 1)
+config = config.replace("  issues: write\n", "", 1)
+for step_name in (
+    "Apply one-time integrated finalization migration",
+    "Report migration failure",
+    "Commit integrated finalization migration",
+):
+    config = remove_named_step(config, step_name)
+CONFIG.write_text(config, encoding="utf-8")
 
-'''
-config = replace_once(config, migration_step, '', 'Remove one-time migration step')
-commit_step = '''      - name: Commit integrated finalization migration
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A
-          git commit -m "ci: integrate successful-build finalization into primary workflow [skip ci]"
-          git pull --rebase origin main
-          git push origin HEAD:main
-
-'''
-config = replace_once(config, commit_step, '', 'Remove one-time migration commit step')
-diagnostic_step = '''      - name: Report migration failure
-        if: failure()
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          body="Migration failed in run ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-          existing=$(gh issue list --state open --search 'TEMP integrated finalization migration failure in:title' --json number,title --jq '.[] | select(.title == "TEMP integrated finalization migration failure") | .number' | head -n 1)
-          if [ -n "$existing" ]; then
-            gh issue comment "$existing" --body "$body"
-          else
-            gh issue create --title 'TEMP integrated finalization migration failure' --body "$body"
-          fi
-
-'''
-if diagnostic_step in config:
-    config = config.replace(diagnostic_step, '', 1)
-CONFIG.write_text(config, encoding='utf-8')
-
-SELF.unlink()
-print('Integrated VirusTotal publication and resolved-issue cleanup into build.yml.')
+SELF.unlink(missing_ok=True)
+print("Integrated VirusTotal publication and successful-build issue cleanup into build.yml.")
