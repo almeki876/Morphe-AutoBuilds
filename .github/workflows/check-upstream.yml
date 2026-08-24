@@ -29,9 +29,6 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # プレリリースを含む全リリースから最新1件を取得する
-          # releases?per_page=1 は GitHub の "latest stable" 相当でプレリリースを返さない。
-          # releases?per_page=100 で全件取得し、published_at でソートして先頭を使う。
           fetch_tag() {
             gh api "repos/${1}/releases?per_page=100" \
               --jq 'sort_by(.published_at) | reverse | .[0].tag_name' \
@@ -122,7 +119,7 @@ jobs:
           SOURCE_TAG_TOSOX:           ${{ steps.fetch.outputs.tosox_tag }}
           SOURCE_TAG_DROPPED:         ${{ steps.fetch.outputs.dropped_tag }}
         run: |
-          pip install requests beautifulsoup4 PyGithub curl-cffi --quiet
+          pip install -r requirements.txt --quiet
           python3 scripts/download_all_tools.py
 
       - name: Detect Version-Pinned Apps
@@ -139,12 +136,47 @@ jobs:
         run: |
           python3 scripts/detect_version_pinned.py
 
+      # Version discovery is metadata-only. Use one Japanese egress session for
+      # the whole monitor so region-bound apps (for example Japan-only banking
+      # apps) can expose their current Play identity without per-app VPN setup.
+      # Every Tailscale step is optional: failure falls through to normal Play
+      # metadata and then the existing mirror-provider metadata chain.
+      - name: Connect version discovery to Tailscale
+        id: version-tailscale
+        continue-on-error: true
+        uses: tailscale/github-action@v4
+        with:
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+          tags: tag:ci
+
+      - name: Select Japanese exit node for version discovery
+        id: version-tailscale-exit
+        if: ${{ steps.version-tailscale.outcome == 'success' }}
+        continue-on-error: true
+        env:
+          TS_EXIT_NODE: ${{ vars.TS_EXIT_NODE }}
+        run: |
+          exit_node_ip="$(python3 scripts/resolve_tailscale_exit_node.py "$TS_EXIT_NODE")"
+          sudo tailscale set --exit-node="$exit_node_ip"
+          tailscale ping "$exit_node_ip"
+
+      - name: Verify Japanese egress for version discovery
+        id: version-japan-egress
+        if: ${{ steps.version-tailscale-exit.outcome == 'success' }}
+        continue-on-error: true
+        run: python3 scripts/verify_japan_egress.py
+
       - name: Check APK Versions
         id: apkver
         continue-on-error: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           VERSION_PINNED_APPS: ${{ steps.pinned.outputs.version_pinned_apps }}
+          GPLAYDL_API_KEY: ${{ secrets.GPLAYDL_API_KEY }}
+          GPLAY_EMAIL: ${{ secrets.GPLAY_EMAIL }}
+          GPLAY_AAS_TOKEN: ${{ secrets.GPLAY_AAS_TOKEN }}
+          GPLAYDL_PREFERRED_PROFILE: ${{ vars.GPLAYDL_PREFERRED_PROFILE }}
         run: |
           python3 scripts/check_apk_versions.py
 
@@ -171,7 +203,6 @@ jobs:
           tosox_upd="${{ steps.compare.outputs.tosox_updated }}"
           dropped_upd="${{ steps.compare.outputs.dropped_updated }}"
 
-          # APK更新で影響を受けるソースを特定（*_upd フラグは汚染しない）
           morphe_force=false; anddea_force=false; rushiranpise_force=false
           rookie_force=false; tosox_force=false; yuzu_force=false; dropped_force=false
 
@@ -181,7 +212,6 @@ jobs:
             done < <(python3 scripts/force_sources_from_apps.py)
           fi
 
-          # FORCE_* は *_force に入れる（NEWバッジ用の *_upd は変えない）
           [ "${FORCE_MORPHE:-false}" = "true"          ] && morphe_force=true
           [ "${FORCE_REVANCED_ANDDEA:-false}" = "true" ] && anddea_force=true
           [ "${FORCE_RUSHIRANPISE:-false}" = "true"   ] && rushiranpise_force=true
