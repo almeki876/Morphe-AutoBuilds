@@ -10,7 +10,6 @@ WORKFLOWS = ROOT / ".github" / "workflows"
 class RepositoryOrganizationTests(unittest.TestCase):
     EXPECTED_WORKFLOW_NAMES = {
         "build.yml": "Build and Release APKs",
-        "build-all-apps.yml": "手動: 全アプリをビルド",
         "check-upstream.yml": "自動: アップストリーム更新を確認",
         "close-resolved-build-issues.yml": "Close Resolved Build Issues",
         "configuration-check.yml": "CI: 設定・テスト検証",
@@ -62,6 +61,10 @@ class RepositoryOrganizationTests(unittest.TestCase):
     def test_removed_legacy_helpers_stay_removed(self):
         self.assertFalse((ROOT / "scripts" / "download_reused_apks.py").exists())
         self.assertFalse((ROOT / "scripts" / "pr_build_scope.py").exists())
+        self.assertFalse((WORKFLOWS / "build-all-apps.yml").exists())
+        self.assertFalse((WORKFLOWS / "apply-upstream-policy-once.yml").exists())
+        self.assertFalse((WORKFLOWS / "apply-recommendation-policy-fix.yml").exists())
+        self.assertFalse((WORKFLOWS / "patch-gplaydl-secret.yml").exists())
 
     def test_readme_is_user_facing_and_setup_owns_operations(self):
         readme = (ROOT / "README.md").read_text(encoding="utf-8")
