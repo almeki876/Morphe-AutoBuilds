@@ -42,6 +42,20 @@ def _write_marker(log: TextIO, message: str) -> None:
     log.flush()
 
 
+def _load_morphe_toolchain_fallback():
+    """Import the helper in both package and direct-script execution modes."""
+    if __package__:
+        from scripts import morphe_toolchain_fallback
+    else:
+        # build.yml invokes this file as ``python3 scripts/run_logged.py``.
+        # In that mode sys.path starts at scripts/, so importing the sibling
+        # module directly is the valid path; ``from scripts import ...`` would
+        # fail before the fallback decision can run.
+        import morphe_toolchain_fallback
+
+    return morphe_toolchain_fallback
+
+
 def run_logged(
     command: list[str],
     output: Path,
@@ -63,7 +77,7 @@ def run_logged(
         is_morphe_build = source == "morphe"
         morphe_toolchain_fallback = None
         if is_morphe_build:
-            from scripts import morphe_toolchain_fallback as fallback_module
+            fallback_module = _load_morphe_toolchain_fallback()
 
             if fallback_module.is_morphe_build_command(command):
                 morphe_toolchain_fallback = fallback_module
