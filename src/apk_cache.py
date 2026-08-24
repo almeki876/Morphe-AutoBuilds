@@ -1,9 +1,16 @@
 """Durable, integrity-checked cache for original APK inputs.
 
-The cache is stored as assets on a draft GitHub Release.  Draft releases are
+The cache is stored as assets on a draft GitHub Release. Draft releases are
 visible to the workflow token but are not exposed on the repository's public
-Releases page.  A successfully used original is staged during the build and a
+Releases page. A successfully used original is staged during the build and a
 single workflow job uploads it after the matrix finishes.
+
+Cache correctness is part of the APK input contract: Google Play delivery is
+configuration-dependent, so package/version alone is not a safe cache key.
+Language, density, ABI, device profile, and split-selection can change the
+payload while the package/version remain identical. The cache therefore records
+the delivery profile in the asset name and rejects the legacy profile-less
+format instead of silently reusing an incompatible payload.
 """
 
 from __future__ import annotations
@@ -21,14 +28,17 @@ from pathlib import Path
 from github import Auth, Github
 from github.GithubException import GithubException, UnknownObjectException
 
-CACHE_TAG = os.getenv("BASE_APK_CACHE_TAG", "base-apk-cache-v1")
+CACHE_TAG = os.getenv("BASE_APK_CACHE_TAG", "base-apk-cache-v3")
 CACHE_DIR = Path(os.getenv("BASE_APK_CACHE_DIR", "base-apk-cache-out"))
 _ASSET_RE = re.compile(
-    r"^baseapk-v1--p_([A-Za-z0-9_-]+)--v_([A-Za-z0-9_-]+)"
-    r"--([0-9a-f]{64})(\.(?:apk|apkm|apks|xapk|zip))$",
+    r"^baseapk-v2--p_([A-Za-z0-9_-]+)--v_([A-Za-z0-9_-]+)"
+    r"--([0-9a-f]{64})--dp_([A-Za-z0-9_-]+)(\.(?:apk|apkm|apks|xapk|zip))$",
     re.IGNORECASE,
 )
 _REMOTE_MISSES: set[tuple[str, str]] = set()
+
+GOOGLE_PLAY_JA_PROFILE = "gplay-ja-jp-px9a-split-v1"
+GENERIC_PROFILE = "generic-v1"
 
 
 def _enabled() -> bool:
@@ -48,6 +58,13 @@ def _decode(value: str) -> str:
     return base64.urlsafe_b64decode(value + "=" * (-len(value) % 4)).decode("utf-8")
 
 
+def delivery_profile(provider: str) -> str:
+    """Return the immutable delivery contract represented by a cache asset."""
+    if provider in {"aurora-google-play", "google-play"}:
+        return GOOGLE_PLAY_JA_PROFILE
+    return GENERIC_PROFILE
+
+
 def parse_asset_name(name: str) -> tuple[str, str, str, str] | None:
     match = _ASSET_RE.fullmatch(name)
     if not match:
@@ -57,11 +74,16 @@ def parse_asset_name(name: str) -> tuple[str, str, str, str] | None:
         version = _decode(match.group(2))
     except (ValueError, UnicodeDecodeError):
         return None
-    return package, version, match.group(3).lower(), match.group(4).lower()
+    return package, version, match.group(3).lower(), match.group(5).lower()
+
+
+def _asset_profile(name: str) -> str | None:
+    match = _ASSET_RE.fullmatch(name)
+    return match.group(4) if match else None
 
 
 def _asset_prefix(package: str, version: str) -> str:
-    return f"baseapk-v1--p_{_encode(package)}--v_{_encode(version)}--"
+    return f"baseapk-v2--p_{_encode(package)}--v_{_encode(version)}--"
 
 
 def _sha256(path: Path) -> str:
@@ -101,9 +123,42 @@ def _validate(path: Path, expected_sha256: str | None = None) -> bool:
         return False
 
 
+def _contains_japanese_language_split(path: Path) -> bool:
+    """Require an explicit Japanese Play language split when the payload is split.
+
+    Play's split delivery names language configuration APKs with the locale in
+    the filename (for example ``config.ja.apk``). This check deliberately
+    fails closed for a split container with no Japanese split: otherwise a
+    package/version cache hit can silently freeze an English-only payload.
+    """
+    if path.suffix.lower() not in {".apks", ".xapk", ".zip"}:
+        return True
+    try:
+        with zipfile.ZipFile(path) as archive:
+            nested = [
+                name.replace("\\", "/").lstrip("/")
+                for name in archive.namelist()
+                if name.casefold().endswith(".apk")
+            ]
+    except (OSError, zipfile.BadZipFile) as error:
+        logging.warning("Could not inspect split container for Japanese resources: %s", error)
+        return False
+
+    japanese = re.compile(r"(?:^|[._-])ja(?:[._-]|$)", re.IGNORECASE)
+    found = any(japanese.search(Path(name).stem) for name in nested)
+    if not found:
+        logging.error(
+            "❌ Google Play cache candidate has split APKs but no Japanese language split: %s",
+            [Path(name).name for name in nested],
+        )
+    return found
+
+
 def validate_asset(path: Path) -> bool:
     parsed = parse_asset_name(path.name)
-    return bool(parsed and _validate(path, parsed[2]))
+    if not parsed:
+        return False
+    return _validate(path, parsed[2])
 
 
 def is_valid_apk_archive(path: Path) -> bool:
@@ -180,18 +235,50 @@ def _copy_for_build(source: Path, app_name: str, version: str) -> Path:
     return target
 
 
+def _candidate_sort_key(path: Path) -> tuple[int, int]:
+    profile = _asset_profile(path.name)
+    # Japanese Google Play delivery is the preferred cache variant. Generic
+    # provider assets remain usable when no Play variant exists.
+    rank = 0 if profile == GOOGLE_PLAY_JA_PROFILE else 1
+    try:
+        mtime = path.stat().st_mtime_ns
+    except OSError:
+        mtime = 0
+    return rank, -mtime
+
+
+def _usable_candidate(path: Path) -> bool:
+    parsed = parse_asset_name(path.name)
+    if not parsed or not validate_asset(path):
+        return False
+    profile = _asset_profile(path.name)
+    if profile == GOOGLE_PLAY_JA_PROFILE:
+        return _contains_japanese_language_split(path)
+    if profile == GENERIC_PROFILE:
+        return True
+    return False
+
+
 def restore(package: str, version: str, app_name: str) -> Path | None:
-    """Restore an exact package/version, preferring this job's local staging."""
+    """Restore an exact package/version without reusing legacy delivery variants."""
     if not _enabled() or not package or not version:
         return None
 
     prefix = _asset_prefix(package, version)
     if CACHE_DIR.exists():
-        for candidate in sorted(CACHE_DIR.glob(f"{prefix}*")):
-            parsed = parse_asset_name(candidate.name)
-            if parsed and validate_asset(candidate):
+        candidates = sorted(
+            CACHE_DIR.glob(f"{prefix}*"),
+            key=_candidate_sort_key,
+        )
+        for candidate in candidates:
+            if _usable_candidate(candidate):
                 restored = _copy_for_build(candidate, app_name, version)
-                logging.info("📦 APK cache hit (local): %s %s", package, version)
+                logging.info(
+                    "📦 APK cache hit (local): %s %s profile=%s",
+                    package,
+                    version,
+                    _asset_profile(candidate.name),
+                )
                 return restored
 
     key = (package, version)
@@ -220,19 +307,26 @@ def restore(package: str, version: str, app_name: str) -> Path | None:
             asset for asset in release.get_assets() if asset.name.startswith(prefix)
         ]
         matches.sort(
-            key=lambda asset: asset.created_at or asset.updated_at,
-            reverse=True,
+            key=lambda asset: (
+                0 if _asset_profile(asset.name) == GOOGLE_PLAY_JA_PROFILE else 1,
+                -(asset.created_at or asset.updated_at).timestamp()
+                if asset.created_at or asset.updated_at
+                else 0,
+            )
         )
         downloaded = _download_with_gh(repository, release.tag_name, prefix)
-        for candidate in downloaded:
-            parsed = parse_asset_name(candidate.name)
-            if parsed and validate_asset(candidate):
+        for candidate in sorted(downloaded, key=_candidate_sort_key):
+            if _usable_candidate(candidate):
                 restored = _copy_for_build(candidate, app_name, version)
-                logging.info("📦 APK cache hit (GitHub CLI): %s %s", package, version)
+                logging.info(
+                    "📦 APK cache hit (GitHub CLI): %s %s profile=%s",
+                    package,
+                    version,
+                    _asset_profile(candidate.name),
+                )
                 return restored
         for asset in matches:
-            parsed = parse_asset_name(asset.name)
-            if not parsed:
+            if not _asset_profile(asset.name):
                 continue
             headers = {
                 "Accept": "application/octet-stream",
@@ -247,12 +341,17 @@ def restore(package: str, version: str, app_name: str) -> Path | None:
                     name=asset.name,
                     headers=headers,
                 )
-                if not validate_asset(candidate):
+                if not _usable_candidate(candidate):
                     candidate.unlink(missing_ok=True)
                     continue
                 restored = _copy_for_build(candidate, app_name, version)
                 candidate.unlink(missing_ok=True)
-                logging.info("📦 APK cache hit (GitHub): %s %s", package, version)
+                logging.info(
+                    "📦 APK cache hit (GitHub): %s %s profile=%s",
+                    package,
+                    version,
+                    _asset_profile(asset.name),
+                )
                 return restored
             except Exception as error:
                 logging.warning("APK cache asset download failed: %s", error)
@@ -261,7 +360,8 @@ def restore(package: str, version: str, app_name: str) -> Path | None:
         logging.warning("APK cache lookup failed; using providers: %s", error)
     except Exception as error:
         logging.warning(
-            "APK cache lookup failed unexpectedly; using providers: %s", error
+            "APK cache lookup failed unexpectedly; using providers: %s",
+            error,
         )
 
     _REMOTE_MISSES.add(key)
@@ -271,14 +371,21 @@ def restore(package: str, version: str, app_name: str) -> Path | None:
 
 def stage(path: Path, package: str, version: str, provider: str) -> Path | None:
     """Stage a provider download for upload after a successful build."""
+    profile = delivery_profile(provider)
     if not _enabled() or not package or not version or not _validate(path):
+        return None
+    if profile == GOOGLE_PLAY_JA_PROFILE and not _contains_japanese_language_split(path):
+        logging.error(
+            "❌ Refusing to cache Google Play APK without an explicit Japanese language split: %s",
+            path,
+        )
         return None
 
     digest = _sha256(path)
     suffix = path.suffix.lower()
     if suffix not in {".apk", ".apkm", ".apks", ".xapk", ".zip"}:
         suffix = ".apk"
-    asset_name = f"{_asset_prefix(package, version)}{digest}{suffix}"
+    asset_name = f"{_asset_prefix(package, version)}{digest}--dp_{profile}{suffix}"
     CACHE_DIR.mkdir(parents=True, exist_ok=True)
     target = CACHE_DIR / asset_name
     if not target.exists():
@@ -286,9 +393,10 @@ def stage(path: Path, package: str, version: str, provider: str) -> Path | None:
         shutil.copy2(path, temporary)
         temporary.replace(target)
     logging.info(
-        "📥 Staged verified APK cache candidate: %s %s (%s)",
+        "📥 Staged verified APK cache candidate: %s %s (%s, profile=%s)",
         package,
         version,
         provider,
+        profile,
     )
     return target
