@@ -22,6 +22,7 @@ from typing import Any
 
 SUPPORTED_GPLAYDL_VERSION = "4.2.1"
 PREFERRED_PROFILE_ENV = "GPLAYDL_PREFERRED_PROFILE"
+DEFAULT_PLAY_LOCALES = ["en-US", "ja"]
 _ACQUIRE_PARAMETERS = (
     "package",
     "version",
@@ -84,6 +85,7 @@ def acquire_after_not_purchased(
     from gplaydl.profiles import get_priority_profiles
     from rich import print as rprint
 
+    locales = list(locales) if locales else list(DEFAULT_PLAY_LOCALES)
     preferred = os.getenv(PREFERRED_PROFILE_ENV, "").strip() or None
     profiles = ordered_priority_profiles(get_priority_profiles(arch), preferred)
     attempted: list[str] = []
@@ -172,6 +174,7 @@ def install_cli_patch() -> None:
         email,
         locales=None,
     ):
+        locales = list(locales) if locales else list(DEFAULT_PLAY_LOCALES)
         try:
             return original(
                 package,

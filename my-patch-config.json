@@ -25,7 +25,7 @@
       "options": [
         {"patch":"Change version code","key":"versionCode","value":"2147483647"},
         {"patch":"Custom Shorts action buttons","key":"iconType","value":"round"},
-        {"patch":"Custom branding for YouTube","key":"customIcon","value":"patch-assets/anddea/youtube/xisr_evergreen"},
+        {"patch":"Custom branding for YouTube","key":"appIcon","value":"patch-assets/anddea/youtube/xisr_evergreen"},
         {"patch":"Custom branding for YouTube","key":"customName","value":"RVA"},
         {"patch":"Custom double tap length","key":"doubleTapLengthArrays","value":"3, 5, 10, 15, 20, 30, 60, 120, 180"},
         {"patch":"Force player buttons background","key":"BackgroundColor","value":"?ytOverlayBackgroundMediumLight"},
@@ -67,7 +67,7 @@
       "app_name": "youtube-music",
       "source": "revanced-anddea",
       "options": [
-        {"patch":"Custom branding for YouTube Music","key":"customIcon","value":"patch-assets/anddea/youtube-music/xisr_yellow"},
+        {"patch":"Custom branding for YouTube Music","key":"appIcon","value":"patch-assets/anddea/youtube-music/xisr_yellow"},
         {"patch":"Custom branding for YouTube Music","key":"customName","value":"RVA Music"},
         {"patch":"Dark theme","key":"darkThemeBackgroundColor","value":"@android:color/black"},
         {"patch":"Dark theme","key":"materialYou","value":false},
