@@ -4,14 +4,127 @@ from __future__ import annotations
 
 import json
 import os
-import shutil
+import re
 from pathlib import Path
+
+
+SKIP_RE = re.compile(
+    r"Skipping disabled:\s*(?P<name>.+?)\s*\((?P<reason>[^)]*)\)",
+    re.IGNORECASE,
+)
+UNSUPPORTED_RE = re.compile(
+    r'["“](?P<name>.+?)["”]\s+is not supported in this version\.?(?P<detail>.*)',
+    re.IGNORECASE,
+)
 
 
 def tail_text(path: Path, lines: int) -> str:
     if not path.is_file():
         return ""
-    return "\n".join(path.read_text(encoding="utf-8", errors="replace").splitlines()[-lines:])
+    return "\n".join(
+        path.read_text(encoding="utf-8", errors="replace").splitlines()[-lines:]
+    )
+
+
+def runtime_patch_outcomes(build_log: Path) -> list[dict[str, str]]:
+    """Extract runtime-only patch outcomes from the complete patch CLI log."""
+    if not build_log.is_file():
+        return []
+
+    found: list[dict[str, str]] = []
+    seen: set[tuple[str, str]] = set()
+    for line in build_log.read_text(encoding="utf-8", errors="replace").splitlines():
+        skip = SKIP_RE.search(line)
+        if skip:
+            name = skip.group("name").strip()
+            raw_reason = skip.group("reason").strip()
+            category = (
+                "runtime-skipped-default"
+                if "default" in raw_reason.casefold()
+                else "runtime-skipped"
+            )
+            reason = raw_reason or "CLI skipped this patch at runtime"
+            key = (name, category)
+            if name and key not in seen:
+                seen.add(key)
+                found.append({"name": name, "category": category, "reason": reason})
+            continue
+
+        unsupported = UNSUPPORTED_RE.search(line)
+        if unsupported:
+            name = unsupported.group("name").strip()
+            detail = unsupported.group("detail").strip()
+            reason = "not supported in this APK version"
+            if detail:
+                reason += f". {detail}"
+            key = (name, "unsupported")
+            if name and key not in seen:
+                seen.add(key)
+                found.append(
+                    {"name": name, "category": "unsupported", "reason": reason}
+                )
+    return found
+
+
+def _failure_entry(name: object, reason: object) -> dict[str, str] | None:
+    patch = str(name or "").strip()
+    if not patch:
+        return None
+    return {"name": patch, "reason": str(reason or "-").strip() or "-"}
+
+
+def enrich_report(report: dict, build_log: Path) -> dict:
+    """Preserve configured exclusions and add runtime skip/unsupported/failure facts.
+
+    ``generate_release_details`` already renders ``feature_failures`` under the
+    user-facing not-applied section.  Enriching the artifact copy here keeps the
+    main Release path self-contained and makes the evidence available before the
+    GitHub Release is published, without depending on a recovery workflow.
+    """
+    enriched = dict(report)
+    failures: list[dict[str, str]] = []
+    seen: set[tuple[str, str]] = set()
+
+    for collection in (
+        report.get("feature_failures") or [],
+        report.get("excluded_patches") or [],
+    ):
+        if not isinstance(collection, list):
+            continue
+        for item in collection:
+            if not isinstance(item, dict):
+                continue
+            entry = _failure_entry(item.get("name"), item.get("reason"))
+            if entry is None:
+                continue
+            key = (entry["name"], entry["reason"])
+            if key not in seen:
+                seen.add(key)
+                failures.append(entry)
+
+    for item in runtime_patch_outcomes(build_log):
+        reason = f"[{item['category']}] {item['reason']}"
+        entry = _failure_entry(item["name"], reason)
+        if entry is None:
+            continue
+        key = (entry["name"], entry["reason"])
+        if key not in seen:
+            seen.add(key)
+            failures.append(entry)
+
+    failed = report.get("failed_patches") or []
+    if isinstance(failed, list):
+        for name in failed:
+            entry = _failure_entry(name, "[failed] CLI reported patch application failure")
+            if entry is None:
+                continue
+            key = (entry["name"], entry["reason"])
+            if key not in seen:
+                seen.add(key)
+                failures.append(entry)
+
+    enriched["feature_failures"] = failures
+    return enriched
 
 
 def patch_summary(report: dict | None, build_log: Path) -> str:
@@ -27,7 +140,7 @@ def patch_summary(report: dict | None, build_log: Path) -> str:
         )
         applied = report.get("applied_patches") or []
         lines.extend(f"- `{name}`" for name in applied)
-        lines.extend(["", "**Excluded patches**"])
+        lines.extend(["", "**Excluded / runtime-not-applied patches**"])
         excluded = report.get("feature_failures") or report.get("excluded_patches") or []
         for item in excluded:
             if isinstance(item, dict):
@@ -71,8 +184,11 @@ def main() -> int:
     if report_path.is_file():
         payload = json.loads(report_path.read_text(encoding="utf-8"))
         if isinstance(payload, dict):
-            report = payload
-        shutil.copy2(report_path, directory / f"{app}-{source}.json")
+            report = enrich_report(payload, build_log)
+            (directory / f"{app}-{source}.json").write_text(
+                json.dumps(report, ensure_ascii=False, indent=2) + "\n",
+                encoding="utf-8",
+            )
 
     summary = os.getenv("GITHUB_STEP_SUMMARY")
     if summary:
