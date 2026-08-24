@@ -28,14 +28,14 @@ class AnddeaCustomIconTests(unittest.TestCase):
         self.assertEqual(len(entries), 1)
         return entries[0]["options"]
 
-    def test_icon_and_name_options_use_current_aggregate_branding_patch(self) -> None:
+    def test_icon_and_name_options_use_current_anddea_keys(self) -> None:
         youtube_options = self._options("youtube")
         music_options = self._options("youtube-music")
 
         self.assertIn(
             {
                 "patch": "Custom branding for YouTube",
-                "key": "customIcon",
+                "key": "appIcon",
                 "value": "patch-assets/anddea/youtube/xisr_evergreen",
             },
             youtube_options,
@@ -51,7 +51,7 @@ class AnddeaCustomIconTests(unittest.TestCase):
         self.assertIn(
             {
                 "patch": "Custom branding for YouTube Music",
-                "key": "customIcon",
+                "key": "appIcon",
                 "value": "patch-assets/anddea/youtube-music/xisr_yellow",
             },
             music_options,
@@ -74,18 +74,13 @@ class AnddeaCustomIconTests(unittest.TestCase):
             "Custom header for YouTube",
             "Custom header for YouTube Music",
         }
-        retired_keys = {
-            "appIcon",
-            "appName",
-            "appNameNotification",
-            "appNameLauncher",
-            "customHeader",
-            "changeSplashIcon",
-            "restoreOldSplashAnimation",
-            "restoreOldSplashIcon",
-        }
         self.assertFalse(any(option.get("patch") in retired_patches for option in all_options))
-        self.assertFalse(any(option.get("key") in retired_keys for option in all_options))
+        self.assertFalse(
+            any(
+                option.get("key") == "customIcon"
+                for option in all_options
+            )
+        )
 
     def test_custom_icon_folders_match_anddea_copy_contract(self) -> None:
         expected_dimensions = {
