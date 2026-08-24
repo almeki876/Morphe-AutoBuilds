@@ -1,0 +1,34 @@
+name: Replay Run 564 Issue Cleanup
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  actions: read
+  contents: read
+  issues: write
+
+jobs:
+  cleanup:
+    if: github.head_ref == 'ops/replay-run-564-issue-cleanup'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout fixed cleanup code
+        uses: actions/checkout@v7
+
+      - name: Download Run 564 build reports
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p build-results
+          gh run download 32730060819 \
+            --repo "${GITHUB_REPOSITORY}" \
+            --pattern 'build-status-*' \
+            --dir build-results
+
+      - name: Close resolved auto-generated issues
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_URL: https://github.com/almeki876/Morphe-AutoBuilds/actions/runs/32730060819
+        run: python3 scripts/close_resolved_build_issues.py --directory build-results
