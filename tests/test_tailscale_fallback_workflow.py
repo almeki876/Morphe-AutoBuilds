@@ -65,14 +65,16 @@ class TailscaleFallbackWorkflowTests(unittest.TestCase):
             self.result,
         )
 
-    def test_verified_cache_candidate_reaches_successful_build_gate(self) -> None:
-        base_input = _named_step("Upload Base APK Input")
-        cache_upload = _named_step("Upload Verified Base APK Cache Candidate")
+    def test_shared_base_input_reaches_successful_cache_promotion_gate(self) -> None:
+        base_input = _named_step("Upload Shared Base APK Input")
+        cache_stage = _named_step("Stage Verified Cache Candidates from Shared Inputs")
 
         self.assertIn("if: success()", base_input)
-        self.assertIn("base-apk-cache-out/*", base_input)
-        self.assertIn("if: success()", cache_upload)
-        self.assertIn("base-apk-cache-out/*", cache_upload)
+        self.assertIn("base-apk-input/*", base_input)
+        self.assertNotIn("base-apk-cache-out/*", base_input)
+        self.assertIn("steps.shared-inputs.outcome == 'success'", cache_stage)
+        self.assertIn("steps.build-results.outcome == 'success'", cache_stage)
+        self.assertIn("scripts.stage_shared_base_apk_cache", cache_stage)
 
 
 if __name__ == "__main__":
