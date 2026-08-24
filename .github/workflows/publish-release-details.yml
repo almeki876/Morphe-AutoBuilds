@@ -94,19 +94,19 @@ jobs:
           test -s details-input/actions.log
 
       - name: Verify integrated Gboard patch results
-        run: python3 scripts/validate_release_details.py
+        run: python3 -m scripts.validate_release_details
 
       - name: Generate persistent Release details
         env:
           RELEASE_TAG: ${{ inputs.release_tag }}
           RUN_URL: https://github.com/${{ github.repository }}/actions/runs/${{ inputs.run_id }}
-        run: python3 scripts/generate_release_details.py
+        run: python3 -m scripts.generate_release_details
 
       - name: Append runtime skipped patch evidence
         env:
           RELEASE_TAG: ${{ inputs.release_tag }}
         run: |
-          python3 scripts/append_release_skip_details.py \
+          python3 -m scripts.append_release_skip_details \
             --actions-log details-input/actions.log \
             --build-results details-input/build \
             --release-dir "release-details/$RELEASE_TAG"
