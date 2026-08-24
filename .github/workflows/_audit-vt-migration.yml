@@ -1,0 +1,36 @@
+name: "TEMP VT audit"
+on:
+  push:
+    branches: [main]
+    paths: [.github/workflows/_audit-vt-migration.yml]
+permissions:
+  actions: read
+  contents: write
+  issues: write
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: main
+          fetch-depth: 0
+      - env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api 'repos/${{ github.repository }}/actions/runs?per_page=100' > runs.json
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          runs=[r for r in json.loads(Path('runs.json').read_text()).get('workflow_runs',[]) if r.get('path')=='.github/workflows/_integrate-vt-cache-into-release.yml'][:5]
+          Path('audit.md').write_text('# TEMP VT migration audit\n\n'+''.join(f"- run `{r['id']}` #{r['run_number']}: `{r.get('status')}` / `{r.get('conclusion')}` — {r.get('html_url')}\n" for r in runs))
+          PY
+          n=$(gh issue list --state all --search 'TEMP VT migration audit in:title' --json number,title --jq '.[] | select(.title == "TEMP VT migration audit") | .number' | head -1)
+          gh issue edit "$n" --body-file audit.md
+      - run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git rm .github/workflows/_audit-vt-migration.yml
+          git commit -m 'chore: remove VT migration auditor [skip ci]'
+          git pull --rebase origin main
+          git push origin HEAD:main
