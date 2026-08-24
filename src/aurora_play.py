@@ -103,6 +103,23 @@ def _command_timeout(command: list[str]) -> float:
     return _env_seconds(env_name, _COMMAND_CAPS[kind])
 
 
+def _transfer_progress_dir(command: list[str]) -> Path | None:
+    """Infer the payload directory for known Google Play transfer commands."""
+    kind = _command_kind(command)
+    if kind == "version":
+        return None
+    try:
+        if kind == "playfetch" and "pull" in command and "-out" in command:
+            return Path(command[command.index("-out") + 1])
+        if kind == "apkeep" and "-a" in command and command:
+            return Path(command[-1])
+        if kind == "gplaydl" and "download" in command and "-o" in command:
+            return Path(command[command.index("-o") + 1])
+    except (IndexError, ValueError):
+        return None
+    return None
+
+
 def _progress_snapshot(root: Path) -> tuple[int, int, int]:
     """Return a cheap payload progress fingerprint for one download tree."""
     count = 0
@@ -191,15 +208,14 @@ def _run_transfer(
             now = time.monotonic()
             current = _progress_snapshot(progress_dir)
             if current != snapshot:
-                if current[0] != snapshot[0] or current[1] != snapshot[1] or current[2] != snapshot[2]:
-                    last_payload_progress = now
-                    payload_started = payload_started or current[0] > 0 or current[1] > 0
-                    logging.info(
-                        "📥 %s payload progress: files=%d bytes=%d",
-                        kind,
-                        current[0],
-                        current[1],
-                    )
+                last_payload_progress = now
+                payload_started = payload_started or current[0] > 0 or current[1] > 0
+                logging.info(
+                    "📥 %s payload progress: files=%d bytes=%d",
+                    kind,
+                    current[0],
+                    current[1],
+                )
                 snapshot = current
 
             if not payload_started and now - started_at >= start_timeout:
@@ -214,6 +230,8 @@ def _run_transfer(
                 )
     finally:
         reader.join(timeout=2)
+        if process.stdout is not None:
+            process.stdout.close()
 
     return subprocess.CompletedProcess(
         command,
@@ -227,9 +245,9 @@ def _run(
     *,
     cwd: Path | None = None,
     env: dict[str, str] | None = None,
-    progress_dir: Path | None = None,
 ) -> subprocess.CompletedProcess[str]:
     """Run one upstream client with the appropriate liveness policy."""
+    progress_dir = _transfer_progress_dir(command)
     if progress_dir is not None:
         return _run_transfer(command, progress_dir=progress_dir, cwd=cwd, env=env)
 
@@ -511,7 +529,7 @@ def _download_with_playfetch_google_play(package: str, output_dir: Path) -> Path
             "package=%s device=px_9a locale=ja_JP timezone=Asia/Tokyo",
             package,
         )
-        result = _run(command, env=env, progress_dir=downloads)
+        result = _run(command, env=env)
         if result.returncode != 0:
             tail = "\n".join((result.stdout or "").splitlines()[-40:])
             raise RuntimeError(
@@ -574,7 +592,7 @@ def _download_with_apkeep_google_play(package: str, output_dir: Path) -> Path:
             "device=px_9a locale=ja_JP timezone=Asia/Tokyo splits=true",
             package,
         )
-        result = _run(command, env=env, progress_dir=downloads)
+        result = _run(command, env=env)
         apk_files = [
             path for path in downloads.rglob("*.apk")
             if path.is_file() and path.stat().st_size > 0
@@ -628,7 +646,7 @@ def _download_with_fast_gplaydl(
             if exact_code and candidate
             else " current release",
         )
-        result = _run(command, progress_dir=downloads)
+        result = _run(command)
         if result.returncode == 0:
             return _collect_linked_download(downloads, package, output_dir, result)
         tail = "\n".join((result.stdout or "").splitlines()[-20:])
@@ -663,7 +681,7 @@ def _download_with_linked_gplaydl(
             package,
             f" exact-versionCode={candidate.code} ({candidate.name})" if exact_code and candidate else " current release",
         )
-        result = _run(command, progress_dir=downloads)
+        result = _run(command)
         if result.returncode == 0:
             return _collect_linked_download(downloads, package, output_dir, result)
         tail = "\n".join((result.stdout or "").splitlines()[-20:])
