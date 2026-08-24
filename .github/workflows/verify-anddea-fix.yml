@@ -1,0 +1,31 @@
+name: "一時検証: Anddea 修正確認"
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/verify-anddea-fix.yml
+
+permissions:
+  actions: write
+  contents: read
+
+jobs:
+  dispatch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Dispatch Anddea-only build from current main
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh workflow run build.yml \
+            --repo "${{ github.repository }}" \
+            --ref main \
+            -f anddea_tag=latest \
+            -f anddea_force_build=true \
+            -f updated_sources=revanced-anddea
+
+      - name: Summary
+        run: |
+          echo "Dispatched build.yml from current main for revanced-anddea." >> "$GITHUB_STEP_SUMMARY"
