@@ -19,6 +19,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          echo "Dispatching release-details repair..."
           gh workflow run publish-release-details.yml \
             --repo "${{ github.repository }}" \
             --ref main \
