@@ -1,4 +1,4 @@
-name: 保守: Google Play取得を診断
+name: "保守: Google Play取得を診断"
 
 on:
   workflow_dispatch:
