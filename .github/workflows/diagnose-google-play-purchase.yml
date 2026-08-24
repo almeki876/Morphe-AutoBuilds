@@ -31,19 +31,16 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v7
 
-      - name: Setup Python
-        uses: actions/setup-python@v7
+      - name: Setup Python project
+        uses: ./.github/actions/setup-python-project
         with:
-          python-version: '3.11'
+          quiet: 'true'
 
       - name: Setup Go for current gplaydl-dispenser
         uses: actions/setup-go@v7
         with:
           go-version: '1.26.1'
           cache: false
-
-      - name: Install Python Dependencies
-        run: pip install -r requirements.txt -q
 
       - name: Diagnose current purchase and every priority device profile
         env:
