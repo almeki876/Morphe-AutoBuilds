@@ -2,9 +2,6 @@
 # - で始まる行 = 除外（ブラックリスト）
 # + で始まる行 = 強制含有
 
-- Custom branding name for YouTube
-- Custom branding icon for YouTube
-
 + Alternative thumbnails
 + Ambient mode control
 + Bypass URL redirects
@@ -16,8 +13,8 @@
 + Change start page
 + Change version code
 + Custom Shorts action buttons
++ Custom branding for YouTube
 + Custom double tap length
-+ Custom header for YouTube
 + Description components
 + Disable QUIC protocol
 + Disable edge-to-edge display
