@@ -1,0 +1,89 @@
+app=google-news
+source=hoo-dles
+source_name=hoo-dles
+phase=Patch
+status=success
+run=https://github.com/almeki876/Morphe-AutoBuilds/actions/runs/32711175873
+
+traceback_or_error_tail<<EOF
+Index: 69
+Name: Enable Premium
+Description: Enables app features locked behind the subscription paywall.
+Enabled: true
+
+Index: 70
+Name: Enable Premium
+Description: Enables app features locked behind the subscription paywall.
+Enabled: true
+
+Index: 71
+Name: Enable Premium
+Description: Enables app features locked behind the subscription paywall.
+Enabled: true
+
+Index: 72
+Name: Enable Premium
+Description: Enables some app features locked behind the subscription paywall. Not all premium functionality is available.
+Enabled: true
+
+Index: 73
+Name: Disable anti-tamper
+Description: Disables various anti-tamper checks that causes the app to force-close.
+Enabled: true
+
+Index: 74
+Name: Enable Pro
+Description: Enables app features locked behind the subscription paywall. Login is required and AI functionality is unavailable.
+Enabled: true
+
+Index: 75
+Name: Enable Pro
+Description: Enables app features locked behind the subscription paywall.
+Enabled: true
+
+Index: 76
+Name: Enable Pro
+Description: null
+Enabled: true
+2026-08-24 09:38:30 enable_patches=[]  disable_patches=[]
+2026-08-24 09:38:31 Running: java -Djava.awt.headless=true -Xmx6g -Xms3g -Dfile.encoding=UTF-8 -XX:-UsePerfData -XX:+UseG1GC -XX:MaxGCPauseMillis=150 -XX:G1HeapRegionSize=2m -XX:+UseStringDeduplication -XX:+ParallelRefProcEnabled -XX:ConcGCThreads=2 -XX:ParallelGCThreads=4 -XX:CICompilerCount=3 -XX:+UseCompressedOops -XX:+OptimizeStringConcat -XX:+DisableExplicitGC -XX:+TieredCompilation -XX:ReservedCodeCacheSize=128m -XX:InitialCodeCacheSize=32m -XX:MaxMetaspaceSize=128m -XX:SoftRefLRUPolicyMSPerMB=50 --add-opens=java.base/java.lang=ALL-UNNAMED --add-opens=java.base/java.util=ALL-UNNAMED --add-opens=java.base/java.io=ALL-UNNAMED -jar morphe-desktop-1.14.0-dev.1-all.jar patch --force --continue-on-error -p patches-1.42.0-dev.1.mpp --out=google-news-arm64-v8a-patch-v5.161.0.931240252.apk --bytecode-mode=STRIP_FAST .build-input-arm64-v8a.apk
+INFO: Morphe data root: /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/morphe-data (JAR-adjacent)
+INFO: Loading patches...
+INFO: Initializing patcher...
+INFO: Filtering patches for com.google.android.apps.magazines v5.161.0.931240252...
+INFO: Skipping disabled: Hide app icon (default)
+INFO: Skipping disabled: Enable debug (default)
+INFO: Skipping disabled: Change package name (default)
+INFO: Skipping disabled: Disable Pairip license check (default)
+INFO: Applying 2 patches...
+INFO: Deleting existing temporary files directory
+INFO: Decoding all resources
+INFO: Sanitizing unpatched strings
+INFO: Escaping strings
+INFO: Executing patches
+INFO: Applied: Enable custom tabs
+INFO: Applied: MicroG integration
+INFO: Compiling patched dex files (mode: STRIP_FAST)
+INFO: Writing 263 new classes to new DEX files
+INFO: Processing 263 classes (single threaded mode)
+INFO: Wrote 1 dex files to /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/morphe-data/tmp/patching-1787564313458/patched/dex
+INFO: Stripping 111 modified classes from original DEX files
+INFO: Compiling modified resources
+INFO: Unescaping strings
+INFO: Processing aapt macros
+INFO: Generating new resource IDs
+INFO: Writing resource APK
+INFO: Aligning APK
+INFO: Signing APK
+INFO: Saved to /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/google-news-arm64-v8a-patch-v5.161.0.931240252.apk
+INFO: Purged this session's temp files: patching-1787564313458
+2026-08-24 09:38:46 Validated patched APK: 15187671 bytes (ABIs: arm64-v8a)
+2026-08-24 09:38:46 [SIZE] patched: 15187671 bytes (google-news-arm64-v8a-patch-v5.161.0.931240252.apk)
+Signed
+2026-08-24 09:38:48 [SIZE] signed: 15183575 bytes (google-news-arm64-v8a-hoo-dles-v5.161.0.931240252.apk)
+✅ APK built: google-news-arm64-v8a-hoo-dles-v5.161.0.931240252.apk
+✅ Built arm64-v8a: google-news-arm64-v8a-hoo-dles-v5.161.0.931240252.apk
+
+🎯 1 APK(s) built for 'google-news':
+   📱 google-news-arm64-v8a-hoo-dles-v5.161.0.931240252.apk
+EOF

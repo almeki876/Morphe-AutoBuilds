@@ -1,0 +1,89 @@
+app=proton-mail
+source=hxreborn
+source_name=hxreborn
+phase=Patch
+status=success
+run=https://github.com/almeki876/Morphe-AutoBuilds/actions/runs/32711175873
+
+traceback_or_error_tail<<EOF
+Index: 19
+Name: Hide upgrade upselling
+Description: Hides the top-bar upgrade button and promotional sidebar rows.
+Enabled: true
+
+Index: 20
+Name: Remove 'Sent from' signature
+Description: Removes the 'Sent from Proton Mail' signature from emails.
+Enabled: true
+
+Index: 21
+Name: Remove nags
+Description: Removes the rate this app dialog and the promotional dialogs shown on startup.
+Enabled: true
+
+Index: 22
+Name: Unlock premium
+Description: Unlocks running and logging workouts, progress tracking and personal records (AI workout generation is not included).
+Enabled: true
+
+Index: 23
+Name: Unlock premium
+Description: Unlocks ad removal, light theme, custom images, list view types, quick ratings, and transparent widgets. The News feed is not included.
+Enabled: true
+
+Index: 24
+Name: AMOLED dark theme
+Description: Replaces the dark theme background with pure black.
+Enabled: true
+
+Index: 25
+Name: Unlock premium
+Description: Unlocks all premium features.
+Enabled: true
+
+Index: 26
+Name: Hide ads
+Description: Removes the adverts shown between search results.
+Enabled: true
+2026-08-24 09:37:24 enable_patches=[]  disable_patches=[]
+2026-08-24 09:37:25 Running: java -Djava.awt.headless=true -Xmx6g -Xms3g -Dfile.encoding=UTF-8 -XX:-UsePerfData -XX:+UseG1GC -XX:MaxGCPauseMillis=150 -XX:G1HeapRegionSize=2m -XX:+UseStringDeduplication -XX:+ParallelRefProcEnabled -XX:ConcGCThreads=2 -XX:ParallelGCThreads=4 -XX:CICompilerCount=3 -XX:+UseCompressedOops -XX:+OptimizeStringConcat -XX:+DisableExplicitGC -XX:+TieredCompilation -XX:ReservedCodeCacheSize=128m -XX:InitialCodeCacheSize=32m -XX:MaxMetaspaceSize=128m -XX:SoftRefLRUPolicyMSPerMB=50 --add-opens=java.base/java.lang=ALL-UNNAMED --add-opens=java.base/java.util=ALL-UNNAMED --add-opens=java.base/java.io=ALL-UNNAMED -jar morphe-desktop-1.14.0-dev.1-all.jar patch --force --continue-on-error -p patches-1.11.0.mpp --out=proton-mail-arm64-v8a-patch-v7.11.4.apk --bytecode-mode=STRIP_FAST .build-input-arm64-v8a.apk
+INFO: Morphe data root: /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/morphe-data (JAR-adjacent)
+INFO: Loading patches...
+INFO: Initializing patcher...
+INFO: Filtering patches for ch.protonmail.android v7.11.4...
+INFO: Applying 6 patches...
+INFO: Deleting existing temporary files directory
+INFO: Decoding all resources
+INFO: Sanitizing unpatched strings
+INFO: Escaping strings
+INFO: Executing patches
+INFO: Applied: AMOLED dark theme
+INFO: Applied: Hide upgrade upselling
+INFO: Applied: Remove 'Sent from' signature
+INFO: Applied: Remove free accounts limit
+INFO: Applied: Spoof signature
+INFO: Applied: Unlock custom time picker
+INFO: Compiling patched dex files (mode: STRIP_FAST)
+INFO: Writing 1107 new classes to new DEX files
+INFO: Processing 1107 classes (single threaded mode)
+INFO: Wrote 1 dex files to /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/morphe-data/tmp/patching-1787564246196/patched/dex
+INFO: Stripping 10 modified classes from original DEX files
+INFO: Compiling modified resources
+INFO: Unescaping strings
+INFO: Processing aapt macros
+INFO: Generating new resource IDs
+INFO: Writing resource APK
+INFO: Aligning APK
+INFO: Signing APK
+INFO: Saved to /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/proton-mail-arm64-v8a-patch-v7.11.4.apk
+INFO: Purged this session's temp files: patching-1787564246196
+2026-08-24 09:37:45 Validated patched APK: 66174264 bytes (ABIs: arm64-v8a, armeabi, mips, mips64)
+2026-08-24 09:37:45 [SIZE] patched: 66174264 bytes (proton-mail-arm64-v8a-patch-v7.11.4.apk)
+Signed
+2026-08-24 09:37:47 [SIZE] signed: 66170168 bytes (proton-mail-arm64-v8a-hxreborn-v7.11.4.apk)
+✅ APK built: proton-mail-arm64-v8a-hxreborn-v7.11.4.apk
+✅ Built arm64-v8a: proton-mail-arm64-v8a-hxreborn-v7.11.4.apk
+
+🎯 1 APK(s) built for 'proton-mail':
+   📱 proton-mail-arm64-v8a-hxreborn-v7.11.4.apk
+EOF

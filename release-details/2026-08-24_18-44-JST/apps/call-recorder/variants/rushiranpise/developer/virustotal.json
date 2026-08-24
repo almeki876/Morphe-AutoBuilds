@@ -1,0 +1,23 @@
+{
+  "results": [
+    {
+      "file": "call-recorder-rushiranpise-universal.apks",
+      "sha256": "45b2cbe30d8a992e66d8962195c4a1f036fc82166a41c5a680302ac349c0a909",
+      "size": 11943856,
+      "analysis_id": "NmJhZjJmMmY0NTlhZmJmNmFkMDgzNTkyOGNmNGI0MmM6MTc4NzU0MDQ3Ng==",
+      "malicious": 0,
+      "suspicious": 0,
+      "harmless": 0,
+      "undetected": 59,
+      "timeout": 6,
+      "failure": 1,
+      "unsupported": 9,
+      "verdict": "clean",
+      "method": "persistent hash cache",
+      "engines": {},
+      "permalink": "https://www.virustotal.com/gui/file/45b2cbe30d8a992e66d8962195c4a1f036fc82166a41c5a680302ac349c0a909/detection",
+      "last_analysis_date": 1787540476,
+      "reanalyzed": false
+    }
+  ]
+}

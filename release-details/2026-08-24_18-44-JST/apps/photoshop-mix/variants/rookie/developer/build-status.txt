@@ -1,0 +1,89 @@
+app=photoshop-mix
+source=rookie
+source_name=RookieEnough
+phase=Patch
+status=success
+run=https://github.com/almeki876/Morphe-AutoBuilds/actions/runs/32711175873
+
+traceback_or_error_tail<<EOF
+Description: Blocks Snowplow analytics. See https://snowplow.io for more information.
+Enabled: true
+
+Index: 49
+Name: Disable Quick Edit
+Description: Prevents the Quick Edit prompt from popping up.
+Enabled: true
+
+Index: 50
+Name: Unlock subscription features
+Description: Unlocks "Routes", "Matched Runs" and "Segment Efforts".
+Enabled: true
+
+Index: 51
+Name: Block audio ads
+Description: Blocks audio ads in streams and VODs.
+Enabled: true
+
+Index: 52
+Name: Block embedded ads
+Description: Blocks embedded stream ads using services like Luminous or PurpleAdBlocker.
+Enabled: true
+
+Index: 53
+Name: Block video ads
+Description: Blocks video ads in streams and VODs.
+Enabled: true
+
+Index: 54
+Name: Show deleted messages
+Description: Shows deleted chat messages behind a clickable spoiler.
+Enabled: true
+
+Index: 55
+Name: Auto claim channel points
+Description: Automatically claim Channel Points.
+Enabled: true
+
+Index: 56
+Name: Debug mode
+Description: Enables Twitch's internal debugging mode.
+Enabled: false
+
+Index: 57
+Name: Hide Ads
+Description: Hides ad banners between chats.
+Enabled: true
+
+Index: 58
+Name: Hide navigation buttons
+Description: Permanently hides navigation bar buttons, such as Explore and Marketplace.
+Enabled: false
+2026-08-24 09:37:58 enable_patches=[]  disable_patches=[]
+2026-08-24 09:37:59 Running: java -Djava.awt.headless=true -Xmx6g -Xms3g -Dfile.encoding=UTF-8 -XX:-UsePerfData -XX:+UseG1GC -XX:MaxGCPauseMillis=150 -XX:G1HeapRegionSize=2m -XX:+UseStringDeduplication -XX:+ParallelRefProcEnabled -XX:ConcGCThreads=2 -XX:ParallelGCThreads=4 -XX:CICompilerCount=3 -XX:+UseCompressedOops -XX:+OptimizeStringConcat -XX:+DisableExplicitGC -XX:+TieredCompilation -XX:ReservedCodeCacheSize=128m -XX:InitialCodeCacheSize=32m -XX:MaxMetaspaceSize=128m -XX:SoftRefLRUPolicyMSPerMB=50 --add-opens=java.base/java.lang=ALL-UNNAMED --add-opens=java.base/java.util=ALL-UNNAMED --add-opens=java.base/java.io=ALL-UNNAMED -jar morphe-desktop-1.14.0-dev.1-all.jar patch --force --continue-on-error -p patches-1.3.0-dev.1.mpp --out=photoshop-mix-arm64-v8a-patch-v2.6.3.apk --bytecode-mode=STRIP_FAST .build-input-arm64-v8a.apk
+INFO: Morphe data root: /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/morphe-data (JAR-adjacent)
+INFO: Loading patches...
+INFO: Initializing patcher...
+INFO: Filtering patches for com.adobe.photoshopmix v2.6.3...
+INFO: Skipping disabled: Change package name (default)
+INFO: Applying 1 patches...
+INFO: Executing patches
+INFO: Applied: Bypass login
+INFO: Compiling patched dex files (mode: STRIP_FAST)
+INFO: Writing 2 new classes to new DEX files
+INFO: Processing 2 classes (single threaded mode)
+INFO: Wrote 1 dex files to /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/morphe-data/tmp/patching-1787564282603/patched/dex
+INFO: Stripping 2 modified classes from original DEX files
+INFO: Aligning APK
+INFO: Signing APK
+INFO: Saved to /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/photoshop-mix-arm64-v8a-patch-v2.6.3.apk
+INFO: Purged this session's temp files: patching-1787564282603
+2026-08-24 09:38:08 Validated patched APK: 52110366 bytes (ABIs: arm64-v8a)
+2026-08-24 09:38:08 [SIZE] patched: 52110366 bytes (photoshop-mix-arm64-v8a-patch-v2.6.3.apk)
+Signed
+2026-08-24 09:38:11 [SIZE] signed: 52106270 bytes (photoshop-mix-arm64-v8a-rookie-v2.6.3.apk)
+✅ APK built: photoshop-mix-arm64-v8a-rookie-v2.6.3.apk
+✅ Built arm64-v8a: photoshop-mix-arm64-v8a-rookie-v2.6.3.apk
+
+🎯 1 APK(s) built for 'photoshop-mix':
+   📱 photoshop-mix-arm64-v8a-rookie-v2.6.3.apk
+EOF

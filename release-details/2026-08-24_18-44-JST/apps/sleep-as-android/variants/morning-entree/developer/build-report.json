@@ -1,0 +1,46 @@
+{
+  "app_name": "sleep-as-android",
+  "source": "morning-entree",
+  "patch_source": "morning-entree",
+  "source_name": "morning-entree",
+  "version": "20260616",
+  "status": "success",
+  "lifecycle_status": "success_full",
+  "requested_patches": [],
+  "requested_options": [],
+  "applying_count": 1,
+  "applied_patches": [
+    "Enable Premium"
+  ],
+  "excluded_patches": [],
+  "disabled_patches": [],
+  "feature_failures": [
+    {
+      "name": "Provide original app certificate",
+      "reason": "[runtime-skipped-default] default"
+    },
+    {
+      "name": "Spoof signature verification",
+      "reason": "[runtime-skipped-default] default"
+    },
+    {
+      "name": "Spoof install source",
+      "reason": "[runtime-skipped-default] default"
+    },
+    {
+      "name": "Remove internet permission",
+      "reason": "[runtime-skipped-default] default"
+    },
+    {
+      "name": "Change package name",
+      "reason": "[runtime-skipped-default] default"
+    }
+  ],
+  "failed_patches": [],
+  "required_patches": [],
+  "required_failures": [],
+  "required_patches_satisfied": true,
+  "fully_applied": true,
+  "error_category": null,
+  "error_summary": null
+}
