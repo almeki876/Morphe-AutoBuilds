@@ -6,7 +6,6 @@ import argparse
 import json
 import re
 from dataclasses import dataclass
-from datetime import datetime, timezone
 from pathlib import Path
 
 
@@ -199,21 +198,10 @@ def render(
     config_path: Path = Path("my-patch-config.json"),
 ) -> str:
     targets = configured_targets(config_path)
-    parsed, _unmatched, releases = newest_assets(payload, targets=targets or None)
+    parsed, _unmatched, _releases = newest_assets(payload, targets=targets or None)
     metadata = source_metadata(source_root)
 
-    newest_release = releases[0] if releases else {}
-    published = _release_timestamp(newest_release)
-    updated = published[:10] if published else datetime.now(timezone.utc).date().isoformat()
-
-    lines = [
-        "# Direct APK Download Links",
-        "",
-        f"最終更新: {updated}",
-        "",
-        "アプリとパッチソースを選び、端末に合うアーキテクチャをダウンロードしてください。",
-        "",
-    ]
+    lines = ["# Direct APK Download Links", ""]
 
     grouped: dict[str, dict[str, list[ApkAsset]]] = {}
     for item in parsed:
@@ -229,7 +217,7 @@ def render(
                 key=lambda item: (ARCH_ORDER.get(item.arch, 99), item.arch),
             )
             lines.extend([f"### {app_label(app)}", ""])
-            links = [f"[⬇️ {item.arch}]({item.url})" for item in assets]
+            links = [f"[{item.arch}]({item.url})" for item in assets]
             lines.extend([" · ".join(links), ""])
 
     if not parsed:
