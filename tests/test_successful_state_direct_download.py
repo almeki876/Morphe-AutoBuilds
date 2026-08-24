@@ -79,6 +79,110 @@ class SuccessfulStateDirectDownloadTests(unittest.TestCase):
             self.assertNotIn("https://example.invalid/old.apk", text)
             self.assertNotIn("base-apk-cache-v2", text)
 
+    def test_morphe_fallback_is_detected_from_build_report(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "youtube-music-morphe.json").write_text(
+                json.dumps(
+                    {
+                        "app_name": "youtube-music",
+                        "source": "morphe",
+                        "status": "success",
+                        "toolchain_fallback_used": True,
+                    }
+                ),
+                encoding="utf-8",
+            )
+            self.assertTrue(save_successful_state._morphe_fallback_used(root))
+
+    def test_non_morphe_fallback_does_not_freeze_morphe_anchor(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "youtube-revanced-anddea.json").write_text(
+                json.dumps(
+                    {
+                        "app_name": "youtube",
+                        "source": "revanced-anddea",
+                        "status": "success",
+                        "toolchain_fallback_used": True,
+                    }
+                ),
+                encoding="utf-8",
+            )
+            self.assertFalse(save_successful_state._morphe_fallback_used(root))
+
+    def test_consistent_fallback_free_morphe_reports_prove_primary_pair(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            for app in ("youtube", "youtube-music"):
+                (root / f"{app}-morphe.json").write_text(
+                    json.dumps(
+                        {
+                            "app_name": app,
+                            "source": "morphe",
+                            "status": "success",
+                            "toolchain_fallback_used": False,
+                            "toolchain_primary_cli_tag": "v1.14.0-dev.1",
+                            "toolchain_primary_patch_tag": "v1.40.0-dev.22",
+                        }
+                    ),
+                    encoding="utf-8",
+                )
+            self.assertEqual(
+                save_successful_state._morphe_proven_primary_tags(root),
+                ("v1.14.0-dev.1", "v1.40.0-dev.22"),
+            )
+
+    def test_fallback_or_inconsistent_primary_tags_do_not_advance_anchor(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "youtube-morphe.json").write_text(
+                json.dumps(
+                    {
+                        "app_name": "youtube",
+                        "source": "morphe",
+                        "status": "success",
+                        "toolchain_fallback_used": False,
+                        "toolchain_primary_cli_tag": "v1.14.0-dev.1",
+                        "toolchain_primary_patch_tag": "v1.40.0-dev.22",
+                    }
+                ),
+                encoding="utf-8",
+            )
+            (root / "youtube-music-morphe.json").write_text(
+                json.dumps(
+                    {
+                        "app_name": "youtube-music",
+                        "source": "morphe",
+                        "status": "success",
+                        "toolchain_fallback_used": False,
+                        "toolchain_primary_cli_tag": "v1.14.0-dev.2",
+                        "toolchain_primary_patch_tag": "v1.40.0-dev.22",
+                    }
+                ),
+                encoding="utf-8",
+            )
+            self.assertIsNone(save_successful_state._morphe_proven_primary_tags(root))
+
+            fallback_root = root / "fallback"
+            fallback_root.mkdir()
+            (fallback_root / "youtube-music-morphe.json").write_text(
+                json.dumps(
+                    {
+                        "app_name": "youtube-music",
+                        "source": "morphe",
+                        "status": "success",
+                        "toolchain_fallback_used": True,
+                        "toolchain_fallback_cli_tag": "v1.13.3-dev.1",
+                        "toolchain_fallback_patch_tag": "v1.40.0-dev.21",
+                    }
+                ),
+                encoding="utf-8",
+            )
+            self.assertIsNone(
+                save_successful_state._morphe_proven_primary_tags(fallback_root)
+            )
+
 
 if __name__ == "__main__":
     unittest.main()

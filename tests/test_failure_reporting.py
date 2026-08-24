@@ -61,6 +61,37 @@ class FailureReportingTests(unittest.TestCase):
         }
         self.assertEqual(_feature_failures(report), [failure])
 
+    def test_runtime_skipped_outcomes_are_report_only_for_issue_lifecycle(self) -> None:
+        report = {
+            "app_name": "duolingo",
+            "source": "hoo-dles",
+            "feature_failures": [
+                {"name": "Enable debug mode", "reason": "[runtime-skipped-default] default"},
+                {"name": "GmsCore support", "reason": "[runtime-skipped] MicroG"},
+            ],
+        }
+        self.assertEqual(_feature_failures(report), [])
+
+    def test_unsupported_and_failed_outcomes_remain_actionable(self) -> None:
+        unsupported = {
+            "name": "Example unsupported patch",
+            "reason": "[unsupported] not supported in this APK version",
+        }
+        failed = {
+            "name": "Example failed patch",
+            "reason": "[failed] CLI reported patch application failure",
+        }
+        runtime = {
+            "name": "Default-only patch",
+            "reason": "[runtime-skipped-default] default",
+        }
+        report = {
+            "app_name": "example",
+            "source": "example-source",
+            "feature_failures": [runtime, unsupported, failed],
+        }
+        self.assertEqual(_feature_failures(report), [unsupported, failed])
+
 
 if __name__ == "__main__":
     unittest.main()

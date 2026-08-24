@@ -20,6 +20,7 @@ from urllib.request import Request, urlopen
 
 STATE_FILE = Path("last-tags.json")
 DIRECT_DOWNLOAD_FILE = Path("Morphe-AutoBuilds-Direct-Download.md")
+BUILD_RESULTS_DIR = Path("build-results")
 SOURCE_ENV = {
     "morphe": "SOURCE_TAG_MORPHE",
     "anddea": "SOURCE_TAG_ANDDEA",
@@ -106,6 +107,59 @@ def _write_state(state: dict, path: Path = STATE_FILE) -> None:
     )
 
 
+def _morphe_reports(root: Path = BUILD_RESULTS_DIR) -> list[dict]:
+    reports: list[dict] = []
+    if not root.is_dir():
+        return reports
+    for path in root.rglob("*.json"):
+        try:
+            report = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            continue
+        if isinstance(report, dict) and report.get("source") == "morphe":
+            reports.append(report)
+    return reports
+
+
+def _morphe_fallback_used(root: Path = BUILD_RESULTS_DIR) -> bool:
+    """Return whether any Morphe matrix entry needed the safety fallback."""
+    return any(
+        report.get("toolchain_fallback_used") is True
+        for report in _morphe_reports(root)
+    )
+
+
+def _morphe_proven_primary_tags(
+    root: Path = BUILD_RESULTS_DIR,
+) -> tuple[str, str] | None:
+    """Return the exact fallback-free Morphe pair proven by this workflow run.
+
+    Never infer a known-good tag from "latest" at persistence time: upstream can
+    publish another release after the matrix build but before this job. Every
+    Morphe report must instead agree on the exact CLI/patch asset versions that
+    actually completed successfully in this run.
+    """
+    reports = _morphe_reports(root)
+    if not reports or any(report.get("toolchain_fallback_used") is True for report in reports):
+        return None
+
+    cli_tags: set[str] = set()
+    patch_tags: set[str] = set()
+    for report in reports:
+        if report.get("status") != "success":
+            return None
+        cli_tag = str(report.get("toolchain_primary_cli_tag") or "").strip()
+        patch_tag = str(report.get("toolchain_primary_patch_tag") or "").strip()
+        if not cli_tag or not patch_tag:
+            return None
+        cli_tags.add(cli_tag)
+        patch_tags.add(patch_tag)
+
+    if len(cli_tags) != 1 or len(patch_tags) != 1:
+        return None
+    return next(iter(cli_tags)), next(iter(patch_tags))
+
+
 def _merge_concurrent_state(baseline: dict, desired: dict, fresh: dict) -> dict:
     """Apply only this run's state changes on top of the newest remote state.
 
@@ -146,7 +200,7 @@ def _publish_success_outputs_to_main(
     """Publish successful state and the current download catalog atomically.
 
     Each retry resets to the newest origin/main, reapplies only this run's state
-    delta, and regenerates the catalog from the GitHub Releases API.  Therefore
+    delta, and regenerates the catalog from the GitHub Releases API. Therefore
     a concurrent documentation commit cannot make the catalog stale again.
     """
     _git("config", "user.name", "github-actions[bot]")
@@ -203,8 +257,32 @@ def _publish_success_outputs_to_main(
 def main() -> None:
     baseline = _read_state()
     state = dict(baseline)
+    morphe_fallback_used = _morphe_fallback_used()
+    morphe_proven_tags = (
+        None if morphe_fallback_used else _morphe_proven_primary_tags()
+    )
+    if morphe_fallback_used:
+        print(
+            "Morphe last-known-good toolchain remains unchanged because at least "
+            "one matrix build required fallback in this run."
+        )
+    elif morphe_proven_tags:
+        state["morphe_cli"], state["morphe"] = morphe_proven_tags
+        print(
+            "Advanced Morphe last-known-good toolchain to the exact pair proven "
+            f"by this run: CLI={morphe_proven_tags[0]} patches={morphe_proven_tags[1]}."
+        )
+    else:
+        print(
+            "Morphe build reports did not contain one consistent proven primary "
+            "toolchain pair; retaining the existing safety anchor."
+        )
 
     for key, env_name in SOURCE_ENV.items():
+        # Morphe safety state is managed only from exact build-report evidence
+        # above, never from the requested/resolved tag or a later API lookup.
+        if key == "morphe":
+            continue
         value = os.getenv(env_name, "").strip()
         if not value and key == "anddea":
             value = os.getenv("SOURCE_TAG_REVANCED_ANDDEA", "").strip()
@@ -216,6 +294,10 @@ def main() -> None:
         repositories = json.loads(source_path.read_text(encoding="utf-8"))
         if not isinstance(repositories, list) or len(repositories) < 3:
             continue
+        source_name = str(repositories[0].get("name") or source_path.stem)
+        if source_name == "morphe":
+            continue
+
         repository = repositories[2]
         if repository.get("gitlab"):
             continue
@@ -224,7 +306,7 @@ def main() -> None:
         except (HTTPError, URLError, TimeoutError, KeyError, IndexError):
             continue
         if value:
-            state[repositories[0]["name"]] = value
+            state[source_name] = value
 
     _write_state(state)
     # Resolve every current APK version while preserving prior values for

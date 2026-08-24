@@ -44,6 +44,19 @@ _FEATURE_APPLIED_ALIASES: dict[tuple[str, str], dict[str, str]] = {
     },
 }
 
+# These outcomes are intentionally preserved in Release Details as evidence,
+# but they are not actionable feature failures.  Keep unsupported/failed and
+# ordinary configuration exclusions in the issue lifecycle.
+_REPORT_ONLY_FEATURE_PREFIXES = (
+    "[runtime-skipped]",
+    "[runtime-skipped-default]",
+)
+
+
+def _report_only_feature_outcome(item: dict) -> bool:
+    reason = str(item.get("reason") or "").strip().casefold()
+    return any(reason.startswith(prefix) for prefix in _REPORT_ONLY_FEATURE_PREFIXES)
+
 
 def _feature_failures(report: dict) -> list[dict]:
     """Return genuine feature failures after exact, evidence-backed aliases.
@@ -51,11 +64,12 @@ def _feature_failures(report: dict) -> list[dict]:
     The build report intentionally preserves the CLI's raw applied names. This
     normalization exists only for issue lifecycle decisions, where treating a
     formally named option patch as missing after its aggregate patch was
-    reported as applied would create a false tracking issue.
+    reported as applied would create a false tracking issue. Runtime-only
+    skips remain in the report for Release Details but are report-only here.
     """
     failures = [
         item for item in (report.get("feature_failures") or [])
-        if isinstance(item, dict)
+        if isinstance(item, dict) and not _report_only_feature_outcome(item)
     ]
     if not failures:
         return []
@@ -486,7 +500,6 @@ def main() -> int:
         if status.get("status") == "failure":
             failures.append(status)
     for status in failures:
-        phase = status.get("phase", "Build")
         title = _failure_title(status, args.report_root)
         _publish(title, _body(status, args.report_root))
 
