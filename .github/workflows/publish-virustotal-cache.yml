@@ -1,4 +1,4 @@
-name: Publish VirusTotal Cache
+name: 自動: VirusTotalキャッシュを保存
 
 on:
   workflow_run:
