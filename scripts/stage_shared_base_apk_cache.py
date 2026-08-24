@@ -10,11 +10,9 @@ from pathlib import Path
 from src import apk_cache, apk_identity, providers
 from src.versioning import VersionCandidate
 
-
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(message)s")
 INPUT_ROOT = Path(os.getenv("BASE_APK_SHARED_INPUT_DIR", "base-input-artifacts"))
 BUILD_RESULT_ROOT = Path(os.getenv("BASE_APK_BUILD_RESULT_DIR", "build-results"))
-GOOGLE_PLAY_PROVIDERS = frozenset({"aurora-google-play", "google-play"})
 
 
 def _successful_builds() -> set[tuple[str, str]]:
@@ -66,18 +64,11 @@ def _copy_origin_sidecar(manifest_path: Path, staged: Path) -> None:
         logging.warning("Could not promote APK origin metadata %s: %s", manifest_path, error)
 
 
-def _cache_provider(manifest_path: Path) -> str | None:
-    """Recover a Google Play provider; non-Play origins are never durable-cached."""
-    payload = _origin(manifest_path)
-    provider = str((payload or {}).get("provider") or "").strip()
-    if provider not in GOOGLE_PLAY_PROVIDERS:
-        if provider:
-            logging.info(
-                "⏭️  Not promoting non-Play APK to durable cache: provider=%s",
-                provider,
-            )
-        return None
-    return provider
+def _cache_provider(manifest_path: Path) -> str:
+    """Return provider provenance without using provider as cache eligibility."""
+    payload = _origin(manifest_path) or {}
+    provider = str(payload.get("provider") or "unknown").strip()
+    return provider or "unknown"
 
 
 def main() -> int:
@@ -105,12 +96,8 @@ def main() -> int:
         package = providers.configured_package(app)
         input_apk = _artifact_input(manifest_path, manifest)
         provider = _cache_provider(manifest_path)
-        if not package or input_apk is None or provider is None:
-            logging.warning(
-                "Refusing durable cache promotion without a verified Japanese Google Play origin for %s/%s",
-                app,
-                source,
-            )
+        if not package or input_apk is None:
+            logging.warning("Refusing durable cache promotion without a valid artifact for %s/%s", app, source)
             continue
         key = (package, version, str(input_apk.resolve()))
         if key in seen:
@@ -119,19 +106,16 @@ def main() -> int:
         try:
             apk_identity.validate_identity(input_apk, package, VersionCandidate(name=version))
         except apk_identity.ApkIdentityError as error:
-            logging.warning(
-                "Refusing durable cache promotion for %s %s: %s", app, version, error
-            )
+            logging.warning("Refusing durable cache promotion for %s %s: %s", app, version, error)
             continue
+        # apk_cache.stage() performs the authoritative payload validation,
+        # including verification that Japanese resources actually exist.
         staged = apk_cache.stage(input_apk, package, version, provider)
         if staged is not None:
             _copy_origin_sidecar(manifest_path, staged)
             staged_count += 1
 
-    logging.info(
-        "Staged %d verified Base APK cache candidate(s) from shared artifacts",
-        staged_count,
-    )
+    logging.info("Staged %d verified Base APK cache candidate(s) from shared artifacts", staged_count)
     return 0
 
 
