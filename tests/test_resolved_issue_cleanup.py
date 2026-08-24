@@ -1,6 +1,37 @@
+import json
 import subprocess
 
 from scripts import close_resolved_build_issues as cleanup
+
+
+def test_open_auto_issues_accepts_actions_bot_login_variants(monkeypatch):
+    issues = [
+        {
+            "number": 1314,
+            "title": "[Feature Failure] youtube-music - revanced-anddea - v9.15.51 - Spoof signature",
+            "body": "",
+            "author": {"login": "github-actions"},
+        },
+        {
+            "number": 1319,
+            "title": "[Feature Failure] youtube-music - revanced-anddea - v9.15.51 - Spoof app version",
+            "body": "",
+            "author": {"login": "github-actions[bot]"},
+        },
+        {
+            "number": 9999,
+            "title": "[Feature Failure] youtube-music - revanced-anddea - v9.15.51 - Human report",
+            "body": "",
+            "author": {"login": "someone-else"},
+        },
+    ]
+
+    def fake_run(args, **_kwargs):
+        return subprocess.CompletedProcess(args, 0, stdout=json.dumps(issues), stderr="")
+
+    monkeypatch.setattr(cleanup.subprocess, "run", fake_run)
+
+    assert [issue["number"] for issue in cleanup._open_auto_issues()] == [1314, 1319]
 
 
 def test_report_only_feature_closes_while_unsupported_stays_open(monkeypatch, tmp_path):

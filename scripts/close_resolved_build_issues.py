@@ -22,6 +22,7 @@ AUTO_PREFIXES = (
     "[Feature Failure]",
     "[Partial Patch Failure]",
 )
+GITHUB_ACTIONS_BOT_LOGINS = {"github-actions", "github-actions[bot]"}
 FEATURE_NAME_RE = re.compile(r"^- \*\*Failed patch feature:\*\* `(.+?)`$", re.MULTILINE)
 
 
@@ -66,7 +67,7 @@ def _open_auto_issues() -> list[dict]:
         issue for issue in value
         if isinstance(issue, dict)
         and str(issue.get("title") or "").startswith(AUTO_PREFIXES)
-        and str((issue.get("author") or {}).get("login") or "") == "github-actions[bot]"
+        and str((issue.get("author") or {}).get("login") or "") in GITHUB_ACTIONS_BOT_LOGINS
     ]
 
 
