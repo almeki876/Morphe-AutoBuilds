@@ -75,6 +75,26 @@ class GooglePlayLatencyPolicyTests(unittest.TestCase):
             timeout = aurora_play._command_timeout(["playfetch", "version"])
         self.assertEqual(timeout, 3.0)
 
+    def test_known_transfer_commands_infer_their_payload_directory(self) -> None:
+        self.assertEqual(
+            aurora_play._transfer_progress_dir(
+                ["gplaydl", "download", "pkg", "-o", "/tmp/gplay", "-a", "arm64"]
+            ),
+            Path("/tmp/gplay"),
+        )
+        self.assertEqual(
+            aurora_play._transfer_progress_dir(
+                ["playfetch", "pull", "pkg", "-out", "/tmp/playfetch"]
+            ),
+            Path("/tmp/playfetch"),
+        )
+        self.assertEqual(
+            aurora_play._transfer_progress_dir(
+                ["apkeep", "-a", "pkg", "-d", "google-play", "/tmp/apkeep"]
+            ),
+            Path("/tmp/apkeep"),
+        )
+
     def test_active_transfer_can_run_longer_than_idle_window(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -94,7 +114,7 @@ class GooglePlayLatencyPolicyTests(unittest.TestCase):
                 clear=False,
             ):
                 started = time.monotonic()
-                result = aurora_play._run(
+                result = aurora_play._run_transfer(
                     [sys.executable, "-c", script],
                     progress_dir=root,
                 )
@@ -123,7 +143,7 @@ class GooglePlayLatencyPolicyTests(unittest.TestCase):
                     aurora_play.GooglePlayTimeout,
                     "produced no download payload for 1s",
                 ):
-                    aurora_play._run(
+                    aurora_play._run_transfer(
                         [sys.executable, "-c", script],
                         progress_dir=root,
                     )
@@ -148,7 +168,7 @@ class GooglePlayLatencyPolicyTests(unittest.TestCase):
                     aurora_play.GooglePlayTimeout,
                     "download stalled with no payload progress for 1s",
                 ):
-                    aurora_play._run(
+                    aurora_play._run_transfer(
                         [sys.executable, "-c", script],
                         progress_dir=root,
                     )
