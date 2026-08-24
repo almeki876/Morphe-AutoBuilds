@@ -1,4 +1,4 @@
-name: Repository and APK Provider Health
+name: 保守: 取得元とビルド環境を点検
 
 on:
   schedule:
