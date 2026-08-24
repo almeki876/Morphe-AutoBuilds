@@ -1,0 +1,23 @@
+{
+  "results": [
+    {
+      "file": "ninja-vpn-rushiranpise-arm64-v8a.apks",
+      "sha256": "85788c572d013893373da701945b2714a43c37521478c515e0ffb3dd62b74602",
+      "size": 17022564,
+      "analysis_id": "Mjg0NjA0ZDYwOWM0ZDg2MWJjYWE5ZjcwNDQ3ODRjNGE6MTc4NzU0MDQxNQ==",
+      "malicious": 0,
+      "suspicious": 0,
+      "harmless": 0,
+      "undetected": 65,
+      "timeout": 0,
+      "failure": 1,
+      "unsupported": 9,
+      "verdict": "clean",
+      "method": "persistent hash cache",
+      "engines": {},
+      "permalink": "https://www.virustotal.com/gui/file/85788c572d013893373da701945b2714a43c37521478c515e0ffb3dd62b74602/detection",
+      "last_analysis_date": 1787540415,
+      "reanalyzed": false
+    }
+  ]
+}

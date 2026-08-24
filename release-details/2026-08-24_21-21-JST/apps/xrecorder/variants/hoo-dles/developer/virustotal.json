@@ -1,0 +1,23 @@
+{
+  "results": [
+    {
+      "file": "xrecorder-hoo-dles-universal.apks",
+      "sha256": "f657d60b53fb5192efe8711b01c5cc064353dd2b32a98f5898a89b6b67a2eb2b",
+      "size": 19817836,
+      "analysis_id": "N2VhYjViZDcwYWE0OWFhNThlMTI2NjI5NTI0OGFhZWU6MTc4NzU0MDQ0NQ==",
+      "malicious": 0,
+      "suspicious": 0,
+      "harmless": 0,
+      "undetected": 64,
+      "timeout": 1,
+      "failure": 1,
+      "unsupported": 9,
+      "verdict": "clean",
+      "method": "persistent hash cache",
+      "engines": {},
+      "permalink": "https://www.virustotal.com/gui/file/f657d60b53fb5192efe8711b01c5cc064353dd2b32a98f5898a89b6b67a2eb2b/detection",
+      "last_analysis_date": 1787540445,
+      "reanalyzed": false
+    }
+  ]
+}

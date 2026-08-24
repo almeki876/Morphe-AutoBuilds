@@ -1,0 +1,23 @@
+{
+  "results": [
+    {
+      "file": "yuucho-ninsho-rushiranpise-universal.apk",
+      "sha256": "0e00284a71e8b0706644901f804233115f02bd0f689b5a860cf85b1cab808313",
+      "size": 85084158,
+      "analysis_id": "",
+      "malicious": 0,
+      "suspicious": 0,
+      "harmless": 0,
+      "undetected": 61,
+      "timeout": 6,
+      "failure": 1,
+      "unsupported": 7,
+      "verdict": "clean",
+      "method": "persistent hash cache",
+      "engines": {},
+      "permalink": "https://www.virustotal.com/gui/file/0e00284a71e8b0706644901f804233115f02bd0f689b5a860cf85b1cab808313/detection",
+      "last_analysis_date": 1782587260,
+      "reanalyzed": false
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "results": [
+    {
+      "file": "camscanner-rushiranpise-universal.apks",
+      "sha256": "a6df42c87c00b5a76dcfb0df635b75bef359d09e384acfd194927974f478ab30",
+      "size": 148834686,
+      "analysis_id": "",
+      "malicious": 0,
+      "suspicious": 0,
+      "harmless": 0,
+      "undetected": 60,
+      "timeout": 2,
+      "failure": 2,
+      "unsupported": 11,
+      "verdict": "clean",
+      "method": "persistent hash cache",
+      "engines": {},
+      "permalink": "https://www.virustotal.com/gui/file/a6df42c87c00b5a76dcfb0df635b75bef359d09e384acfd194927974f478ab30/detection",
+      "last_analysis_date": 1787540435,
+      "reanalyzed": false
+    }
+  ]
+}

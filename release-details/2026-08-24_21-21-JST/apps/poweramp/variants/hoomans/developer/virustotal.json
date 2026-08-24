@@ -1,0 +1,23 @@
+{
+  "results": [
+    {
+      "file": "poweramp-hoomans-arm64-v8a.apks",
+      "sha256": "2ddbd7089d8b5debbea33b775438125753f821c336ab6c68c727e6044420afd1",
+      "size": 12820994,
+      "analysis_id": "MGJjYTJjNmMyN2E5ZThmYmViNDg5NGJlYTdlMjQ4YjE6MTc4NzU0MDI0MQ==",
+      "malicious": 0,
+      "suspicious": 0,
+      "harmless": 0,
+      "undetected": 59,
+      "timeout": 5,
+      "failure": 1,
+      "unsupported": 10,
+      "verdict": "clean",
+      "method": "persistent hash cache",
+      "engines": {},
+      "permalink": "https://www.virustotal.com/gui/file/2ddbd7089d8b5debbea33b775438125753f821c336ab6c68c727e6044420afd1/detection",
+      "last_analysis_date": 1787540241,
+      "reanalyzed": false
+    }
+  ]
+}
