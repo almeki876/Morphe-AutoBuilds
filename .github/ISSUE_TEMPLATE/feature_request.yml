@@ -1,0 +1,35 @@
+name: 機能・アプリ追加を提案する
+description: 新機能、設定変更、対応アプリ追加などを提案します。
+title: "[Request] "
+labels:
+  - enhancement
+body:
+  - type: markdown
+    attributes:
+      value: |
+        提案ありがとうございます。必要な内容だけ簡単に入力してください。
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: 何を追加・変更してほしいですか？
+      placeholder: 例：〇〇アプリを自動ビルド対象に追加してほしい。
+    validations:
+      required: true
+
+  - type: input
+    id: app
+    attributes:
+      label: 対象アプリ
+      description: アプリ追加や特定アプリへの要望の場合だけ入力してください。
+      placeholder: 例：Example App
+
+  - type: textarea
+    id: details
+    attributes:
+      label: 詳細・参考情報
+      description: パッケージID、パッチソース、参考URL、理由などがあれば入力してください。
+      placeholder: |
+        パッケージID: com.example.app
+        パッチソース: https://github.com/example/patches
+        その他: 必要な情報があればここへ
