@@ -1,4 +1,5 @@
 {
   "package": "jp.japanpost.jp_bank.bankbookapp",
-  "source_policy": "google-play-only"
+  "source_policy": "provider-chain",
+  "egress_policy": "japan-first"
 }
