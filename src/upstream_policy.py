@@ -1,26 +1,16 @@
-"""Runtime policy derived from the current upstream patch bundle.
+"""Runtime policy for upstream APK version compatibility.
 
-The repository may keep local patch options and provider fallback metadata, but
-those values normally must not override the patch bundle's current
-recommendations. A very small set of app-specific safety/compatibility patches
-is intentionally allowed to remain explicitly enabled and required.
+This module must not mutate patch selection from ``my-patch-config.json``.
+Explicit ``options``, ``disable``, ``force_enable`` and ``required`` entries are
+repository-owned build intent and are consumed unchanged by the patch builder.
 
-This module prepares an ephemeral CI working copy before download/patch code is
-loaded:
-
-* only options/required entries for upstream-recommended patches remain active;
-* ``force_enable`` is ignored unless the app/source is an explicit exception;
-* explicit exceptions remain enabled even when upstream marks the patch
-  disabled by default, and are made ``required`` so a missing application
-  fails closed;
-* legacy per-app patch allowlists are ignored when recommendation metadata is
-  unavailable, leaving selection to the CLI defaults;
-* when the patch side explicitly reports no version restriction (``any``/``null``),
-  provider version pins are ignored for this run so the current store release
-  is selected.
+The only runtime adjustment kept here concerns provider version pins: when the
+current upstream patch bundle explicitly reports that an app supports ``any``
+(or ``null``) version, stale provider version pins are removed from the ephemeral
+CI working copy so the current store release can be selected.
 
 Nothing here changes committed configuration. GitHub Actions starts from a clean
-checkout for every job, so these edits affect only the current process/worktree.
+checkout for every job, so provider edits affect only the current process/worktree.
 """
 
 from __future__ import annotations
@@ -29,13 +19,6 @@ import json
 import logging
 import os
 from pathlib import Path
-from typing import Iterable
-
-
-EXPLICIT_FORCE_ENABLE_EXCEPTIONS: dict[tuple[str, str], frozenset[str]] = {
-    ("yuucho-tsucho", "rushiranpise"): frozenset({"Hide ADB status"}),
-    ("yuucho-ninsho", "rushiranpise"): frozenset({"Hide ADB status"}),
-}
 
 
 def _tool_files(source: str, tools_root: Path = Path("tools")) -> tuple[Path | None, Path | None]:
@@ -63,123 +46,6 @@ def _tool_files(source: str, tools_root: Path = Path("tools")) -> tuple[Path | N
     cli = max(cli_candidates, key=lambda path: path.stat().st_mtime, default=None)
     bundle = max(bundles, key=lambda path: path.stat().st_mtime, default=None)
     return cli, bundle
-
-
-def _patch_entries(source: str, tools_root: Path = Path("tools")) -> list[dict] | None:
-    path = tools_root / source / "patches-list.json"
-    if not path.is_file():
-        return None
-    try:
-        raw = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError) as error:
-        logging.warning("Could not read %s for upstream policy: %s", path, error)
-        return None
-    patches = raw.get("patches") if isinstance(raw, dict) else raw
-    if not isinstance(patches, list):
-        return None
-    return [patch for patch in patches if isinstance(patch, dict)]
-
-
-def _compatible_packages(value: object) -> set[str]:
-    if isinstance(value, dict):
-        return {str(name) for name in value}
-    if isinstance(value, list):
-        packages: set[str] = set()
-        for item in value:
-            if not isinstance(item, dict):
-                continue
-            name = item.get("packageName", item.get("name"))
-            if name:
-                packages.add(str(name))
-        return packages
-    return set()
-
-
-def recommended_patch_names(entries: Iterable[dict], package: str) -> set[str]:
-    """Return patches upstream currently recommends for ``package``."""
-    recommended: set[str] = set()
-    for patch in entries:
-        name = str(patch.get("name") or "").strip()
-        if not name:
-            continue
-        compatible = patch.get("compatiblePackages") or []
-        packages = _compatible_packages(compatible)
-        if compatible and package not in packages:
-            continue
-        if bool(patch.get("use", patch.get("default", True))):
-            recommended.add(name)
-    return recommended
-
-
-def _sanitize_patch_config(
-    app_name: str,
-    source: str,
-    recommended: set[str] | None,
-    config_path: Path = Path("my-patch-config.json"),
-) -> None:
-    if not config_path.is_file():
-        return
-    try:
-        raw = json.loads(config_path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError) as error:
-        logging.warning("Could not prepare upstream patch policy: %s", error)
-        return
-
-    explicit_force = EXPLICIT_FORCE_ENABLE_EXCEPTIONS.get((app_name, source), frozenset())
-    changed = False
-    for entry in raw.get("patch_list", []):
-        if not isinstance(entry, dict):
-            continue
-        if entry.get("app_name") != app_name or entry.get("source") != source:
-            continue
-
-        configured_force = [str(name) for name in (entry.get("force_enable") or [])]
-        preserved_force = [name for name in configured_force if name in explicit_force]
-        if preserved_force != configured_force:
-            entry["force_enable"] = preserved_force
-            changed = True
-
-        # Explicit exceptions are intentionally allowed even when the upstream
-        # bundle marks them disabled by default. This is exactly the case for
-        # Yuucho's "Hide ADB status" patch.
-        allowed = set(recommended or set()) | set(preserved_force)
-        options = entry.get("options") or []
-        filtered_options = [
-            option for option in options
-            if isinstance(option, dict) and option.get("patch") in allowed
-        ]
-        if filtered_options != options:
-            entry["options"] = filtered_options
-            changed = True
-
-        existing_required = [
-            str(name)
-            for name in (entry.get("required") or entry.get("required_patches") or [])
-        ]
-        filtered_required = [name for name in existing_required if name in allowed]
-        for name in preserved_force:
-            if name not in filtered_required:
-                filtered_required.append(name)
-        if filtered_required != existing_required or (preserved_force and "required" not in entry):
-            entry["required"] = filtered_required
-            entry.pop("required_patches", None)
-            changed = True
-        break
-
-    if changed:
-        config_path.write_text(
-            json.dumps(raw, ensure_ascii=False, indent=2) + "\n",
-            encoding="utf-8",
-        )
-
-    if recommended is None:
-        legacy = Path("patches") / f"{app_name}-{source}.txt"
-        if legacy.is_file():
-            legacy.unlink()
-            logging.info(
-                "Upstream recommendation metadata unavailable; ignoring legacy patch allowlist %s",
-                legacy,
-            )
 
 
 def _package_for_app(app_name: str, apps_root: Path = Path("apps")) -> str | None:
@@ -283,7 +149,7 @@ def _ignore_provider_version_pins_for_any(app_name: str, apps_root: Path = Path(
 
 
 def prepare_runtime_policy() -> None:
-    """Apply the upstream-driven policy to the current CI working copy."""
+    """Apply only upstream APK-version behavior to the current CI worktree."""
     app_name = os.getenv("APP_NAME", "").strip()
     source = os.getenv("SOURCE", "").strip()
     if not app_name or not source:
@@ -292,14 +158,6 @@ def prepare_runtime_policy() -> None:
     package = _package_for_app(app_name)
     if not package:
         return
-
-    entries = _patch_entries(source)
-    recommended = (
-        recommended_patch_names(entries, package)
-        if entries is not None
-        else None
-    )
-    _sanitize_patch_config(app_name, source, recommended)
 
     restriction = _patch_has_version_restriction(package, source)
     if restriction is False:
