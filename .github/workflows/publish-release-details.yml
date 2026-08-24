@@ -106,6 +106,16 @@ jobs:
           repository: ${{ github.repository }}
           run-id: ${{ steps.source-run.outputs.run_id }}
 
+      - name: Download source Actions log for runtime patch evidence
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p details-input
+          gh run view "${{ steps.source-run.outputs.run_id }}" \
+            --repo "${{ github.repository }}" \
+            --log > details-input/actions.log
+          test -s details-input/actions.log
+
       - name: Verify integrated Gboard patch results
         run: python3 scripts/validate_release_details.py
 
@@ -165,6 +175,15 @@ jobs:
           RUN_URL: ${{ steps.source-run.outputs.run_url }}
         run: |
           python3 scripts/generate_release_details.py
+
+      - name: Append runtime skipped patch evidence
+        env:
+          RELEASE_TAG: ${{ steps.release.outputs.release_tag }}
+        run: |
+          python3 scripts/append_release_skip_details.py \
+            --actions-log details-input/actions.log \
+            --build-results details-input/build \
+            --release-dir "release-details/$RELEASE_TAG"
 
       - name: Commit Release detail index and app pages
         env:
