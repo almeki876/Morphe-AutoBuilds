@@ -16,6 +16,7 @@ class RepositoryOrganizationTests(unittest.TestCase):
         "diagnose-google-play-purchase.yml": "保守: Google Play取得を診断",
         "health-check.yml": "保守: 取得元とビルド環境を点検",
         "japan-egress-check.yml": "保守: 日本Tailscale経路を確認",
+        "publish-release-details.yml": "Publish Release Details",
         "publish-virustotal-cache.yml": "自動: VirusTotalキャッシュを保存",
         "register-google-play.yml": "セットアップ: Google Playアカウントを登録",
         "update-direct-download-links.yml": "自動: APK直リンク一覧を更新",
@@ -35,6 +36,7 @@ class RepositoryOrganizationTests(unittest.TestCase):
 
     def test_workflow_run_dependencies_still_target_primary_build_name(self):
         for filename in (
+            "publish-release-details.yml",
             "publish-virustotal-cache.yml",
             "update-direct-download-links.yml",
         ):
