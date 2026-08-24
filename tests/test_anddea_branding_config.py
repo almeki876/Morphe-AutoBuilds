@@ -19,23 +19,31 @@ class AnddeaBrandingConfigTests(unittest.TestCase):
     def _entry(self, app: str) -> dict:
         return self.entries[(app, "revanced-anddea")]
 
-    def test_youtube_uses_merged_branding_patch(self) -> None:
+    def test_youtube_uses_current_branding_patch_options(self) -> None:
         entry = self._entry("youtube")
         self.assertEqual(entry.get("required"), ["Custom branding for YouTube"])
         self.assertIn("Custom branding for YouTube", entry.get("force_enable", []))
         options = {(item["patch"], item["key"]): item["value"] for item in entry.get("options", [])}
         self.assertEqual(options[("Custom branding for YouTube", "customName")], "RVA")
-        self.assertIn(("Custom branding for YouTube", "customIcon"), options)
+        self.assertEqual(
+            options[("Custom branding for YouTube", "appIcon")],
+            "patch-assets/anddea/youtube/xisr_evergreen",
+        )
+        self.assertNotIn(("Custom branding for YouTube", "customIcon"), options)
         self.assertFalse(any("Custom branding name for YouTube" == patch for patch, _ in options))
         self.assertFalse(any("Custom header for YouTube" == patch for patch, _ in options))
 
-    def test_youtube_music_uses_merged_branding_patch(self) -> None:
+    def test_youtube_music_uses_current_branding_patch_options(self) -> None:
         entry = self._entry("youtube-music")
         self.assertEqual(entry.get("required"), ["Custom branding for YouTube Music"])
         self.assertIn("Custom branding for YouTube Music", entry.get("force_enable", []))
         options = {(item["patch"], item["key"]): item["value"] for item in entry.get("options", [])}
         self.assertEqual(options[("Custom branding for YouTube Music", "customName")], "RVA Music")
-        self.assertIn(("Custom branding for YouTube Music", "customIcon"), options)
+        self.assertEqual(
+            options[("Custom branding for YouTube Music", "appIcon")],
+            "patch-assets/anddea/youtube-music/xisr_yellow",
+        )
+        self.assertNotIn(("Custom branding for YouTube Music", "customIcon"), options)
         self.assertFalse(any("Custom branding name for YouTube Music" == patch for patch, _ in options))
         self.assertFalse(any("Custom header for YouTube Music" == patch for patch, _ in options))
 
