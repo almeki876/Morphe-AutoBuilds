@@ -1,0 +1,26 @@
+name: "一時修復: Release details publish"
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/trigger-release-details-fix.yml
+
+permissions:
+  actions: write
+  contents: read
+
+jobs:
+  dispatch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Publish details for verified Anddea release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh workflow run publish-release-details.yml \
+            --repo "${{ github.repository }}" \
+            --ref main \
+            -f run_id=32693522729 \
+            -f release_tag=2026-08-24_14-30-JST
