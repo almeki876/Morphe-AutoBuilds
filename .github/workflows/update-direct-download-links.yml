@@ -1,4 +1,4 @@
-name: Update Direct Download Links
+name: "自動: APK直リンク一覧を更新"
 
 on:
   workflow_dispatch:
@@ -24,6 +24,7 @@ concurrency:
 
 jobs:
   update:
+    name: APK直リンク一覧を再生成
     if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     steps:
@@ -36,37 +37,23 @@ jobs:
       - name: Fetch release history
         env:
           GH_TOKEN: ${{ github.token }}
-        run: |
-          gh api --paginate "repos/${{ github.repository }}/releases?per_page=100" --slurp > release-history.json
+        run: >-
+          gh api --paginate
+          "repos/${{ github.repository }}/releases?per_page=100"
+          --slurp > release-history.json
 
       - name: Generate direct download catalog
         run: python3 scripts/generate_direct_download_md.py release-history.json
 
-      - name: Ensure README download links
+      - name: Commit catalog when changed
         run: |
-          python3 - <<'PY'
-          from pathlib import Path
-
-          path = Path("README.md")
-          text = path.read_text(encoding="utf-8")
-          direct = "[APK直リンク一覧](./Morphe-AutoBuilds-Direct-Download.md)"
-          if direct not in text:
-              old = "完成したAPKは[最新リリース](https://github.com/almeki876/Morphe-AutoBuilds/releases/latest)からダウンロードできます。リリース名には作成日時がJSTで記録されます。[Obtainium / ObtainX用リンク一覧](./Morphe-AutoBuilds-Obtainium.md)から、アプリとパッチソースの組み合わせごとに更新を登録することもできます。"
-              new = "完成したAPKは[最新リリース](https://github.com/almeki876/Morphe-AutoBuilds/releases/latest)からダウンロードできます。リリース名には作成日時がJSTで記録されます。[APK直リンク一覧](./Morphe-AutoBuilds-Direct-Download.md)では、アプリ・パッチソース・アーキテクチャごとに現在入手できる最新版APKを直接ダウンロードできます。[Obtainium / ObtainX用リンク一覧](./Morphe-AutoBuilds-Obtainium.md)から、アプリとパッチソースの組み合わせごとに更新を登録することもできます。"
-              if old not in text:
-                  raise SystemExit("README download paragraph changed; refusing an unsafe automatic edit")
-              path.write_text(text.replace(old, new, 1), encoding="utf-8")
-          PY
-
-      - name: Commit catalog and README when changed
-        run: |
-          if git diff --quiet -- Morphe-AutoBuilds-Direct-Download.md README.md; then
-            echo "Direct download catalog and README are already current."
+          if git diff --quiet -- Morphe-AutoBuilds-Direct-Download.md; then
+            echo "Direct download catalog is already current."
             exit 0
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add Morphe-AutoBuilds-Direct-Download.md README.md
+          git add Morphe-AutoBuilds-Direct-Download.md
           git commit -m "docs: update direct APK download links"
           git pull --rebase origin main
           git push origin HEAD:main

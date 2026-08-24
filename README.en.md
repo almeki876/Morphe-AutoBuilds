@@ -2,175 +2,65 @@
 
 [Japanese](README.md) | [English]
 
-[![Upstream Check](https://img.shields.io/github/actions/workflow/status/almeki876/Morphe-AutoBuilds/check-upstream.yml?label=upstream%20check)](https://github.com/almeki876/Morphe-AutoBuilds/actions/workflows/check-upstream.yml)
 [![Build Status](https://img.shields.io/github/actions/workflow/status/almeki876/Morphe-AutoBuilds/build.yml?label=build)](https://github.com/almeki876/Morphe-AutoBuilds/actions/workflows/build.yml)
 [![Latest Release](https://img.shields.io/github/v/release/almeki876/Morphe-AutoBuilds?label=latest%20release)](https://github.com/almeki876/Morphe-AutoBuilds/releases/latest)
 
-Morphe AutoBuilds is an automated repository that applies community-made patches to Android applications and builds installable APK files. Patches are differential modifications designed to alter features, visual elements, or behaviors of the base app.
-
-GitHub Actions automatically monitors updates for patch sources and target applications, downloads compatible base APKs, applies patches, signs the output APKs, scans them via VirusTotal, and publishes the resulting releases on GitHub Releases. When different patch sources target the same app, separate APKs are created for each source.
+Morphe AutoBuilds automatically builds Android APKs with community-made patches and publishes the results through GitHub Releases.
 
 > [!IMPORTANT]
-> This repository and its distributed APKs are NOT official releases from original application developers, Google, ReVanced, Morphe, or patch authors. Please read the "Safety and Precautions" section before use.
+> This repository and its APKs are not official releases from the original app developers, Google, ReVanced, Morphe, or individual patch authors. Use them at your own discretion.
 
-## Downloading APKs
+## Download APKs
 
-Built APKs are available on the [Latest Release](https://github.com/almeki876/Morphe-AutoBuilds/releases/latest) page. Release titles include the creation date and time in JST. The [Obtainium / ObtainX link list](./Morphe-AutoBuilds-Obtainium.md) can register updates for each app and patch-source combination.
+Choose the option that best fits how you update apps:
 
-Each release note includes:
+- **[Latest Release](https://github.com/almeki876/Morphe-AutoBuilds/releases/latest)** — APKs produced by the latest release run
+- **[Direct APK links](./Morphe-AutoBuilds-Direct-Download.md)** — current APKs grouped by patch source, app, and architecture
+- **[Obtainium / ObtainX links](./Morphe-AutoBuilds-Obtainium.md)** — links for registering supported app/source combinations in an update manager
 
-- Successfully built and failed applications
-- Used patch sources and versions
-- Base APK version, architecture, and provider source
-- VirusTotal inspection status and SHA-256 file hashes
+The direct-download list is the simplest place to see what is currently available.
 
-APK filenames contain the app name, target architecture, and base APK version. `arm64-v8a` builds are prioritized, automatically falling back to `universal` builds if `arm64-v8a` is unavailable.
+## Which architecture should I use?
 
-## Supported Applications
+- `arm64-v8a` — most modern Android phones and tablets
+- `armeabi-v7a` — some older 32-bit ARM devices
+- `x86_64` / `x86` — compatible emulators or devices
+- `universal` — includes support for multiple architectures
 
-The current configuration builds 74 combinations across 69 apps. An app built from multiple patch sources is counted once per source.
+If you are unsure, use `arm64-v8a` when available, otherwise use `universal`.
 
-| Patch Source | Target Applications |
-| --- | --- |
-| [Morphe (Official)](https://github.com/MorpheApp/morphe-patches) | YouTube, YouTube Music |
-| [Anddea](https://github.com/anddea/revanced-patches) | YouTube, YouTube Music |
-| [rushiranpise](https://github.com/rushiranpise/morphe-patches) | 1.1.1.1, AccuBattery, AdGuard, Adobe Scan, Amazon Shopping, Call Recorder, CamScanner, Countdown Widget, Excel, File Manager, Kahoot, KineMaster, MEGA, Ninja VPN, SD Maid SE, Speedtest, Windscribe VPN, Word, Yuucho Tuucho, Yuucho Ninsho |
-| [Hoo-dles](https://github.com/hoo-dles/morphe-patches) | Lightroom Mobile, Prime Video, Duolingo, ibis Paint X, Icon Packer, Smart Launcher, SoundCloud, WPS Office, GitHub, Windy, Xodo, XRecorder, Google News |
-| [shaun-the-sheep-patches](https://github.com/shaun-the-sheep-patches/morphe-patches) | Kinestop |
-| [RookieEnough](https://github.com/RookieEnough/De-Vanced) | Amazon Music, Google Photos, Google Recorder, Photomath, Adobe Photoshop Mix, Pixiv, Viber |
-| [ajstrick81](https://github.com/ajstrick81/morphe-androidtv-patches) | Disney+ (Android TV), Netflix, Prime Video (Android TV), Twitch (Android TV) |
-| [andrewliang25](https://github.com/andrewliang25/morphe-patches) | LINE |
-| [Hoomans](https://github.com/arandomhooman/hoomans-morphe-patches) | Adobe Acrobat, FolderSync, InShot, Poweramp, Tumblr, Twitch |
-| [hxreborn](https://github.com/hxreborn/morphe-patches) | Proton Mail |
-| [icysymmetra](https://github.com/icysymmetra/tiktok-patches-for-morphe) | TikTok |
-| [durgesh0505](https://github.com/durgesh0505/chiggi_morphe_patches) | Threads |
-| [Morning-Entree](https://github.com/Entree3k/Morning-Entree-Patches) | Gboard, Nova Launcher, Sleep as Android |
-| [Jason (jasonwu1994)](https://github.com/jasonwu1994/Gboard-patches) | Gboard |
-| [Adobo (jkennethcarino)](https://github.com/jkennethcarino/adobo) | Gboard |
-| [Paresh](https://github.com/Paresh-Maheshwari/paresh-patches) | Fing, Proton VPN |
-| [dh6k](https://github.com/dh6k/morphe-patches) | Brave, Brave Beta, Brave Nightly |
-| [BholeyKaBhakt](https://github.com/BholeyKaBhakt/android-patches-xtra) | Speedtest |
-| [Fluffy (rabilrbl)](https://github.com/rabilrbl/fluffy-patches) | Alarmy |
-| [Quantro](https://github.com/Quantro100/Morphe-patches) | AliExpress |
-| [Lain (kiraio-moe)](https://github.com/kiraio-moe/Lain-Patches) | iLovePDF |
-| [NekoGryphou](https://github.com/NekoGryphou/gryphous-morphe-patches) | Crunchyroll |
+## Patch sources
 
-Targets and applied patches may change over time according to upstream updates. Please inspect individual release notes and GitHub Actions logs for exact details of applied patches.
+The same app may be available from more than one patch source, such as Morphe, Anddea, or rushiranpise. Features and behavior can differ between sources.
 
-The Anddea YouTube build intentionally uses the Xisr Evergreen custom icon, while the Anddea YouTube Music build uses Xisr Yellow. These and other per-build patch options are maintained in `my-patch-config.json`.
+See the [Direct APK links](./Morphe-AutoBuilds-Direct-Download.md) for the combinations that are currently distributed.
 
-## Automated Build Workflow
+## Safety
 
-This repository checks for updates to registered patch sources and target APKs daily around 18:00 (JST). Scheduled execution on GitHub Actions may be delayed depending on GitHub queue load.
+Before release, the project checks the **unmodified base APK** with VirusTotal. A build is not treated as a valid release if the required scan cannot be completed.
 
-A separate periodic health check workflow validates repository configuration, patch tool release assets, and alternative APK providers every day. If all providers for an app fail or a tool fetch error occurs, a diagnostic report is uploaded, and an issue is automatically opened or updated. Once restored, the issue is closed automatically.
+VirusTotal and automated validation cannot guarantee absolute safety. Review release information and perform your own verification when appropriate.
 
-A configuration check workflow runs on every push and pull request, validating JSON syntax, package IDs, source definitions, architecture settings, Python syntax, and provider registrations.
+Patched APKs are signed differently from official releases. As a result, an APK from this repository may not install directly over an existing copy signed by the original developer or another distributor.
 
-When updates are detected, the workflow performs:
+## Updates
 
-1. Resolving versions for patch tools and patch bundles
-2. Resolving the patch-required versionName and any required Android versionCode from live metadata
-3. Trying Google Play first, then downloading from origins permitted by the app's source policy
-4. Validating package ID, versionName, versionCode, architecture, and APK structure
-5. Saving raw base APKs for security scanning
-6. Applying patches and signing output APKs with repository keystore
-7. Scanning raw base APKs on VirusTotal
-8. Publishing GitHub Releases with provenance metadata if VirusTotal check succeeds
+Patch sources and target apps are checked regularly. Only affected combinations are rebuilt when possible.
 
-If only certain apps fail to build, partial releases containing only successful APKs may be published. If zero APKs are built or VirusTotal inspection fails, no release is published.
+If some apps fail while others complete successfully, the successfully built and verified APKs may still be published. Per-app failures are reported through GitHub Actions and Issues.
 
-To force-build every source manually, run `build.yml` with `build_all_sources` enabled.
+## Report a problem
 
-## Base APK Retrieval Strategy
+Open **Issues → New issue** and choose the form that matches the problem: build/download, installation/runtime, Actions/Release, another problem, or a feature/app request.
 
-Except for AdGuard, Google Play is the preferred origin when linked credentials are configured. Unrestricted current releases use the pinned `playfetch`, `apkeep`, and `gplaydl` clients in order. For an explicitly versioned patch, `gplaydl` requests the exact Android versionCode.
+Include the affected app, patch source, release, and what happened when you know them.
 
-If Google Play fails and the app's source policy permits fallback, the following public providers are tried in order:
+## Development and self-hosting
 
-1. APKMirror
-2. APKPure
-3. Uptodown
-4. Softonic
-5. Aptoide
-6. APKCombo
+Repository setup, Secrets, Google Play, Tailscale, VirusTotal, provider configuration, workflow operation, and maintainer guidance are documented in **[SETUP.md](./SETUP.md)**.
 
-The workflow then has supplemental `justapk`, `apkeep`, and browser-driven Uptodown routes. Some providers can derive runtime settings from an existing package ID without an app-specific file. Network errors, rate limits, incomplete downloads, HTML challenge pages, corrupt archives, or mismatched package/version identities are rejected.
+README files are intentionally user-facing; implementation and operations documentation belongs in SETUP.
 
-An explicit versionName from the patch tool remains authoritative for compatibility. Android versionCode is resolved dynamically from APKPure and Uptodown metadata. If those histories do not contain it, the resolver accepts either current Google Play metadata with the exact same versionName or VirusTotal Androguard metadata for the SHA-256 of Uptodown's exact public APK. Storing fixed `version_code` values in `apps/` or `app-metadata/` is prohibited. If no trustworthy exact mapping can be established, the build fails instead of substituting a nearby or current release.
+## License
 
-Successful `any`, `null`, or no-version-constraint results select the latest release. Patch CLI errors, empty output, and unknown output do not mean “latest” and fail closed. APKPure may use its `d.apkpure.net` direct endpoint when normal pages are blocked by Cloudflare. Interactive bot challenges trigger fallback rather than repeated requests.
-
-On APKMirror, compatible older versions are verified using publisher/app slugs. Latest release monitoring targets dedicated category URLs (`/uploads/?appcategory=<name>`), parsing release links only for the target app to avoid unrelated versions. Version codes discovered from APKMirror variant tables are passed to APKPure fallbacks, preserving version accuracy.
-
-AdGuard is downloaded exclusively from official GitHub Releases ([AdguardTeam/AdguardForAndroid](https://github.com/AdguardTeam/AdguardForAndroid)). Third-party mirrors, pre-releases, and TV variants are excluded. If unavailable from GitHub, build stops rather than retrieving from unverified mirrors.
-
-When the normal base-APK retrieval path fails, every app—not a hard-coded subset—gets one retry through a verified Japanese Tailscale exit node. Yuucho Tuucho and Yuucho Ninsho use the `google-play-only` policy, so even that retry never uses third-party mirrors. The registered account must have acquired both apps from the Japanese Google Play storefront.
-
-Downloaded raw APKs are stored in an internal cache with SHA-256 validation, reused only when package ID and version match exactly.
-
-## VirusTotal Inspection
-
-Raw base APKs saved immediately after download are inspected on VirusTotal. Patched and signed output APKs are not uploaded to minimize API consumption and processing time.
-
-Files are checked by SHA-256 hash first. If existing scan results exist on VirusTotal, they are reused without uploading. New files are uploaded for analysis. Release is aborted if:
-
-- Raw base APK receives 1 or more `malicious` or `suspicious` flags
-- API errors or quota limits prevent analysis completion
-- Analysis times out
-- Inspection engine results cannot be fetched
-
-Scan results are attached to release notes and saved as GitHub Actions summary reports. If detections occur, engine details, detection names, categories, and definitions are logged to Actions markdown and full JSON artifacts. Note that clean VirusTotal results do not guarantee absolute security.
-
-## Installation Basics
-
-1. Open [Latest Release](https://github.com/almeki876/Morphe-AutoBuilds/releases/latest) and select the APK for your target app and patch source.
-2. Check release notes for base APK provider, version, and VirusTotal results.
-3. Backup app data if necessary.
-4. Open APK on your Android device and follow on-screen prompts to install.
-
-Android may require enabling "Install unknown apps" permission for your browser or file manager. Reverting temporary permissions after installation is recommended.
-
-## Usage Precautions
-
-- Distributed APKs use different signatures than official Play Store apps and cannot be installed as direct updates over official apps.
-- If uninstalling existing official apps, back up app settings and data first.
-- Google account login on YouTube apps may require separate GmsCore components.
-- Using patched applications may violate terms of service for target platforms.
-- Modifying financial or authentication apps carries inherent security risks. Use official apps if you cannot independently verify safety.
-
-## Repository Administration
-
-Regular users do not need setup. Administrators running custom automated builds or forks should refer to [SETUP.md](./SETUP.md).
-
-Main configurations:
-
-| File / Directory | Purpose |
-| --- | --- |
-| `my-patch-config.json` | Apps to build, patch sources, and patch options |
-| `arch-config.json` | Per-app target architecture rules |
-| `app-metadata/` | Provider-neutral package IDs and `source_policy` |
-| `apps/` | Provider-specific search names, package IDs, and retrieval settings |
-| `sources/` | Patch tool and bundle source rules |
-| `scripts/probe_apk_sources.py` | Diagnostic script for provider testing |
-| `scripts/validate_repository.py` | JSON schema, package ID, and architecture consistency validator |
-| `scripts/provider_health.py` | Daily provider health check |
-| `scripts/detect_version_pinned.py` | Detects version-pinned apps from patch bundles |
-| `scripts/check_apk_versions.py` | Detects APK updates for version-pinned apps |
-| `scripts/release_metadata.py` | Generates build result metadata (success/failure counts, etc.) |
-| `scripts/release_notes.py` | Generates release notes in Markdown |
-
-| Workflow | Purpose |
-| --- | --- |
-| `check-upstream.yml` | Patch source and APK update detection, build triggering |
-| `build.yml` | Tool download, matrix build, VirusTotal scan, release publishing, and manual full builds |
-| `health-check.yml` | Configuration validation, tool release verification, daily APK provider health check |
-| `configuration-check.yml` | Push/PR configuration consistency check and Python compile check |
-| `register-google-play.yml` | Safe Google Play account registration through the official Authenticator |
-| `diagnose-google-play-purchase.yml` | Google Play purchase and device-profile diagnostics |
-
-## Disclaimer
-
-This repository is an unofficial project and is not affiliated with target app developers, Google, ReVanced, or Morphe projects. End users bear full responsibility for using distributed artifacts and managing their accounts, devices, and service agreements.
-
-To report issues, submit a report via [Issues](https://github.com/almeki876/Morphe-AutoBuilds/issues) with execution time, target app name, and failed build steps (excluding sensitive information).
+See [LICENSE](./LICENSE) for repository code licensing. Rights to original apps, patches, icons, and other third-party assets remain with their respective owners.

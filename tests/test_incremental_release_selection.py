@@ -1,7 +1,7 @@
 import unittest
 from pathlib import Path
 
-from scripts import pr_build_scope, release_notes
+from scripts import release_notes
 
 
 class IncrementalReleaseSelectionTests(unittest.TestCase):
@@ -44,46 +44,6 @@ class IncrementalReleaseSelectionTests(unittest.TestCase):
             },
         )
 
-    def test_pr_app_config_change_builds_only_that_app(self):
-        apps, sources = pr_build_scope.select_scope(
-            ["apps/apkpure/amazon-shopping.json"]
-        )
-        self.assertEqual(apps, {"amazon-shopping"})
-        self.assertEqual(sources, set())
-
-    def test_pr_source_change_builds_only_that_source(self):
-        apps, sources = pr_build_scope.select_scope(
-            ["sources/revanced-anddea.json"]
-        )
-        self.assertEqual(apps, set())
-        self.assertEqual(sources, {"revanced-anddea"})
-
-    def test_app_specific_patch_list_builds_only_that_app(self):
-        apps, sources = pr_build_scope.select_scope(
-            ["patches/youtube-revanced-anddea.txt"],
-            {"youtube", "youtube-music"},
-        )
-        self.assertEqual(apps, {"youtube"})
-        self.assertEqual(sources, set())
-
-    def test_unknown_patch_list_uses_one_smoke_app(self):
-        apps, sources = pr_build_scope.select_scope(
-            ["patches/future-app-future-source.txt"],
-            {"youtube"},
-        )
-        self.assertEqual(apps, {"crunchyroll"})
-        self.assertEqual(sources, set())
-
-    def test_core_change_uses_one_smoke_app(self):
-        apps, sources = pr_build_scope.select_scope(["scripts/prepare_matrix.py"])
-        self.assertEqual(apps, {"crunchyroll"})
-        self.assertEqual(sources, set())
-
-    def test_tests_only_change_does_not_dispatch_an_apk_build(self):
-        apps, sources = pr_build_scope.select_scope(["tests/test_example.py"])
-        self.assertEqual(apps, set())
-        self.assertEqual(sources, set())
-
     def test_release_title_has_no_partial_marker(self):
         workflow = Path(".github/workflows/build.yml").read_text(encoding="utf-8")
         self.assertNotIn("(Partial)", workflow)
@@ -94,6 +54,7 @@ class IncrementalReleaseSelectionTests(unittest.TestCase):
         )
         self.assertNotIn("for forced_source in", workflow)
         self.assertIn('-f updated_apps="$UPDATED_APPS"', workflow)
+
 
 if __name__ == "__main__":
     unittest.main()

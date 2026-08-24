@@ -1,4 +1,4 @@
-name: Publish VirusTotal Cache
+name: "自動: VirusTotalキャッシュを保存"
 
 on:
   workflow_run:
@@ -15,6 +15,9 @@ jobs:
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v7
+
       - name: Download VirusTotal report artifact
         env:
           GH_TOKEN: ${{ github.token }}
@@ -27,25 +30,10 @@ jobs:
             --dir vt-report
 
       - name: Extract portable SHA cache
-        run: |
-          python3 - <<'PY'
-          import json
-          from pathlib import Path
-
-          report = Path("vt-report/virustotal_base_results.json")
-          payload = json.loads(report.read_text(encoding="utf-8"))
-          cache = payload.get("cache")
-          if not isinstance(cache, dict) or cache.get("version") != 1:
-              raise SystemExit("VirusTotal report does not contain a v1 portable cache")
-          results = cache.get("results")
-          if not isinstance(results, dict):
-              raise SystemExit("VirusTotal portable cache has no results map")
-          Path("virustotal-cache-v1.json").write_text(
-              json.dumps(cache, ensure_ascii=False, separators=(",", ":")) + "\n",
-              encoding="utf-8",
-          )
-          print(f"Prepared {len(results)} cached SHA-256 result(s)")
-          PY
+        run: >-
+          python3 scripts/export_virustotal_cache.py
+          vt-report/virustotal_base_results.json
+          virustotal-cache-v1.json
 
       - name: Attach cache to the release
         env:

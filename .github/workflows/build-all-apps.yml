@@ -1,4 +1,4 @@
-name: Build All Apps
+name: "手動: 全アプリをビルド"
 
 on:
   workflow_dispatch:
