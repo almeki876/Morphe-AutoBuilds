@@ -93,5 +93,37 @@ class FailureReportingTests(unittest.TestCase):
         self.assertEqual(_feature_failures(report), [unsupported, failed])
 
 
+    def test_recommended_unsupported_patch_is_not_actionable(self) -> None:
+        recommended = {
+            "name": "Recommended upstream patch",
+            "reason": "[unsupported] not supported in this APK version",
+        }
+        explicit = {
+            "name": "Explicit patch",
+            "reason": "[unsupported] not supported in this APK version",
+        }
+        report = {
+            "app_name": "example",
+            "source": "example-source",
+            "requested_patches": ["Explicit patch"],
+            "feature_failures": [recommended, explicit],
+        }
+        self.assertEqual(_feature_failures(report), [explicit])
+
+    def test_required_patch_remains_actionable(self) -> None:
+        required = {
+            "name": "Required patch",
+            "reason": "[unsupported] not supported in this APK version",
+        }
+        report = {
+            "app_name": "example",
+            "source": "example-source",
+            "requested_patches": [],
+            "required_patches": ["Required patch"],
+            "feature_failures": [required],
+        }
+        self.assertEqual(_feature_failures(report), [required])
+
+
 if __name__ == "__main__":
     unittest.main()
