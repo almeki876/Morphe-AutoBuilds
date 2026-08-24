@@ -12,7 +12,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from src import apk_cache, apk_identity, aurora_play, browser_fallback, downloader, providers, utils, versioning
+from src import apk_cache, apk_identity, aurora_play, browser_fallback, downloader, google_play_metadata, providers, utils, versioning
 from src.versioning import VersionCandidate, pinned_candidate
 
 
@@ -281,6 +281,35 @@ def _restore_cached_candidate(
     return None
 
 
+def _restore_current_play_cache(
+    app_name: str,
+    package: str,
+    arch: str,
+    candidates: list[VersionCandidate],
+) -> tuple[Path, str] | None:
+    """Reuse the cached current Play APK for unrestricted patch policies.
+
+    A metadata details request is tiny compared with downloading an APK. Exact
+    patch versions continue to use the existing candidate cache path and never
+    get overridden by the current Play release.
+    """
+    if any(candidate.canonical for candidate in candidates):
+        return None
+    current = google_play_metadata.current_release_identity(package)
+    if current is None:
+        logging.info(
+            "Google Play current metadata unavailable for %s; continuing with normal routing",
+            app_name,
+        )
+        return None
+    logging.info(
+        "🔎 Google Play current release for %s is %s; checking durable APK cache before download",
+        app_name,
+        current.describe(),
+    )
+    return _restore_cached_candidate(app_name, package, arch, [current])
+
+
 def _record_play_download(
     app_name: str,
     package: str,
@@ -339,6 +368,13 @@ def _download(
         raise RuntimeError(
             f"Source policy for {app_name} requires Google Play; refusing provider-only retry"
         )
+
+    if play_enabled and not skip_play:
+        restored_current = _restore_current_play_cache(
+            app_name, package, arch, candidates
+        )
+        if restored_current is not None:
+            return restored_current
 
     # Known region-bound apps should not spend time on a network route that is
     # known to be unusable. The workflow owns Tailscale setup; this process only
