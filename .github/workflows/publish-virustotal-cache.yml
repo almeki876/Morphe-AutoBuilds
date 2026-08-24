@@ -1,0 +1,62 @@
+name: Publish VirusTotal Cache
+
+on:
+  workflow_run:
+    workflows: ["Build and Release APKs"]
+    types: [completed]
+
+permissions:
+  actions: read
+  contents: write
+
+jobs:
+  publish-cache:
+    name: Persist VirusTotal SHA cache
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download VirusTotal report artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_ID: ${{ github.event.workflow_run.id }}
+        run: |
+          mkdir -p vt-report
+          gh run download "$RUN_ID" \
+            --repo "${{ github.repository }}" \
+            --name virustotal-report \
+            --dir vt-report
+
+      - name: Extract portable SHA cache
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          report = Path("vt-report/virustotal_base_results.json")
+          payload = json.loads(report.read_text(encoding="utf-8"))
+          cache = payload.get("cache")
+          if not isinstance(cache, dict) or cache.get("version") != 1:
+              raise SystemExit("VirusTotal report does not contain a v1 portable cache")
+          results = cache.get("results")
+          if not isinstance(results, dict):
+              raise SystemExit("VirusTotal portable cache has no results map")
+          Path("virustotal-cache-v1.json").write_text(
+              json.dumps(cache, ensure_ascii=False, separators=(",", ":")) + "\n",
+              encoding="utf-8",
+          )
+          print(f"Prepared {len(results)} cached SHA-256 result(s)")
+          PY
+
+      - name: Attach cache to the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          release_tag=$(gh release view \
+            --repo "${{ github.repository }}" \
+            --json tagName \
+            --jq .tagName)
+          test -n "$release_tag"
+          gh release upload "$release_tag" virustotal-cache-v1.json \
+            --repo "${{ github.repository }}" \
+            --clobber
+          echo "Published VirusTotal cache to release $release_tag"
