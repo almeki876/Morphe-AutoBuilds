@@ -291,9 +291,7 @@ jobs:
           BASE_APK_CACHE: 'true'
           BASE_APK_CACHE_TAG: 'base-apk-cache-v2'
           BASE_APK_CACHE_REPOSITORY: ${{ github.repository }}
-        run: |
-          python3 scripts/download_apks.py 2>&1 | tee download-primary.log
-          exit ${PIPESTATUS[0]}
+        run: python3 scripts/run_logged.py --output download-primary.log -- python3 scripts/download_apks.py
 
       - name: Connect failed download to Japanese Tailscale exit node
         id: tailscale-fallback
@@ -345,9 +343,7 @@ jobs:
           BASE_APK_CACHE: 'true'
           BASE_APK_CACHE_TAG: 'base-apk-cache-v2'
           BASE_APK_CACHE_REPOSITORY: ${{ github.repository }}
-        run: |
-          python3 scripts/download_apks.py 2>&1 | tee download-japan.log
-          exit ${PIPESTATUS[0]}
+        run: python3 scripts/run_logged.py --output download-japan.log -- python3 scripts/download_apks.py
 
       - name: Final provider fallback if Japan path did not succeed
         id: download-apk-provider-rescue
@@ -365,12 +361,7 @@ jobs:
           BASE_APK_CACHE: 'true'
           BASE_APK_CACHE_TAG: 'base-apk-cache-v2'
           BASE_APK_CACHE_REPOSITORY: ${{ github.repository }}
-        run: |
-          if command -v tailscale >/dev/null 2>&1; then
-            sudo tailscale set --exit-node= 2>/dev/null || true
-          fi
-          env -u GITHUB_ACTIONS python3 scripts/download_apks.py 2>&1 | tee download-provider-rescue.log
-          exit ${PIPESTATUS[0]}
+        run: python3 -m scripts.run_provider_rescue
 
       - name: Resolve Download Result
         id: download-apk
@@ -383,21 +374,13 @@ jobs:
 
       - name: Record Download Result
         if: always()
-        run: |
-          mkdir -p download-status
-          {
-            echo "app=${{ matrix.app_name }}"
-            echo "source=${{ matrix.source }}"
-            echo "source_name=${{ matrix.source_label }}"
-            echo "phase=Download"
-            echo "status=${{ steps.download-apk.outcome }}"
-            echo "run=${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-            echo ""
-            echo "traceback_or_error_tail<<EOF"
-            if [ -f download.log ]; then tail -n 120 download.log; else echo "Download step did not start."; fi
-            echo "EOF"
-          } > "download-status/${{ matrix.app_name }}-${{ matrix.source }}-download.txt"
-          cat "download-status/${{ matrix.app_name }}-${{ matrix.source }}-download.txt" >> "$GITHUB_STEP_SUMMARY"
+        env:
+          APP_NAME: ${{ matrix.app_name }}
+          SOURCE: ${{ matrix.source }}
+          SOURCE_NAME: ${{ matrix.source_label }}
+          DOWNLOAD_STATUS: ${{ steps.download-apk.outcome }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: python3 scripts/record_download_status.py
 
       - name: Upload Download Result
         if: always()
@@ -536,15 +519,7 @@ jobs:
           path: .
 
       - name: Resolve Pre-downloaded APK
-        run: |
-          apk_path=$(find ./base-apk-input -type f \( -name '*.apk' -o -name '*.apkm' -o -name '*.apks' -o -name '*.xapk' \) -print -quit)
-          if [ -z "$apk_path" ]; then
-            echo "::error::No pre-downloaded APK input was found."
-            exit 1
-          fi
-          version=$(python3 -c 'import json; print(json.load(open("./base-apk-input/manifest.json"))["version"])')
-          echo "PRE_DOWNLOADED_APK=$apk_path" >> "$GITHUB_ENV"
-          echo "PRE_DOWNLOADED_VERSION=$version" >> "$GITHUB_ENV"
+        run: python3 scripts/resolve_pre_downloaded_apk.py
 
       - name: Build APK
         id: build-apk
@@ -560,58 +535,17 @@ jobs:
           BASE_APK_CACHE: 'true'
           BASE_APK_CACHE_TAG: 'base-apk-cache-v2'
           BASE_APK_CACHE_REPOSITORY: ${{ github.repository }}
-        run: |
-          echo "Building ${{ matrix.app_name }} with ${{ matrix.source_label }}..."
-          python3 -m src 2>&1 | tee build.log
-          exit ${PIPESTATUS[0]}
+        run: python3 scripts/run_logged.py --output build.log -- python3 -m src
 
       - name: Record Build Result
         if: always()
-        run: |
-          mkdir -p build-status
-          {
-            echo "app=${{ matrix.app_name }}"
-            echo "source=${{ matrix.source }}"
-            echo "source_name=${{ matrix.source_label }}"
-            echo "phase=Patch"
-            echo "status=${{ steps.build-apk.outcome }}"
-            echo "run=${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-          } > "build-status/${{ matrix.app_name }}-${{ matrix.source }}-build.txt"
-          if [ -f build.log ]; then
-            {
-              echo ""
-              echo "traceback_or_error_tail<<EOF"
-              tail -n 80 build.log
-              echo "EOF"
-            } >> "build-status/${{ matrix.app_name }}-${{ matrix.source }}-build.txt"
-          fi
-          if [ -f build-metadata/build-report.json ]; then
-            cp build-metadata/build-report.json "build-status/${{ matrix.app_name }}-${{ matrix.source }}.json"
-          fi
-          cat "build-status/${{ matrix.app_name }}-${{ matrix.source }}-build.txt" >> "$GITHUB_STEP_SUMMARY"
-          echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "### Patch application details" >> "$GITHUB_STEP_SUMMARY"
-          if [ -f build-metadata/build-report.json ]; then
-            jq -r '
-              "- **Patch source:** `" + (.source_name // .source) + "`",
-              "- **Status:** `" + (.lifecycle_status // .status) + "`",
-              "",
-              "**Applied patches**",
-              ((.applied_patches // [])[] | "- `" + . + "`"),
-              "",
-              "**Excluded patches**",
-              ((.feature_failures // .excluded_patches // [])[] | "- `" + .name + "`: " + .reason)
-            ' build-metadata/build-report.json >> "$GITHUB_STEP_SUMMARY"
-          else
-            echo "- No patch report was produced before the failure." >> "$GITHUB_STEP_SUMMARY"
-          fi
-          if [ -f build.log ]; then
-            echo "" >> "$GITHUB_STEP_SUMMARY"
-            echo "**Error log excerpt**" >> "$GITHUB_STEP_SUMMARY"
-            echo '```text' >> "$GITHUB_STEP_SUMMARY"
-            tail -n 80 build.log >> "$GITHUB_STEP_SUMMARY"
-            echo '```' >> "$GITHUB_STEP_SUMMARY"
-          fi
+        env:
+          APP_NAME: ${{ matrix.app_name }}
+          SOURCE: ${{ matrix.source }}
+          SOURCE_NAME: ${{ matrix.source_label }}
+          BUILD_STATUS: ${{ steps.build-apk.outcome }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: python3 scripts/record_build_status.py
 
       - name: Upload Build Result
         if: always()
@@ -782,18 +716,7 @@ jobs:
           merge-multiple: true
 
       - name: Collect All APKs
-        run: |
-          mkdir -p ./release-apks
-          echo "Collecting built APKs..."
-          [ -d ./all-apks ] && find ./all-apks -name "*.apk" -exec cp {} ./release-apks/ \; || true
-          echo "APKs in release-apks:"
-          ls -la ./release-apks/ 2>/dev/null || echo "(none)"
-          echo "## Build results" >> "$GITHUB_STEP_SUMMARY"
-          if [ -d ./build-results ] && find ./build-results -name '*.txt' -print -quit | grep -q .; then
-            cat ./build-results/*.txt >> "$GITHUB_STEP_SUMMARY"
-          else
-            echo "No per-app build result artifacts were found." >> "$GITHUB_STEP_SUMMARY"
-          fi
+        run: python3 scripts/prepare_release_assets.py
 
       - name: Download VirusTotal Report
         uses: actions/download-artifact@v8
@@ -805,31 +728,16 @@ jobs:
         id: check-apks
         env:
           EXPECTED_MATRIX: ${{ needs.prepare-matrix.outputs.matrix }}
-        run: |
-          total=$(find ./release-apks -name "*.apk" 2>/dev/null | wc -l)
-          echo "Total APKs built: $total"
-          if [ "$total" -eq 0 ]; then
-            echo "::error::No APK artifacts were produced. Refusing to report a successful release job."
-            echo "skip_release=true" >> $GITHUB_OUTPUT
-            exit 1
-          else
-            echo "skip_release=false" >> $GITHUB_OUTPUT
-          fi
-
-          python3 -m scripts.release_metadata
+        run: python3 scripts/check_release_assets.py
 
       - name: Add VirusTotal Report to Job Summary
         if: always() && hashFiles('virustotal_base_results.md') != ''
-        run: |
-          [ -f virustotal_base_results.md ] && cat virustotal_base_results.md >> "$GITHUB_STEP_SUMMARY"
+        run: cat virustotal_base_results.md >> "$GITHUB_STEP_SUMMARY"
 
       - name: Generate Release Tag (JST)
         if: steps.check-apks.outputs.skip_release == 'false'
         id: tag
-        run: |
-          jst_time=$(TZ=Asia/Tokyo date +'%Y-%m-%d_%H-%M-JST')
-          echo "release_tag=$jst_time" >> $GITHUB_OUTPUT
-          echo "Release tag: $jst_time"
+        run: python3 scripts/generate_release_tag.py
 
       - name: Generate Release Notes
         if: steps.check-apks.outputs.skip_release == 'false'
@@ -870,16 +778,9 @@ jobs:
       - name: Display Release Summary
         if: steps.check-apks.outputs.skip_release == 'false'
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          release_tag="${{ steps.tag.outputs.release_tag }}"
-
-          echo "Release Summary:"
-          echo "  Tag: $release_tag"
-          echo "  APKs:"
-          ls -1 ./release-apks/*.apk | sed 's/^/    - /'
-          echo ""
-          echo "Download: https://github.com/${{ github.repository }}/releases/tag/$release_tag"
+          RELEASE_TAG: ${{ steps.tag.outputs.release_tag }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: python3 scripts/display_release_summary.py
 
   persist-successful-state:
     name: Persist Successful Upstream State
