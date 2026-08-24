@@ -7,6 +7,10 @@ on:
       - Build and Release APKs
     types:
       - completed
+  schedule:
+    # workflow_run の取りこぼしや遅延があっても、リリース履歴から自動復旧する。
+    # 毎時0分付近の混雑を避け、15分間隔で再同期する。
+    - cron: '7,22,37,52 * * * *'
   push:
     branches:
       - main
