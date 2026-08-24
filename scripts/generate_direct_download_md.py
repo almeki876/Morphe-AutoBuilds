@@ -8,7 +8,6 @@ import re
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from urllib.parse import quote
 
 
 ASSET_RE = re.compile(
@@ -17,7 +16,7 @@ ASSET_RE = re.compile(
     re.IGNORECASE,
 )
 
-RELEASE_BASE_URL = "https://github.com/almeki876/Morphe-AutoBuilds/releases/tag"
+RELEASES_URL = "https://github.com/almeki876/Morphe-AutoBuilds/releases"
 JST = timezone(timedelta(hours=9), name="JST")
 
 SOURCE_LABELS = {
@@ -222,19 +221,16 @@ def render(
     parsed, _unmatched, releases = newest_assets(payload, targets=targets or None)
     metadata = source_metadata(source_root)
 
-    lines = ["# Direct APK Download Links", ""]
+    lines = [
+        "# Direct APK Download Links",
+        "",
+        f"- Releases: [GitHub Releases]({RELEASES_URL})",
+    ]
     if releases:
-        latest_release = releases[0]
-        release_tag = str(latest_release.get("tag_name") or "")
-        if release_tag:
-            release_url = str(latest_release.get("html_url") or "")
-            if not release_url:
-                release_url = f"{RELEASE_BASE_URL}/{quote(release_tag, safe='')}"
-            lines.append(f"- 参照Release: [{release_tag}]({release_url})")
-        else:
-            lines.append("- 参照Release: 不明")
-        lines.append(f"- 最終更新日時: {_format_release_timestamp(latest_release)}")
-        lines.append("")
+        lines.append(f"- 最終更新日時: {_format_release_timestamp(releases[0])}")
+    else:
+        lines.append("- 最終更新日時: 不明")
+    lines.append("")
 
     grouped: dict[str, dict[str, list[ApkAsset]]] = {}
     for item in parsed:
