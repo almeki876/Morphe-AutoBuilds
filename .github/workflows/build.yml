@@ -139,48 +139,14 @@ jobs:
         id: resolve-tags
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          resolve_tag() {
-            local repo="$1" hint="$2"
-            if [ -n "$hint" ] && [ "$hint" != "latest" ]; then
-              echo "$hint"
-              return
-            fi
-            gh api "repos/${repo}/releases?per_page=100" \
-              --jq 'sort_by(.published_at) | reverse | .[0].tag_name' \
-              2>/dev/null || echo "unknown"
-          }
-
-          morphe_resolved=$(resolve_tag  "MorpheApp/morphe-patches"          "${{ github.event.inputs.morphe_tag }}")
-          anddea_resolved=$(resolve_tag  "anddea/revanced-patches"            "${{ github.event.inputs.anddea_tag }}")
-          rushiranpise_resolved=$(resolve_tag "rushiranpise/morphe-patches" "${{ github.event.inputs.rushiranpise_tag }}")
-          rookie_resolved=$(resolve_tag  "RookieEnough/De-Vanced"              "${{ github.event.inputs.rookie_tag }}")
-          tosox_resolved=$(resolve_tag   "Tosox/revanced-patches"             "${{ github.event.inputs.tosox_tag }}")
-          yuzu_resolved="patche"
-          dropped_resolved=$(resolve_tag "indrastorms/Dropped-Patches"        "${{ github.event.inputs.dropped_tag }}")
-
-          echo "morphe_resolved=$morphe_resolved"   >> $GITHUB_OUTPUT
-          echo "anddea_resolved=$anddea_resolved"   >> $GITHUB_OUTPUT
-          echo "rushiranpise_resolved=$rushiranpise_resolved" >> $GITHUB_OUTPUT
-          echo "rookie_resolved=$rookie_resolved"   >> $GITHUB_OUTPUT
-          echo "tosox_resolved=$tosox_resolved"     >> $GITHUB_OUTPUT
-          echo "yuzu_resolved=$yuzu_resolved"       >> $GITHUB_OUTPUT
-          echo "dropped_resolved=$dropped_resolved" >> $GITHUB_OUTPUT
-
-          version_string="${morphe_resolved}__${anddea_resolved}__${rushiranpise_resolved}__${rookie_resolved}__${tosox_resolved}__${yuzu_resolved}__${dropped_resolved}"
-          file_hash="${{ hashFiles('my-patch-config.json', 'arch-config.json', 'sources/**') }}"
-          cache_key="build-tools-${file_hash}-${version_string}"
-          echo "cache-key=${cache_key}" >> $GITHUB_OUTPUT
-
-          echo "Resolved tags:"
-          echo "  morphe:  $morphe_resolved"
-          echo "  anddea:  $anddea_resolved"
-          echo "  rushiranpise: $rushiranpise_resolved"
-          echo "  rookie:  $rookie_resolved"
-          echo "  tosox:   $tosox_resolved"
-          echo "  yuzu:    $yuzu_resolved"
-          echo "  dropped: $dropped_resolved"
-          echo "Cache key: ${cache_key}"
+          MORPHE_TAG: ${{ github.event.inputs.morphe_tag }}
+          ANDDEA_TAG: ${{ github.event.inputs.anddea_tag }}
+          RUSHIRANPISE_TAG: ${{ github.event.inputs.rushiranpise_tag }}
+          ROOKIE_TAG: ${{ github.event.inputs.rookie_tag }}
+          TOSOX_TAG: ${{ github.event.inputs.tosox_tag }}
+          DROPPED_TAG: ${{ github.event.inputs.dropped_tag }}
+          CONFIG_HASH: ${{ hashFiles('my-patch-config.json', 'arch-config.json', 'sources/**') }}
+        run: python3 scripts/resolve_build_tools.py
 
       - name: Restore Cached Tools
         id: cache-restore
@@ -301,17 +267,7 @@ jobs:
         run: pip install -r requirements.txt
 
       - name: Install pinned Google Play clients
-        run: |
-          mkdir -p "$HOME/.local/bin"
-          curl -fsSL "https://github.com/Exmeaning/playfetch/releases/download/v0.9.1/playfetch-v0.9.1-linux-amd64" -o "$HOME/.local/bin/playfetch"
-          echo "7c91fa249309ee2e4105b12a7dedcbdba5d8c20d2f978442d59669c3e5350293  $HOME/.local/bin/playfetch" | sha256sum -c -
-          chmod +x "$HOME/.local/bin/playfetch"
-          curl -fsSL "https://github.com/EFForg/apkeep/releases/download/1.0.0/apkeep-x86_64-unknown-linux-gnu" -o "$HOME/.local/bin/apkeep"
-          echo "a23579a3ba366d25a6d69848189b983d65662f4ecf4b9e11e16510811659de4e  $HOME/.local/bin/apkeep" | sha256sum -c -
-          chmod +x "$HOME/.local/bin/apkeep"
-          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
-          "$HOME/.local/bin/playfetch" version
-          "$HOME/.local/bin/apkeep" --version
+        run: python3 scripts/install_google_play_clients.py
 
       - name: Download Base APK
         id: download-apk-primary
@@ -423,36 +379,7 @@ jobs:
           PRIMARY_OUTCOME: ${{ steps.download-apk-primary.outcome }}
           JAPAN_OUTCOME: ${{ steps.download-apk-japan.outcome }}
           PROVIDER_RESCUE_OUTCOME: ${{ steps.download-apk-provider-rescue.outcome }}
-        run: |
-          {
-            if [ -f download-primary.log ]; then
-              echo "===== Primary download ====="
-              cat download-primary.log
-            fi
-            if [ -f download-japan.log ]; then
-              echo "===== Japan fallback download ====="
-              cat download-japan.log
-            fi
-            if [ -f download-provider-rescue.log ]; then
-              echo "===== Final provider rescue ====="
-              cat download-provider-rescue.log
-            fi
-          } > download.log
-
-          if [ "$PRIMARY_OUTCOME" = "success" ]; then
-            echo "Primary download succeeded; fallbacks were not used."
-            exit 0
-          fi
-          if [ "$JAPAN_OUTCOME" = "success" ]; then
-            echo "Primary download failed; Japanese Tailscale fallback succeeded."
-            exit 0
-          fi
-          if [ "$PROVIDER_RESCUE_OUTCOME" = "success" ]; then
-            echo "Google Play/Japan path did not succeed; final provider rescue succeeded."
-            exit 0
-          fi
-          echo "Primary, Japanese Tailscale, and final provider rescue did not succeed." >&2
-          exit 1
+        run: python3 scripts/resolve_download_result.py
 
       - name: Record Download Result
         if: always()
@@ -600,17 +527,7 @@ jobs:
           pip install -r requirements.txt
 
       - name: Install pinned Google Play clients
-        run: |
-          mkdir -p "$HOME/.local/bin"
-          curl -fsSL "https://github.com/Exmeaning/playfetch/releases/download/v0.9.1/playfetch-v0.9.1-linux-amd64" -o "$HOME/.local/bin/playfetch"
-          echo "7c91fa249309ee2e4105b12a7dedcbdba5d8c20d2f978442d59669c3e5350293  $HOME/.local/bin/playfetch" | sha256sum -c -
-          chmod +x "$HOME/.local/bin/playfetch"
-          curl -fsSL "https://github.com/EFForg/apkeep/releases/download/1.0.0/apkeep-x86_64-unknown-linux-gnu" -o "$HOME/.local/bin/apkeep"
-          echo "a23579a3ba366d25a6d69848189b983d65662f4ecf4b9e11e16510811659de4e  $HOME/.local/bin/apkeep" | sha256sum -c -
-          chmod +x "$HOME/.local/bin/apkeep"
-          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
-          "$HOME/.local/bin/playfetch" version
-          "$HOME/.local/bin/apkeep" --version
+        run: python3 scripts/install_google_play_clients.py
 
       - name: Download Shared Base APK Input
         uses: actions/download-artifact@v8
@@ -946,32 +863,9 @@ jobs:
         if: steps.check-apks.outputs.skip_release == 'false'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          release_tag="${{ steps.tag.outputs.release_tag }}"
-          release_title="Morphe AutoBuilds $release_tag"
-
-          echo "Creating release: $release_tag"
-          gh release delete "$release_tag" --yes 2>/dev/null || true
-          git push --delete origin "refs/tags/$release_tag" 2>/dev/null || true
-
-          gh release create "$release_tag" \
-            --title "$release_title" \
-            --notes-file release_notes.md
-
-          find ./release-apks -name '*.apk' -print0 \
-            | xargs -0 -r -P 8 -I {} gh release upload "$release_tag" "{}"
-
-          python3 scripts/export_virustotal_cache.py \
-            virustotal_base_results.json \
-            virustotal-cache-v1.json
-          test -s virustotal-cache-v1.json
-          gh release upload "$release_tag" virustotal-cache-v1.json \
-            --repo "${{ github.repository }}" \
-            --clobber
-          echo "VirusTotal SHA cache attached to $release_tag"
-
-          echo "Release created and APK assets uploaded successfully!"
-          echo "Release URL: https://github.com/${{ github.repository }}/releases/tag/$release_tag"
+          RELEASE_TAG: ${{ steps.tag.outputs.release_tag }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: python3 -m scripts.create_release
 
       - name: Display Release Summary
         if: steps.check-apks.outputs.skip_release == 'false'
