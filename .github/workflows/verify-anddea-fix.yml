@@ -29,3 +29,4 @@ jobs:
       - name: Summary
         run: |
           echo "Dispatched build.yml from current main for revanced-anddea." >> "$GITHUB_STEP_SUMMARY"
+          echo "Trigger commit: $GITHUB_SHA" >> "$GITHUB_STEP_SUMMARY"
