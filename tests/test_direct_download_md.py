@@ -68,6 +68,51 @@ class DirectDownloadMarkdownTests(unittest.TestCase):
         self.assertNotIn("最終更新", output)
         self.assertNotIn("ダウンロードしてください", output)
 
+    def test_render_matches_obtainium_patch_config_order(self):
+        release = {
+            "assets": [
+                {
+                    "name": "google-photos-arm64-v8a-rookie-v7.40.0.apk",
+                    "browser_download_url": "https://example.invalid/photos.apk",
+                },
+                {
+                    "name": "youtube-arm64-v8a-revanced-anddea-v20.51.39.apk",
+                    "browser_download_url": "https://example.invalid/anddea-youtube.apk",
+                },
+                {
+                    "name": "youtube-music-arm64-v8a-morphe-v9.15.51.apk",
+                    "browser_download_url": "https://example.invalid/morphe-music.apk",
+                },
+                {
+                    "name": "youtube-arm64-v8a-morphe-v21.04.223.apk",
+                    "browser_download_url": "https://example.invalid/morphe-youtube.apk",
+                },
+            ]
+        }
+        config_order = [
+            ("youtube", "morphe"),
+            ("youtube-music", "morphe"),
+            ("youtube", "revanced-anddea"),
+            ("google-photos", "rookie"),
+        ]
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            output = render(
+                release,
+                source_root=root,
+                config_path=self._config(root, config_order),
+            )
+
+        morphe = output.index("## Morphe")
+        morphe_youtube = output.index("### YouTube", morphe)
+        morphe_music = output.index("### YouTube Music", morphe)
+        anddea = output.index("## Anddea")
+        rookie = output.index("## RookieEnough")
+        self.assertLess(morphe, anddea)
+        self.assertLess(anddea, rookie)
+        self.assertLess(morphe_youtube, morphe_music)
+        self.assertLess(morphe_music, anddea)
+
     def test_partial_release_preserves_unaffected_apps_and_replaces_updated_asset(self):
         old_youtube_url = "https://example.invalid/old/youtube.apk"
         old_photos_url = "https://example.invalid/old/photos.apk"
