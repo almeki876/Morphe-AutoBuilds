@@ -1,3 +1,4 @@
+import os
 import subprocess
 import unittest
 from unittest import mock
@@ -24,18 +25,47 @@ class JapanFallbackPolicyTests(unittest.TestCase):
     @mock.patch("scripts.download_apks._tailscale_fallback_active", return_value=False)
     def test_play_failure_requests_japan_before_mirrors(self, _active: mock.Mock) -> None:
         original = RuntimeError("Google Play unavailable")
-        with self.assertRaisesRegex(RuntimeError, "Japanese egress fallback"):
-            download_apks._require_japan_fallback_before_providers("yuucho-tsucho", original)
+        with mock.patch.dict(
+            os.environ,
+            {"GITHUB_ACTIONS": "true", "APP_NAME": "yuucho-tsucho"},
+            clear=False,
+        ):
+            with self.assertRaisesRegex(RuntimeError, "Japanese egress fallback"):
+                download_apks._require_japan_fallback_before_providers(
+                    "yuucho-tsucho",
+                    original,
+                )
 
     @mock.patch("scripts.download_apks._tailscale_fallback_active", return_value=True)
     def test_play_failure_can_continue_to_mirrors_after_japan_retry(
         self,
         _active: mock.Mock,
     ) -> None:
-        download_apks._require_japan_fallback_before_providers(
-            "yuucho-tsucho",
-            RuntimeError("Google Play unavailable"),
-        )
+        with mock.patch.dict(
+            os.environ,
+            {"GITHUB_ACTIONS": "true", "APP_NAME": "yuucho-tsucho"},
+            clear=False,
+        ):
+            download_apks._require_japan_fallback_before_providers(
+                "yuucho-tsucho",
+                RuntimeError("Google Play unavailable"),
+            )
+
+    @mock.patch("scripts.download_apks._tailscale_fallback_active")
+    def test_library_calls_do_not_require_workflow_tailscale(
+        self,
+        active: mock.Mock,
+    ) -> None:
+        with mock.patch.dict(
+            os.environ,
+            {"GITHUB_ACTIONS": "", "APP_NAME": ""},
+            clear=False,
+        ):
+            download_apks._require_japan_fallback_before_providers(
+                "example",
+                RuntimeError("Google Play unavailable"),
+            )
+        active.assert_not_called()
 
 
 class SuccessfulStateMergeTests(unittest.TestCase):
