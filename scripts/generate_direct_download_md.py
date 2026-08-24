@@ -74,6 +74,22 @@ def parse_asset(asset: dict, *, release_tag: str = "latest") -> ApkAsset | None:
     return ApkAsset(name=name, url=url, release_tag=release_tag, **match.groupdict())
 
 
+def configured_targets(config_path: Path = Path("my-patch-config.json")) -> set[tuple[str, str]]:
+    """Return the current app/source identities that are allowed in the catalog."""
+    try:
+        raw = json.loads(config_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return set()
+    entries = raw.get("patch_list") if isinstance(raw, dict) else None
+    if not isinstance(entries, list):
+        return set()
+    return {
+        (str(item.get("app_name")), str(item.get("source")))
+        for item in entries
+        if isinstance(item, dict) and item.get("app_name") and item.get("source")
+    }
+
+
 def _flatten_releases(payload: object) -> list[dict]:
     """Accept one release, a release list, or gh --paginate --slurp output."""
     if isinstance(payload, dict):
@@ -93,20 +109,29 @@ def _release_timestamp(release: dict) -> str:
     return str(release.get("published_at") or release.get("created_at") or "")
 
 
-def newest_assets(payload: object) -> tuple[list[ApkAsset], list[dict], list[dict]]:
-    """Return the newest known asset for each app/source/architecture identity.
+def newest_assets(
+    payload: object,
+    *,
+    targets: set[tuple[str, str]] | None = None,
+) -> tuple[list[ApkAsset], list[dict], list[dict]]:
+    """Return the newest known asset for each current app/source/arch identity.
 
-    Build and Release APKs intentionally supports partial releases. Therefore a
-    catalog generated from only releases/latest would drop every unaffected app
-    whenever a small incremental build becomes the newest release. Walk release
-    history newest-first and keep the first asset for each stable build target.
+    Build and Release APKs intentionally supports partial releases, so release
+    history must be consulted. Historical releases also contain legacy filename
+    formats, however. Only current configured app/source identities are allowed
+    to contribute historical assets; otherwise a legacy filename can be
+    misparsed as a bogus patch source.
+
+    Unmatched assets are retained only from the newest release. This preserves
+    visibility for a current unusual filename without resurrecting obsolete APKs
+    from years of release history.
     """
     releases = [release for release in _flatten_releases(payload) if not release.get("draft")]
     releases.sort(key=_release_timestamp, reverse=True)
 
     parsed_by_key: dict[tuple[str, str, str], ApkAsset] = {}
     unmatched_by_name: dict[str, dict] = {}
-    for release in releases:
+    for release_index, release in enumerate(releases):
         tag = str(release.get("tag_name") or "latest")
         for asset in release.get("assets") or []:
             if not isinstance(asset, dict):
@@ -115,8 +140,9 @@ def newest_assets(payload: object) -> tuple[list[ApkAsset], list[dict], list[dic
             if not name.lower().endswith(".apk"):
                 continue
             item = parse_asset(asset, release_tag=tag)
-            if item is None:
-                unmatched_by_name.setdefault(name, asset)
+            if item is None or (targets and (item.app, item.source) not in targets):
+                if release_index == 0:
+                    unmatched_by_name.setdefault(name, asset)
                 continue
             parsed_by_key.setdefault((item.app, item.source, item.arch), item)
 
@@ -158,8 +184,14 @@ def app_label(slug: str) -> str:
     return " ".join(part.upper() if len(part) <= 2 else part.capitalize() for part in slug.split("-"))
 
 
-def render(payload: object, *, source_root: Path = Path("sources")) -> str:
-    parsed, unmatched, releases = newest_assets(payload)
+def render(
+    payload: object,
+    *,
+    source_root: Path = Path("sources"),
+    config_path: Path = Path("my-patch-config.json"),
+) -> str:
+    targets = configured_targets(config_path)
+    parsed, unmatched, releases = newest_assets(payload, targets=targets or None)
     metadata = source_metadata(source_root)
 
     newest_release = releases[0] if releases else {}
@@ -202,7 +234,7 @@ def render(payload: object, *, source_root: Path = Path("sources")) -> str:
             lines.append("")
 
     if unmatched:
-        lines.extend(["## Other APK assets", "", "命名規則に一致しないAPKです。削除せず、確認できる最新の直リンクを掲載します。", ""])
+        lines.extend(["## Other APK assets", "", "最新リリースにある、現行の標準命名規則へ一致しないAPKです。", ""])
         for asset in sorted(unmatched, key=lambda item: str(item.get("name") or "")):
             name = str(asset.get("name") or "APK")
             url = str(asset.get("browser_download_url") or "")
@@ -220,9 +252,13 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("release_json", nargs="?", default="release-history.json")
     parser.add_argument("--output", default="Morphe-AutoBuilds-Direct-Download.md")
+    parser.add_argument("--config", default="my-patch-config.json")
     args = parser.parse_args()
     payload = json.loads(Path(args.release_json).read_text(encoding="utf-8"))
-    Path(args.output).write_text(render(payload), encoding="utf-8")
+    Path(args.output).write_text(
+        render(payload, config_path=Path(args.config)),
+        encoding="utf-8",
+    )
 
 
 if __name__ == "__main__":
