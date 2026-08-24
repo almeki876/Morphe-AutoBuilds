@@ -35,13 +35,11 @@ def _resources_contain_japanese(path: Path, aapt: str) -> bool:
     except OSError:
         return False
 
-    # Android resource qualifiers are emitted as e.g. `config ja-rJP`.
-    # Also accept a bare `config ja` form used by some aapt/aapt2 versions.
     for line in result.stdout.splitlines():
         normalized = line.strip().lower().replace("_", "-")
-        if re.search(r"\bconfig\s+(?:[^\s]+-)?ja(?:-r?jp)?(?:\b|$)", normalized):
+        if re.search(r"\bconfig\s+\(?[^\s)]*\bja(?:-r?jp)?(?:\b|$)", normalized):
             return True
-        if re.search(r"\blocale\s+ja(?:-r?jp)?(?:\b|$)", normalized):
+        if re.search(r"\blocale\s+\(?ja(?:-r?jp)?(?:\b|$)", normalized):
             return True
     return False
 
@@ -75,12 +73,9 @@ def contains_japanese(path: Path) -> bool:
 
     with tempfile.TemporaryDirectory(prefix="apk-ja-check-") as directory:
         root = Path(directory)
-        for index, (name, payload) in enumerate(nested):
+        for index, (_name, payload) in enumerate(nested):
             candidate = root / f"nested-{index}.apk"
             candidate.write_bytes(payload)
-            # Filename evidence is useful for Play-style config.ja APKs, but
-            # resource-table evidence is still required. This prevents an
-            # English APK merely named config.ja.apk from passing validation.
             if _resources_contain_japanese(candidate, aapt):
                 return True
 
