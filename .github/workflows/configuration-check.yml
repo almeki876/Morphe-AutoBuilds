@@ -1,4 +1,4 @@
-name: CI: 設定・テスト検証
+name: "CI: 設定・テスト検証"
 
 on:
   pull_request:
