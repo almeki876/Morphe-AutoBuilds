@@ -8,6 +8,7 @@ on:
 
 permissions:
   contents: write
+  issues: write
 
 jobs:
   migrate:
@@ -46,6 +47,7 @@ jobs:
             virustotal-cache-v1.json
           test -s virustotal-cache-v1.json
           gh release upload "$release_tag" virustotal-cache-v1.json \\
+            --repo "${{ github.repository }}" \\
             --clobber
           echo "VirusTotal SHA cache attached to $release_tag"
 
@@ -62,17 +64,46 @@ jobs:
         run: python3 -m pip install -r requirements.txt -q
 
       - name: Run complete repository test suite on migrated tree
+        id: tests
+        continue-on-error: true
         run: |
-          python3 scripts/validate_repository.py
-          python3 -m compileall -q src scripts
-          python3 -c "from src import providers; errors = providers.validate_all_configs(); assert not errors, errors"
-          python3 -m unittest discover tests
+          set -o pipefail
+          {
+            python3 scripts/validate_repository.py
+            python3 -m compileall -q src scripts
+            python3 -c "from src import providers; errors = providers.validate_all_configs(); assert not errors, errors"
+            python3 -m unittest discover tests
+          } 2>&1 | tee migration-tests.log
+
+      - name: Report migration test failure
+        if: steps.tests.outcome != 'success'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          {
+            echo '# VirusTotal Release integration migration failed'
+            echo
+            echo 'The migration was not committed. Test tail:'
+            echo '```text'
+            tail -n 180 migration-tests.log
+            echo '```'
+            echo
+            echo "Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          } > migration-failure.md
+          existing=$(gh issue list --state open --search 'TEMP VT integration migration failure in:title' --json number,title --jq '.[] | select(.title == "TEMP VT integration migration failure") | .number' | head -n 1)
+          if [ -n "$existing" ]; then
+            gh issue edit "$existing" --body-file migration-failure.md
+          else
+            gh issue create --title 'TEMP VT integration migration failure' --body-file migration-failure.md
+          fi
+          exit 1
 
       - name: Commit migration
+        if: steps.tests.outcome == 'success'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add .github/workflows/build.yml .github/workflows/_integrate-vt-cache-into-release.yml
+          git add -A .github/workflows/build.yml .github/workflows/_integrate-vt-cache-into-release.yml
           git commit -m "ci: attach VirusTotal cache during Release creation [skip ci]"
           git pull --rebase origin main
           git push origin HEAD:main
