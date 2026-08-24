@@ -90,6 +90,20 @@ def _cache_snapshot() -> set[Path]:
     return {path for path in apk_cache.CACHE_DIR.iterdir() if path.is_file()}
 
 
+def _egress_policy(app_name: str) -> str:
+    """Return the provider-neutral network routing policy for an app."""
+    metadata = providers.load_app_metadata(app_name)
+    value = str(metadata.get("egress_policy", "auto")).strip().lower()
+    if value not in {"auto", "japan-first"}:
+        logging.warning(
+            "Unknown egress_policy=%r for %s; falling back to auto",
+            value,
+            app_name,
+        )
+        return "auto"
+    return value
+
+
 def _tailscale_fallback_active() -> bool:
     executable = shutil.which("tailscale")
     if not executable:
@@ -115,8 +129,27 @@ def _japan_handoff_enabled(app_name: str) -> bool:
     )
 
 
+def _request_japan_first_handoff(app_name: str) -> None:
+    """Skip known-useless non-JP network work for apps that require Japanese egress."""
+    if _egress_policy(app_name) != "japan-first":
+        return
+    if not _japan_handoff_enabled(app_name) or _tailscale_fallback_active():
+        return
+    raise RuntimeError(
+        f"{app_name} is configured for japan-first egress; requesting the workflow "
+        "Tailscale retry before Google Play/provider network access"
+    )
+
+
 def _require_japan_fallback_before_providers(app_name: str, error: Exception) -> None:
-    """Hand a failed non-JP Play attempt to the workflow's Tailscale stage."""
+    """Hand only Japan-first apps to Tailscale before mirror providers.
+
+    Normal apps continue through their regular provider/CDN chain first. If the
+    complete primary chain still fails, the workflow's final Tailscale retry
+    remains available as the last network-path fallback.
+    """
+    if _egress_policy(app_name) != "japan-first":
+        return
     if not _japan_handoff_enabled(app_name):
         return
     if _tailscale_fallback_active():
@@ -193,6 +226,61 @@ def _validate_downloaded_identity(
     return identity
 
 
+def _record_cached_download(
+    app_name: str,
+    package: str,
+    arch: str,
+    input_apk: Path,
+    version: str,
+) -> None:
+    from src import provenance
+
+    provenance.record(
+        app_name,
+        version,
+        "cache",
+        input_apk,
+        arch,
+        config={"package": package},
+    )
+
+
+def _restore_cached_candidate(
+    app_name: str,
+    package: str,
+    arch: str,
+    candidates: list[VersionCandidate],
+) -> tuple[Path, str] | None:
+    """Restore an exact compatible APK before any provider network request."""
+    for candidate in candidates:
+        version = candidate.canonical
+        if not version:
+            continue
+        cached = apk_cache.restore(package, version, app_name)
+        if cached is None:
+            continue
+        try:
+            _validate_downloaded_identity(cached, package, candidate)
+        except apk_identity.ApkIdentityError as error:
+            logging.warning(
+                "APK cache returned an identity mismatch for %s %s: %s",
+                app_name,
+                version,
+                error,
+            )
+            cached.unlink(missing_ok=True)
+            continue
+        _record_cached_download(app_name, package, arch, cached, version)
+        logging.info(
+            "⚡ Exact Base APK cache hit for %s v%s; skipping Google Play, "
+            "Tailscale, and mirror providers",
+            app_name,
+            version,
+        )
+        return cached, version
+    return None
+
+
 def _record_play_download(
     app_name: str,
     package: str,
@@ -231,6 +319,15 @@ def _download(
             app_name,
             ", ".join(candidate.describe() for candidate in candidates),
         )
+
+    # Cache is authoritative only after package/version identity validation and
+    # is therefore safe to check before any external APK origin. This is the
+    # fastest path for repeated builds and avoids needless Play/Tailscale work.
+    if not skip_play:
+        restored = _restore_cached_candidate(app_name, package, arch, candidates)
+        if restored is not None:
+            return restored
+
     identity_errors: list[str] = []
     play_only = providers.google_play_only(app_name)
     play_enabled = aurora_play.google_play_enabled(package)
@@ -242,6 +339,12 @@ def _download(
         raise RuntimeError(
             f"Source policy for {app_name} requires Google Play; refusing provider-only retry"
         )
+
+    # Known region-bound apps should not spend time on a network route that is
+    # known to be unusable. The workflow owns Tailscale setup; this process only
+    # requests the handoff. Once Tailscale is active the same common code runs.
+    if play_enabled and not skip_play:
+        _request_japan_first_handoff(app_name)
 
     if play_enabled and not skip_play:
         play_candidate = _preferred_play_candidate(app_name, package, candidates)
