@@ -57,6 +57,11 @@ class DirectDownloadMarkdownTests(unittest.TestCase):
                 config_path=self._config(root, [("youtube", "morphe")]),
             )
 
+        self.assertIn(
+            "- 参照Release: [build-2026-08-24](https://github.com/almeki876/Morphe-AutoBuilds/releases/tag/build-2026-08-24)",
+            output,
+        )
+        self.assertIn("- 最終更新日時: 2026-08-24 09:00 JST", output)
         self.assertIn("## Morphe", output)
         self.assertIn("### YouTube", output)
         self.assertIn("[universal](https://example.invalid/youtube-universal.apk)", output)
@@ -65,7 +70,6 @@ class DirectDownloadMarkdownTests(unittest.TestCase):
         self.assertNotIn("Version:", output)
         self.assertNotIn("youtube-universal-morphe-v21.04.223.apk", output)
         self.assertNotIn("youtube-arm64-v8a-morphe-v21.04.223.apk", output)
-        self.assertNotIn("最終更新", output)
         self.assertNotIn("ダウンロードしてください", output)
 
     def test_render_matches_obtainium_patch_config_order(self):
@@ -154,6 +158,8 @@ class DirectDownloadMarkdownTests(unittest.TestCase):
                 ),
             )
 
+        self.assertIn("- 参照Release: [new-partial]", output)
+        self.assertIn("- 最終更新日時: 2026-08-24 11:00 JST", output)
         self.assertIn(new_youtube_url, output)
         self.assertNotIn(old_youtube_url, output)
         self.assertIn(old_photos_url, output)
