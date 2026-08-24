@@ -31,12 +31,14 @@ class VirusTotalPipelineWorkflowTests(unittest.TestCase):
         self.assertIn("--clobber", release_section)
         self.assertFalse(Path(".github/workflows/publish-virustotal-cache.yml").exists())
 
-    def test_issue_closer_does_not_duplicate_vt_publication(self) -> None:
-        closer = Path(".github/workflows/close-resolved-build-issues.yml").read_text(
-            encoding="utf-8"
-        )
-        self.assertNotIn("virustotal-cache-v1.json", closer)
-        self.assertNotIn("export_virustotal_cache.py", closer)
+    def test_successful_state_job_closes_resolved_issues_in_primary_workflow(self) -> None:
+        workflow = Path(".github/workflows/build.yml").read_text(encoding="utf-8")
+        persist = workflow.split("  persist-successful-state:\n", 1)[1].split(
+            "  handle-build-failure:\n", 1
+        )[0]
+        self.assertIn("issues: write", persist)
+        self.assertIn("close_resolved_build_issues.py", persist)
+        self.assertFalse(Path(".github/workflows/close-resolved-build-issues.yml").exists())
 
 
 if __name__ == "__main__":
