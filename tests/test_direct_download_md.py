@@ -1,3 +1,4 @@
+import json
 import tempfile
 import unittest
 from pathlib import Path
@@ -6,6 +7,21 @@ from scripts.generate_direct_download_md import parse_asset, render
 
 
 class DirectDownloadMarkdownTests(unittest.TestCase):
+    def _config(self, root: Path, targets: list[tuple[str, str]]) -> Path:
+        path = root / "my-patch-config.json"
+        path.write_text(
+            json.dumps(
+                {
+                    "patch_list": [
+                        {"app_name": app, "source": source}
+                        for app, source in targets
+                    ]
+                }
+            ),
+            encoding="utf-8",
+        )
+        return path
+
     def test_parse_asset_extracts_app_arch_source_and_version(self):
         asset = {
             "name": "youtube-arm64-v8a-morphe-v21.04.223.apk",
@@ -35,7 +51,12 @@ class DirectDownloadMarkdownTests(unittest.TestCase):
             ],
         }
         with tempfile.TemporaryDirectory() as tmp:
-            output = render(release, source_root=Path(tmp))
+            root = Path(tmp)
+            output = render(
+                release,
+                source_root=root,
+                config_path=self._config(root, [("youtube", "morphe")]),
+            )
         self.assertIn("# Direct APK Download Links", output)
         self.assertIn("### YouTube (Morphe)", output)
         self.assertIn("universal", output)
@@ -76,7 +97,15 @@ class DirectDownloadMarkdownTests(unittest.TestCase):
             },
         ]
         with tempfile.TemporaryDirectory() as tmp:
-            output = render(releases, source_root=Path(tmp))
+            root = Path(tmp)
+            output = render(
+                releases,
+                source_root=root,
+                config_path=self._config(
+                    root,
+                    [("youtube", "morphe"), ("google-photos", "rookie")],
+                ),
+            )
 
         self.assertIn(new_youtube_url, output)
         self.assertNotIn(old_youtube_url, output)
@@ -84,20 +113,79 @@ class DirectDownloadMarkdownTests(unittest.TestCase):
         self.assertIn("部分リリースで更新対象にならなかったアプリ", output)
         self.assertIn("掲載APK数: 2", output)
 
-    def test_unmatched_apk_is_still_listed(self):
-        release = {
-            "assets": [
-                {
-                    "name": "legacy-name.apk",
-                    "browser_download_url": "https://example.invalid/legacy-name.apk",
-                }
-            ]
-        }
+    def test_legacy_history_cannot_become_a_bogus_patch_source(self):
+        bogus_url = "https://example.invalid/legacy/gboard.apk"
+        valid_url = "https://example.invalid/current/gboard.apk"
+        releases = [
+            {
+                "tag_name": "current",
+                "published_at": "2026-08-24T02:00:00Z",
+                "assets": [
+                    {
+                        "name": "gboard-arm64-v8a-adobo-v18.0.3.apk",
+                        "browser_download_url": valid_url,
+                    }
+                ],
+            },
+            {
+                "tag_name": "legacy",
+                "published_at": "2026-08-23T02:00:00Z",
+                "assets": [
+                    {
+                        "name": "gboard-arm64-v8a-adobo-v18.0.3.954559732-beta-arm64-v8a-v8a.apk",
+                        "browser_download_url": bogus_url,
+                    }
+                ],
+            },
+        ]
         with tempfile.TemporaryDirectory() as tmp:
-            output = render(release, source_root=Path(tmp))
+            root = Path(tmp)
+            output = render(
+                releases,
+                source_root=root,
+                config_path=self._config(root, [("gboard", "adobo")]),
+            )
+
+        self.assertIn(valid_url, output)
+        self.assertNotIn(bogus_url, output)
+        self.assertNotIn("## adobo-v18", output)
+        self.assertIn("掲載APK数: 1", output)
+
+    def test_unmatched_apk_is_still_listed_only_from_newest_release(self):
+        current_url = "https://example.invalid/current-legacy-name.apk"
+        old_url = "https://example.invalid/old-legacy-name.apk"
+        releases = [
+            {
+                "tag_name": "current",
+                "published_at": "2026-08-24T02:00:00Z",
+                "assets": [
+                    {
+                        "name": "legacy-name.apk",
+                        "browser_download_url": current_url,
+                    }
+                ],
+            },
+            {
+                "tag_name": "old",
+                "published_at": "2026-08-23T02:00:00Z",
+                "assets": [
+                    {
+                        "name": "old-legacy-name.apk",
+                        "browser_download_url": old_url,
+                    }
+                ],
+            },
+        ]
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            output = render(
+                releases,
+                source_root=root,
+                config_path=self._config(root, [("youtube", "morphe")]),
+            )
         self.assertIn("## Other APK assets", output)
-        self.assertIn("legacy-name.apk", output)
-        self.assertIn("https://example.invalid/legacy-name.apk", output)
+        self.assertIn(current_url, output)
+        self.assertNotIn(old_url, output)
 
 
 if __name__ == "__main__":
