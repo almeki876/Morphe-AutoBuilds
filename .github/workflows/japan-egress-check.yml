@@ -1,4 +1,4 @@
-name: Verify Japanese APK Download Fallback
+name: 保守: 日本Tailscale経路を確認
 
 on:
   workflow_dispatch:
