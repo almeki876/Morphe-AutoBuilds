@@ -59,7 +59,9 @@
         {"patch":"Hide shortcuts","key":"search","value":false},
         {"patch":"Hide shortcuts","key":"shorts","value":false}
       ],
-      "disable": []
+      "disable": [],
+      "force_enable": ["Custom branding name for YouTube"],
+      "required": ["Custom branding name for YouTube"]
     },
     {"app_name":"youtube-music","source":"morphe","options":[],"disable":[]},
     {
@@ -89,7 +91,8 @@
         {"patch":"Change version code","key":"versionCode","value":"2147483647"}
       ],
       "disable": [],
-      "force_enable": ["Hide overlay filter","Hide player overlay filter","Disable music video in album"]
+      "force_enable": ["Hide overlay filter","Hide player overlay filter","Disable music video in album","Custom branding name for YouTube Music"],
+      "required": ["Custom branding name for YouTube Music"]
     },
     {"app_name":"adguard","source":"rushiranpise","disable":[]},
     {"app_name":"prime-video","source":"hoo-dles","disable":[]},
