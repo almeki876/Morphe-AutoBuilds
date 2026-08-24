@@ -76,10 +76,28 @@ def _identity(details: Any, package: str) -> VersionCandidate | None:
     return VersionCandidate(name=name, code=code)
 
 
+def _has_bootstrap_credentials() -> bool:
+    email = (
+        os.getenv("GPLAYDL_EMAIL", "").strip()
+        or os.getenv("GPLAY_EMAIL", "").strip()
+    )
+    return bool(email and os.getenv("GPLAY_AAS_TOKEN", "").strip())
+
+
 def _context() -> tuple[str, str | None, str | None] | None:
-    if not os.getenv("GPLAYDL_API_KEY", "").strip():
+    """Prepare the shared Google Play metadata authentication context.
+
+    A preconfigured dispenser API key is sufficient. When it is absent, the
+    existing email+AAS credentials may bootstrap the ephemeral local dispenser,
+    which then publishes its generated key/URL into the process environment.
+    """
+    if not os.getenv("GPLAYDL_API_KEY", "").strip() and not _has_bootstrap_credentials():
         return None
     local_gplaydl_dispenser.ensure_running()
+    if not os.getenv("GPLAYDL_API_KEY", "").strip():
+        # A configured remote dispenser may not need local bootstrap, but gplaydl
+        # still requires a key. Fail softly so mirror metadata can take over.
+        return None
     arch = os.getenv("GPLAYDL_ARCH", "arm64").strip() or "arm64"
     dispenser = os.getenv("GPLAYDL_DISPENSER_URL", "").strip() or None
     email = (
@@ -129,7 +147,7 @@ def resolve_candidate_identities(
 ) -> list[VersionCandidate]:
     """Enrich only patch candidates matching a current Play identity exactly."""
     resolved = list(candidates)
-    if not package or not resolved or not os.getenv("GPLAYDL_API_KEY", "").strip():
+    if not package or not resolved:
         return resolved
 
     try:
