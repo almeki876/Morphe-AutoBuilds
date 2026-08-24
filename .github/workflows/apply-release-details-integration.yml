@@ -1,5 +1,6 @@
 name: "一時移行: Release detailsをRelease作成へ統合"
 
+# Trigger migration after the workflow already exists on main.
 on:
   push:
     branches: [main]
