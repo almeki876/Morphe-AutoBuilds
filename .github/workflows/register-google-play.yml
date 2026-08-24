@@ -1,4 +1,4 @@
-name: Register Google Play Account
+name: セットアップ: Google Playアカウントを登録
 
 on:
   workflow_dispatch:
