@@ -961,6 +961,15 @@ jobs:
           find ./release-apks -name '*.apk' -print0 \
             | xargs -0 -r -P 8 -I {} gh release upload "$release_tag" "{}"
 
+          python3 scripts/export_virustotal_cache.py \
+            virustotal_base_results.json \
+            virustotal-cache-v1.json
+          test -s virustotal-cache-v1.json
+          gh release upload "$release_tag" virustotal-cache-v1.json \
+            --repo "${{ github.repository }}" \
+            --clobber
+          echo "VirusTotal SHA cache attached to $release_tag"
+
           echo "Release created and APK assets uploaded successfully!"
           echo "Release URL: https://github.com/${{ github.repository }}/releases/tag/$release_tag"
 
@@ -990,6 +999,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      issues: write
 
     steps:
       - name: Checkout Repository
@@ -1018,6 +1028,12 @@ jobs:
             echo "::error::At least one matrix build failed; refusing to advance successful state."
             exit 1
           fi
+
+      - name: Close resolved auto-generated build issues
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: python3 scripts/close_resolved_build_issues.py --directory ./build-results
 
       - name: Save Resolved Patch and APK Versions
         env:
