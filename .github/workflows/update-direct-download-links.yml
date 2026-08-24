@@ -11,11 +11,14 @@ on:
     branches:
       - main
     paths:
-      # Build and Release APKs は Release 作成成功後に last-tags.json を更新する。
-      # その成功状態コミットを直リンク再生成の確実なトリガーとしても使う。
+      # Primary path: a successful integrated release now refreshes this catalog
+      # inside scripts/save_successful_state.py.  Keep this workflow as a
+      # recovery/fallback path and trigger it when the integration changes too.
       - last-tags.json
+      - scripts/save_successful_state.py
       - scripts/generate_direct_download_md.py
       - tests/test_direct_download_md.py
+      - tests/test_successful_state_direct_download.py
       - .github/workflows/update-direct-download-links.yml
 
 permissions:
