@@ -43,15 +43,18 @@ def _write_marker(log: TextIO, message: str) -> None:
 
 
 def _load_morphe_toolchain_fallback():
-    """Import the helper in both package and direct-script execution modes."""
-    if __package__:
-        from scripts import morphe_toolchain_fallback
-    else:
+    """Import the helper with repository package imports available in all modes."""
+    if not __package__:
         # build.yml invokes this file as ``python3 scripts/run_logged.py``.
-        # In that mode sys.path starts at scripts/, so importing the sibling
-        # module directly is the valid path; ``from scripts import ...`` would
-        # fail before the fallback decision can run.
-        import morphe_toolchain_fallback
+        # Direct-script mode starts sys.path at scripts/, which lets a sibling
+        # import work but leaves the helper's later ``scripts.*`` and ``src.*``
+        # imports unavailable. Normalize the repository root once so the helper
+        # and every lazy dependency use the same package layout as module/tests.
+        repository_root = str(Path(__file__).resolve().parent.parent)
+        if repository_root not in sys.path:
+            sys.path.insert(0, repository_root)
+
+    from scripts import morphe_toolchain_fallback
 
     return morphe_toolchain_fallback
 
