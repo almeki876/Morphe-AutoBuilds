@@ -138,7 +138,91 @@ class GPlayDlProfileRetryTests(unittest.TestCase):
         self.assertNotIn("secret backend body", message)
         self.assertEqual(auth.fetch_token_for_profile.call_count, 2)
 
-    def test_cli_patch_is_guarded_and_retries_only_not_purchased(self) -> None:
+    def test_cli_patch_defaults_to_japanese_language_split(self) -> None:
+        modules, _api, _auth = fake_gplaydl_modules([])
+        cli = types.ModuleType("gplaydl.cli")
+
+        def original(
+            package,
+            version,
+            arch,
+            auth_data,
+            dispenser,
+            email,
+            locales=None,
+        ):
+            return SimpleNamespace(
+                package=package,
+                locales=locales,
+            )
+
+        cli._acquire = original
+        cli.rprint = mock.Mock()
+        modules["gplaydl.cli"] = cli
+        modules["gplaydl"].cli = cli
+
+        with (
+            mock.patch.dict(sys.modules, modules),
+            mock.patch.object(
+                retry.metadata,
+                "version",
+                return_value=retry.SUPPORTED_GPLAYDL_VERSION,
+            ),
+        ):
+            retry.install_cli_patch()
+            result = cli._acquire(
+                "com.protonvpn.android",
+                None,
+                "arm64",
+                {"authToken": "secret"},
+                "http://127.0.0.1:18080",
+                "secret@example.com",
+            )
+
+        self.assertEqual(result.locales, retry.DEFAULT_PLAY_LOCALES)
+
+    def test_cli_patch_preserves_explicit_locales(self) -> None:
+        modules, _api, _auth = fake_gplaydl_modules([])
+        cli = types.ModuleType("gplaydl.cli")
+
+        def original(
+            package,
+            version,
+            arch,
+            auth_data,
+            dispenser,
+            email,
+            locales=None,
+        ):
+            return SimpleNamespace(locales=locales)
+
+        cli._acquire = original
+        cli.rprint = mock.Mock()
+        modules["gplaydl.cli"] = cli
+        modules["gplaydl"].cli = cli
+
+        with (
+            mock.patch.dict(sys.modules, modules),
+            mock.patch.object(
+                retry.metadata,
+                "version",
+                return_value=retry.SUPPORTED_GPLAYDL_VERSION,
+            ),
+        ):
+            retry.install_cli_patch()
+            result = cli._acquire(
+                "com.example",
+                None,
+                "arm64",
+                {"authToken": "secret"},
+                "http://127.0.0.1:18080",
+                "secret@example.com",
+                ["en-US", "fr"],
+            )
+
+        self.assertEqual(result.locales, ["en-US", "fr"])
+
+    def test_cli_patch_retries_only_not_purchased(self) -> None:
         modules, _api, _auth = fake_gplaydl_modules([])
         cli = types.ModuleType("gplaydl.cli")
 
@@ -189,7 +273,7 @@ class GPlayDlProfileRetryTests(unittest.TestCase):
             "arm64",
             "http://127.0.0.1:18080",
             "secret@example.com",
-            None,
+            retry.DEFAULT_PLAY_LOCALES,
         )
 
 
