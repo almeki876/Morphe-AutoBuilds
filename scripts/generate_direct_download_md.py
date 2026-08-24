@@ -81,20 +81,33 @@ def parse_asset(asset: dict, *, release_tag: str = "latest") -> ApkAsset | None:
     return ApkAsset(name=name, url=url, release_tag=release_tag, **match.groupdict())
 
 
-def configured_targets(config_path: Path = Path("my-patch-config.json")) -> set[tuple[str, str]]:
-    """Return the current app/source identities that are allowed in the catalog."""
+def configured_target_order(
+    config_path: Path = Path("my-patch-config.json"),
+) -> list[tuple[str, str]]:
+    """Return app/source identities in the same order used by the Obtainium catalog."""
     try:
         raw = json.loads(config_path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError):
-        return set()
+        return []
     entries = raw.get("patch_list") if isinstance(raw, dict) else None
     if not isinstance(entries, list):
-        return set()
-    return {
-        (str(item.get("app_name")), str(item.get("source")))
-        for item in entries
-        if isinstance(item, dict) and item.get("app_name") and item.get("source")
-    }
+        return []
+
+    ordered: list[tuple[str, str]] = []
+    seen: set[tuple[str, str]] = set()
+    for item in entries:
+        if not isinstance(item, dict) or not item.get("app_name") or not item.get("source"):
+            continue
+        target = (str(item["app_name"]), str(item["source"]))
+        if target not in seen:
+            seen.add(target)
+            ordered.append(target)
+    return ordered
+
+
+def configured_targets(config_path: Path = Path("my-patch-config.json")) -> set[tuple[str, str]]:
+    """Return the current app/source identities that are allowed in the catalog."""
+    return set(configured_target_order(config_path))
 
 
 def _flatten_releases(payload: object) -> list[dict]:
@@ -121,18 +134,7 @@ def newest_assets(
     *,
     targets: set[tuple[str, str]] | None = None,
 ) -> tuple[list[ApkAsset], list[dict], list[dict]]:
-    """Return the newest known asset for each current app/source/arch identity.
-
-    Build and Release APKs intentionally supports partial releases, so release
-    history must be consulted. Historical releases also contain legacy filename
-    formats, however. Only current configured app/source identities are allowed
-    to contribute historical assets; otherwise a legacy filename can be
-    misparsed as a bogus patch source.
-
-    Unmatched assets are returned for diagnostics but intentionally omitted from
-    the public catalog. The public page stays compact and only exposes stable,
-    identifiable app/source/architecture download targets.
-    """
+    """Return the newest known asset for each current app/source/arch identity."""
     releases = [release for release in _flatten_releases(payload) if not release.get("draft")]
     releases.sort(key=_release_timestamp, reverse=True)
 
@@ -197,7 +199,8 @@ def render(
     source_root: Path = Path("sources"),
     config_path: Path = Path("my-patch-config.json"),
 ) -> str:
-    targets = configured_targets(config_path)
+    target_order = configured_target_order(config_path)
+    targets = set(target_order)
     parsed, _unmatched, _releases = newest_assets(payload, targets=targets or None)
     metadata = source_metadata(source_root)
 
@@ -207,11 +210,28 @@ def render(
     for item in parsed:
         grouped.setdefault(item.source, {}).setdefault(item.app, []).append(item)
 
-    for source in sorted(grouped, key=lambda value: (metadata.get(value, (value, None))[0].casefold(), value)):
+    source_order: list[str] = []
+    app_order: dict[str, list[str]] = {}
+    for app, source in target_order:
+        if source not in source_order:
+            source_order.append(source)
+        if app not in app_order.setdefault(source, []):
+            app_order[source].append(app)
+
+    for source in grouped:
+        if source not in source_order:
+            source_order.append(source)
+            app_order[source] = list(grouped[source])
+
+    for source in source_order:
+        if source not in grouped:
+            continue
         label, source_url = metadata.get(source, (SOURCE_LABELS.get(source, source), None))
         lines.append(f"## [{label}]({source_url})" if source_url else f"## {label}")
         lines.append("")
-        for app in sorted(grouped[source], key=lambda value: app_label(value).casefold()):
+        ordered_apps = [app for app in app_order.get(source, []) if app in grouped[source]]
+        ordered_apps.extend(app for app in grouped[source] if app not in ordered_apps)
+        for app in ordered_apps:
             assets = sorted(
                 grouped[source][app],
                 key=lambda item: (ARCH_ORDER.get(item.arch, 99), item.arch),
