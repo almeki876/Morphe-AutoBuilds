@@ -22,8 +22,9 @@ class ApkProvenanceDetailsTests(unittest.TestCase):
             asset_name = (
                 apk_cache._asset_prefix(package, version)
                 + ("0" * 64)
-                + ".apk"
+                + "--dp_generic-v1.apk"
             )
+            self.assertIsNotNone(apk_cache.parse_asset_name(asset_name))
             sidecar = cache_dir / f"{asset_name}.origin.json"
             sidecar.write_text(
                 json.dumps(
