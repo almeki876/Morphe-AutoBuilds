@@ -4,14 +4,24 @@ Source -> apps is derived from my-patch-config.json using the same selection
 inputs as scripts/prepare_matrix.py. In CI, successful artifact directories are
 authoritative so failed jobs and their internal diagnostics never appear in the
 public release notes.
+
+When this module runs inside the create-release job, it also generates and
+commits the persistent release-details tree *before* the GitHub Release is
+created.  That makes every app/detail link valid from the first moment the
+Release is published instead of relying on a second workflow to edit notes
+later.
 """
 
 from __future__ import annotations
 
 import json
 import os
+import subprocess
 from collections import defaultdict
+from datetime import datetime
 from pathlib import Path
+from types import SimpleNamespace
+from zoneinfo import ZoneInfo
 
 
 MAX_RELEASE_NOTES_LENGTH = 120_000
@@ -201,8 +211,6 @@ def _source_url(source: str) -> str:
     if not isinstance(data, list):
         return ""
 
-    # The source files contain a name record, Morphe CLI record, and then the
-    # actual patch bundle record. Pick the last repository record.
     repo_record = next(
         (
             item
@@ -248,7 +256,6 @@ def _requested_matrix(items: list[dict], inputs: dict[str, object]) -> list[dict
             )
         ]
 
-    # Backward-compatible workflow_dispatch path.
     legacy_sources = {
         source
         for source in LEGACY_ENV_KEYS
@@ -277,9 +284,6 @@ def _requested_matrix(items: list[dict], inputs: dict[str, object]) -> list[dict
         if selected:
             return selected
 
-    # If release_notes.py is run manually without the Actions event context,
-    # showing the configured matrix is safer than producing a misleading empty
-    # source table.
     return list(items)
 
 
@@ -349,11 +353,169 @@ def _fit_release_notes(text: str) -> str:
     return text[: MAX_RELEASE_NOTES_LENGTH - len(suffix)] + suffix
 
 
+def _release_ci_inputs_available() -> bool:
+    return (
+        _truthy(os.environ.get("GITHUB_ACTIONS"))
+        and Path("all-apks").is_dir()
+        and Path("build-results").is_dir()
+        and Path("virustotal_base_results.json").is_file()
+    )
+
+
+def _release_tag_from_previous_step() -> str:
+    """Resolve the tag produced by the immediately preceding Actions step.
+
+    build.yml writes ``release_tag=...`` to that step's GITHUB_OUTPUT.  Runner
+    command files normally remain beside the current step's command file for
+    the duration of the job, so inspect them first.  RELEASE_TAG remains an
+    explicit override for tests/manual callers.  The JST clock is only a final
+    fallback and uses the exact same format as build.yml.
+    """
+    explicit = os.environ.get("RELEASE_TAG", "").strip()
+    if explicit:
+        return explicit
+
+    output_file = os.environ.get("GITHUB_OUTPUT", "").strip()
+    if output_file:
+        parent = Path(output_file).parent
+        try:
+            candidates = sorted(parent.glob("set_output_*"), key=lambda p: p.stat().st_mtime, reverse=True)
+        except OSError:
+            candidates = []
+        for candidate in candidates:
+            try:
+                for line in candidate.read_text(encoding="utf-8", errors="replace").splitlines():
+                    if line.startswith("release_tag="):
+                        value = line.split("=", 1)[1].strip()
+                        if value:
+                            return value
+            except OSError:
+                continue
+
+    return datetime.now(ZoneInfo("Asia/Tokyo")).strftime("%Y-%m-%d_%H-%M-JST")
+
+
+def _temporarily_overlay_source_tags() -> bytes | None:
+    """Make release detail source tags match the tags resolved in this run."""
+    path = Path("last-tags.json")
+    try:
+        original = path.read_bytes()
+        data = json.loads(original.decode("utf-8"))
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError):
+        return None
+    if not isinstance(data, dict):
+        return original
+
+    mappings = {
+        "MORPHE_TAG": ("morphe",),
+        "ANDDEA_TAG": ("anddea", "revanced-anddea"),
+        "RUSHIRANPISE_TAG": ("rushiranpise",),
+        "ROOKIE_TAG": ("rookie",),
+        "TOSOX_TAG": ("tosox",),
+        "YUZU_TAG": ("yuzu",),
+        "DROPPED_TAG": ("dropped",),
+    }
+    changed = False
+    for env_name, keys in mappings.items():
+        value = os.environ.get(env_name, "").strip()
+        if not value:
+            continue
+        for key in keys:
+            if data.get(key) != value:
+                data[key] = value
+                changed = True
+    if changed:
+        path.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    return original
+
+
+def _restore_source_tags(original: bytes | None) -> None:
+    if original is not None:
+        Path("last-tags.json").write_bytes(original)
+
+
+def _commit_release_details(release_dir: Path, release_tag: str) -> None:
+    """Commit detail pages before ``gh release create`` consumes the notes."""
+    subprocess.run(["git", "config", "user.name", "github-actions[bot]"], check=True)
+    subprocess.run(
+        [
+            "git",
+            "config",
+            "user.email",
+            "41898282+github-actions[bot]@users.noreply.github.com",
+        ],
+        check=True,
+    )
+    subprocess.run(["git", "add", "--", str(release_dir)], check=True)
+    diff = subprocess.run(["git", "diff", "--cached", "--quiet"], check=False)
+    if diff.returncode == 0:
+        return
+    if diff.returncode != 1:
+        raise subprocess.CalledProcessError(diff.returncode, diff.args)
+
+    subprocess.run(
+        ["git", "commit", "-m", f"docs: archive build details for {release_tag} [skip ci]"],
+        check=True,
+    )
+    subprocess.run(["git", "pull", "--rebase", "origin", "main"], check=True)
+    subprocess.run(["git", "push", "origin", "HEAD:main"], check=True)
+
+
+def _generate_and_publish_release_details(output: Path) -> bool:
+    if not _release_ci_inputs_available():
+        return False
+
+    # Import lazily: generate_release_details imports APP_LABELS/SOURCE_LABELS
+    # from this module, so importing it at module import time would be circular.
+    from scripts import generate_release_details
+
+    release_tag = _release_tag_from_previous_step()
+    repository = os.environ.get(
+        "GITHUB_REPOSITORY", "almeki876/Morphe-AutoBuilds"
+    ).strip()
+    server = os.environ.get("GITHUB_SERVER_URL", "https://github.com").rstrip("/")
+    run_id = os.environ.get("GITHUB_RUN_ID", "").strip()
+    run_url = f"{server}/{repository}/actions/runs/{run_id}" if run_id else ""
+
+    args = SimpleNamespace(
+        tag=release_tag,
+        repository=repository,
+        run_url=run_url,
+        build_results=Path("build-results"),
+        # create-release does not separately download download-status artifacts;
+        # build diagnostics remain available through the Actions run link.
+        download_results=Path("download-results"),
+        # Every successful apk-* artifact already contains
+        # build-metadata/apk-sources.json, so provenance can be reconstructed
+        # without a second artifact-download phase.
+        base_inputs=Path("all-apks"),
+        virustotal=Path("virustotal_base_results.json"),
+        output_root=Path("release-details"),
+        release_notes=output,
+    )
+
+    original_tags = _temporarily_overlay_source_tags()
+    try:
+        release_dir, notes = generate_release_details.generate(args)
+    finally:
+        _restore_source_tags(original_tags)
+
+    # Fit after the linked notes have been generated.
+    notes.write_text(_fit_release_notes(notes.read_text(encoding="utf-8")), encoding="utf-8")
+    _commit_release_details(release_dir, release_tag)
+    print(f"Release details committed before Release publication: {release_dir}")
+    return True
+
+
 def main() -> None:
     output = Path(os.environ.get("RELEASE_NOTES_PATH", "release_notes.md"))
-    # Internal build diagnostics and the successful VirusTotal report remain in
-    # the Actions job summary. Unsafe or inconclusive scans block the release,
-    # so neither report belongs in the public, user-facing release notes.
+
+    if _generate_and_publish_release_details(output):
+        print(f"Linked release notes generated: {output}")
+        return
+
+    # Local/tests/fallback behavior stays compatible with the previous notes
+    # generator when release artifacts are not present.
     output.write_text(_fit_release_notes(render()), encoding="utf-8")
     print(f"Release notes generated: {output}")
 
