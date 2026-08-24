@@ -1,4 +1,4 @@
-"""Upload verified base APK candidates to a hidden draft GitHub Release."""
+"""Upload verified base APK candidates and provenance to a hidden draft Release."""
 
 from __future__ import annotations
 
@@ -42,6 +42,25 @@ def upload_with_retry(release, path: Path) -> None:
             time.sleep(5 * attempt)
 
 
+def _origin_sidecar(path: Path) -> Path:
+    return path.with_name(path.name + ".origin.json")
+
+
+def _upload_candidates() -> list[Path]:
+    """Return validated APK cache assets plus their optional origin sidecars."""
+    candidates: list[Path] = []
+    for path in UPLOAD_DIR.rglob("*") if UPLOAD_DIR.exists() else ():
+        if not path.is_file() or path.name.endswith(".origin.json"):
+            continue
+        if not validate_asset(path):
+            continue
+        candidates.append(path)
+        sidecar = _origin_sidecar(path)
+        if sidecar.is_file():
+            candidates.append(sidecar)
+    return candidates
+
+
 def main() -> None:
     token = os.environ["GITHUB_TOKEN"]
     repository = os.environ["GITHUB_REPOSITORY"]
@@ -61,12 +80,7 @@ def main() -> None:
         logging.info("Created draft APK cache release %s", CACHE_TAG)
 
     existing = {asset.name: asset for asset in release.get_assets()}
-    candidates = [
-        path
-        for path in UPLOAD_DIR.rglob("*")
-        if path.is_file() and validate_asset(path)
-    ]
-    for path in candidates:
+    for path in _upload_candidates():
         if path.name in existing:
             logging.info("Already cached: %s", path.name)
             continue
@@ -74,10 +88,13 @@ def main() -> None:
         logging.info("Uploaded APK cache asset: %s", path.name)
 
     # Bound storage growth without manual cleanup. Keep the most recently
-    # uploaded versions for each package; all hashes of a retained version stay.
+    # uploaded versions for each package; origin sidecars follow their APK.
     assets = list(release.get_assets())
+    asset_by_name = {asset.name: asset for asset in assets}
     by_package: dict[str, list] = defaultdict(list)
     for asset in assets:
+        if asset.name.endswith(".origin.json"):
+            continue
         parsed = parse_asset_name(asset.name)
         if parsed:
             by_package[parsed[0]].append((asset, parsed[1]))
@@ -95,6 +112,10 @@ def main() -> None:
         )
         for version, old_assets in ordered[KEEP_PER_PACKAGE:]:
             for asset in old_assets:
+                sidecar = asset_by_name.get(asset.name + ".origin.json")
+                if sidecar is not None:
+                    sidecar.delete_asset()
+                    logging.info("Pruned old cache origin: %s %s", package, version)
                 asset.delete_asset()
                 logging.info("Pruned old cache: %s %s", package, version)
 
