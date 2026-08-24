@@ -1,10 +1,12 @@
-"""Write per-matrix patch status artifacts and a readable Actions job summary."""
+"""Write per-matrix patch status artifacts and validate critical build contracts."""
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import re
+import zipfile
 from pathlib import Path
 
 
@@ -24,6 +26,72 @@ def tail_text(path: Path, lines: int) -> str:
     return "\n".join(
         path.read_text(encoding="utf-8", errors="replace").splitlines()[-lines:]
     )
+
+
+def _anddea_icon_contract(app: str) -> tuple[str, str] | None:
+    return {
+        "youtube": ("patch-assets/anddea/youtube/xisr_evergreen", "YouTube"),
+        "youtube-music": (
+            "patch-assets/anddea/youtube-music/xisr_yellow",
+            "YouTube Music",
+        ),
+    }.get(app)
+
+
+def validate_anddea_output(app: str, source: str) -> list[str]:
+    """Fail closed if Anddea custom adaptive icon bytes did not reach the APK.
+
+    The patch CLI saying "applied" is not sufficient: the final artifact is the
+    contract. We compare the exact vendored foreground/background PNG bytes
+    against every PNG packaged in the resulting APK. This catches silent
+    fallback to the stock launcher icon after resource merge/repackaging.
+    """
+    if source != "revanced-anddea":
+        return []
+    contract = _anddea_icon_contract(app)
+    if contract is None:
+        return []
+
+    root = Path(__file__).resolve().parents[1]
+    icon_root = root / contract[0]
+    if not icon_root.is_dir():
+        return [f"Anddea {contract[1]} icon source directory is missing: {icon_root}"]
+
+    expected: dict[str, set[str]] = {"foreground": set(), "background": set()}
+    for density_dir in sorted(icon_root.glob("mipmap-*")):
+        for kind, filename in (
+            ("foreground", "morphe_adaptive_foreground_custom.png"),
+            ("background", "morphe_adaptive_background_custom.png"),
+        ):
+            path = density_dir / filename
+            if not path.is_file():
+                return [f"Anddea {contract[1]} {kind} source is missing: {path}"]
+            expected[kind].add(hashlib.sha256(path.read_bytes()).hexdigest())
+
+    apk_candidates = sorted(Path(".").glob("*.apk"))
+    if not apk_candidates:
+        return [f"Anddea {contract[1]} validation found no output APK"]
+
+    errors: list[str] = []
+    for apk in apk_candidates:
+        try:
+            with zipfile.ZipFile(apk) as archive:
+                png_hashes = {
+                    hashlib.sha256(archive.read(name)).hexdigest()
+                    for name in archive.namelist()
+                    if name.casefold().endswith(".png")
+                }
+        except (OSError, zipfile.BadZipFile, KeyError) as error:
+            errors.append(f"Anddea {contract[1]} validation could not inspect {apk}: {error}")
+            continue
+
+        for kind, hashes in expected.items():
+            if not hashes.intersection(png_hashes):
+                errors.append(
+                    f"Anddea {contract[1]} {kind} asset is absent from final APK {apk.name}; "
+                    "patch application cannot be considered successful"
+                )
+    return errors
 
 
 def runtime_patch_outcomes(build_log: Path) -> list[dict[str, str]]:
@@ -74,13 +142,7 @@ def _failure_entry(name: object, reason: object) -> dict[str, str] | None:
 
 
 def enrich_report(report: dict, build_log: Path) -> dict:
-    """Preserve configured exclusions and add runtime skip/unsupported/failure facts.
-
-    ``generate_release_details`` already renders ``feature_failures`` under the
-    user-facing not-applied section.  Enriching the artifact copy here keeps the
-    main Release path self-contained and makes the evidence available before the
-    GitHub Release is published, without depending on a recovery workflow.
-    """
+    """Preserve configured exclusions and add runtime skip/unsupported/failure facts."""
     enriched = dict(report)
     failures: list[dict[str, str]] = []
     seen: set[tuple[str, str]] = set()
@@ -161,6 +223,10 @@ def main() -> int:
     status = os.environ.get("BUILD_STATUS", "unknown")
     run_url = os.environ["RUN_URL"]
 
+    contract_errors = validate_anddea_output(app, source) if status == "success" else []
+    if contract_errors:
+        status = "failure"
+
     directory = Path("build-status")
     directory.mkdir(parents=True, exist_ok=True)
     status_path = directory / f"{app}-{source}-build.txt"
@@ -174,6 +240,8 @@ def main() -> int:
         f"status={status}",
         f"run={run_url}",
     ]
+    if contract_errors:
+        fields.extend(["", "artifact_contract_errors<<EOF", *contract_errors, "EOF"])
     if tail:
         fields.extend(["", "traceback_or_error_tail<<EOF", tail, "EOF"])
     status_body = "\n".join(fields) + "\n"
@@ -185,6 +253,11 @@ def main() -> int:
         payload = json.loads(report_path.read_text(encoding="utf-8"))
         if isinstance(payload, dict):
             report = enrich_report(payload, build_log)
+            if contract_errors:
+                report["feature_failures"] = list(report.get("feature_failures") or []) + [
+                    {"name": "Anddea custom icon artifact contract", "reason": error}
+                    for error in contract_errors
+                ]
             (directory / f"{app}-{source}.json").write_text(
                 json.dumps(report, ensure_ascii=False, indent=2) + "\n",
                 encoding="utf-8",
@@ -194,8 +267,11 @@ def main() -> int:
     if summary:
         with Path(summary).open("a", encoding="utf-8") as handle:
             handle.write(status_body)
+            if contract_errors:
+                handle.write("\n### Artifact contract failure\n")
+                handle.writelines(f"- {error}\n" for error in contract_errors)
             handle.write(patch_summary(report, build_log))
-    return 0
+    return 1 if contract_errors else 0
 
 
 if __name__ == "__main__":
