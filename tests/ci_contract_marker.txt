@@ -1,1 +1,2 @@
 CI contract validation marker; no runtime behavior.
+validated-cache-contract=v4
