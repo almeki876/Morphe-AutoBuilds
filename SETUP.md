@@ -12,7 +12,7 @@
 - `apps/<provider>/` — APK取得元ごとの設定
 - `sources/` — パッチCLI／bundleの取得設定
 - `src/` — provider、Google Play、version解決、patch/buildなどの共通実装
-- `scripts/` — Actionsから呼ぶ運用処理
+- `scripts/` — Actionsから呼ぶ運用処理と手動診断
 - `.github/workflows/` — 実行タイミングとジョブ依存関係
 - `tests/` — 回帰テスト
 
@@ -20,22 +20,36 @@
 
 ## GitHub Actions の見方
 
-Actions画面では用途が分かるよう、workflow名を次の分類で管理します。
+Actions画面では、利用目的を先頭で判断できるように表示名を分類しています。ファイル名はworkflow間参照を安定させるため、むやみに変更しません。
 
-| Workflow | 用途 |
-| --- | --- |
-| `Build and Release APKs` | 通常のビルド・検査・Release本体 |
-| `Build All Apps` | 全対象を手動で強制ビルドする入口 |
-| `Check Upstream for Updates` | 定期的にパッチ／APK更新を確認し必要時だけbuildを起動 |
-| `Configuration Check` | push / PR時の設定・構文・unit test |
-| `Repository and APK Provider Health` | providerやbuild toolの定期ヘルスチェック |
-| `Register Google Play Account` | gplaydl用Googleアカウント登録 |
-| `Diagnose Google Play Purchase` | Google Play取得の手動診断 |
-| `Verify Japanese APK Download Fallback` | Tailscale日本出口の手動診断 |
-| `Publish VirusTotal Cache` | 成功したVT hash結果の永続化 |
-| `Update Direct Download Links` | Release後の直リンク一覧更新 |
+| Actionsでの表示名 | ファイル | 用途 |
+| --- | --- | --- |
+| `Build and Release APKs` | `build.yml` | 通常のビルド・検査・Release本体 |
+| `手動: 全アプリをビルド` | `build-all-apps.yml` | 全対象を手動で強制ビルドする入口 |
+| `自動: アップストリーム更新を確認` | `check-upstream.yml` | 定期的にパッチ／APK更新を確認し必要時だけbuildを起動 |
+| `CI: 設定・テスト検証` | `configuration-check.yml` | push / PR時の設定・構文・unit test |
+| `保守: 取得元とビルド環境を点検` | `health-check.yml` | providerやbuild toolの定期ヘルスチェック |
+| `セットアップ: Google Playアカウントを登録` | `register-google-play.yml` | gplaydl用Googleアカウント登録 |
+| `保守: Google Play取得を診断` | `diagnose-google-play-purchase.yml` | Google Play取得の手動診断 |
+| `保守: 日本Tailscale経路を確認` | `japan-egress-check.yml` | Tailscale日本出口の手動診断 |
+| `自動: VirusTotalキャッシュを保存` | `publish-virustotal-cache.yml` | 成功したVT hash結果の永続化 |
+| `自動: APK直リンク一覧を更新` | `update-direct-download-links.yml` | Release後の直リンク一覧更新 |
 
-通常運用で手動実行することが多いのは `Build All Apps`、`Register Google Play Account`、必要時の2つの診断workflowです。
+通常運用で手動実行することが多いのは `手動: 全アプリをビルド`、`セットアップ: Google Playアカウントを登録`、必要時の2つの保守診断workflowです。
+
+## Workflowを変更するときの原則
+
+`build.yml` はパイプラインのオーケストレーターです。ダウンロード、version解決、VirusTotal、state保存などの判断ロジックは可能な限りPython module/script側へ置きます。
+
+workflowを変更するときは次を守ってください。
+
+- 同じ処理を複数workflowへコピーしない
+- 長いPython処理をYAMLのhere-documentへ追加しない
+- 認証情報を受け取るstepは必要最小限にする
+- `continue-on-error` は後続の明示的な結果判定とセットで使う
+- fallbackには終了条件とtimeoutを持たせる
+- workflow名を変更する場合は `workflow_run.workflows` の参照も更新する
+- ファイル名を変更する場合はbadge、`gh workflow run`、テスト、ドキュメントの参照を全検索する
 
 ## 必要なSecrets / Variables
 
@@ -113,7 +127,7 @@ Actions cacheに加え、成功したVT結果はRelease assetにも永続化し�
 ## Google Play アカウント登録
 
 1. `GPLAYDL_API_KEY` をSecretへ登録
-2. Actionsから `Register Google Play Account` を実行
+2. Actionsから `セットアップ: Google Playアカウントを登録` を実行
 3. `expected_email` に利用するGoogleアカウントを指定
 4. Job Summaryに出る一時Authenticator URLを公式gplaydl Authenticatorへ設定
 5. 指定アカウントを追加
@@ -126,10 +140,10 @@ Actions cacheに加え、成功したVT結果はRelease assetにも永続化し�
 1. GitHub Actionsを有効化
 2. 上記Secrets / Variablesを設定
 3. `python3 scripts/validate_repository.py` が成功する状態にする
-4. `Configuration Check` を確認
-5. `Verify Japanese APK Download Fallback` でTailscale JP経路を確認
+4. `CI: 設定・テスト検証` を確認
+5. `保守: 日本Tailscale経路を確認` でTailscale JP経路を確認
 6. 必要ならGoogle Playアカウントを登録
-7. `Build All Apps` を実行して全体動作を確認
+7. `手動: 全アプリをビルド` を実行して全体動作を確認
 
 ## ローカル検証
 
@@ -142,11 +156,26 @@ python3 -m compileall -q src scripts
 python3 -m unittest discover tests
 ```
 
-GitHub Actionsの `Configuration Check` も同じ系統の検証を行います。
+GitHub Actionsの `CI: 設定・テスト検証` も同じ系統の検証を行います。
+
+## 手動provider診断
+
+`probe_apk_sources.py` はworkflowから常時呼ぶものではなく、provider URL解決やCDN応答を単体で調べるための保守ツールです。
+
+例:
+
+```bash
+python3 scripts/probe_apk_sources.py \
+  --app nova \
+  --version 8.8.6 \
+  --code 88600
+```
+
+`--download-dir` を付けなければ、取得URLの先頭bytesだけを確認してAPK archiveかどうかを検査します。provider実装を変更したときの切り分けに使用してください。
 
 ## 設定変更の原則
 
-- package IDはproviderごとに重複して定義せず、矛盾させない
+- package IDはproviderごとに矛盾させない
 - patch CLIが返した互換versionNameを勝手に別versionへ置換しない
 - `version_code` を設定ファイルへ固定保存しない
 - download失敗を「最新版で代用」して成功扱いしない
@@ -156,7 +185,7 @@ GitHub Actionsの `Configuration Check` も同じ系統の検証を行います�
 
 ## 自動更新と状態保存
 
-`Check Upstream for Updates` がpatch sourceとAPK更新を確認し、変更対象だけ `build.yml` をdispatchします。
+`自動: アップストリーム更新を確認` がpatch sourceとAPK更新を確認し、変更対象だけ `build.yml` をdispatchします。
 
 成功したビルド状態は `last-tags.json` に保存します。mainへ別workflowが同時pushしてもnon-fast-forwardで失敗しにくいよう、state保存処理は最新mainへこのrunの変更だけを再適用してpushします。force pushは使用しません。
 
@@ -172,15 +201,15 @@ Releaseは次を満たした場合だけ作成します。
 
 ## メンテナンス用workflow
 
-### Diagnose Google Play Purchase
+### 保守: Google Play取得を診断
 
 Google Playで特定package/versionCodeが取得できない場合の調査用です。通常ビルドの代わりには使いません。
 
-### Verify Japanese APK Download Fallback
+### 保守: 日本Tailscale経路を確認
 
 Tailscale接続、exit node選択、日本IP確認だけを独立して確認します。Google Play障害とTailscale障害を切り分けるために使用します。
 
-### Repository and APK Provider Health
+### 保守: 取得元とビルド環境を点検
 
 build toolとAPK providerを定期probeします。通常ビルドの一時的な障害とは分けて、provider全体の劣化を検出するためのworkflowです。
 
@@ -194,7 +223,7 @@ build toolとAPK providerを定期probeします。通常ビルドの一時的�
 4. README / SETUP / generated docsから参照されていないか
 5. 手動診断用途ではないか
 
-参照がなくても、migrationやdiagnosticのために意図的に残している場合は用途をコメントまたはSETUPへ記録します。
+参照がなくても、migrationやdiagnosticのために意図的に残している場合は用途をこのSETUPへ記録します。
 
 ## 利用者向け情報
 
