@@ -46,8 +46,10 @@ gh = Github(auth=Auth.Token(github_token)) if github_token else Github()
 # aurora_play historically referenced this locale as a module-global default.
 # Keep the compatibility name available during package initialization while the
 # downloader itself remains responsible for choosing its explicit locale.
+# The primary gplaydl request must include the base English locale as well as
+# Japanese so the resulting payload remains compatible with existing consumers.
 if not hasattr(builtins, "DEFAULT_GPLAYDL_LOCALES"):
-    builtins.DEFAULT_GPLAYDL_LOCALES = "ja-JP"
+    builtins.DEFAULT_GPLAYDL_LOCALES = "en-US,ja"
 
 # The APK cache namespace is part of the build input contract. Enforce it
 # before any module imports src.apk_cache and snapshots CACHE_TAG.
@@ -55,7 +57,7 @@ from src import cache_contract as _cache_contract
 _cache_contract.enforce()
 
 # Gboard is the only normal-build exception that combines multiple Morphe
-# bundles on one APK.  Install its command adapter after package globals are
+# bundles on one APK.  Install the command adapter after package globals are
 # initialized so src.utils can import this module without a circular init race.
 from src import gboard_multi as _gboard_multi
 _gboard_multi.install()
