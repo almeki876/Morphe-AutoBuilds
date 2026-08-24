@@ -1,0 +1,40 @@
+name: Close Resolved Build Issues
+
+on:
+  workflow_run:
+    workflows:
+      - Build and Release APKs
+    types:
+      - completed
+
+permissions:
+  actions: read
+  contents: read
+  issues: write
+
+jobs:
+  close-resolved:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout successful run revision
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+
+      - name: Download successful build reports
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SOURCE_RUN_ID: ${{ github.event.workflow_run.id }}
+        run: |
+          mkdir -p build-results
+          gh run download "$SOURCE_RUN_ID" \
+            --repo "${{ github.repository }}" \
+            --pattern 'build-status-*' \
+            --dir build-results
+
+      - name: Close resolved auto-generated issues
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_URL: ${{ github.event.workflow_run.html_url }}
+        run: python3 scripts/close_resolved_build_issues.py --directory build-results
