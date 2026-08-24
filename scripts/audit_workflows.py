@@ -16,7 +16,6 @@ WORKFLOWS = ROOT / ".github" / "workflows"
 
 ALLOWED_WORKFLOWS = {
     "build.yml",
-    "build-all-apps.yml",
     "check-upstream.yml",
     "close-resolved-build-issues.yml",
     "configuration-check.yml",
@@ -28,12 +27,13 @@ ALLOWED_WORKFLOWS = {
     "update-direct-download-links.yml",
 }
 
-# Historical one-shot/debug workflows that must never return to main.
+# Historical one-shot/debug/redundant workflows that must never return to main.
 RETIRED_ONE_SHOT_WORKFLOWS = {
     "apply-patch-result-gating.yml",
     "apply-recommendation-policy-fix.yml",
     "apply-release-details-integration.yml",
     "apply-upstream-policy-once.yml",
+    "build-all-apps.yml",
     "patch-gplaydl-secret.yml",
     "trigger-release-details-fix.yml",
     "verify-anddea-fix.yml",
@@ -59,7 +59,7 @@ def main() -> int:
 
     retired_present = sorted(actual & RETIRED_ONE_SHOT_WORKFLOWS)
     if retired_present:
-        errors.append("retired one-shot workflow(s) returned: " + ", ".join(retired_present))
+        errors.append("retired workflow(s) returned: " + ", ".join(retired_present))
 
     workflow_run_users: list[str] = []
     for path in paths:
