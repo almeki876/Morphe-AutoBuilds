@@ -1,0 +1,53 @@
+name: GitHub Actions・Releaseの問題
+description: workflow、Release、成果物一覧、更新処理などの問題を報告します。
+title: "[CI] "
+labels:
+  - bug
+body:
+  - type: dropdown
+    id: area
+    attributes:
+      label: 問題の場所
+      options:
+        - Build and Release APKs
+        - Build All Apps
+        - VirusTotal
+        - Release作成・asset
+        - 直リンク一覧
+        - Issue自動報告
+        - その他のGitHub Actions
+    validations:
+      required: true
+
+  - type: textarea
+    id: symptom
+    attributes:
+      label: 何が起きましたか？
+      description: 期待した結果と実際の結果が分かるように書いてください。
+    validations:
+      required: true
+
+  - type: input
+    id: run
+    attributes:
+      label: Actions run番号 / job名
+      placeholder: 例：32673762225 / Scan Base APKs with VirusTotal
+
+  - type: input
+    id: app_source
+    attributes:
+      label: 関係するアプリ・ソース
+      description: 特定のアプリやパッチソースに限る場合だけ入力してください。
+      placeholder: 例：YouTube / morphe
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: エラー・ログ・スクリーンショット
+      description: エラー部分や画像をそのまま貼り付けてください。
+
+  - type: textarea
+    id: extra
+    attributes:
+      label: 補足
+      description: 発生頻度や直前に行った操作などがあれば入力してください。
