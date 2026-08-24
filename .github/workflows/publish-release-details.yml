@@ -106,6 +106,9 @@ jobs:
           repository: ${{ github.repository }}
           run-id: ${{ steps.source-run.outputs.run_id }}
 
+      - name: Verify integrated Gboard patch results
+        run: python3 scripts/validate_release_details.py
+
       - name: Resolve matching Release tag
         id: release
         env:
