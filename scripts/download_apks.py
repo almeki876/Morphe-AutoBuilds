@@ -6,6 +6,7 @@ import json
 import logging
 import os
 import shutil
+import subprocess
 import sys
 from pathlib import Path
 
@@ -113,6 +114,46 @@ def _cache_snapshot() -> set[Path]:
     return {path for path in apk_cache.CACHE_DIR.iterdir() if path.is_file()}
 
 
+def _tailscale_fallback_active() -> bool:
+    """Return whether this process is running after the workflow's JP fallback.
+
+    The primary download job does not install/connect Tailscale.  The workflow
+    only invokes the Tailscale action after that primary attempt fails, verifies
+    Japanese egress independently, and then reruns this script.  Detecting an
+    active daemon locally avoids an extra public geolocation request here and
+    keeps provider ordering in one place.
+    """
+    executable = shutil.which("tailscale")
+    if not executable:
+        return False
+    try:
+        result = subprocess.run(
+            [executable, "status", "--json"],
+            check=False,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            timeout=5,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return False
+    return result.returncode == 0
+
+
+def _require_japan_fallback_before_providers(app_name: str, error: Exception) -> None:
+    """Hand a failed non-JP Play attempt to the workflow's Tailscale stage."""
+    if _tailscale_fallback_active():
+        logging.warning(
+            "🇯🇵 Google Play still failed for %s through verified Japanese egress; "
+            "continuing with configured mirror providers",
+            app_name,
+        )
+        return
+    raise RuntimeError(
+        f"Google Play failed for {app_name} before the Japanese egress fallback; "
+        "requesting the workflow Tailscale retry before mirror providers"
+    ) from error
+
+
 def _validate_downloaded_identity(
     input_apk: Path,
     package: str,
@@ -172,9 +213,10 @@ def _download(app_name: str, source: str, arch: str) -> tuple[Path, str]:
     play_only = providers.google_play_only(app_name)
 
     # Google Play is the preferred origin for every app except explicit
-    # GitHub-only packages such as AdGuard. The pinned apkeep/gplaydl clients
-    # own the details/purchase/delivery flows. Version selection is universal:
+    # GitHub-only packages such as AdGuard. Version selection is universal:
     # explicit upstream-supported release -> newest candidate; any/null -> current.
+    # On the normal runner IP, a Play failure is handed directly to the workflow's
+    # verified Japanese Tailscale fallback before mirror providers are attempted.
     play_enabled = aurora_play.google_play_enabled(package)
     if play_only and not play_enabled:
         raise RuntimeError(
@@ -204,9 +246,10 @@ def _download(app_name: str, source: str, arch: str) -> tuple[Path, str]:
                 raise RuntimeError(
                     f"Google Play-only source failed identity validation for {app_name}: {error}"
                 ) from error
+            _require_japan_fallback_before_providers(app_name, error)
             logging.warning(
                 "⚠️  Google Play release does not match the requested release for %s: %s; "
-                "trying configured providers",
+                "trying configured providers through Japanese egress",
                 app_name,
                 error,
             )
@@ -218,8 +261,9 @@ def _download(app_name: str, source: str, arch: str) -> tuple[Path, str]:
                     f"Google Play-only source failed for {app_name}: "
                     f"{type(error).__name__}: {error}"
                 ) from error
+            _require_japan_fallback_before_providers(app_name, error)
             logging.warning(
-                "⚠️  Google Play first-choice download failed for %s: %s: %s; "
+                "⚠️  Google Play failed for %s through Japanese egress: %s: %s; "
                 "trying configured providers",
                 app_name,
                 type(error).__name__,
