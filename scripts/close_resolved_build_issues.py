@@ -1,10 +1,11 @@
-"""Close stale auto-generated build issues after a fully successful workflow run."""
+"""Close stale auto-generated build issues after a successful workflow run."""
 
 from __future__ import annotations
 
 import argparse
 import json
 import os
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -21,6 +22,7 @@ AUTO_PREFIXES = (
     "[Feature Failure]",
     "[Partial Patch Failure]",
 )
+FEATURE_NAME_RE = re.compile(r"^- \*\*Failed patch feature:\*\* `(.+?)`$", re.MULTILINE)
 
 
 def _load_reports(root: Path) -> list[dict]:
@@ -35,14 +37,13 @@ def _load_reports(root: Path) -> list[dict]:
     return reports
 
 
-def _healthy(report: dict) -> bool:
-    """Return True only when this app/source has no tracked patch problem."""
+def _build_succeeded(report: dict) -> bool:
+    """Return True when this app/source completed without build-level failures."""
     return (
         report.get("status") == "success"
         and not (report.get("failed_patches") or [])
         and not (report.get("required_failures") or [])
         and report.get("required_patches_satisfied", True) is not False
-        and not _feature_failures(report)
     )
 
 
@@ -93,25 +94,70 @@ def _matches(issue: dict, report: dict) -> bool:
     )
 
 
+def _feature_issue_name(issue: dict) -> str:
+    """Return the exact tracked feature name for a Feature Failure issue."""
+    body = str(issue.get("body") or "")
+    match = FEATURE_NAME_RE.search(body)
+    if match:
+        return match.group(1).strip()
+
+    title = str(issue.get("title") or "")
+    if title.startswith("[Feature Failure]") and " - " in title:
+        return title.rsplit(" - ", 1)[-1].strip()
+    return ""
+
+
+def _issue_resolved(issue: dict, report: dict) -> bool:
+    """Return whether this specific tracking issue is resolved by the new report.
+
+    Feature issues are evaluated individually. A successful app/source can keep
+    a real unsupported/failed feature open while stale [runtime-skipped*]
+    report-only issues for other features are closed.
+    """
+    if not _build_succeeded(report):
+        return False
+
+    title = str(issue.get("title") or "")
+    actionable = {
+        str(failure.get("name") or "").strip()
+        for failure in _feature_failures(report)
+        if isinstance(failure, dict) and str(failure.get("name") or "").strip()
+    }
+
+    if title.startswith("[Build Failure]"):
+        return True
+    if title.startswith("[Feature Failure]"):
+        feature = _feature_issue_name(issue)
+        return bool(feature) and feature not in actionable
+    if title.startswith("[Partial Patch Failure]"):
+        return not actionable
+    return False
+
+
 def close_resolved(root: Path, run_url: str) -> int:
-    healthy = [report for report in _load_reports(root) if _healthy(report)]
-    if not healthy:
-        print("No fully healthy app/source reports; no issues will be closed.")
+    successful = [report for report in _load_reports(root) if _build_succeeded(report)]
+    if not successful:
+        print("No successful app/source reports; no issues will be closed.")
         return 0
 
     issues = _open_auto_issues()
     closed: set[int] = set()
-    for report in healthy:
+    for report in successful:
         app = str(report.get("app_name"))
         source = str(report.get("source_name") or report.get("source"))
         for issue in issues:
             number = int(issue.get("number") or 0)
-            if not number or number in closed or not _matches(issue, report):
+            if (
+                not number
+                or number in closed
+                or not _matches(issue, report)
+                or not _issue_resolved(issue, report)
+            ):
                 continue
             message = (
-                f"CI verified a later successful build for `{app}` with patch source `{source}`. "
-                "No required, feature, or patch-application failures remain, so this auto-generated "
-                "tracking issue is being closed as resolved."
+                f"CI verified a later successful build for `{app}` with patch source `{source}`, "
+                "and the condition tracked by this auto-generated issue is no longer an "
+                "actionable failure. Closing it as resolved."
             )
             if run_url:
                 message += f"\n\nSuccessful workflow run: {run_url}"
