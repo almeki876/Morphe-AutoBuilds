@@ -24,11 +24,15 @@ class VirusTotalPipelineWorkflowTests(unittest.TestCase):
     def test_create_release_attaches_portable_vt_cache(self) -> None:
         workflow = Path(".github/workflows/build.yml").read_text(encoding="utf-8")
         release_section = workflow.split("  create-release:\n", 1)[1]
-        self.assertIn("virustotal_base_results.json", release_section)
-        self.assertIn("export_virustotal_cache.py", release_section)
-        self.assertIn("virustotal-cache-v1.json", release_section)
-        self.assertIn("gh release upload", release_section)
-        self.assertIn("--clobber", release_section)
+        release_script = Path("scripts/create_release.py").read_text(encoding="utf-8")
+
+        self.assertIn("python3 -m scripts.create_release", release_section)
+        self.assertIn("RELEASE_TAG", release_section)
+        self.assertIn("GITHUB_REPOSITORY", release_section)
+        self.assertIn("export_cache", release_script)
+        self.assertIn("virustotal_base_results.json", release_script)
+        self.assertIn("virustotal-cache-v1.json", release_script)
+        self.assertIn('"--clobber"', release_script)
         self.assertFalse(Path(".github/workflows/publish-virustotal-cache.yml").exists())
 
     def test_successful_state_job_closes_resolved_issues_in_primary_workflow(self) -> None:
