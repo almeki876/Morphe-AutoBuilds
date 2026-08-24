@@ -1,4 +1,4 @@
-name: Finalize Successful Build
+name: Close Resolved Build Issues
 
 on:
   workflow_run:
@@ -9,14 +9,14 @@ on:
 
 permissions:
   actions: read
-  contents: write
+  contents: read
   issues: write
 
 jobs:
-  finalize:
+  close-resolved:
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 15
     steps:
       - name: Checkout successful run revision
         uses: actions/checkout@v7
@@ -39,50 +39,3 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           RUN_URL: ${{ github.event.workflow_run.html_url }}
         run: python3 scripts/close_resolved_build_issues.py --directory build-results
-
-      - name: Download VirusTotal report from successful build
-        env:
-          GH_TOKEN: ${{ github.token }}
-          SOURCE_RUN_ID: ${{ github.event.workflow_run.id }}
-        run: |
-          mkdir -p vt-report
-          gh run download "$SOURCE_RUN_ID" \
-            --repo "${{ github.repository }}" \
-            --name virustotal-report \
-            --dir vt-report
-          test -s vt-report/virustotal_base_results.json
-
-      - name: Export portable VirusTotal SHA cache
-        run: |
-          python3 scripts/export_virustotal_cache.py \
-            vt-report/virustotal_base_results.json \
-            virustotal-cache-v1.json
-          test -s virustotal-cache-v1.json
-
-      - name: Resolve Release created by source run
-        id: release
-        env:
-          GH_TOKEN: ${{ github.token }}
-          RUN_CREATED: ${{ github.event.workflow_run.created_at }}
-          RUN_UPDATED: ${{ github.event.workflow_run.updated_at }}
-        run: |
-          release_tag="$(gh api --paginate \
-            "repos/${{ github.repository }}/releases?per_page=100" \
-            --jq ".[] | select(.draft == false and .created_at >= \"$RUN_CREATED\" and .created_at <= \"$RUN_UPDATED\") | .tag_name" \
-            | head -n 1)"
-          if [ -z "$release_tag" ]; then
-            echo "::error::Could not identify the Release created by source run ${{ github.event.workflow_run.id }}."
-            exit 1
-          fi
-          echo "release_tag=$release_tag" >> "$GITHUB_OUTPUT"
-          echo "Matched Release: $release_tag"
-
-      - name: Attach VirusTotal cache to the matching Release
-        env:
-          GH_TOKEN: ${{ github.token }}
-          RELEASE_TAG: ${{ steps.release.outputs.release_tag }}
-        run: |
-          gh release upload "$RELEASE_TAG" virustotal-cache-v1.json \
-            --repo "${{ github.repository }}" \
-            --clobber
-          echo "Published VirusTotal cache to $RELEASE_TAG"
