@@ -14,27 +14,27 @@ class AnddeaBrandingTests(unittest.TestCase):
 
     def _option_value(self, app: str, key: str) -> str:
         entry = self.entries[(app, "revanced-anddea")]
+        patch = (
+            "Custom branding for YouTube"
+            if app == "youtube"
+            else "Custom branding for YouTube Music"
+        )
         for option in entry.get("options", []):
-            if option.get("patch") == (
-                "Custom branding name for YouTube"
-                if app == "youtube"
-                else "Custom branding name for YouTube Music"
-            ) and option.get("key") == key:
+            if option.get("patch") == patch and option.get("key") == key:
                 return option["value"]
         self.fail(f"missing Anddea branding option {app}:{key}")
 
     def test_youtube_is_named_rva_and_branding_patch_is_required(self) -> None:
         entry = self.entries[("youtube", "revanced-anddea")]
-        patch = "Custom branding name for YouTube"
-        self.assertEqual(self._option_value("youtube", "appName"), "RVA")
+        patch = "Custom branding for YouTube"
+        self.assertEqual(self._option_value("youtube", "customName"), "RVA")
         self.assertIn(patch, entry.get("force_enable", []))
         self.assertIn(patch, entry.get("required", []))
 
     def test_youtube_music_is_named_rva_music_and_branding_patch_is_required(self) -> None:
         entry = self.entries[("youtube-music", "revanced-anddea")]
-        patch = "Custom branding name for YouTube Music"
-        self.assertEqual(self._option_value("youtube-music", "appNameNotification"), "RVA Music")
-        self.assertEqual(self._option_value("youtube-music", "appNameLauncher"), "RVA Music")
+        patch = "Custom branding for YouTube Music"
+        self.assertEqual(self._option_value("youtube-music", "customName"), "RVA Music")
         self.assertIn(patch, entry.get("force_enable", []))
         self.assertIn(patch, entry.get("required", []))
 
