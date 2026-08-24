@@ -23,7 +23,14 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          before="$(gh run list --repo "${{ github.repository }}" --workflow build.yml --event workflow_dispatch --limit 1 --json databaseId --jq '.[0].databaseId // 0')"
+          gh run list \
+            --repo "${{ github.repository }}" \
+            --workflow build.yml \
+            --event workflow_dispatch \
+            --limit 30 \
+            --json databaseId \
+            --jq '.[].databaseId' > /tmp/before-run-ids.txt
+
           gh workflow run build.yml \
             --repo "${{ github.repository }}" \
             --ref main \
@@ -31,18 +38,35 @@ jobs:
             -f anddea_force_build=true \
             -f updated_sources=revanced-anddea
 
-          run_json=''
+          run_id=''
           for attempt in $(seq 1 20); do
-            run_json="$(gh run list --repo "${{ github.repository }}" --workflow build.yml --event workflow_dispatch --limit 5 --json databaseId,headSha,status,conclusion,createdAt,url --jq "map(select(.databaseId != $before)) | sort_by(.createdAt) | reverse | .[0] // empty")"
-            if [ -n "$run_json" ]; then
+            while read -r candidate; do
+              if ! grep -Fxq "$candidate" /tmp/before-run-ids.txt; then
+                run_id="$candidate"
+                break
+              fi
+            done < <(
+              gh run list \
+                --repo "${{ github.repository }}" \
+                --workflow build.yml \
+                --event workflow_dispatch \
+                --limit 30 \
+                --json databaseId,createdAt \
+                --jq 'sort_by(.createdAt) | reverse | .[].databaseId'
+            )
+            if [ -n "$run_id" ]; then
               break
             fi
             sleep 3
           done
-          if [ -z "$run_json" ]; then
-            echo "::error::Could not resolve dispatched build run ID"
+          if [ -z "$run_id" ]; then
+            echo "::error::Could not resolve newly dispatched build run ID"
             exit 1
           fi
+
+          run_json="$(gh run view "$run_id" \
+            --repo "${{ github.repository }}" \
+            --json databaseId,headSha,status,conclusion,createdAt,url)"
 
           mkdir -p .verification
           printf '%s\n' "$run_json" > .verification/anddea-run.json
