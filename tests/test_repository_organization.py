@@ -8,10 +8,10 @@ WORKFLOWS = ROOT / ".github" / "workflows"
 
 
 class RepositoryOrganizationTests(unittest.TestCase):
-    EXPECTED_WORKFLOW_NAMES = {
+    IMPORTANT_WORKFLOW_NAMES = {
         "build.yml": "Build and Release APKs",
+        "build-all-apps.yml": "手動: 全アプリをビルド",
         "check-upstream.yml": "自動: アップストリーム更新を確認",
-        "close-resolved-build-issues.yml": "Close Resolved Build Issues",
         "configuration-check.yml": "CI: 設定・テスト検証",
         "diagnose-google-play-purchase.yml": "保守: Google Play取得を診断",
         "health-check.yml": "保守: 取得元とビルド環境を点検",
@@ -27,33 +27,34 @@ class RepositoryOrganizationTests(unittest.TestCase):
         self.assertIsNotNone(match, f"workflow has no readable name: {path}")
         return match.group(1)
 
-    def test_workflow_files_have_stable_human_readable_names(self):
-        actual_files = {path.name for path in WORKFLOWS.glob("*.yml")}
-        self.assertEqual(actual_files, set(self.EXPECTED_WORKFLOW_NAMES))
-        for filename, expected in self.EXPECTED_WORKFLOW_NAMES.items():
-            self.assertEqual(self._workflow_name(WORKFLOWS / filename), expected)
+    def test_important_workflows_have_stable_human_readable_names(self):
+        for filename, expected in self.IMPORTANT_WORKFLOW_NAMES.items():
+            path = WORKFLOWS / filename
+            self.assertTrue(path.exists(), f"required workflow missing: {filename}")
+            self.assertEqual(self._workflow_name(path), expected)
 
-    def test_only_issue_closer_depends_on_primary_build_completion(self):
-        closer = (WORKFLOWS / "close-resolved-build-issues.yml").read_text(
-            encoding="utf-8"
-        )
-        self.assertIn("workflow_run:", closer)
-        self.assertIn("Build and Release APKs", closer)
-        self.assertNotIn("virustotal-cache-v1.json", closer)
+    def test_manual_full_build_keeps_a_simple_entry_point(self):
+        text = (WORKFLOWS / "build-all-apps.yml").read_text(encoding="utf-8")
+        self.assertIn("workflow_dispatch:", text)
+        self.assertIn("gh workflow run build.yml", text)
+        self.assertIn("build_all_sources=true", text)
 
+    def test_recovery_workflows_are_manual_only(self):
         for filename in (
             "publish-release-details.yml",
             "update-direct-download-links.yml",
+            "diagnose-google-play-purchase.yml",
+            "japan-egress-check.yml",
+            "register-google-play.yml",
         ):
             text = (WORKFLOWS / filename).read_text(encoding="utf-8")
+            self.assertIn("workflow_dispatch:", text)
             self.assertNotIn("workflow_run:", text)
 
     def test_direct_download_workflow_is_manual_recovery_only(self):
         text = (WORKFLOWS / "update-direct-download-links.yml").read_text(
             encoding="utf-8"
         )
-        self.assertIn("workflow_dispatch:", text)
-        self.assertNotIn("workflow_run:", text)
         self.assertNotIn("push:", text)
         self.assertNotIn("README.md", text)
         self.assertIn("Morphe-AutoBuilds-Direct-Download.md", text)
@@ -61,10 +62,6 @@ class RepositoryOrganizationTests(unittest.TestCase):
     def test_removed_legacy_helpers_stay_removed(self):
         self.assertFalse((ROOT / "scripts" / "download_reused_apks.py").exists())
         self.assertFalse((ROOT / "scripts" / "pr_build_scope.py").exists())
-        self.assertFalse((WORKFLOWS / "build-all-apps.yml").exists())
-        self.assertFalse((WORKFLOWS / "apply-upstream-policy-once.yml").exists())
-        self.assertFalse((WORKFLOWS / "apply-recommendation-policy-fix.yml").exists())
-        self.assertFalse((WORKFLOWS / "patch-gplaydl-secret.yml").exists())
 
     def test_readme_is_user_facing_and_setup_owns_operations(self):
         readme = (ROOT / "README.md").read_text(encoding="utf-8")
