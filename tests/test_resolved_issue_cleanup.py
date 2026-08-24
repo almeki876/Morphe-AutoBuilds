@@ -10,13 +10,19 @@ def test_open_auto_issues_accepts_actions_bot_login_variants(monkeypatch):
             "number": 1314,
             "title": "[Feature Failure] youtube-music - revanced-anddea - v9.15.51 - Spoof signature",
             "body": "",
-            "author": {"login": "github-actions"},
+            "author": {"login": "app/github-actions"},
         },
         {
             "number": 1319,
             "title": "[Feature Failure] youtube-music - revanced-anddea - v9.15.51 - Spoof app version",
             "body": "",
             "author": {"login": "github-actions[bot]"},
+        },
+        {
+            "number": 1300,
+            "title": "[Feature Failure] youtube-music - revanced-anddea - v9.15.51 - Legacy bot form",
+            "body": "",
+            "author": {"login": "github-actions"},
         },
         {
             "number": 9999,
@@ -31,7 +37,7 @@ def test_open_auto_issues_accepts_actions_bot_login_variants(monkeypatch):
 
     monkeypatch.setattr(cleanup.subprocess, "run", fake_run)
 
-    assert [issue["number"] for issue in cleanup._open_auto_issues()] == [1314, 1319]
+    assert [issue["number"] for issue in cleanup._open_auto_issues()] == [1314, 1319, 1300]
 
 
 def test_report_only_feature_closes_while_unsupported_stays_open(monkeypatch, tmp_path):

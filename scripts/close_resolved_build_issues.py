@@ -22,7 +22,7 @@ AUTO_PREFIXES = (
     "[Feature Failure]",
     "[Partial Patch Failure]",
 )
-GITHUB_ACTIONS_BOT_LOGINS = {"github-actions", "github-actions[bot]"}
+GITHUB_ACTIONS_BOT_LOGINS = {"app/github-actions", "github-actions", "github-actions[bot]"}
 FEATURE_NAME_RE = re.compile(r"^- \*\*Failed patch feature:\*\* `(.+?)`$", re.MULTILINE)
 
 
