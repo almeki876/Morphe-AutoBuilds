@@ -15,6 +15,9 @@ on:
     branches:
       - main
     paths:
+      # Build and Release APKs は Release 作成成功後に last-tags.json を更新する。
+      # その成功状態コミットを直リンク再生成の確実なトリガーとしても使う。
+      - last-tags.json
       - scripts/generate_direct_download_md.py
       - tests/test_direct_download_md.py
       - .github/workflows/update-direct-download-links.yml
