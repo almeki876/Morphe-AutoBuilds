@@ -1,0 +1,54 @@
+name: "一時検証: Anddea observable"
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/verify-anddea-observed.yml
+
+permissions:
+  actions: write
+  contents: write
+
+jobs:
+  dispatch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: main
+
+      - name: Dispatch current-main Anddea-only build
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          before="$(gh run list --repo "${{ github.repository }}" --workflow build.yml --event workflow_dispatch --limit 1 --json databaseId --jq '.[0].databaseId // 0')"
+          gh workflow run build.yml \
+            --repo "${{ github.repository }}" \
+            --ref main \
+            -f anddea_tag=latest \
+            -f anddea_force_build=true \
+            -f updated_sources=revanced-anddea
+
+          run_json=''
+          for attempt in $(seq 1 20); do
+            run_json="$(gh run list --repo "${{ github.repository }}" --workflow build.yml --event workflow_dispatch --limit 5 --json databaseId,headSha,status,conclusion,createdAt,url --jq "map(select(.databaseId != $before)) | sort_by(.createdAt) | reverse | .[0] // empty")"
+            if [ -n "$run_json" ]; then
+              break
+            fi
+            sleep 3
+          done
+          if [ -z "$run_json" ]; then
+            echo "::error::Could not resolve dispatched build run ID"
+            exit 1
+          fi
+
+          mkdir -p .verification
+          printf '%s\n' "$run_json" > .verification/anddea-run.json
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .verification/anddea-run.json
+          git commit -m "ci: record Anddea verification run [skip ci]"
+          git pull --rebase origin main
+          git push origin HEAD:main
