@@ -26,9 +26,8 @@
         {"patch":"Change version code","key":"versionCode","value":"2147483647"},
         {"patch":"Custom Shorts action buttons","key":"iconType","value":"round"},
         {"patch":"Custom branding for YouTube","key":"customIcon","value":"patch-assets/anddea/youtube/xisr_evergreen"},
-        {"patch":"Custom branding name for YouTube","key":"appName","value":"RVA"},
+        {"patch":"Custom branding for YouTube","key":"customName","value":"RVA"},
         {"patch":"Custom double tap length","key":"doubleTapLengthArrays","value":"3, 5, 10, 15, 20, 30, 60, 120, 180"},
-        {"patch":"Custom header for YouTube","key":"customHeader","value":"custom_branding_icon"},
         {"patch":"Force player buttons background","key":"BackgroundColor","value":"?ytOverlayBackgroundMediumLight"},
         {"patch":"GmsCore support","key":"gmsCoreVendorGroupId","value":"app.revanced"},
         {"patch":"GmsCore support","key":"checkGmsCore","value":true},
@@ -60,8 +59,8 @@
         {"patch":"Hide shortcuts","key":"shorts","value":false}
       ],
       "disable": [],
-      "force_enable": ["Custom branding name for YouTube"],
-      "required": ["Custom branding name for YouTube"]
+      "force_enable": ["Custom branding for YouTube"],
+      "required": ["Custom branding for YouTube"]
     },
     {"app_name":"youtube-music","source":"morphe","options":[],"disable":[]},
     {
@@ -69,9 +68,7 @@
       "source": "revanced-anddea",
       "options": [
         {"patch":"Custom branding for YouTube Music","key":"customIcon","value":"patch-assets/anddea/youtube-music/xisr_yellow"},
-        {"patch":"Custom branding name for YouTube Music","key":"appNameNotification","value":"RVA Music"},
-        {"patch":"Custom branding name for YouTube Music","key":"appNameLauncher","value":"RVA Music"},
-        {"patch":"Custom header for YouTube Music","key":"customHeader","value":"custom_branding_icon"},
+        {"patch":"Custom branding for YouTube Music","key":"customName","value":"RVA Music"},
         {"patch":"Dark theme","key":"darkThemeBackgroundColor","value":"@android:color/black"},
         {"patch":"Dark theme","key":"materialYou","value":false},
         {"patch":"GmsCore support","key":"gmsCoreVendorGroupId","value":"app.revanced"},
@@ -91,8 +88,8 @@
         {"patch":"Change version code","key":"versionCode","value":"2147483647"}
       ],
       "disable": [],
-      "force_enable": ["Hide overlay filter","Hide player overlay filter","Disable music video in album","Custom branding name for YouTube Music"],
-      "required": ["Custom branding name for YouTube Music"]
+      "force_enable": ["Hide overlay filter","Hide player overlay filter","Disable music video in album","Custom branding for YouTube Music"],
+      "required": ["Custom branding for YouTube Music"]
     },
     {"app_name":"adguard","source":"rushiranpise","disable":[]},
     {"app_name":"prime-video","source":"hoo-dles","disable":[]},
