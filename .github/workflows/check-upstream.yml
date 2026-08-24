@@ -1,4 +1,4 @@
-name: Check Upstream for Updates
+name: 自動: アップストリーム更新を確認
 
 on:
   schedule:
@@ -182,13 +182,13 @@ jobs:
           fi
 
           # FORCE_* は *_force に入れる（NEWバッジ用の *_upd は変えない）
-          [ "${FORCE_MORPHE:-false}" = "true" ]          && morphe_force=true
+          [ "${FORCE_MORPHE:-false}" = "true"          ] && morphe_force=true
           [ "${FORCE_REVANCED_ANDDEA:-false}" = "true" ] && anddea_force=true
-          [ "${FORCE_RUSHIRANPISE:-false}" = "true" ]   && rushiranpise_force=true
-          [ "${FORCE_ROOKIE:-false}" = "true" ]          && rookie_force=true
-          [ "${FORCE_TOSOX:-false}" = "true" ]           && tosox_force=true
-          [ "${FORCE_YUZU:-false}" = "true" ]            && yuzu_force=true
-          [ "${FORCE_DROPPED:-false}" = "true" ]         && dropped_force=true
+          [ "${FORCE_RUSHIRANPISE:-false}" = "true"   ] && rushiranpise_force=true
+          [ "${FORCE_ROOKIE:-false}" = "true"          ] && rookie_force=true
+          [ "${FORCE_TOSOX:-false}" = "true"           ] && tosox_force=true
+          [ "${FORCE_YUZU:-false}" = "true"            ] && yuzu_force=true
+          [ "${FORCE_DROPPED:-false}" = "true"         ] && dropped_force=true
 
           gh workflow run build.yml \
             -f morphe_tag="${{ steps.fetch.outputs.morphe_tag }}" \
