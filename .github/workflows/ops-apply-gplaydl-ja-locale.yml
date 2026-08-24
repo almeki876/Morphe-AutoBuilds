@@ -1,0 +1,49 @@
+name: ops-apply-gplaydl-ja-locale
+
+on:
+  pull_request:
+    types: [opened]
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    if: github.event.pull_request.head.ref == 'fix/gplaydl-ja-locale-primary'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: fix/gplaydl-ja-locale-primary
+          fetch-depth: 0
+      - name: Apply primary gplaydl Japanese locale policy
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path('src/aurora_play.py')
+          text = path.read_text(encoding='utf-8')
+          marker = 'DEFAULT_GPLAYDL_LOCALES = "en-US,ja"\n'
+          if marker not in text:
+              text = text.replace(
+                  'GPLAYDL_PREFERRED_PROFILE_ENV = "GPLAYDL_PREFERRED_PROFILE"\n',
+                  'GPLAYDL_PREFERRED_PROFILE_ENV = "GPLAYDL_PREFERRED_PROFILE"\n' + marker,
+                  1,
+              )
+          old = '''    command = prefix + [\n        "download",\n        package,\n        "-o",\n        str(downloads.resolve()),\n        "-a",\n        os.getenv("GPLAYDL_ARCH", "arm64"),\n    ]'''
+          new = '''    command = prefix + [\n        "download",\n        package,\n        "-o",\n        str(downloads.resolve()),\n        "-a",\n        os.getenv("GPLAYDL_ARCH", "arm64"),\n        "-l",\n        os.getenv("GPLAYDL_LOCALES", DEFAULT_GPLAYDL_LOCALES),\n    ]'''
+          if old not in text:
+              raise SystemExit('expected gplaydl command block not found')
+          path.write_text(text.replace(old, new, 1), encoding='utf-8')
+
+          test = Path('tests/test_gplaydl_primary_locale.py')
+          test.write_text('''import unittest\n\nfrom src import aurora_play\n\n\nclass GPlayDlPrimaryLocaleTests(unittest.TestCase):\n    def test_primary_gplaydl_requests_japanese_language_split_by_default(self) -> None:\n        command = aurora_play._linked_gplaydl_command(\n            "gplaydl",\n            "com.protonvpn.android",\n            __import__("pathlib").Path("/tmp/downloads"),\n            None,\n        )\n        self.assertEqual(command[command.index("-l") + 1], "en-US,ja")\n\n    def test_primary_gplaydl_preserves_explicit_locale_policy(self) -> None:\n        import os\n        from pathlib import Path\n        old = os.environ.get("GPLAYDL_LOCALES")\n        try:\n            os.environ["GPLAYDL_LOCALES"] = "en-US,fr,ja"\n            command = aurora_play._linked_gplaydl_command(\n                "gplaydl",\n                "com.example",\n                Path("/tmp/downloads"),\n                None,\n            )\n            self.assertEqual(command[command.index("-l") + 1], "en-US,fr,ja")\n        finally:\n            if old is None:\n                os.environ.pop("GPLAYDL_LOCALES", None)\n            else:\n                os.environ["GPLAYDL_LOCALES"] = old\n\n\nif __name__ == "__main__":\n    unittest.main()\n''', encoding='utf-8')
+
+          helper = Path('.github/workflows/ops-apply-gplaydl-ja-locale.yml')
+          helper.unlink()
+          PY
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add src/aurora_play.py tests/test_gplaydl_primary_locale.py .github/workflows/ops-apply-gplaydl-ja-locale.yml
+          git commit -m 'fix: request Japanese language split on primary gplaydl path'
+          git push origin HEAD:fix/gplaydl-ja-locale-primary
