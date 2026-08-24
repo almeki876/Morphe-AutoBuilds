@@ -6,6 +6,7 @@ import json
 import logging
 import os
 import shutil
+import subprocess
 import sys
 from pathlib import Path
 
@@ -43,12 +44,6 @@ def _expected_candidate(
     version: str,
     candidates: list[VersionCandidate],
 ) -> VersionCandidate:
-    """Recover the patch-required release identity used by a provider lookup.
-
-    Patch compatibility is authoritative. Provider-discovered versionCode data
-    may enrich that identity, while provider config pins are used only when the
-    patch bundle supplied no candidate for the returned version.
-    """
     candidate = next(
         (candidate for candidate in candidates if candidate.canonical == version),
         None,
@@ -61,11 +56,7 @@ def _expected_candidate(
             versioning.discovered_version_code(package, version) if package else None
         )
         if discovered_code:
-            return VersionCandidate(
-                name=candidate.name,
-                code=discovered_code,
-                raw=candidate.raw,
-            )
+            return VersionCandidate(name=candidate.name, code=discovered_code, raw=candidate.raw)
         return candidate
 
     config = providers.load_config(app_name, platform) or {}
@@ -74,9 +65,7 @@ def _expected_candidate(
         return pinned
 
     package = providers.configured_package(app_name)
-    discovered_code = (
-        versioning.discovered_version_code(package, version) if package else None
-    )
+    discovered_code = versioning.discovered_version_code(package, version) if package else None
     return VersionCandidate(name=version, code=discovered_code)
 
 
@@ -85,15 +74,6 @@ def _preferred_play_candidate(
     package: str,
     candidates: list[VersionCandidate],
 ) -> VersionCandidate | None:
-    """Apply the universal patch-to-Play version selection rule.
-
-    Patch compatibility is authoritative for every app. When upstream supplies
-    explicit supported releases, the already newest-first first candidate is
-    requested exactly. An empty candidate list means upstream compatibility is
-    ``any``/``null`` and therefore intentionally requests the current Google
-    Play release.
-    Provider config pins never choose the primary Play release.
-    """
     del app_name, package
     return candidates[0] if candidates else None
 
@@ -101,10 +81,7 @@ def _preferred_play_candidate(
 def _new_cache_entries(before: set[Path]) -> set[Path]:
     if not apk_cache.CACHE_DIR.is_dir():
         return set()
-    return {
-        path for path in apk_cache.CACHE_DIR.iterdir()
-        if path.is_file() and path not in before
-    }
+    return {path for path in apk_cache.CACHE_DIR.iterdir() if path.is_file() and path not in before}
 
 
 def _cache_snapshot() -> set[Path]:
@@ -113,12 +90,53 @@ def _cache_snapshot() -> set[Path]:
     return {path for path in apk_cache.CACHE_DIR.iterdir() if path.is_file()}
 
 
+def _tailscale_fallback_active() -> bool:
+    executable = shutil.which("tailscale")
+    if not executable:
+        return False
+    try:
+        result = subprocess.run(
+            [executable, "status", "--json"],
+            check=False,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            timeout=5,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return False
+    return result.returncode == 0
+
+
+def _japan_handoff_enabled(app_name: str) -> bool:
+    """Only the Actions matrix job has the workflow stage that can connect Tailscale."""
+    return (
+        os.getenv("GITHUB_ACTIONS", "").lower() == "true"
+        and os.getenv("APP_NAME", "") == app_name
+    )
+
+
+def _require_japan_fallback_before_providers(app_name: str, error: Exception) -> None:
+    """Hand a failed non-JP Play attempt to the workflow's Tailscale stage."""
+    if not _japan_handoff_enabled(app_name):
+        return
+    if _tailscale_fallback_active():
+        logging.warning(
+            "🇯🇵 Google Play still failed for %s through verified Japanese egress; "
+            "continuing with configured mirror providers",
+            app_name,
+        )
+        return
+    raise RuntimeError(
+        f"Google Play failed for {app_name} before the Japanese egress fallback; "
+        "requesting the workflow Tailscale retry before mirror providers"
+    ) from error
+
+
 def _validate_downloaded_identity(
     input_apk: Path,
     package: str,
     candidate: VersionCandidate | None,
 ) -> apk_identity.ApkIdentity:
-    """Reject APKs whose actual manifest identity differs from selection."""
     identity = apk_identity.validate_identity(input_apk, package, candidate)
     logging.info(
         "🪪 Verified APK identity: package=%s versionName=%s versionCode=%s",
@@ -138,7 +156,6 @@ def _record_play_download(
 ) -> None:
     apk_cache.stage(input_apk, package, version, "aurora-google-play")
     from src import provenance
-
     provenance.record(
         app_name,
         version,
@@ -154,14 +171,8 @@ def _download(app_name: str, source: str, arch: str) -> tuple[Path, str]:
     if not package:
         raise RuntimeError(f"No package ID configured for {app_name}")
     _, cli, bundle = _find_tools(source)
-    patch_candidates = utils.get_supported_version_candidates(
-        package, str(cli), str(bundle)
-    )
-    candidates = providers.resolve_patch_candidates(
-        app_name,
-        package,
-        patch_candidates,
-    )
+    patch_candidates = utils.get_supported_version_candidates(package, str(cli), str(bundle))
+    candidates = providers.resolve_patch_candidates(app_name, package, patch_candidates)
     if patch_candidates:
         logging.info(
             "🧩 Patch-compatible release identities for %s: %s",
@@ -170,11 +181,6 @@ def _download(app_name: str, source: str, arch: str) -> tuple[Path, str]:
         )
     identity_errors: list[str] = []
     play_only = providers.google_play_only(app_name)
-
-    # Google Play is the preferred origin for every app except explicit
-    # GitHub-only packages such as AdGuard. The pinned apkeep/gplaydl clients
-    # own the details/purchase/delivery flows. Version selection is universal:
-    # explicit upstream-supported release -> newest candidate; any/null -> current.
     play_enabled = aurora_play.google_play_enabled(package)
     if play_only and not play_enabled:
         raise RuntimeError(
@@ -190,8 +196,6 @@ def _download(app_name: str, source: str, arch: str) -> tuple[Path, str]:
                 play_input.unlink(missing_ok=True)
                 raise RuntimeError("Google Play returned a corrupt APK archive")
             identity = _validate_downloaded_identity(play_input, package, play_candidate)
-            # Some split/base APKs legitimately omit versionName. Keep a stable
-            # non-empty release identity by falling back to manifest versionCode.
             version = identity.version_name or identity.version_code or "unknown"
             _record_play_download(app_name, package, arch, play_input, version)
             logging.info("✅ Google Play selected as APK origin for %s v%s", app_name, version)
@@ -204,6 +208,7 @@ def _download(app_name: str, source: str, arch: str) -> tuple[Path, str]:
                 raise RuntimeError(
                     f"Google Play-only source failed identity validation for {app_name}: {error}"
                 ) from error
+            _require_japan_fallback_before_providers(app_name, error)
             logging.warning(
                 "⚠️  Google Play release does not match the requested release for %s: %s; "
                 "trying configured providers",
@@ -215,9 +220,9 @@ def _download(app_name: str, source: str, arch: str) -> tuple[Path, str]:
                 play_input.unlink(missing_ok=True)
             if play_only:
                 raise RuntimeError(
-                    f"Google Play-only source failed for {app_name}: "
-                    f"{type(error).__name__}: {error}"
+                    f"Google Play-only source failed for {app_name}: {type(error).__name__}: {error}"
                 ) from error
+            _require_japan_fallback_before_providers(app_name, error)
             logging.warning(
                 "⚠️  Google Play first-choice download failed for %s: %s: %s; "
                 "trying configured providers",
@@ -243,19 +248,13 @@ def _download(app_name: str, source: str, arch: str) -> tuple[Path, str]:
         )
         if not input_apk:
             continue
-
         version = str(version)
         candidate = _expected_candidate(app_name, platform, version, candidates)
         try:
             _validate_downloaded_identity(input_apk, package, candidate)
         except apk_identity.ApkIdentityError as error:
             identity_errors.append(f"{platform}: {error}")
-            logging.error(
-                "❌ %s: rejecting mislabeled APK for %s: %s",
-                platform,
-                app_name,
-                error,
-            )
+            logging.error("❌ %s: rejecting mislabeled APK for %s: %s", platform, app_name, error)
             input_apk.unlink(missing_ok=True)
             downloader.remove_apk_origin(app_name, arch)
             for staged in _new_cache_entries(cache_before):
@@ -302,30 +301,17 @@ def _download(app_name: str, source: str, arch: str) -> tuple[Path, str]:
                 input_apk.unlink(missing_ok=True)
             identity_errors.append(f"{fallback_name}: {error}")
             fallback_errors.append(f"{fallback_name}: {error}")
-            logging.warning(
-                "⚠️  %s fallback returned a mismatched APK for %s: %s",
-                fallback_name,
-                app_name,
-                error,
-            )
+            logging.warning("⚠️  %s fallback returned a mismatched APK for %s: %s", fallback_name, app_name, error)
             continue
         except Exception as error:
             if input_apk is not None:
                 input_apk.unlink(missing_ok=True)
-            fallback_errors.append(
-                f"{fallback_name}: {type(error).__name__}: {error}"
-            )
-            logging.warning(
-                "⚠️  %s fallback failed for %s: %s",
-                fallback_name,
-                app_name,
-                error,
-            )
+            fallback_errors.append(f"{fallback_name}: {type(error).__name__}: {error}")
+            logging.warning("⚠️  %s fallback failed for %s: %s", fallback_name, app_name, error)
             continue
 
         apk_cache.stage(input_apk, package, version, fallback_name)
         from src import provenance
-
         provenance.record(
             app_name,
             version,
@@ -351,7 +337,6 @@ def _download(app_name: str, source: str, arch: str) -> tuple[Path, str]:
         _validate_downloaded_identity(browser_input, package, fallback_candidate)
         apk_cache.stage(browser_input, package, version, browser_name)
         from src import provenance
-
         provenance.record(
             app_name,
             version,
@@ -360,24 +345,14 @@ def _download(app_name: str, source: str, arch: str) -> tuple[Path, str]:
             arch,
             config={"package": package},
         )
-        logging.info(
-            "✅ %s selected as final APK origin for %s v%s",
-            browser_name,
-            app_name,
-            version,
-        )
+        logging.info("✅ %s selected as final APK origin for %s v%s", browser_name, app_name, version)
         return browser_input, version
     except apk_identity.ApkIdentityError as error:
         if browser_input is not None:
             browser_input.unlink(missing_ok=True)
         identity_errors.append(f"{browser_name}: {error}")
         fallback_errors.append(f"{browser_name}: {error}")
-        logging.warning(
-            "⚠️  %s returned a mismatched APK for %s: %s",
-            browser_name,
-            app_name,
-            error,
-        )
+        logging.warning("⚠️  %s returned a mismatched APK for %s: %s", browser_name, app_name, error)
     except Exception as error:
         if browser_input is not None:
             browser_input.unlink(missing_ok=True)
