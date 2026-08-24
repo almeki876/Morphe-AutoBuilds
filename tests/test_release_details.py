@@ -27,10 +27,7 @@ class ReleaseDetailsTests(unittest.TestCase):
             {
                 "app_name": "gboard",
                 "source": "adobo",
-                "force_enable": [
-                    "Enable OCR feature",
-                    "Enable Undo feature",
-                ],
+                "force_enable": ["Enable OCR feature", "Enable Undo feature"],
             },
             {
                 "app_name": "gboard",
@@ -67,7 +64,7 @@ class ReleaseDetailsTests(unittest.TestCase):
             "jason",
         )
 
-    def test_generate_creates_release_and_app_indexes_from_actual_reports(self) -> None:
+    def test_generate_creates_release_app_and_variant_indexes(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             build = root / "build"
@@ -135,9 +132,7 @@ class ReleaseDetailsTests(unittest.TestCase):
                 ),
                 encoding="utf-8",
             )
-
-            config = root / "my-patch-config.json"
-            config.write_text(
+            (root / "my-patch-config.json").write_text(
                 json.dumps(
                     {
                         "patch_list": [
@@ -173,31 +168,107 @@ class ReleaseDetailsTests(unittest.TestCase):
             try:
                 os.chdir(root)
                 with (
-                    mock.patch.object(details, "_source_url", return_value="https://example.invalid/source"),
+                    mock.patch.object(
+                        details,
+                        "_source_url",
+                        return_value="https://example.invalid/source",
+                    ),
                     mock.patch.object(details, "_patch_entries", return_value={}),
                 ):
                     release_dir, notes_path = details.generate(args)
             finally:
                 os.chdir(cwd)
 
+            variant = release_dir / "apps/gboard/variants/jason"
             release_index = (release_dir / "README.md").read_text(encoding="utf-8")
             app_index = (release_dir / "apps/gboard/README.md").read_text(encoding="utf-8")
-            patches = (release_dir / "apps/gboard/patches.md").read_text(encoding="utf-8")
-            apk_source = (release_dir / "apps/gboard/apk-source.md").read_text(encoding="utf-8")
-            vt = (release_dir / "apps/gboard/virustotal.md").read_text(encoding="utf-8")
+            variant_index = (variant / "README.md").read_text(encoding="utf-8")
+            patches = (variant / "patches.md").read_text(encoding="utf-8")
+            apk_source = (variant / "apk-source.md").read_text(encoding="utf-8")
+            vt = (variant / "virustotal.md").read_text(encoding="utf-8")
             notes = notes_path.read_text(encoding="utf-8")
 
             self.assertIn("収録アプリ数:** 1", release_index)
+            self.assertIn("ビルド構成数:** 1", release_index)
             self.assertIn("Jason + Adobo + Morning-Entree", release_index)
-            self.assertIn("開発者向け診断・ログ", app_index)
+            self.assertIn("variants/jason/README.md", app_index)
+            self.assertIn("開発者向け診断・ログ", variant_index)
             self.assertIn("Enable Undo feature", patches)
             self.assertIn("jkennethcarino", patches)
             self.assertIn("Always incognito mode", patches)
             self.assertIn("Entree3k", patches)
             self.assertIn("GitHub Base APK Cache から復元", apk_source)
             self.assertIn("APKMirror", apk_source)
+            self.assertIn("パッチ適用前", vt)
             self.assertIn("virustotal.com/gui/file/abc", vt)
-            self.assertIn("[Gboard](https://github.com/example/repo/blob/main/", notes)
+            self.assertIn(
+                "[Gboard](https://github.com/example/repo/blob/main/", notes
+            )
+
+    def test_multiple_sources_for_same_app_are_not_collapsed(self) -> None:
+        reports = [
+            {
+                "app_name": "youtube",
+                "source": "morphe",
+                "version": "1",
+                "status": "success",
+                "applied_patches": ["A"],
+            },
+            {
+                "app_name": "youtube",
+                "source": "revanced-anddea",
+                "version": "1",
+                "status": "success",
+                "applied_patches": ["B"],
+            },
+        ]
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            build = root / "build"
+            build.mkdir()
+            for report in reports:
+                (build / f"youtube-{report['source']}.json").write_text(
+                    json.dumps(report), encoding="utf-8"
+                )
+            (root / "my-patch-config.json").write_text(
+                '{"patch_list": []}', encoding="utf-8"
+            )
+            (root / "last-tags.json").write_text("{}", encoding="utf-8")
+            vt = root / "vt.json"
+            vt.write_text('{"results": [], "failures": []}', encoding="utf-8")
+            args = argparse.Namespace(
+                tag="tag",
+                repository="example/repo",
+                run_url="",
+                build_results=build,
+                download_results=root / "downloads",
+                base_inputs=root / "base",
+                virustotal=vt,
+                output_root=root / "release-details",
+                release_notes=root / "notes.md",
+            )
+            cwd = Path.cwd()
+            try:
+                os.chdir(root)
+                with mock.patch.object(details, "_patch_entries", return_value={}):
+                    release_dir, _ = details.generate(args)
+            finally:
+                os.chdir(cwd)
+
+            app_index = (release_dir / "apps/youtube/README.md").read_text(
+                encoding="utf-8"
+            )
+            self.assertIn("variants/morphe/README.md", app_index)
+            self.assertIn("variants/revanced-anddea/README.md", app_index)
+            self.assertTrue(
+                (release_dir / "apps/youtube/variants/morphe/patches.md").is_file()
+            )
+            self.assertTrue(
+                (
+                    release_dir
+                    / "apps/youtube/variants/revanced-anddea/patches.md"
+                ).is_file()
+            )
 
 
 if __name__ == "__main__":
