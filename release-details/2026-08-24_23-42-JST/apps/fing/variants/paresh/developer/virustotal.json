@@ -1,0 +1,23 @@
+{
+  "results": [
+    {
+      "file": "fing-paresh-universal.apks",
+      "sha256": "6e4046bdb5545cf3d86885d80cbd9f2fa63588d0f4948c9dbec0a5e897dd28e6",
+      "size": 17111011,
+      "analysis_id": "MzM5OTE0MjYwODQyYTFmNjBhNGNkZmMxMzM5YjYwZTY6MTc4NzU0MDQ1Mw==",
+      "malicious": 0,
+      "suspicious": 0,
+      "harmless": 0,
+      "undetected": 64,
+      "timeout": 1,
+      "failure": 1,
+      "unsupported": 9,
+      "verdict": "clean",
+      "method": "persistent hash cache",
+      "engines": {},
+      "permalink": "https://www.virustotal.com/gui/file/6e4046bdb5545cf3d86885d80cbd9f2fa63588d0f4948c9dbec0a5e897dd28e6/detection",
+      "last_analysis_date": 1787540453,
+      "reanalyzed": false
+    }
+  ]
+}

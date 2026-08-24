@@ -1,0 +1,23 @@
+{
+  "results": [
+    {
+      "file": "mega-rushiranpise-universal.apks",
+      "sha256": "1b3cbcccebc36764819be38afe8832b8e75a7648f7e143544a416bc8a3de24c7",
+      "size": 51643775,
+      "analysis_id": "NTAyMmExN2FjYTlkN2JiZDZjOTdhMzlmNzdlZTZjZTQ6MTc4NzU0MDQ1Ng==",
+      "malicious": 0,
+      "suspicious": 0,
+      "harmless": 0,
+      "undetected": 57,
+      "timeout": 8,
+      "failure": 1,
+      "unsupported": 9,
+      "verdict": "clean",
+      "method": "persistent hash cache",
+      "engines": {},
+      "permalink": "https://www.virustotal.com/gui/file/1b3cbcccebc36764819be38afe8832b8e75a7648f7e143544a416bc8a3de24c7/detection",
+      "last_analysis_date": 1787540456,
+      "reanalyzed": false
+    }
+  ]
+}

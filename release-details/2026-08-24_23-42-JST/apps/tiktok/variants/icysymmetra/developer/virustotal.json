@@ -1,0 +1,23 @@
+{
+  "results": [
+    {
+      "file": "tiktok-icysymmetra-arm64-v8a.apks",
+      "sha256": "7a5541dc4d5efc2b032448b67f2b52b2f40278e273e94528851bab3084032a23",
+      "size": 185603702,
+      "analysis_id": "M2IzZDEwNzJiOWEzZmZlZTA2OWMyYzg1NTk4Nzc1MTI6MTc4NzU0MDQ4MQ==",
+      "malicious": 0,
+      "suspicious": 0,
+      "harmless": 0,
+      "undetected": 50,
+      "timeout": 12,
+      "failure": 3,
+      "unsupported": 10,
+      "verdict": "clean",
+      "method": "persistent hash cache",
+      "engines": {},
+      "permalink": "https://www.virustotal.com/gui/file/7a5541dc4d5efc2b032448b67f2b52b2f40278e273e94528851bab3084032a23/detection",
+      "last_analysis_date": 1787540481,
+      "reanalyzed": false
+    }
+  ]
+}

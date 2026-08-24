@@ -1,0 +1,23 @@
+{
+  "results": [
+    {
+      "file": "ilovepdf-lain-universal.apks",
+      "sha256": "1405be2c3b6aca954bd88153dfff8777ef0d9e5c8919774aa86391f8286668d3",
+      "size": 135411301,
+      "analysis_id": "YjZiNjU2MDRjZjEyMmM4MjhjOWZiMjEyYjNhZTYzNmI6MTc4NzU0MDQyNA==",
+      "malicious": 0,
+      "suspicious": 0,
+      "harmless": 0,
+      "undetected": 58,
+      "timeout": 5,
+      "failure": 2,
+      "unsupported": 10,
+      "verdict": "clean",
+      "method": "persistent hash cache",
+      "engines": {},
+      "permalink": "https://www.virustotal.com/gui/file/1405be2c3b6aca954bd88153dfff8777ef0d9e5c8919774aa86391f8286668d3/detection",
+      "last_analysis_date": 1787540424,
+      "reanalyzed": false
+    }
+  ]
+}

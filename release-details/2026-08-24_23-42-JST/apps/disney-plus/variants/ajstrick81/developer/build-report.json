@@ -1,0 +1,30 @@
+{
+  "app_name": "disney-plus",
+  "source": "ajstrick81",
+  "patch_source": "ajstrick81",
+  "source_name": "ajstrick81",
+  "version": "26.8.0+rc6-2026.05.20",
+  "status": "success",
+  "lifecycle_status": "success_full",
+  "requested_patches": [],
+  "requested_options": [],
+  "applying_count": 1,
+  "applied_patches": [
+    "Disney+ Android TV"
+  ],
+  "excluded_patches": [],
+  "disabled_patches": [],
+  "feature_failures": [
+    {
+      "name": "Suppress Household Prompt",
+      "reason": "[runtime-skipped-default] default"
+    }
+  ],
+  "failed_patches": [],
+  "required_patches": [],
+  "required_failures": [],
+  "required_patches_satisfied": true,
+  "fully_applied": true,
+  "error_category": null,
+  "error_summary": null
+}

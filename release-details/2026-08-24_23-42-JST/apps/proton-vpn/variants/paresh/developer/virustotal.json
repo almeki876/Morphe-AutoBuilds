@@ -1,0 +1,23 @@
+{
+  "results": [
+    {
+      "file": "proton-vpn-paresh-universal.apks",
+      "sha256": "9caae83e3a79d83a28e6c100ff53d80e58184a0df4c9764322d6e4fbcc8a9dcf",
+      "size": 33957153,
+      "analysis_id": "ZDk1NjRlNGRmMjMxMTM0ZTgwMjIxZWViMjAzNmI3OGE6MTc4NzU0MDQ4MQ==",
+      "malicious": 0,
+      "suspicious": 0,
+      "harmless": 0,
+      "undetected": 59,
+      "timeout": 5,
+      "failure": 1,
+      "unsupported": 10,
+      "verdict": "clean",
+      "method": "persistent hash cache",
+      "engines": {},
+      "permalink": "https://www.virustotal.com/gui/file/9caae83e3a79d83a28e6c100ff53d80e58184a0df4c9764322d6e4fbcc8a9dcf/detection",
+      "last_analysis_date": 1787540481,
+      "reanalyzed": false
+    }
+  ]
+}
