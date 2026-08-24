@@ -1,5 +1,8 @@
 # Direct APK Download Links
 
+- 参照Release: [2026-08-24_12-52-JST](https://github.com/almeki876/Morphe-AutoBuilds/releases/tag/2026-08-24_12-52-JST)
+- 最終更新日時: 2026-08-24 12:52 JST
+
 ## [Morphe](https://github.com/MorpheApp/morphe-patches)
 
 ### YouTube
