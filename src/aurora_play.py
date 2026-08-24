@@ -1,4 +1,4 @@
-"""Authenticated Google Play downloads with bounded fallback latency.
+"""Authenticated Google Play downloads with progress-aware fallback handling.
 
 Google Play remains the preferred APK origin for every app except packages that
 are explicitly GitHub-only. Current releases try pinned gplaydl first using the
@@ -8,15 +8,15 @@ region/device restricted apps. Exact versionCodes use gplaydl first and only
 accept a current-release fallback when its manifest exactly matches the
 requested candidate.
 
-The module deliberately owns only orchestration, credential hygiene, result
-verification, deterministic split packaging, and time budgets. The pinned
-upstream clients continue to own Play protocol details, purchase/delivery, and
-APK downloads.
+Transfer commands are not killed merely because a fixed wall-clock duration has
+elapsed. Instead, this module watches the actual download directory. A client is
+abandoned only when no payload starts within a bounded startup window or when a
+started payload stops changing for the configured idle window. Short metadata
+and version commands still use ordinary command timeouts.
 """
 
 from __future__ import annotations
 
-import contextvars
 import hashlib
 import json
 import logging
@@ -27,6 +27,7 @@ import stat
 import subprocess
 import sys
 import tempfile
+import threading
 import time
 from pathlib import Path
 
@@ -43,17 +44,16 @@ APKEEP_GOOGLE_PLAY_OPTIONS = (
 )
 
 GITHUB_ONLY_PACKAGES = frozenset({"com.adguard.android"})
-_TOTAL_BUDGET_SECONDS = 120.0
 _COMMAND_CAPS = {
     "version": 8.0,
-    "playfetch": 35.0,
-    "apkeep": 20.0,
-    "gplaydl": 35.0,
+    "playfetch": 45.0,
+    "apkeep": 45.0,
+    "gplaydl": 45.0,
     "generic": 45.0,
 }
-_play_deadline: contextvars.ContextVar[float | None] = contextvars.ContextVar(
-    "google_play_deadline", default=None
-)
+_TRANSFER_START_TIMEOUT_SECONDS = 90.0
+_TRANSFER_IDLE_TIMEOUT_SECONDS = 60.0
+_TRANSFER_POLL_SECONDS = 0.5
 
 
 class GooglePlayDisabled(RuntimeError):
@@ -61,7 +61,7 @@ class GooglePlayDisabled(RuntimeError):
 
 
 class GooglePlayTimeout(RuntimeError):
-    """Raised when one Play path or the whole Play preference budget expires."""
+    """Raised when a Play client makes no useful progress for too long."""
 
 
 def google_play_enabled(package: str) -> bool:
@@ -100,21 +100,144 @@ def _command_timeout(command: list[str]) -> float:
         "gplaydl": "GPLAY_GPLAYDL_TIMEOUT_SECONDS",
         "generic": "GPLAY_COMMAND_TIMEOUT_SECONDS",
     }[kind]
-    cap = _env_seconds(env_name, _COMMAND_CAPS[kind])
-    deadline = _play_deadline.get()
-    if deadline is None:
-        return cap
-    remaining = deadline - time.monotonic()
-    if remaining <= 0:
-        raise GooglePlayTimeout("Google Play preference budget exhausted; using the next provider")
-    return max(1.0, min(cap, remaining))
+    return _env_seconds(env_name, _COMMAND_CAPS[kind])
 
 
-def _remaining_budget() -> float | None:
-    deadline = _play_deadline.get()
-    if deadline is None:
+def _transfer_progress_dir(command: list[str]) -> Path | None:
+    """Infer the payload directory for known Google Play transfer commands."""
+    kind = _command_kind(command)
+    if kind == "version":
         return None
-    return max(0.0, deadline - time.monotonic())
+    try:
+        if kind == "playfetch" and "pull" in command and "-out" in command:
+            return Path(command[command.index("-out") + 1])
+        if kind == "apkeep" and "-a" in command and command:
+            return Path(command[-1])
+        if kind == "gplaydl" and "download" in command and "-o" in command:
+            return Path(command[command.index("-o") + 1])
+    except (IndexError, ValueError):
+        return None
+    return None
+
+
+def _progress_snapshot(root: Path) -> tuple[int, int, int]:
+    """Return a cheap payload progress fingerprint for one download tree."""
+    count = 0
+    total_size = 0
+    newest_mtime_ns = 0
+    try:
+        paths = root.rglob("*") if root.exists() else ()
+        for path in paths:
+            try:
+                if not path.is_file():
+                    continue
+                stat_result = path.stat()
+            except OSError:
+                continue
+            count += 1
+            total_size += stat_result.st_size
+            newest_mtime_ns = max(newest_mtime_ns, stat_result.st_mtime_ns)
+    except OSError:
+        pass
+    return count, total_size, newest_mtime_ns
+
+
+def _stop_process(process: subprocess.Popen[str]) -> None:
+    """Terminate one stalled client without leaving it running in the job."""
+    if process.poll() is not None:
+        return
+    process.terminate()
+    try:
+        process.wait(timeout=5)
+    except subprocess.TimeoutExpired:
+        process.kill()
+        process.wait(timeout=5)
+
+
+def _run_transfer(
+    command: list[str],
+    *,
+    progress_dir: Path,
+    cwd: Path | None = None,
+    env: dict[str, str] | None = None,
+) -> subprocess.CompletedProcess[str]:
+    """Run a transfer while watching real payload progress instead of elapsed time.
+
+    Before payload files appear, a bounded startup window prevents an auth or
+    request loop from hanging forever. Once any payload exists, every file-size,
+    file-count, or mtime change resets the idle timer. There is deliberately no
+    fixed total transfer deadline; a slow but continuously progressing APK is
+    allowed to finish. The workflow job timeout remains the outer safety net.
+    """
+    kind = _command_kind(command)
+    start_timeout = _env_seconds(
+        "GPLAY_TRANSFER_START_TIMEOUT_SECONDS", _TRANSFER_START_TIMEOUT_SECONDS
+    )
+    idle_timeout = _env_seconds(
+        "GPLAY_TRANSFER_IDLE_TIMEOUT_SECONDS", _TRANSFER_IDLE_TIMEOUT_SECONDS
+    )
+    process = subprocess.Popen(
+        command,
+        cwd=cwd,
+        env=env,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+        bufsize=1,
+    )
+    output_lines: list[str] = []
+
+    def _drain_output() -> None:
+        stream = process.stdout
+        if stream is None:
+            return
+        for line in stream:
+            output_lines.append(line)
+
+    reader = threading.Thread(target=_drain_output, daemon=True)
+    reader.start()
+
+    started_at = time.monotonic()
+    last_payload_progress = started_at
+    snapshot = _progress_snapshot(progress_dir)
+    payload_started = snapshot[0] > 0 or snapshot[1] > 0
+
+    try:
+        while process.poll() is None:
+            time.sleep(_TRANSFER_POLL_SECONDS)
+            now = time.monotonic()
+            current = _progress_snapshot(progress_dir)
+            if current != snapshot:
+                last_payload_progress = now
+                payload_started = payload_started or current[0] > 0 or current[1] > 0
+                logging.info(
+                    "📥 %s payload progress: files=%d bytes=%d",
+                    kind,
+                    current[0],
+                    current[1],
+                )
+                snapshot = current
+
+            if not payload_started and now - started_at >= start_timeout:
+                _stop_process(process)
+                raise GooglePlayTimeout(
+                    f"{kind} produced no download payload for {start_timeout:.0f}s"
+                )
+            if payload_started and now - last_payload_progress >= idle_timeout:
+                _stop_process(process)
+                raise GooglePlayTimeout(
+                    f"{kind} download stalled with no payload progress for {idle_timeout:.0f}s"
+                )
+    finally:
+        reader.join(timeout=2)
+        if process.stdout is not None:
+            process.stdout.close()
+
+    return subprocess.CompletedProcess(
+        command,
+        process.returncode if process.returncode is not None else -1,
+        "".join(output_lines),
+    )
 
 
 def _run(
@@ -123,7 +246,11 @@ def _run(
     cwd: Path | None = None,
     env: dict[str, str] | None = None,
 ) -> subprocess.CompletedProcess[str]:
-    """Run one upstream client under the shared Play latency budget."""
+    """Run one upstream client with the appropriate liveness policy."""
+    progress_dir = _transfer_progress_dir(command)
+    if progress_dir is not None:
+        return _run_transfer(command, progress_dir=progress_dir, cwd=cwd, env=env)
+
     timeout = _command_timeout(command)
     try:
         return subprocess.run(
@@ -139,7 +266,7 @@ def _run(
     except subprocess.TimeoutExpired as error:
         kind = _command_kind(command)
         raise GooglePlayTimeout(
-            f"{kind} Google Play attempt exceeded {timeout:.0f}s"
+            f"{kind} command produced no result within {timeout:.0f}s"
         ) from error
 
 
@@ -535,11 +662,6 @@ def _download_with_linked_gplaydl(
     output_dir: Path,
 ) -> Path:
     """Expensive last-resort gplaydl path with a fresh local JP dispenser."""
-    remaining = _remaining_budget()
-    if remaining is not None and remaining < 15:
-        raise GooglePlayTimeout(
-            "not enough Google Play budget remains to bootstrap the fresh-profile fallback"
-        )
     local_gplaydl_dispenser.ensure_running()
     _require_linked_account()
     executable = shutil.which(OFFICIAL_GPLAYDL_COMMAND)
@@ -567,11 +689,6 @@ def _download_with_linked_gplaydl(
             "fresh-profile gplaydl exited non-zero: "
             f"{_secret_safe_text(tail).strip() or 'no diagnostic output'}"
         )
-
-
-def _begin_budget() -> contextvars.Token:
-    total = _env_seconds("GPLAY_TOTAL_BUDGET_SECONDS", _TOTAL_BUDGET_SECONDS)
-    return _play_deadline.set(time.monotonic() + total)
 
 
 def _validate_current_fallback(
@@ -609,76 +726,72 @@ def download_candidate(
     play_candidate = play_version_resolver.resolve_candidate(package, candidate)
     output_dir = output_dir or Path(".")
     output_dir.mkdir(parents=True, exist_ok=True)
-    token = _begin_budget()
-    try:
-        errors: list[tuple[str, Exception]] = []
+    errors: list[tuple[str, Exception]] = []
 
+    try:
+        return _download_with_fast_gplaydl(package, play_candidate, output_dir)
+    except Exception as error:
+        errors.append(("gplaydl", error))
+        logging.warning(
+            "⚠️  Fast gplaydl failed for %s: %s; trying playfetch",
+            package,
+            _secret_safe_text(str(error)),
+        )
+
+    if play_candidate is None:
         try:
-            return _download_with_fast_gplaydl(package, play_candidate, output_dir)
+            return _download_with_playfetch_google_play(package, output_dir)
         except Exception as error:
-            errors.append(("gplaydl", error))
+            errors.append(("playfetch", error))
             logging.warning(
-                "⚠️  Fast gplaydl failed for %s: %s; trying playfetch",
+                "⚠️  playfetch failed for %s: %s; trying apkeep",
                 package,
                 _secret_safe_text(str(error)),
             )
+        try:
+            return _download_with_apkeep_google_play(package, output_dir)
+        except Exception as error:
+            errors.append(("apkeep", error))
+            logging.warning(
+                "⚠️  apkeep failed for %s: %s; trying fresh-profile gplaydl safety net",
+                package,
+                _secret_safe_text(str(error)),
+            )
+        try:
+            return _download_with_linked_gplaydl(package, None, output_dir)
+        except Exception as error:
+            errors.append(("fresh-profile-gplaydl", error))
+    else:
+        try:
+            current = _download_with_playfetch_google_play(package, output_dir)
+            return _validate_current_fallback(
+                current, package, play_candidate, "playfetch"
+            )
+        except Exception as error:
+            errors.append(("playfetch-current-probe", error))
+            logging.warning(
+                "⚠️  playfetch current release did not satisfy exact %s for %s; trying apkeep",
+                play_candidate.describe(),
+                package,
+            )
+        try:
+            current = _download_with_apkeep_google_play(package, output_dir)
+            return _validate_current_fallback(
+                current, package, play_candidate, "apkeep"
+            )
+        except Exception as error:
+            errors.append(("apkeep-current-probe", error))
+        try:
+            return _download_with_linked_gplaydl(
+                package, play_candidate, output_dir
+            )
+        except Exception as error:
+            errors.append(("fresh-profile-gplaydl", error))
 
-        if play_candidate is None:
-            try:
-                return _download_with_playfetch_google_play(package, output_dir)
-            except Exception as error:
-                errors.append(("playfetch", error))
-                logging.warning(
-                    "⚠️  playfetch failed for %s: %s; trying apkeep",
-                    package,
-                    _secret_safe_text(str(error)),
-                )
-            try:
-                return _download_with_apkeep_google_play(package, output_dir)
-            except Exception as error:
-                errors.append(("apkeep", error))
-                logging.warning(
-                    "⚠️  apkeep failed for %s: %s; trying fresh-profile gplaydl safety net",
-                    package,
-                    _secret_safe_text(str(error)),
-                )
-            try:
-                return _download_with_linked_gplaydl(package, None, output_dir)
-            except Exception as error:
-                errors.append(("fresh-profile-gplaydl", error))
-        else:
-            try:
-                current = _download_with_playfetch_google_play(package, output_dir)
-                return _validate_current_fallback(
-                    current, package, play_candidate, "playfetch"
-                )
-            except Exception as error:
-                errors.append(("playfetch-current-probe", error))
-                logging.warning(
-                    "⚠️  playfetch current release did not satisfy exact %s for %s; trying apkeep",
-                    play_candidate.describe(),
-                    package,
-                )
-            try:
-                current = _download_with_apkeep_google_play(package, output_dir)
-                return _validate_current_fallback(
-                    current, package, play_candidate, "apkeep"
-                )
-            except Exception as error:
-                errors.append(("apkeep-current-probe", error))
-            try:
-                return _download_with_linked_gplaydl(
-                    package, play_candidate, output_dir
-                )
-            except Exception as error:
-                errors.append(("fresh-profile-gplaydl", error))
-
-        detail = "; ".join(
-            f"{name}: {_secret_safe_text(str(error))}" for name, error in errors
-        )
-        raise RuntimeError(f"all Google Play download paths failed. {detail}")
-    finally:
-        _play_deadline.reset(token)
+    detail = "; ".join(
+        f"{name}: {_secret_safe_text(str(error))}" for name, error in errors
+    )
+    raise RuntimeError(f"all Google Play download paths failed. {detail}")
 
 
 def download_current(package: str, output_dir: Path | None = None) -> Path:

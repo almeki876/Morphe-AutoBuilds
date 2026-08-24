@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import os
-import subprocess
+import sys
 import tempfile
 import time
 import unittest
@@ -66,51 +66,112 @@ class ArchiveStabilityTests(unittest.TestCase):
 
 
 class GooglePlayLatencyPolicyTests(unittest.TestCase):
-    def test_run_converts_subprocess_timeout_to_google_play_timeout(self) -> None:
-        timeout_error = subprocess.TimeoutExpired(["playfetch", "pull"], timeout=2)
-        with (
-            mock.patch.dict(
-                os.environ,
-                {"GPLAY_PLAYFETCH_TIMEOUT_SECONDS": "2"},
-                clear=False,
-            ),
-            mock.patch("src.aurora_play.subprocess.run", side_effect=timeout_error) as run,
+    def test_short_non_transfer_command_still_has_a_bounded_timeout(self) -> None:
+        with mock.patch.dict(
+            os.environ,
+            {"GPLAY_VERSION_TIMEOUT_SECONDS": "3"},
+            clear=False,
         ):
-            with self.assertRaisesRegex(
-                aurora_play.GooglePlayTimeout,
-                "playfetch Google Play attempt exceeded 2s",
-            ):
-                aurora_play._run(["playfetch", "pull", "com.example.app"])
-
-        self.assertEqual(run.call_args.kwargs["timeout"], 2.0)
-
-    def test_shared_play_deadline_caps_each_command(self) -> None:
-        now = time.monotonic()
-        token = aurora_play._play_deadline.set(now + 3.0)
-        try:
-            with mock.patch("src.aurora_play.time.monotonic", return_value=now):
-                timeout = aurora_play._command_timeout(
-                    ["playfetch", "pull", "com.example.app"]
-                )
-        finally:
-            aurora_play._play_deadline.reset(token)
-
+            timeout = aurora_play._command_timeout(["playfetch", "version"])
         self.assertEqual(timeout, 3.0)
 
-    def test_exhausted_play_deadline_fails_before_starting_next_client(self) -> None:
-        now = time.monotonic()
-        token = aurora_play._play_deadline.set(now - 1.0)
-        try:
-            with mock.patch("src.aurora_play.time.monotonic", return_value=now):
+    def test_known_transfer_commands_infer_their_payload_directory(self) -> None:
+        self.assertEqual(
+            aurora_play._transfer_progress_dir(
+                ["gplaydl", "download", "pkg", "-o", "/tmp/gplay", "-a", "arm64"]
+            ),
+            Path("/tmp/gplay"),
+        )
+        self.assertEqual(
+            aurora_play._transfer_progress_dir(
+                ["playfetch", "pull", "pkg", "-out", "/tmp/playfetch"]
+            ),
+            Path("/tmp/playfetch"),
+        )
+        self.assertEqual(
+            aurora_play._transfer_progress_dir(
+                ["apkeep", "-a", "pkg", "-d", "google-play", "/tmp/apkeep"]
+            ),
+            Path("/tmp/apkeep"),
+        )
+
+    def test_active_transfer_can_run_longer_than_idle_window(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            script = (
+                "import pathlib,time; "
+                f"p=pathlib.Path({str(root / 'payload.apk')!r}); "
+                "h=p.open('wb'); "
+                "[(h.write(b'x'*1024),h.flush(),time.sleep(0.35)) for _ in range(5)]; "
+                "h.close()"
+            )
+            with mock.patch.dict(
+                os.environ,
+                {
+                    "GPLAY_TRANSFER_START_TIMEOUT_SECONDS": "1",
+                    "GPLAY_TRANSFER_IDLE_TIMEOUT_SECONDS": "1",
+                },
+                clear=False,
+            ):
+                started = time.monotonic()
+                result = aurora_play._run_transfer(
+                    [sys.executable, "-c", script],
+                    progress_dir=root,
+                )
+                elapsed = time.monotonic() - started
+
+            self.assertEqual(result.returncode, 0)
+            self.assertGreater(elapsed, 1.0)
+            self.assertEqual((root / "payload.apk").stat().st_size, 5 * 1024)
+
+    def test_transfer_times_out_when_no_payload_ever_starts(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            script = (
+                "import time; "
+                "[(print('still requesting', flush=True), time.sleep(0.25)) for _ in range(12)]"
+            )
+            with mock.patch.dict(
+                os.environ,
+                {
+                    "GPLAY_TRANSFER_START_TIMEOUT_SECONDS": "1",
+                    "GPLAY_TRANSFER_IDLE_TIMEOUT_SECONDS": "1",
+                },
+                clear=False,
+            ):
                 with self.assertRaisesRegex(
                     aurora_play.GooglePlayTimeout,
-                    "preference budget exhausted",
+                    "produced no download payload for 1s",
                 ):
-                    aurora_play._command_timeout(
-                        ["apkeep", "-a", "com.example.app"]
+                    aurora_play._run_transfer(
+                        [sys.executable, "-c", script],
+                        progress_dir=root,
                     )
-        finally:
-            aurora_play._play_deadline.reset(token)
+
+    def test_started_transfer_times_out_only_after_payload_stalls(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            script = (
+                "import pathlib,time; "
+                f"p=pathlib.Path({str(root / 'payload.apk')!r}); "
+                "p.write_bytes(b'partial'); time.sleep(3)"
+            )
+            with mock.patch.dict(
+                os.environ,
+                {
+                    "GPLAY_TRANSFER_START_TIMEOUT_SECONDS": "1",
+                    "GPLAY_TRANSFER_IDLE_TIMEOUT_SECONDS": "1",
+                },
+                clear=False,
+            ):
+                with self.assertRaisesRegex(
+                    aurora_play.GooglePlayTimeout,
+                    "download stalled with no payload progress for 1s",
+                ):
+                    aurora_play._run_transfer(
+                        [sys.executable, "-c", script],
+                        progress_dir=root,
+                    )
 
 
 if __name__ == "__main__":
