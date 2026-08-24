@@ -1,12 +1,18 @@
 """Runtime policy derived from the current upstream patch bundle.
 
 The repository may keep local patch options and provider fallback metadata, but
-those values must never override the patch bundle's current recommendations.
+those values normally must not override the patch bundle's current
+recommendations. A very small set of app-specific safety/compatibility patches
+is intentionally allowed to remain explicitly enabled and required.
+
 This module prepares an ephemeral CI working copy before download/patch code is
 loaded:
 
 * only options/required entries for upstream-recommended patches remain active;
-* ``force_enable`` is ignored so it cannot promote a non-recommended patch;
+* ``force_enable`` is ignored unless the app/source is an explicit exception;
+* explicit exceptions remain enabled even when upstream marks the patch
+  disabled by default, and may remain ``required`` so a missing application
+  fails closed;
 * legacy per-app patch allowlists are ignored when recommendation metadata is
   unavailable, leaving selection to the CLI defaults;
 * when the patch side explicitly reports no version restriction (``any``/``null``),
@@ -24,6 +30,12 @@ import logging
 import os
 from pathlib import Path
 from typing import Iterable
+
+
+EXPLICIT_FORCE_ENABLE_EXCEPTIONS: dict[tuple[str, str], frozenset[str]] = {
+    ("yuucho-tsucho", "rushiranpise"): frozenset({"Hide ADB status"}),
+    ("yuucho-ninsho", "rushiranpise"): frozenset({"Hide ADB status"}),
+}
 
 
 def _tool_files(source: str, tools_root: Path = Path("tools")) -> tuple[Path | None, Path | None]:
@@ -113,6 +125,7 @@ def _sanitize_patch_config(
         logging.warning("Could not prepare upstream patch policy: %s", error)
         return
 
+    explicit_force = EXPLICIT_FORCE_ENABLE_EXCEPTIONS.get((app_name, source), frozenset())
     changed = False
     for entry in raw.get("patch_list", []):
         if not isinstance(entry, dict):
@@ -120,14 +133,16 @@ def _sanitize_patch_config(
         if entry.get("app_name") != app_name or entry.get("source") != source:
             continue
 
-        if entry.get("force_enable"):
-            entry["force_enable"] = []
+        configured_force = [str(name) for name in (entry.get("force_enable") or [])]
+        preserved_force = [name for name in configured_force if name in explicit_force]
+        if preserved_force != configured_force:
+            entry["force_enable"] = preserved_force
             changed = True
 
-        # When recommendation metadata exists, options/required are meaningful
-        # only for patches upstream recommends right now. When it does not
-        # exist, suppress them and let the patch CLI defaults decide selection.
-        allowed = recommended or set()
+        # Explicit exceptions are intentionally allowed even when the upstream
+        # bundle marks them disabled by default. This is exactly the case for
+        # Yuucho's "Hide ADB status" patch.
+        allowed = set(recommended or set()) | set(preserved_force)
         options = entry.get("options") or []
         filtered_options = [
             option for option in options
@@ -284,8 +299,4 @@ def prepare_runtime_policy() -> None:
 
     restriction = _patch_has_version_restriction(package, source)
     if restriction is False:
-        logging.info(
-            "Patch side explicitly reports any for %s; ignoring local version pins and using current store release",
-            app_name,
-        )
         _ignore_provider_version_pins_for_any(app_name)
