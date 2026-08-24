@@ -1,4 +1,4 @@
-name: 自動: VirusTotalキャッシュを保存
+name: "自動: VirusTotalキャッシュを保存"
 
 on:
   workflow_run:
