@@ -1,4 +1,4 @@
-name: 自動: APK直リンク一覧を更新
+name: "自動: APK直リンク一覧を更新"
 
 on:
   workflow_dispatch:
