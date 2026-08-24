@@ -13,10 +13,15 @@ import os
 from pathlib import Path
 import runpy
 import subprocess
+import sys
 import time
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
+
+REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
+if str(REPOSITORY_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPOSITORY_ROOT))
 
 STATE_FILE = Path("last-tags.json")
 DIRECT_DOWNLOAD_FILE = Path("Morphe-AutoBuilds-Direct-Download.md")
