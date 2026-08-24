@@ -1,0 +1,75 @@
+name: APKのインストール・アプリ動作の問題
+description: インストール失敗、起動不能、クラッシュ、機能不良などを報告します。
+title: "[App] "
+labels:
+  - bug
+body:
+  - type: dropdown
+    id: symptom_type
+    attributes:
+      label: 問題の種類
+      options:
+        - インストールできない
+        - 起動できない・すぐ終了する
+        - 特定操作でクラッシュする
+        - パッチ機能が動かない
+        - 表示・UIがおかしい
+        - ログイン・通信に問題がある
+        - その他のアプリ動作
+    validations:
+      required: true
+
+  - type: input
+    id: app
+    attributes:
+      label: 対象アプリ
+      placeholder: 例：YouTube Music
+    validations:
+      required: true
+
+  - type: input
+    id: patch_source
+    attributes:
+      label: パッチソース
+      placeholder: 例：morphe / revanced-anddea
+
+  - type: input
+    id: architecture
+    attributes:
+      label: アーキテクチャ
+      placeholder: 例：arm64-v8a / universal
+
+  - type: input
+    id: release
+    attributes:
+      label: 使用したリリース
+      placeholder: 例：2026-08-24_02-26-JST
+
+  - type: textarea
+    id: symptom
+    attributes:
+      label: 何が起きましたか？
+      description: 実際の挙動をできるだけ具体的に書いてください。
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: 再現手順
+      placeholder: |
+        1. APKをインストール
+        2. アプリを起動
+        3. ○○を操作するとクラッシュ
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: 端末・Android環境
+      placeholder: 例：Pixel 8 / Android 15 / rootなし
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: ログ・スクリーンショット
+      description: エラー表示、クラッシュログ、画像などがあれば貼り付けてください。
