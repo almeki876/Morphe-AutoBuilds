@@ -42,6 +42,9 @@ bucket_name = os.getenv('BUCKET_NAME')
 base_url = "https://www.apkmirror.com"
 gh = Github(auth=Auth.Token(github_token)) if github_token else Github()
 
+# Canonical gplaydl locale policy. Explicit GPLAYDL_LOCALES remains authoritative.
+DEFAULT_GPLAYDL_LOCALES = "en-US,ja"
+
 # The APK cache namespace is part of the build input contract. Enforce it
 # before any module imports src.apk_cache and snapshots CACHE_TAG.
 from src import cache_contract as _cache_contract
