@@ -330,6 +330,8 @@ def _linked_gplaydl_command(
         str(downloads.resolve()),
         "-a",
         os.getenv("GPLAYDL_ARCH", "arm64"),
+        "-l",
+        os.getenv("GPLAYDL_LOCALES", DEFAULT_GPLAYDL_LOCALES),
     ]
     configured_dispenser = os.getenv("GPLAYDL_DISPENSER_URL", "").strip()
     if configured_dispenser:
