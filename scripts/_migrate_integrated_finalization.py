@@ -124,6 +124,17 @@ migration_step = '''      - name: Apply one-time integrated finalization migrati
 
 '''
 config = replace_once(config, migration_step, '', 'Remove one-time migration step')
+commit_step = '''      - name: Commit integrated finalization migration
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "ci: integrate successful-build finalization into primary workflow [skip ci]"
+          git pull --rebase origin main
+          git push origin HEAD:main
+
+'''
+config = replace_once(config, commit_step, '', 'Remove one-time migration commit step')
 CONFIG.write_text(config, encoding='utf-8')
 
 SELF.unlink()
