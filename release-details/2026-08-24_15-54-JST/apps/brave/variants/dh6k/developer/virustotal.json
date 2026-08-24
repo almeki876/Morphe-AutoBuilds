@@ -1,0 +1,23 @@
+{
+  "results": [
+    {
+      "file": "brave-dh6k-universal.apks",
+      "sha256": "f4098b3bf9ea0f56f8209709f66c06faff5fb571da8843e1fbb64f73cf225dbc",
+      "size": 129664207,
+      "analysis_id": "OTc3NjMyYWMwYWY4MzMzY2NlOTNmZjg0M2U1N2RiNjY6MTc4NzU0MDQ3Ng==",
+      "malicious": 0,
+      "suspicious": 0,
+      "harmless": 0,
+      "undetected": 62,
+      "timeout": 2,
+      "failure": 1,
+      "unsupported": 10,
+      "verdict": "clean",
+      "method": "persistent hash cache",
+      "engines": {},
+      "permalink": "https://www.virustotal.com/gui/file/f4098b3bf9ea0f56f8209709f66c06faff5fb571da8843e1fbb64f73cf225dbc/detection",
+      "last_analysis_date": 1787540476,
+      "reanalyzed": false
+    }
+  ]
+}

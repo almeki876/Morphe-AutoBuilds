@@ -1,0 +1,23 @@
+{
+  "results": [
+    {
+      "file": "excel-rushiranpise-arm64-v8a.apks",
+      "sha256": "dc954895e0a5f0733518b22675b14c0e51cae701d8afb22797a624cd3b4a4ee2",
+      "size": 115738793,
+      "analysis_id": "OTk1Yjc4ZWU4ZDViYzgwMjJjZDAwY2E0NjE4OWEwZWQ6MTc4NzU0MDQzNw==",
+      "malicious": 0,
+      "suspicious": 0,
+      "harmless": 0,
+      "undetected": 61,
+      "timeout": 4,
+      "failure": 1,
+      "unsupported": 9,
+      "verdict": "clean",
+      "method": "persistent hash cache",
+      "engines": {},
+      "permalink": "https://www.virustotal.com/gui/file/dc954895e0a5f0733518b22675b14c0e51cae701d8afb22797a624cd3b4a4ee2/detection",
+      "last_analysis_date": 1787540437,
+      "reanalyzed": false
+    }
+  ]
+}

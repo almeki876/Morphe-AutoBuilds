@@ -1,0 +1,25 @@
+{
+  "app_name": "excel",
+  "source": "rushiranpise",
+  "patch_source": "rushiranpise",
+  "source_name": "rushiranpise",
+  "version": "16.0.20326.20034",
+  "status": "success",
+  "lifecycle_status": "success_full",
+  "requested_patches": [],
+  "requested_options": [],
+  "applying_count": 1,
+  "applied_patches": [
+    "Unlock Excel"
+  ],
+  "excluded_patches": [],
+  "disabled_patches": [],
+  "feature_failures": [],
+  "failed_patches": [],
+  "required_patches": [],
+  "required_failures": [],
+  "required_patches_satisfied": true,
+  "fully_applied": true,
+  "error_category": null,
+  "error_summary": null
+}

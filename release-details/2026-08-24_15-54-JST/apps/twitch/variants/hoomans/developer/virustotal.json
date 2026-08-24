@@ -1,0 +1,23 @@
+{
+  "results": [
+    {
+      "file": "twitch-hoomans-arm64-v8a.apks",
+      "sha256": "dab8c2850be771e5dc22b71ef813a41483c1c6cc8c9ff9d59bee5ecffb4252ba",
+      "size": 66346078,
+      "analysis_id": "NTk3Y2JhMDRhZjljNGY1ZjY2ODJlY2E5Zjk3OWFjMDY6MTc4NzU0MDQ2OQ==",
+      "malicious": 0,
+      "suspicious": 0,
+      "harmless": 0,
+      "undetected": 59,
+      "timeout": 4,
+      "failure": 2,
+      "unsupported": 10,
+      "verdict": "clean",
+      "method": "persistent hash cache",
+      "engines": {},
+      "permalink": "https://www.virustotal.com/gui/file/dab8c2850be771e5dc22b71ef813a41483c1c6cc8c9ff9d59bee5ecffb4252ba/detection",
+      "last_analysis_date": 1787540469,
+      "reanalyzed": false
+    }
+  ]
+}

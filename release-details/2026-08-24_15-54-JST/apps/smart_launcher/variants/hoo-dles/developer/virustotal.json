@@ -1,0 +1,23 @@
+{
+  "results": [
+    {
+      "file": "smart_launcher-hoo-dles-universal.apks",
+      "sha256": "5f78a1ed33a110712aa61be380c95b673885a4d89f3aadf890357f91722d3f9b",
+      "size": 14812697,
+      "analysis_id": "ZGQwMTNiYTVjZDI4MDRkOTI4ZWZjMDlkYzYyZjU0Yjg6MTc4NzU0MDM1OQ==",
+      "malicious": 0,
+      "suspicious": 0,
+      "harmless": 0,
+      "undetected": 63,
+      "timeout": 1,
+      "failure": 1,
+      "unsupported": 10,
+      "verdict": "clean",
+      "method": "persistent hash cache",
+      "engines": {},
+      "permalink": "https://www.virustotal.com/gui/file/5f78a1ed33a110712aa61be380c95b673885a4d89f3aadf890357f91722d3f9b/detection",
+      "last_analysis_date": 1787540359,
+      "reanalyzed": false
+    }
+  ]
+}

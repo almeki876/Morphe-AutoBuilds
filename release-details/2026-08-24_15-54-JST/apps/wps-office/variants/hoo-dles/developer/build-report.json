@@ -1,0 +1,26 @@
+{
+  "app_name": "wps-office",
+  "source": "hoo-dles",
+  "patch_source": "hoo-dles",
+  "source_name": "hoo-dles",
+  "version": "18.24",
+  "status": "success",
+  "lifecycle_status": "success_full",
+  "requested_patches": [],
+  "requested_options": [],
+  "applying_count": 2,
+  "applied_patches": [
+    "Disable anti-tamper",
+    "Enable Pro"
+  ],
+  "excluded_patches": [],
+  "disabled_patches": [],
+  "feature_failures": [],
+  "failed_patches": [],
+  "required_patches": [],
+  "required_failures": [],
+  "required_patches_satisfied": true,
+  "fully_applied": true,
+  "error_category": null,
+  "error_summary": null
+}
