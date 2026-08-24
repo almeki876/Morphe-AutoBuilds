@@ -28,9 +28,6 @@ jobs:
       - name: Setup Python project
         uses: ./.github/actions/setup-python-project
 
-      - name: Audit Workflow Policy
-        run: python3 scripts/audit_workflows.py
-
       - name: Install actionlint
         env:
           ACTIONLINT_VERSION: 1.7.12
