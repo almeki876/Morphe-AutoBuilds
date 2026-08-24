@@ -19,106 +19,16 @@ jobs:
 
       - name: Apply policy changes
         run: |
-          python3 - <<'PY'
-          from pathlib import Path
-
-          config = Path('my-patch-config.json')
-          text = config.read_text(encoding='utf-8')
-          needle = '''      "disable": [],
-                "force_enable": ["Hide overlay filter","Hide player overlay filter","Disable music video in album","Custom branding for YouTube Music"],'''.replace('                ', '      ')
-          replacement = '''      "disable": ["Enable compact dialog","Hide handle","Enable smooth transition animation","Restore old comments popup panels","Spoof app version"],
-                "force_enable": ["Hide overlay filter","Hide player overlay filter","Disable music video in album","Custom branding for YouTube Music"],'''.replace('                ', '      ')
-          if needle not in text:
-              raise SystemExit('youtube-music revanced-anddea disable marker not found')
-          config.write_text(text.replace(needle, replacement, 1), encoding='utf-8')
-
-          reporting = Path('scripts/report_build_failure.py')
-          text = reporting.read_text(encoding='utf-8')
-          needle = '''    failures = [
-                item for item in (report.get("feature_failures") or [])
-                if isinstance(item, dict) and not _report_only_feature_outcome(item)
-            ]'''.replace('            ', '    ')
-          replacement = '''    requested_values = report.get("requested_patches")
-                requested: set[str] | None = None
-                if isinstance(requested_values, list):
-                    requested = {
-                        str(name).strip()
-                        for name in requested_values
-                        if str(name).strip()
-                    }
-                    required_values = report.get("required_patches") or []
-                    if isinstance(required_values, list):
-                        requested.update(
-                            str(name).strip()
-                            for name in required_values
-                            if str(name).strip()
-                        )
-
-                failures = [
-                    item for item in (report.get("feature_failures") or [])
-                    if (
-                        isinstance(item, dict)
-                        and not _report_only_feature_outcome(item)
-                        and (
-                            requested is None
-                            or str(item.get("name") or "").strip() in requested
-                        )
-                    )
-                ]'''.replace('            ', '    ')
-          if needle not in text:
-              raise SystemExit('feature failure filter marker not found')
-          reporting.write_text(text.replace(needle, replacement, 1), encoding='utf-8')
-
-          tests = Path('tests/test_failure_reporting.py')
-          text = tests.read_text(encoding='utf-8')
-          marker = '\n\nif __name__ == "__main__":\n'
-          addition = r'''
-
-    def test_recommended_unsupported_patch_is_not_actionable(self) -> None:
-        recommended = {
-            "name": "Recommended upstream patch",
-            "reason": "[unsupported] not supported in this APK version",
-        }
-        explicit = {
-            "name": "Explicit patch",
-            "reason": "[unsupported] not supported in this APK version",
-        }
-        report = {
-            "app_name": "example",
-            "source": "example-source",
-            "requested_patches": ["Explicit patch"],
-            "feature_failures": [recommended, explicit],
-        }
-        self.assertEqual(_feature_failures(report), [explicit])
-
-    def test_required_patch_remains_actionable(self) -> None:
-        required = {
-            "name": "Required patch",
-            "reason": "[unsupported] not supported in this APK version",
-        }
-        report = {
-            "app_name": "example",
-            "source": "example-source",
-            "requested_patches": [],
-            "required_patches": ["Required patch"],
-            "feature_failures": [required],
-        }
-        self.assertEqual(_feature_failures(report), [required])
-'''
-          if marker not in text:
-              raise SystemExit('test insertion marker not found')
-          tests.write_text(text.replace(marker, addition + marker, 1), encoding='utf-8')
-
-          policy_test = Path('tests/test_recommended_patch_policy.py')
-          policy_test.write_text('''import json\nfrom pathlib import Path\n\n\ndef test_youtube_music_unsupported_recommended_patches_are_disabled():\n    data = json.loads(Path("my-patch-config.json").read_text(encoding="utf-8"))\n    entry = next(\n        item for item in data["patch_list"]\n        if item.get("app_name") == "youtube-music" and item.get("source") == "revanced-anddea"\n    )\n    expected = {\n        "Enable compact dialog",\n        "Hide handle",\n        "Enable smooth transition animation",\n        "Restore old comments popup panels",\n        "Spoof app version",\n    }\n    assert expected <= set(entry.get("disable") or [])\n''', encoding='utf-8')
-          PY
-
-          python3 -m unittest tests.test_failure_reporting
+          python3 tmp_apply_recommended_policy.py
           python3 -m compileall -q scripts/report_build_failure.py
+          python3 -m unittest tests.test_failure_reporting
+          python3 -m unittest tests.test_recommended_patch_policy
 
-      - name: Commit policy changes and remove helper
+      - name: Commit clean policy changes
         run: |
           git rm .github/workflows/apply-recommended-patch-policy.yml
+          git rm tmp_apply_recommended_policy.py
+          git rm TEMP_TRIGGER_DO_NOT_MERGE.txt
           git add my-patch-config.json scripts/report_build_failure.py tests/test_failure_reporting.py tests/test_recommended_patch_policy.py
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
