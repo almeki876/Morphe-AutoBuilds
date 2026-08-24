@@ -27,6 +27,36 @@ jobs:
             --pattern 'build-status-*' \
             --dir build-results
 
+      - name: Diagnose cleanup matching
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          echo 'Issue #1314 as seen by gh:'
+          gh issue view 1314 --repo "${GITHUB_REPOSITORY}" --json number,title,author
+          echo 'Issue #1319 as seen by gh:'
+          gh issue view 1319 --repo "${GITHUB_REPOSITORY}" --json number,title,author
+          python3 - <<'PY'
+          from pathlib import Path
+          from scripts import close_resolved_build_issues as cleanup
+
+          reports = cleanup._load_reports(Path('build-results'))
+          issues = cleanup._open_auto_issues()
+          print('discovered_auto_issue_count=', len(issues))
+          print('tracked_discovered=', [
+              (issue.get('number'), issue.get('title'), (issue.get('author') or {}).get('login'))
+              for issue in issues if issue.get('number') in {1314, 1319}
+          ])
+          for report in reports:
+              if report.get('app_name') == 'youtube-music' and report.get('source') == 'revanced-anddea':
+                  print('youtube_music_report=', {
+                      'status': report.get('status'),
+                      'source': report.get('source'),
+                      'source_name': report.get('source_name'),
+                      'build_succeeded': cleanup._build_succeeded(report),
+                      'feature_failures': report.get('feature_failures'),
+                  })
+          PY
+
       - name: Close resolved auto-generated issues
         env:
           GH_TOKEN: ${{ github.token }}
