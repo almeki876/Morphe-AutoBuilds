@@ -13,8 +13,8 @@ class ApkVersionMonitorWorkflowTests(unittest.TestCase):
 
     def test_patch_pinning_is_resolved_before_latest_apk_monitoring(self) -> None:
         self.assertLess(
-            self.workflow.index("- name: Detect Version-Pinned Apps"),
-            self.workflow.index("- name: Check APK Versions"),
+            self.workflow.index("- name: Detect version-pinned apps"),
+            self.workflow.index("- name: Check APK versions"),
         )
         self.assertIn(
             "VERSION_PINNED_APPS: ${{ steps.pinned.outputs.version_pinned_apps }}",
@@ -22,7 +22,7 @@ class ApkVersionMonitorWorkflowTests(unittest.TestCase):
         )
 
     def test_version_monitor_receives_google_play_credentials(self) -> None:
-        check_section = self.workflow.split("      - name: Check APK Versions\n", 1)[1].split(
+        check_section = self.workflow.split("      - name: Check APK versions\n", 1)[1].split(
             "      - name:", 1
         )[0]
         self.assertIn("GPLAYDL_API_KEY: ${{ secrets.GPLAYDL_API_KEY }}", check_section)
@@ -46,6 +46,13 @@ class ApkVersionMonitorWorkflowTests(unittest.TestCase):
 
     def test_full_requirements_are_installed_for_gplaydl_metadata(self) -> None:
         self.assertIn("pip install -r requirements.txt --quiet", self.workflow)
+
+    def test_dispatch_command_ends_without_shell_line_continuation(self) -> None:
+        trigger = self.workflow.split(
+            "      - name: Trigger build for detected updates\n", 1
+        )[1].split("      - name:", 1)[0]
+        self.assertIn('-f apk_updated_apps="${APK_UPDATED_APPS:-[]}"', trigger)
+        self.assertNotIn('-f apk_updated_apps="${APK_UPDATED_APPS:-[]}" \\\n', trigger)
 
 
 if __name__ == "__main__":
