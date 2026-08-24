@@ -8,10 +8,11 @@ on:
 
 permissions:
   actions: write
-  contents: read
+  contents: write
 
 jobs:
   trigger-build-all:
+    if: github.event_name == 'workflow_dispatch' || startsWith(github.event.head_commit.message, 'ops: dispatch full')
     name: Trigger full app build
     runs-on: ubuntu-latest
     steps:
@@ -32,3 +33,53 @@ jobs:
             echo "Triggered \`build.yml\` on \`main\` with \`build_all_sources=true\`."
             echo "The existing build workflow will include every enabled app/source entry that is not marked \`skip_build\`."
           } >> "$GITHUB_STEP_SUMMARY"
+
+  observe-build:
+    if: github.event_name == 'push' && startsWith(github.event.head_commit.message, 'ops: observe')
+    name: Record dispatched main build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout ops branch
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.ref_name }}
+
+      - name: Find newest main build dispatch for current main SHA
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          main_sha="$(gh api "repos/${{ github.repository }}/commits/main" --jq .sha)"
+          run_json="$(
+            gh run list \
+              --repo "${{ github.repository }}" \
+              --workflow build.yml \
+              --branch main \
+              --limit 20 \
+              --json databaseId,headSha,status,conclusion,createdAt,event,url \
+            | jq -c --arg sha "$main_sha" \
+                '[.[] | select(.headSha == $sha and .event == "workflow_dispatch")] | first // {}'
+          )"
+          python3 - "$main_sha" "$run_json" <<'PY'
+          import json
+          import sys
+          from pathlib import Path
+
+          main_sha = sys.argv[1]
+          run = json.loads(sys.argv[2])
+          payload = {"main_sha": main_sha, "run": run}
+          Path("ops-dispatched-run.json").write_text(
+              json.dumps(payload, ensure_ascii=False, indent=2) + "\n",
+              encoding="utf-8",
+          )
+          PY
+
+      - name: Persist observed Run ID on ops branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add ops-dispatched-run.json
+          if git diff --cached --quiet; then
+            exit 0
+          fi
+          git commit -m "ops: record dispatched run"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
