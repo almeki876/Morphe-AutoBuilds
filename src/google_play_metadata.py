@@ -1,10 +1,9 @@
-"""Resolve an exact current-release identity from Google Play metadata.
+"""Resolve current-release identities from Google Play metadata.
 
-Public APK history services are preferred because they can resolve historical
-releases. Their indexes can lag or omit a newly published regional release,
-though. In that case Google Play's own details response is a safe final lookup:
-it exposes versionName and versionCode together. The result is accepted only
-when its versionName exactly matches the patch-required release.
+Google Play exposes versionName and versionCode together through its details
+response.  This module is the single place that queries that identity so both
+patch-version resolution and update monitoring use the same authenticated,
+device-profile-aware implementation.
 """
 
 from __future__ import annotations
@@ -43,12 +42,7 @@ def _profile_details(
     dispenser: str | None,
     email: str | None,
 ) -> Iterable[Any]:
-    """Yield Play details from each priority device profile.
-
-    Play can expose a staged or device-specific current release.  Each token
-    is minted by the same pinned gplaydl implementation; only versionName and
-    versionCode are consumed, and individual profile failures are isolated.
-    """
+    """Yield Play details from each priority device profile."""
     from gplaydl.api import get_details
     from gplaydl.auth import fetch_token_for_profile
     from gplaydl.profiles import get_priority_profiles
@@ -82,24 +76,85 @@ def _identity(details: Any, package: str) -> VersionCandidate | None:
     return VersionCandidate(name=name, code=code)
 
 
+def _has_bootstrap_credentials() -> bool:
+    email = (
+        os.getenv("GPLAYDL_EMAIL", "").strip()
+        or os.getenv("GPLAY_EMAIL", "").strip()
+    )
+    return bool(email and os.getenv("GPLAY_AAS_TOKEN", "").strip())
+
+
+def _context() -> tuple[str, str | None, str | None] | None:
+    """Prepare the shared Google Play metadata authentication context.
+
+    A preconfigured dispenser API key is sufficient. When it is absent, the
+    existing email+AAS credentials may bootstrap the ephemeral local dispenser,
+    which then publishes its generated key/URL into the process environment.
+    """
+    if not os.getenv("GPLAYDL_API_KEY", "").strip() and not _has_bootstrap_credentials():
+        return None
+    local_gplaydl_dispenser.ensure_running()
+    if not os.getenv("GPLAYDL_API_KEY", "").strip():
+        # A configured remote dispenser may not need local bootstrap, but gplaydl
+        # still requires a key. Fail softly so mirror metadata can take over.
+        return None
+    arch = os.getenv("GPLAYDL_ARCH", "arm64").strip() or "arm64"
+    dispenser = os.getenv("GPLAYDL_DISPENSER_URL", "").strip() or None
+    email = (
+        os.getenv("GPLAYDL_EMAIL", "").strip()
+        or os.getenv("GPLAY_EMAIL", "").strip()
+        or None
+    )
+    return arch, dispenser, email
+
+
+def current_release_identity(package: str) -> VersionCandidate | None:
+    """Return Google Play's current package/versionName/versionCode identity.
+
+    The primary account/profile is preferred. Device-profile variants are
+    checked only if the primary details response is unavailable or incomplete.
+    No APK bytes are downloaded.
+    """
+    if not package:
+        return None
+    try:
+        context = _context()
+        if context is None:
+            return None
+        arch, dispenser, email = context
+        first = _current_details(package, arch, dispenser, email)
+        current = _identity(first, package) if first is not None else None
+        if current is not None:
+            remember_version_code(package, current.name, current.code or "")
+            return current
+        for details in _profile_details(package, arch, dispenser, email):
+            current = _identity(details, package)
+            if current is not None:
+                remember_version_code(package, current.name, current.code or "")
+                return current
+    except Exception as error:
+        logging.info(
+            "Google Play current identity lookup failed for %s: %s",
+            package,
+            type(error).__name__,
+        )
+    return None
+
+
 def resolve_candidate_identities(
     package: str,
     candidates: list[VersionCandidate],
 ) -> list[VersionCandidate]:
-    """Enrich only a patch candidate matching Play's current exact identity."""
+    """Enrich only patch candidates matching a current Play identity exactly."""
     resolved = list(candidates)
-    if not package or not resolved or not os.getenv("GPLAYDL_API_KEY", "").strip():
+    if not package or not resolved:
         return resolved
 
     try:
-        local_gplaydl_dispenser.ensure_running()
-        arch = os.getenv("GPLAYDL_ARCH", "arm64").strip() or "arm64"
-        dispenser = os.getenv("GPLAYDL_DISPENSER_URL", "").strip() or None
-        email = (
-            os.getenv("GPLAYDL_EMAIL", "").strip()
-            or os.getenv("GPLAY_EMAIL", "").strip()
-            or None
-        )
+        context = _context()
+        if context is None:
+            return resolved
+        arch, dispenser, email = context
         first_details = _current_details(package, arch, dispenser, email)
         if first_details is None:
             logging.info("Google Play current identity lookup returned no auth token")
