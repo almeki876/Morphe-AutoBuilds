@@ -83,7 +83,11 @@ def _release_history(repository: str | None = None) -> list[dict]:
 
 def _refresh_direct_download_catalog(path: Path = DIRECT_DOWNLOAD_FILE) -> None:
     """Regenerate the catalog from Releases that already exist on GitHub."""
-    from scripts.generate_direct_download_md import render
+    # This file is invoked as ``python3 scripts/save_successful_state.py`` in CI.
+    # In that execution mode the repository root is not importable as a
+    # ``scripts`` package. Load the sibling generator by path, just like the APK
+    # state updater below, so the finalization path works both in CI and tests.
+    render = runpy.run_path("scripts/generate_direct_download_md.py")["render"]
 
     releases = _release_history()
     path.write_text(render(releases), encoding="utf-8")
