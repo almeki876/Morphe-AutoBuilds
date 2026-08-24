@@ -1,0 +1,26 @@
+{
+  "app_name": "proton-vpn",
+  "source": "paresh",
+  "patch_source": "paresh",
+  "source_name": "paresh",
+  "version": "5.19.16.0",
+  "status": "success",
+  "lifecycle_status": "success_full",
+  "requested_patches": [],
+  "requested_options": [],
+  "applying_count": 2,
+  "applied_patches": [
+    "Disable telemetry",
+    "Proton VPN Premium"
+  ],
+  "excluded_patches": [],
+  "disabled_patches": [],
+  "feature_failures": [],
+  "failed_patches": [],
+  "required_patches": [],
+  "required_failures": [],
+  "required_patches_satisfied": true,
+  "fully_applied": true,
+  "error_category": null,
+  "error_summary": null
+}

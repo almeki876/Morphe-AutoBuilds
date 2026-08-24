@@ -1,0 +1,23 @@
+{
+  "results": [
+    {
+      "file": "duolingo-hoo-dles-universal.apks",
+      "sha256": "40a6a30d26422b0338f523a7f26ac69b24120bc56e93f7b8fa0c7f2b12ded348",
+      "size": 112727975,
+      "analysis_id": "NTE3MzAyOWQ5YTE5OGI5ZmE2NTRmNGU5NjZiYjMxNTU6MTc4NzU0MDQzOA==",
+      "malicious": 0,
+      "suspicious": 0,
+      "harmless": 0,
+      "undetected": 55,
+      "timeout": 9,
+      "failure": 2,
+      "unsupported": 9,
+      "verdict": "clean",
+      "method": "persistent hash cache",
+      "engines": {},
+      "permalink": "https://www.virustotal.com/gui/file/40a6a30d26422b0338f523a7f26ac69b24120bc56e93f7b8fa0c7f2b12ded348/detection",
+      "last_analysis_date": 1787540438,
+      "reanalyzed": false
+    }
+  ]
+}

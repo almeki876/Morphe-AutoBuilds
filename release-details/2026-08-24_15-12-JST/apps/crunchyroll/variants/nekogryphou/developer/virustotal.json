@@ -1,0 +1,23 @@
+{
+  "results": [
+    {
+      "file": "crunchyroll-nekogryphou-universal.apks",
+      "sha256": "0a7fc5781790e626d81ae21774ec73ce646a855512ce030f7bf2c96d6ca10c5b",
+      "size": 109761470,
+      "analysis_id": "NmNkN2NhNmQ4Y2Q5NjY1Mjc5YWE4YjNhN2I1MmRhNGU6MTc4NzUyOTQzMg==",
+      "malicious": 0,
+      "suspicious": 0,
+      "harmless": 0,
+      "undetected": 61,
+      "timeout": 2,
+      "failure": 2,
+      "unsupported": 10,
+      "verdict": "clean",
+      "method": "persistent hash cache",
+      "engines": {},
+      "permalink": "https://www.virustotal.com/gui/file/0a7fc5781790e626d81ae21774ec73ce646a855512ce030f7bf2c96d6ca10c5b/detection",
+      "last_analysis_date": 1787529432,
+      "reanalyzed": false
+    }
+  ]
+}

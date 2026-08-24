@@ -1,0 +1,16 @@
+# XRecorder — VirusTotal
+
+**対象:** パッチ適用前に取得したBase APK（配布元から取得/キャッシュ復元した原本）
+
+- **結果:** ✅ Clean
+- **スキャン対象:** 1 file(s)
+
+| File | SHA-256 | Malicious | Suspicious | Method | VirusTotal |
+| --- | --- | ---: | ---: | --- | --- |
+| `xrecorder-hoo-dles-universal.apks` | `6d845f671b78d1592e8e94032283c05c7a23eba376dedb89b65d1f3d01a6d038` | 0 | 0 | `persistent hash cache` | [Open](https://www.virustotal.com/gui/file/6d845f671b78d1592e8e94032283c05c7a23eba376dedb89b65d1f3d01a6d038/detection) |
+
+## Scanner telemetry
+
+- Persistent cache hits: `70`
+- New hashes: `1`
+- Analyses started: `1`

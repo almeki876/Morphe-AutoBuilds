@@ -1,0 +1,23 @@
+{
+  "results": [
+    {
+      "file": "sleep-as-android-morning-entree-universal.apk",
+      "sha256": "09dc46ca7fd1c8381df337f056831e5decabb11902f0531b9d576cc88583946b",
+      "size": 50676660,
+      "analysis_id": "",
+      "malicious": 0,
+      "suspicious": 0,
+      "harmless": 0,
+      "undetected": 64,
+      "timeout": 2,
+      "failure": 0,
+      "unsupported": 8,
+      "verdict": "clean",
+      "method": "persistent hash cache",
+      "engines": {},
+      "permalink": "https://www.virustotal.com/gui/file/09dc46ca7fd1c8381df337f056831e5decabb11902f0531b9d576cc88583946b/detection",
+      "last_analysis_date": 1786694831,
+      "reanalyzed": false
+    }
+  ]
+}

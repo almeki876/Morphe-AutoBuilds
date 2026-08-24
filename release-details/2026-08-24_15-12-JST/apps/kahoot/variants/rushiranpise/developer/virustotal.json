@@ -1,0 +1,23 @@
+{
+  "results": [
+    {
+      "file": "kahoot-rushiranpise-universal.apks",
+      "sha256": "54c2e0826cc528b1e8be6e0cf6ce396f275fe8dfe22ae0654bfb88f126401588",
+      "size": 79035395,
+      "analysis_id": "NjRiMGUzZjNlMGU1NjI5M2U5Yzk5MjYxODkzODdiZWE6MTc4NzUwNTMyOA==",
+      "malicious": 0,
+      "suspicious": 0,
+      "harmless": 0,
+      "undetected": 62,
+      "timeout": 2,
+      "failure": 1,
+      "unsupported": 10,
+      "verdict": "clean",
+      "method": "persistent hash cache",
+      "engines": {},
+      "permalink": "https://www.virustotal.com/gui/file/54c2e0826cc528b1e8be6e0cf6ce396f275fe8dfe22ae0654bfb88f126401588/detection",
+      "last_analysis_date": 1787505328,
+      "reanalyzed": false
+    }
+  ]
+}

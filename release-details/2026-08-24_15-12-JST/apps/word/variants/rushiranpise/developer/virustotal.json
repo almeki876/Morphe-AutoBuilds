@@ -1,0 +1,23 @@
+{
+  "results": [
+    {
+      "file": "word-rushiranpise-arm64-v8a.apks",
+      "sha256": "008dc5f4025b382da7544c248245a3bf230c0079b057e3204ae2fd6b83de0077",
+      "size": 121360360,
+      "analysis_id": "",
+      "malicious": 0,
+      "suspicious": 0,
+      "harmless": 0,
+      "undetected": 59,
+      "timeout": 5,
+      "failure": 2,
+      "unsupported": 9,
+      "verdict": "clean",
+      "method": "persistent hash cache",
+      "engines": {},
+      "permalink": "https://www.virustotal.com/gui/file/008dc5f4025b382da7544c248245a3bf230c0079b057e3204ae2fd6b83de0077/detection",
+      "last_analysis_date": 1787529416,
+      "reanalyzed": false
+    }
+  ]
+}

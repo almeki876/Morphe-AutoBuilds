@@ -1,0 +1,23 @@
+{
+  "results": [
+    {
+      "file": "foldersync-hoomans-universal.apks",
+      "sha256": "0de9c44853a82aa050456c6e7c3cc6f45aca7b5c4a4f57b571f87cdabfc4f9c6",
+      "size": 37422947,
+      "analysis_id": "OWZmZTBiNzZlMzA5YmZmMTM4ZWE1NTY1YjA1MzQ1OGY6MTc4NzUzMzE4OQ==",
+      "malicious": 0,
+      "suspicious": 0,
+      "harmless": 0,
+      "undetected": 64,
+      "timeout": 1,
+      "failure": 1,
+      "unsupported": 9,
+      "verdict": "clean",
+      "method": "persistent hash cache",
+      "engines": {},
+      "permalink": "https://www.virustotal.com/gui/file/0de9c44853a82aa050456c6e7c3cc6f45aca7b5c4a4f57b571f87cdabfc4f9c6/detection",
+      "last_analysis_date": 1787533189,
+      "reanalyzed": false
+    }
+  ]
+}

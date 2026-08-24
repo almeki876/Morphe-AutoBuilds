@@ -1,0 +1,183 @@
+{
+  "app_name": "youtube-music",
+  "source": "revanced-anddea",
+  "patch_source": "revanced-anddea",
+  "source_name": "revanced-anddea",
+  "version": "9.15.51",
+  "status": "success",
+  "lifecycle_status": "success_partial",
+  "requested_patches": [
+    "Change version code",
+    "Custom branding for YouTube Music",
+    "Dark theme",
+    "Disable music video in album",
+    "GmsCore support",
+    "Hide overlay filter",
+    "Hide player overlay filter",
+    "Player components",
+    "Settings for YouTube Music",
+    "Translations for YouTube Music",
+    "Visual preferences icons for YouTube Music"
+  ],
+  "requested_options": [
+    {
+      "patch": "Custom branding for YouTube Music",
+      "key": "customIcon",
+      "value": "patch-assets/anddea/youtube-music/xisr_yellow"
+    },
+    {
+      "patch": "Custom branding for YouTube Music",
+      "key": "customName",
+      "value": "RVA Music"
+    },
+    {
+      "patch": "Dark theme",
+      "key": "darkThemeBackgroundColor",
+      "value": "@android:color/black"
+    },
+    {
+      "patch": "Dark theme",
+      "key": "materialYou",
+      "value": false
+    },
+    {
+      "patch": "GmsCore support",
+      "key": "gmsCoreVendorGroupId",
+      "value": "app.revanced"
+    },
+    {
+      "patch": "GmsCore support",
+      "key": "checkGmsCore",
+      "value": true
+    },
+    {
+      "patch": "GmsCore support",
+      "key": "disableCoreServices",
+      "value": false
+    },
+    {
+      "patch": "GmsCore support",
+      "key": "packageNameYouTube",
+      "value": "bill.youtube"
+    },
+    {
+      "patch": "GmsCore support",
+      "key": "packageNameYouTubeMusic",
+      "value": "bill.youtube.music"
+    },
+    {
+      "patch": "GmsCore support",
+      "key": "patchAllManifest",
+      "value": true
+    },
+    {
+      "patch": "Player components",
+      "key": "swipeToDismissMiniPlayer",
+      "value": true
+    },
+    {
+      "patch": "Settings for YouTube Music",
+      "key": "insertPosition",
+      "value": "pref_key_parent_tools"
+    },
+    {
+      "patch": "Settings for YouTube Music",
+      "key": "rvxSettingsLabel",
+      "value": "RVA"
+    },
+    {
+      "patch": "Translations for YouTube Music",
+      "key": "customTranslations",
+      "value": ""
+    },
+    {
+      "patch": "Translations for YouTube Music",
+      "key": "selectedTranslations",
+      "value": "bg-rBG, bn, cs-rCZ, el-rGR, es-rES, fr-rFR, hu-rHU, id-rID, in, it-rIT, ja-rJP, ko-rKR, nl-rNL, pl-rPL, pt-rBR, ro-rRO, ru-rRU, ta-rIN, tr-rTR, uk-rUA, vi-rVN, zh-rCN, zh-rTW"
+    },
+    {
+      "patch": "Translations for YouTube Music",
+      "key": "selectedStringResources",
+      "value": "af, am, ar, ar-rXB, as, az, b+es+419, b+sr+Latn, be, bg, bn, bs, ca, cs, da, de, el, en-rAU, en-rCA, en-rGB, en-rIN, en-rXA, en-rXC, es, es-rUS, et, eu, fa, fi, fil-rPH, fr, fr-rCA, gl, gu, hi, hr, hu, hy, id, in, is, it, iw, ja, ka, kk, km, kn, ko, ky, lo, lt, lv, mk, ml, mn, mr, ms, my, nb, ne, nl, no, or, pa, pl, pt, pt-rBR, pt-rPT, ro, ru, si, sk, sl, sq, sr, sv, sw, ta, te, th, tl, tr, uk, ur, uz, vi, zh, zh-rCN, zh-rHK, zh-rTW, zu"
+    },
+    {
+      "patch": "Visual preferences icons for YouTube Music",
+      "key": "settingsMenuIcon",
+      "value": "extension"
+    },
+    {
+      "patch": "Visual preferences icons for YouTube Music",
+      "key": "applyToAll",
+      "value": true
+    },
+    {
+      "patch": "Change version code",
+      "key": "versionCode",
+      "value": "2147483647"
+    }
+  ],
+  "applying_count": 44,
+  "applied_patches": [
+    "Bitrate default value",
+    "Bypass image region restrictions",
+    "Certificate spoof",
+    "Change share sheet",
+    "Change start page",
+    "Change version code",
+    "Custom branding for YouTube Music",
+    "Disable Cairo splash animation",
+    "Disable QUIC protocol",
+    "Disable dislike redirection",
+    "Disable forced auto captions",
+    "Disable music video in album",
+    "Enable debug logging",
+    "Enable landscape mode",
+    "Flyout menu components",
+    "Force original audio",
+    "GmsCore support",
+    "Hide account components",
+    "Hide action bar components",
+    "Hide ads",
+    "Hide layout components",
+    "Hide overlay filter",
+    "Hide player overlay filter",
+    "Navigation bar components",
+    "Player components",
+    "Remove background playback restrictions",
+    "Remove viewer discretion dialog",
+    "Restore old style library shelf",
+    "Return YouTube Dislike",
+    "Return YouTube Username",
+    "Sanitize sharing links",
+    "Settings menu filter",
+    "SponsorBlock",
+    "Spoof app version",
+    "Spoof app version for lyrics",
+    "Spoof video streams",
+    "Theme",
+    "Third-party lyrics",
+    "Track crossfade",
+    "Translations for YouTube Music",
+    "Video playback",
+    "Watch history",
+    "Visual preferences icons for YouTube Music",
+    "Settings for YouTube Music"
+  ],
+  "excluded_patches": [],
+  "disabled_patches": [],
+  "feature_failures": [
+    {
+      "name": "Dark theme",
+      "reason": "requested by force_enable/options but CLI did not report it as applied"
+    }
+  ],
+  "failed_patches": [],
+  "required_patches": [
+    "Custom branding for YouTube Music"
+  ],
+  "required_failures": [],
+  "required_patches_satisfied": true,
+  "fully_applied": false,
+  "error_category": null,
+  "error_summary": null
+}

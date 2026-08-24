@@ -1,0 +1,23 @@
+{
+  "results": [
+    {
+      "file": "kinemaster-rushiranpise-universal.apks",
+      "sha256": "45aef32c79bf681bf035c4efe00d457333fc7e57a2ee986ceb92b8d8472a9464",
+      "size": 113663776,
+      "analysis_id": "MWQyZGI3NmE4NDcyMzhlNzQ5ZGRlNWI1NTU5NDUwZTQ6MTc4NzUyOTUyMA==",
+      "malicious": 0,
+      "suspicious": 0,
+      "harmless": 0,
+      "undetected": 51,
+      "timeout": 13,
+      "failure": 1,
+      "unsupported": 10,
+      "verdict": "clean",
+      "method": "persistent hash cache",
+      "engines": {},
+      "permalink": "https://www.virustotal.com/gui/file/45aef32c79bf681bf035c4efe00d457333fc7e57a2ee986ceb92b8d8472a9464/detection",
+      "last_analysis_date": 1787529520,
+      "reanalyzed": false
+    }
+  ]
+}

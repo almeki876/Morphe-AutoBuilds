@@ -1,0 +1,23 @@
+{
+  "results": [
+    {
+      "file": "line-andrewliang25-arm64-v8a.apks",
+      "sha256": "376bed88ce6a5ec30480ece1dd93da663b0424493742ad9670300e7eec25976a",
+      "size": 120779981,
+      "analysis_id": "MzA4ZDZiZmE4ZDQxOGViZTM0ZGQ4MzUyMDIyZWVlZmM6MTc4NzUyOTQ3Mg==",
+      "malicious": 0,
+      "suspicious": 0,
+      "harmless": 0,
+      "undetected": 57,
+      "timeout": 7,
+      "failure": 2,
+      "unsupported": 9,
+      "verdict": "clean",
+      "method": "persistent hash cache",
+      "engines": {},
+      "permalink": "https://www.virustotal.com/gui/file/376bed88ce6a5ec30480ece1dd93da663b0424493742ad9670300e7eec25976a/detection",
+      "last_analysis_date": 1787529472,
+      "reanalyzed": false
+    }
+  ]
+}

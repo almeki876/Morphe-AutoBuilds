@@ -1,0 +1,23 @@
+{
+  "results": [
+    {
+      "file": "inshot-hoomans-universal.apks",
+      "sha256": "116df8f451e45774b12540e836bc9ba40b8548d42cd2338021c127135d49c260",
+      "size": 60915232,
+      "analysis_id": "MmE3MzMyMGM3MDQ0Y2U3YzI5Nzk2OTRlMmNkYzk4MDM6MTc4NzUzMzE0MA==",
+      "malicious": 0,
+      "suspicious": 0,
+      "harmless": 0,
+      "undetected": 61,
+      "timeout": 4,
+      "failure": 1,
+      "unsupported": 9,
+      "verdict": "clean",
+      "method": "persistent hash cache",
+      "engines": {},
+      "permalink": "https://www.virustotal.com/gui/file/116df8f451e45774b12540e836bc9ba40b8548d42cd2338021c127135d49c260/detection",
+      "last_analysis_date": 1787533140,
+      "reanalyzed": false
+    }
+  ]
+}

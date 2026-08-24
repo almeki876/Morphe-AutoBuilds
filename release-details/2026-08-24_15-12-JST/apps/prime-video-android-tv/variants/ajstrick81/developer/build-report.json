@@ -1,0 +1,30 @@
+{
+  "app_name": "prime-video-android-tv",
+  "source": "ajstrick81",
+  "patch_source": "ajstrick81",
+  "source_name": "ajstrick81",
+  "version": "6.23.23+v15.5.0.70-armv7a",
+  "status": "success",
+  "lifecycle_status": "success_full",
+  "requested_patches": [],
+  "requested_options": [],
+  "applying_count": 6,
+  "applied_patches": [
+    "Bundle native ad-strip hook",
+    "Disable auto-updates",
+    "Load native ad-strip hook",
+    "Override certificate pinning",
+    "Prime Video extension",
+    "Skip ads"
+  ],
+  "excluded_patches": [],
+  "disabled_patches": [],
+  "feature_failures": [],
+  "failed_patches": [],
+  "required_patches": [],
+  "required_failures": [],
+  "required_patches_satisfied": true,
+  "fully_applied": true,
+  "error_category": null,
+  "error_summary": null
+}

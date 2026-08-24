@@ -1,0 +1,23 @@
+{
+  "results": [
+    {
+      "file": "countdown-widget-rushiranpise-universal.apks",
+      "sha256": "59757a098833ed328b91f705ac4204a06a36c8f89ca2cc921056bbf6377b724b",
+      "size": 23837318,
+      "analysis_id": "YzIyZWY2NmMwOGY3OGJmMWM1MGNhM2RkMWQ3YjBjYWE6MTc4NzUwNTA4OA==",
+      "malicious": 0,
+      "suspicious": 0,
+      "harmless": 0,
+      "undetected": 64,
+      "timeout": 1,
+      "failure": 0,
+      "unsupported": 10,
+      "verdict": "clean",
+      "method": "persistent hash cache",
+      "engines": {},
+      "permalink": "https://www.virustotal.com/gui/file/59757a098833ed328b91f705ac4204a06a36c8f89ca2cc921056bbf6377b724b/detection",
+      "last_analysis_date": 1787505088,
+      "reanalyzed": false
+    }
+  ]
+}

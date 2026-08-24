@@ -1,0 +1,23 @@
+{
+  "results": [
+    {
+      "file": "adobe-acrobat-hoomans-universal.apks",
+      "sha256": "0c4374644959940649578501b3e16099faf43bafabae5730174e2a3f8a473787",
+      "size": 76561623,
+      "analysis_id": "YWYzMzgxMTRiMWJlOGYwMjJmZTk5YjI3ZTgxNjUxZmY6MTc4NzUzMzE2Mg==",
+      "malicious": 0,
+      "suspicious": 0,
+      "harmless": 0,
+      "undetected": 60,
+      "timeout": 4,
+      "failure": 2,
+      "unsupported": 9,
+      "verdict": "clean",
+      "method": "persistent hash cache",
+      "engines": {},
+      "permalink": "https://www.virustotal.com/gui/file/0c4374644959940649578501b3e16099faf43bafabae5730174e2a3f8a473787/detection",
+      "last_analysis_date": 1787533162,
+      "reanalyzed": false
+    }
+  ]
+}

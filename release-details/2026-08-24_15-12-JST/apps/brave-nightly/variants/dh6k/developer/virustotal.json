@@ -1,0 +1,23 @@
+{
+  "results": [
+    {
+      "file": "brave-nightly-dh6k-universal.apks",
+      "sha256": "35582fc93c13e7dea45f375b9fb518c30f30c2c713a59cbbeaeca50acfc28a02",
+      "size": 127162542,
+      "analysis_id": "ZDUzOTYwZmMzZjBlZTE1MWU0NTU1YzgxZWUxNjFhYWQ6MTc4NzU0MDQxOQ==",
+      "malicious": 0,
+      "suspicious": 0,
+      "harmless": 0,
+      "undetected": 59,
+      "timeout": 5,
+      "failure": 0,
+      "unsupported": 11,
+      "verdict": "clean",
+      "method": "persistent hash cache",
+      "engines": {},
+      "permalink": "https://www.virustotal.com/gui/file/35582fc93c13e7dea45f375b9fb518c30f30c2c713a59cbbeaeca50acfc28a02/detection",
+      "last_analysis_date": 1787540419,
+      "reanalyzed": false
+    }
+  ]
+}

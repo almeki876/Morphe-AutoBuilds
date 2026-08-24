@@ -1,0 +1,27 @@
+{
+  "app_name": "yuucho-ninsho",
+  "source": "rushiranpise",
+  "patch_source": "rushiranpise",
+  "source_name": "rushiranpise",
+  "version": "18.0.0",
+  "status": "success",
+  "lifecycle_status": "success_full",
+  "requested_patches": [
+    "Hide ADB status"
+  ],
+  "requested_options": [],
+  "applying_count": 1,
+  "applied_patches": [
+    "Hide ADB status"
+  ],
+  "excluded_patches": [],
+  "disabled_patches": [],
+  "feature_failures": [],
+  "failed_patches": [],
+  "required_patches": [],
+  "required_failures": [],
+  "required_patches_satisfied": true,
+  "fully_applied": true,
+  "error_category": null,
+  "error_summary": null
+}

@@ -1,0 +1,23 @@
+{
+  "results": [
+    {
+      "file": "lightroom-hoo-dles-arm64-v8a.apks",
+      "sha256": "69cf5c1199b329cdf0c1b31b45399f4941a72c200e7e60ff12dc8db0556e3efb",
+      "size": 155976147,
+      "analysis_id": "MTZmOTVkZGJmOWRlZWM2ZjhkYjUyOTg1YjY0YjA3NzQ6MTc4NzU0MDM1Ng==",
+      "malicious": 0,
+      "suspicious": 0,
+      "harmless": 0,
+      "undetected": 51,
+      "timeout": 12,
+      "failure": 2,
+      "unsupported": 10,
+      "verdict": "clean",
+      "method": "persistent hash cache",
+      "engines": {},
+      "permalink": "https://www.virustotal.com/gui/file/69cf5c1199b329cdf0c1b31b45399f4941a72c200e7e60ff12dc8db0556e3efb/detection",
+      "last_analysis_date": 1787540356,
+      "reanalyzed": false
+    }
+  ]
+}

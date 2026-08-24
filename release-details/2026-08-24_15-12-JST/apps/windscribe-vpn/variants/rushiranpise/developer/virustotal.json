@@ -1,0 +1,23 @@
+{
+  "results": [
+    {
+      "file": "windscribe-vpn-rushiranpise-arm64-v8a.apks",
+      "sha256": "3a4d63006de8d622d8cf04a91dfa90ae0b33034d28ae7ec085f460d91fb6f536",
+      "size": 32490688,
+      "analysis_id": "NzEwZmUzOWZjN2M2YTM5NTZhYTVmYjYyZjI5NGU3NDg6MTc4NzUyOTIzNQ==",
+      "malicious": 0,
+      "suspicious": 0,
+      "harmless": 0,
+      "undetected": 64,
+      "timeout": 2,
+      "failure": 1,
+      "unsupported": 8,
+      "verdict": "clean",
+      "method": "persistent hash cache",
+      "engines": {},
+      "permalink": "https://www.virustotal.com/gui/file/3a4d63006de8d622d8cf04a91dfa90ae0b33034d28ae7ec085f460d91fb6f536/detection",
+      "last_analysis_date": 1787529235,
+      "reanalyzed": false
+    }
+  ]
+}

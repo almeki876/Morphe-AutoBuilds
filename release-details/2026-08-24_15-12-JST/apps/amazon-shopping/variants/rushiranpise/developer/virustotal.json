@@ -1,0 +1,23 @@
+{
+  "results": [
+    {
+      "file": "amazon-shopping-rushiranpise-universal.apks",
+      "sha256": "0810b6c9fc934c988a4475a20e09da4301e0f8f1ba4556f8be80d45a571a49d3",
+      "size": 81732823,
+      "analysis_id": "ZTVkNzVjYjUwMTQ2MzAwYjYwMDMxNDQwYjY1YjlkYWQ6MTc4NzUyOTQyNA==",
+      "malicious": 0,
+      "suspicious": 0,
+      "harmless": 0,
+      "undetected": 61,
+      "timeout": 4,
+      "failure": 1,
+      "unsupported": 9,
+      "verdict": "clean",
+      "method": "persistent hash cache",
+      "engines": {},
+      "permalink": "https://www.virustotal.com/gui/file/0810b6c9fc934c988a4475a20e09da4301e0f8f1ba4556f8be80d45a571a49d3/detection",
+      "last_analysis_date": 1787529424,
+      "reanalyzed": false
+    }
+  ]
+}
