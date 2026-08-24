@@ -1,19 +1,28 @@
 name: 機能・アプリ追加を提案する
-description: 新機能、設定変更、対応アプリ追加などを提案します。
+description: 対応アプリ、パッチソース、機能、運用改善などを提案します。
 title: "[Request] "
 labels:
   - enhancement
 body:
-  - type: markdown
+  - type: dropdown
+    id: request_type
     attributes:
-      value: |
-        提案ありがとうございます。必要な内容だけ簡単に入力してください。
+      label: 提案の種類
+      options:
+        - 対応アプリを追加してほしい
+        - パッチソースを追加・変更してほしい
+        - ビルド・配布機能を改善してほしい
+        - README・ドキュメントを改善してほしい
+        - GitHub Actions・自動化を改善してほしい
+        - その他の機能提案
+    validations:
+      required: true
 
   - type: textarea
     id: proposal
     attributes:
       label: 何を追加・変更してほしいですか？
-      placeholder: 例：〇〇アプリを自動ビルド対象に追加してほしい。
+      description: 希望する内容を簡潔に書いてください。
     validations:
       required: true
 
@@ -21,15 +30,29 @@ body:
     id: app
     attributes:
       label: 対象アプリ
-      description: アプリ追加や特定アプリへの要望の場合だけ入力してください。
+      description: アプリに関係する提案の場合だけ入力してください。
       placeholder: 例：Example App
 
-  - type: textarea
-    id: details
+  - type: input
+    id: package
     attributes:
-      label: 詳細・参考情報
-      description: パッケージID、パッチソース、参考URL、理由などがあれば入力してください。
-      placeholder: |
-        パッケージID: com.example.app
-        パッチソース: https://github.com/example/patches
-        その他: 必要な情報があればここへ
+      label: パッケージID
+      placeholder: 例：com.example.app
+
+  - type: input
+    id: patch_source
+    attributes:
+      label: 希望するパッチソース
+      placeholder: 例：MorpheApp/morphe-patches
+
+  - type: textarea
+    id: reason
+    attributes:
+      label: 理由・用途
+      description: どう便利になるか、現在どこで困っているかを書いてください。
+
+  - type: textarea
+    id: extra
+    attributes:
+      label: 補足情報
+      description: 必要なら参考情報、スクリーンショットなどを貼り付けてください。
