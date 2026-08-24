@@ -20,9 +20,10 @@ def combine_logs(output: Path = Path("download.log")) -> None:
             path = Path(filename)
             if not path.is_file():
                 continue
+            content = path.read_text(encoding="utf-8", errors="replace")
             destination.write(f"===== {title} =====\n")
-            destination.write(path.read_text(encoding="utf-8", errors="replace"))
-            if destination.tell() and not path.read_text(encoding="utf-8", errors="replace").endswith("\n"):
+            destination.write(content)
+            if content and not content.endswith("\n"):
                 destination.write("\n")
 
 
