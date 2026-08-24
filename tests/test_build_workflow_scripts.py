@@ -67,7 +67,9 @@ class CreateReleaseTests(unittest.TestCase):
             with mock.patch.object(create_release, "RELEASE_DIR", release_dir), mock.patch.object(
                 create_release, "VT_REPORT", report
             ), mock.patch.object(create_release, "VT_CACHE", cache), mock.patch.object(
-                create_release, "export_cache", side_effect=lambda _report, output: output.write_text("{}\n", encoding="utf-8") or 1
+                create_release,
+                "export_cache",
+                side_effect=lambda _report, output: output.write_text("{}\n", encoding="utf-8") or 1,
             ) as export_cache, mock.patch.object(create_release, "run") as run:
                 create_release.create_release("2026-test", "owner/repo")
 
@@ -95,7 +97,7 @@ class WorkflowDelegationTests(unittest.TestCase):
         self.assertIn("python3 scripts/resolve_build_tools.py", workflow)
         self.assertEqual(workflow.count("python3 scripts/install_google_play_clients.py"), 2)
         self.assertIn("python3 scripts/resolve_download_result.py", workflow)
-        self.assertIn("python3 scripts/create_release.py", workflow)
+        self.assertIn("python3 -m scripts.create_release", workflow)
         self.assertNotIn("resolve_tag() {", workflow)
         self.assertNotIn("xargs -0 -r -P 8", workflow)
 
