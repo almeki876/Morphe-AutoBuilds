@@ -42,6 +42,11 @@ bucket_name = os.getenv('BUCKET_NAME')
 base_url = "https://www.apkmirror.com"
 gh = Github(auth=Auth.Token(github_token)) if github_token else Github()
 
+# The APK cache namespace is part of the build input contract. Enforce it
+# before any module imports src.apk_cache and snapshots CACHE_TAG.
+from src import cache_contract as _cache_contract
+_cache_contract.enforce()
+
 # Gboard is the only normal-build exception that combines multiple Morphe
 # bundles on one APK.  Install its command adapter after package globals are
 # initialized so src.utils can import this module without a circular init race.
