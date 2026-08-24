@@ -1,4 +1,4 @@
-name: セットアップ: Google Playアカウントを登録
+name: "セットアップ: Google Playアカウントを登録"
 
 on:
   workflow_dispatch:
