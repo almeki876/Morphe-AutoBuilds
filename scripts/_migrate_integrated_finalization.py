@@ -119,6 +119,8 @@ config = replace_once(
     '  contents: read\n',
     'Restore configuration-check permissions',
 )
+if '  issues: write\n' in config:
+    config = config.replace('  issues: write\n', '', 1)
 migration_step = '''      - name: Apply one-time integrated finalization migration
         run: python3 scripts/_migrate_integrated_finalization.py
 
@@ -135,6 +137,22 @@ commit_step = '''      - name: Commit integrated finalization migration
 
 '''
 config = replace_once(config, commit_step, '', 'Remove one-time migration commit step')
+diagnostic_step = '''      - name: Report migration failure
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          body="Migration failed in run ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          existing=$(gh issue list --state open --search 'TEMP integrated finalization migration failure in:title' --json number,title --jq '.[] | select(.title == "TEMP integrated finalization migration failure") | .number' | head -n 1)
+          if [ -n "$existing" ]; then
+            gh issue comment "$existing" --body "$body"
+          else
+            gh issue create --title 'TEMP integrated finalization migration failure' --body "$body"
+          fi
+
+'''
+if diagnostic_step in config:
+    config = config.replace(diagnostic_step, '', 1)
 CONFIG.write_text(config, encoding='utf-8')
 
 SELF.unlink()
