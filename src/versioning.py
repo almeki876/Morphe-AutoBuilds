@@ -14,6 +14,7 @@ import re
 
 
 _PATCH_COUNT_RE = re.compile(r"\s+\(\d+\s+patch(?:es)?\)\s*$", re.IGNORECASE)
+_VERSION_CODES_METADATA_RE = re.compile(r"\s+\[versionCodes:\s*[^\]]+\]\s*$", re.IGNORECASE)
 _CODE_AND_NAME_RE = re.compile(
     r"^(?P<code>\d+)\s+\((?P<name>\d[^()]*)\)(?:\s+.*)?$"
 )
@@ -184,6 +185,11 @@ def parse_candidate(line: str) -> VersionCandidate | None:
         return None
 
     value = _PATCH_COUNT_RE.sub("", value).strip()
+    # Some patch CLIs append per-architecture versionCode diagnostics after the
+    # actual versionName. They are display metadata, not part of the Android
+    # manifest identity, so strip only that bounded trailing annotation before
+    # exact matching/provider lookup.
+    value = _VERSION_CODES_METADATA_RE.sub("", value).strip()
 
     match = _CODE_AND_NAME_RE.match(value)
     if match:
