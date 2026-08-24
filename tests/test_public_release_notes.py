@@ -83,6 +83,31 @@ class PublicReleaseNotesTests(unittest.TestCase):
         self.assertNotIn("internal traceback", published)
         self.assertNotIn("Security scan: clean", published)
 
+    def test_release_tag_prefers_explicit_release_tag(self) -> None:
+        with mock.patch.dict(
+            os.environ,
+            {"RELEASE_TAG": "2026-08-24_14-30-JST"},
+            clear=False,
+        ):
+            self.assertEqual(
+                release_notes._release_tag_from_previous_step(),
+                "2026-08-24_14-30-JST",
+            )
+
+    def test_main_uses_prepublication_details_path_when_available(self) -> None:
+        with (
+            mock.patch.object(
+                release_notes,
+                "_generate_and_publish_release_details",
+                return_value=True,
+            ) as generate,
+            mock.patch.object(release_notes, "render") as legacy_render,
+        ):
+            release_notes.main()
+
+        generate.assert_called_once_with(Path("release_notes.md"))
+        legacy_render.assert_not_called()
+
 
 if __name__ == "__main__":
     unittest.main()
