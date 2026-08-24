@@ -1,13 +1,15 @@
 """Authenticated Google Play downloads with bounded fallback latency.
 
 Google Play remains the preferred APK origin for every app except packages that
-are explicitly GitHub-only.  Current releases use playfetch first, apkeep as an
-independent protocol fallback, then pinned gplaydl with fresh device-profile
-retry.  Exact versionCodes use gplaydl first and may probe the current apkeep
-release only when its manifest exactly matches the requested candidate.
+are explicitly GitHub-only. Current releases try pinned gplaydl first using the
+already configured account/dispenser, then playfetch, then apkeep. A final
+fresh-device gplaydl retry remains available as the expensive safety net for
+region/device restricted apps. Exact versionCodes use gplaydl first and only
+accept a current-release fallback when its manifest exactly matches the
+requested candidate.
 
 The module deliberately owns only orchestration, credential hygiene, result
-verification, deterministic split packaging, and time budgets.  The pinned
+verification, deterministic split packaging, and time budgets. The pinned
 upstream clients continue to own Play protocol details, purchase/delivery, and
 APK downloads.
 """
@@ -41,13 +43,13 @@ APKEEP_GOOGLE_PLAY_OPTIONS = (
 )
 
 GITHUB_ONLY_PACKAGES = frozenset({"com.adguard.android"})
-_TOTAL_BUDGET_SECONDS = 150.0
+_TOTAL_BUDGET_SECONDS = 120.0
 _COMMAND_CAPS = {
-    "version": 10.0,
-    "playfetch": 60.0,
-    "apkeep": 45.0,
-    "gplaydl": 75.0,
-    "generic": 60.0,
+    "version": 8.0,
+    "playfetch": 35.0,
+    "apkeep": 20.0,
+    "gplaydl": 35.0,
+    "generic": 45.0,
 }
 _play_deadline: contextvars.ContextVar[float | None] = contextvars.ContextVar(
     "google_play_deadline", default=None
@@ -108,6 +110,13 @@ def _command_timeout(command: list[str]) -> float:
     return max(1.0, min(cap, remaining))
 
 
+def _remaining_budget() -> float | None:
+    deadline = _play_deadline.get()
+    if deadline is None:
+        return None
+    return max(0.0, deadline - time.monotonic())
+
+
 def _run(
     command: list[str],
     *,
@@ -138,7 +147,7 @@ def _package_apks(apk_files: list[Path], package: str, output_dir: Path) -> Path
     """Return one patcher-compatible input containing all Play-delivered APKs.
 
     Split containers are deterministic: identical APK payloads create identical
-    outer bytes and SHA-256 hashes across runners.  This is important for both
+    outer bytes and SHA-256 hashes across runners. This is important for both
     the durable APK cache and VirusTotal hash lookup reuse.
     """
     if not apk_files:
@@ -215,7 +224,11 @@ def _collect_linked_download(
     output_dir: Path,
     result: subprocess.CompletedProcess[str],
 ) -> Path:
-    apk_files = list(downloads.rglob("*.apk"))
+    apk_files = [
+        path
+        for path in downloads.rglob("*.apk")
+        if path.is_file() and path.stat().st_size > 0
+    ]
     if not apk_files:
         tail = "\n".join((result.stdout or "").splitlines()[-20:])
         raise IOError(
@@ -476,11 +489,57 @@ def _download_with_apkeep_google_play(package: str, output_dir: Path) -> Path:
         return packaged
 
 
+def _download_with_fast_gplaydl(
+    package: str,
+    candidate: VersionCandidate | None,
+    output_dir: Path,
+) -> Path:
+    """Try the configured gplaydl account without bootstrapping local services."""
+    _require_linked_account()
+    executable = shutil.which(OFFICIAL_GPLAYDL_COMMAND)
+    if not executable:
+        raise FileNotFoundError(
+            "GPLAYDL_API_KEY is configured but the upstream gplaydl CLI is not installed"
+        )
+    with tempfile.TemporaryDirectory(prefix="fast-gplaydl-", dir=output_dir) as tmp:
+        downloads = Path(tmp) / "downloads"
+        downloads.mkdir()
+        exact_code = str(candidate.code) if candidate and candidate.code else None
+        command = _linked_gplaydl_command(
+            executable,
+            package,
+            downloads,
+            exact_code,
+            profile_retry=True,
+        )
+        logging.info(
+            "🔐 Trying fast gplaydl Google Play path: package=%s%s",
+            package,
+            f" exact-versionCode={candidate.code} ({candidate.name})"
+            if exact_code and candidate
+            else " current release",
+        )
+        result = _run(command)
+        if result.returncode == 0:
+            return _collect_linked_download(downloads, package, output_dir, result)
+        tail = "\n".join((result.stdout or "").splitlines()[-20:])
+        raise RuntimeError(
+            "fast gplaydl exited non-zero: "
+            f"{_secret_safe_text(tail).strip() or 'no diagnostic output'}"
+        )
+
+
 def _download_with_linked_gplaydl(
     package: str,
     candidate: VersionCandidate | None,
     output_dir: Path,
 ) -> Path:
+    """Expensive last-resort gplaydl path with a fresh local JP dispenser."""
+    remaining = _remaining_budget()
+    if remaining is not None and remaining < 15:
+        raise GooglePlayTimeout(
+            "not enough Google Play budget remains to bootstrap the fresh-profile fallback"
+        )
     local_gplaydl_dispenser.ensure_running()
     _require_linked_account()
     executable = shutil.which(OFFICIAL_GPLAYDL_COMMAND)
@@ -496,21 +555,45 @@ def _download_with_linked_gplaydl(
             executable, package, downloads, exact_code, profile_retry=True
         )
         logging.info(
-            "🔐 Authenticated Google Play first: package=%s%s%s",
+            "🔐 Retrying Google Play with a fresh local JP device profile: package=%s%s",
             package,
             f" exact-versionCode={candidate.code} ({candidate.name})" if exact_code and candidate else " current release",
-            " custom-dispenser" if os.getenv("GPLAYDL_DISPENSER_URL", "").strip() else "",
         )
         result = _run(command)
         if result.returncode == 0:
             return _collect_linked_download(downloads, package, output_dir, result)
-        tail = "\n".join((result.stdout or "").splitlines()[-35:])
-        raise RuntimeError(f"authenticated gplaydl exited non-zero: {tail}")
+        tail = "\n".join((result.stdout or "").splitlines()[-20:])
+        raise RuntimeError(
+            "fresh-profile gplaydl exited non-zero: "
+            f"{_secret_safe_text(tail).strip() or 'no diagnostic output'}"
+        )
 
 
 def _begin_budget() -> contextvars.Token:
     total = _env_seconds("GPLAY_TOTAL_BUDGET_SECONDS", _TOTAL_BUDGET_SECONDS)
     return _play_deadline.set(time.monotonic() + total)
+
+
+def _validate_current_fallback(
+    path: Path,
+    package: str,
+    candidate: VersionCandidate,
+    label: str,
+) -> Path:
+    try:
+        identity = apk_identity.validate_identity(path, package, candidate)
+    except Exception:
+        path.unlink(missing_ok=True)
+        raise
+    logging.info(
+        "✅ %s current Play release exactly matches requested candidate: "
+        "package=%s versionName=%s versionCode=%s",
+        label,
+        identity.package_name,
+        identity.version_name,
+        identity.version_code or "unknown",
+    )
+    return path
 
 
 def download_candidate(
@@ -528,65 +611,72 @@ def download_candidate(
     output_dir.mkdir(parents=True, exist_ok=True)
     token = _begin_budget()
     try:
+        errors: list[tuple[str, Exception]] = []
+
+        try:
+            return _download_with_fast_gplaydl(package, play_candidate, output_dir)
+        except Exception as error:
+            errors.append(("gplaydl", error))
+            logging.warning(
+                "⚠️  Fast gplaydl failed for %s: %s; trying playfetch",
+                package,
+                _secret_safe_text(str(error)),
+            )
+
         if play_candidate is None:
             try:
                 return _download_with_playfetch_google_play(package, output_dir)
-            except Exception as playfetch_error:
+            except Exception as error:
+                errors.append(("playfetch", error))
                 logging.warning(
-                    "⚠️  Primary playfetch Google Play download failed for %s: %s; "
-                    "trying independent apkeep Google Play implementation",
+                    "⚠️  playfetch failed for %s: %s; trying apkeep",
                     package,
-                    _secret_safe_text(str(playfetch_error)),
+                    _secret_safe_text(str(error)),
                 )
-                try:
-                    return _download_with_apkeep_google_play(package, output_dir)
-                except Exception as apkeep_error:
-                    logging.warning(
-                        "⚠️  apkeep Google Play download failed for %s: %s; trying "
-                        "authenticated gplaydl with fresh-profile retry",
-                        package,
-                        _secret_safe_text(str(apkeep_error)),
-                    )
-                    try:
-                        return _download_with_linked_gplaydl(package, None, output_dir)
-                    except Exception as gplaydl_error:
-                        raise RuntimeError(
-                            "all three Google Play download paths failed. playfetch: "
-                            f"{_secret_safe_text(str(playfetch_error))}; apkeep: "
-                            f"{_secret_safe_text(str(apkeep_error))}; gplaydl: "
-                            f"{_secret_safe_text(str(gplaydl_error))}"
-                        ) from gplaydl_error
+            try:
+                return _download_with_apkeep_google_play(package, output_dir)
+            except Exception as error:
+                errors.append(("apkeep", error))
+                logging.warning(
+                    "⚠️  apkeep failed for %s: %s; trying fresh-profile gplaydl safety net",
+                    package,
+                    _secret_safe_text(str(error)),
+                )
+            try:
+                return _download_with_linked_gplaydl(package, None, output_dir)
+            except Exception as error:
+                errors.append(("fresh-profile-gplaydl", error))
+        else:
+            try:
+                current = _download_with_playfetch_google_play(package, output_dir)
+                return _validate_current_fallback(
+                    current, package, play_candidate, "playfetch"
+                )
+            except Exception as error:
+                errors.append(("playfetch-current-probe", error))
+                logging.warning(
+                    "⚠️  playfetch current release did not satisfy exact %s for %s; trying apkeep",
+                    play_candidate.describe(),
+                    package,
+                )
+            try:
+                current = _download_with_apkeep_google_play(package, output_dir)
+                return _validate_current_fallback(
+                    current, package, play_candidate, "apkeep"
+                )
+            except Exception as error:
+                errors.append(("apkeep-current-probe", error))
+            try:
+                return _download_with_linked_gplaydl(
+                    package, play_candidate, output_dir
+                )
+            except Exception as error:
+                errors.append(("fresh-profile-gplaydl", error))
 
-        try:
-            return _download_with_linked_gplaydl(package, play_candidate, output_dir)
-        except Exception as gplaydl_error:
-            logging.warning(
-                "⚠️  Authenticated exact Google Play download failed for %s; "
-                "probing current Play through apkeep and requiring exact identity",
-                package,
-            )
-            try:
-                current_input = _download_with_apkeep_google_play(package, output_dir)
-            except Exception as apkeep_error:
-                raise RuntimeError(
-                    "authenticated exact-version gplaydl and current-release apkeep "
-                    "Google Play paths both failed. gplaydl: "
-                    f"{_secret_safe_text(str(gplaydl_error))}; apkeep: "
-                    f"{_secret_safe_text(str(apkeep_error))}"
-                ) from apkeep_error
-            try:
-                identity = apk_identity.validate_identity(current_input, package, play_candidate)
-            except Exception:
-                current_input.unlink(missing_ok=True)
-                raise
-            logging.info(
-                "✅ apkeep current Play release exactly matches requested candidate: "
-                "package=%s versionName=%s versionCode=%s",
-                identity.package_name,
-                identity.version_name,
-                identity.version_code or "unknown",
-            )
-            return current_input
+        detail = "; ".join(
+            f"{name}: {_secret_safe_text(str(error))}" for name, error in errors
+        )
+        raise RuntimeError(f"all Google Play download paths failed. {detail}")
     finally:
         _play_deadline.reset(token)
 

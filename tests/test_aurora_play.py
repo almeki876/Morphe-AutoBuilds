@@ -88,24 +88,36 @@ class AuroraPlayTests(unittest.TestCase):
         )
 
     @mock.patch("src.aurora_play._download_with_linked_gplaydl")
-    def test_linked_account_failure_does_not_fall_back_anonymously(
+    @mock.patch("src.aurora_play._download_with_apkeep_google_play")
+    @mock.patch("src.aurora_play._download_with_playfetch_google_play")
+    @mock.patch("src.aurora_play._download_with_fast_gplaydl")
+    def test_all_linked_failures_are_reported_without_anonymous_download(
         self,
+        fast: mock.Mock,
+        playfetch: mock.Mock,
+        apkeep: mock.Mock,
         linked: mock.Mock,
     ) -> None:
-        linked.side_effect = RuntimeError("linked service unavailable")
+        fast.side_effect = RuntimeError("fast linked service unavailable")
+        playfetch.side_effect = RuntimeError("playfetch unavailable")
+        apkeep.side_effect = RuntimeError("apkeep unavailable")
+        linked.side_effect = RuntimeError("fresh linked service unavailable")
         candidate = VersionCandidate(name="1.2.3", code="123")
 
         with mock.patch.dict(os.environ, {"GPLAYDL_API_KEY": "secret-key"}, clear=False):
-            with self.assertRaisesRegex(RuntimeError, "linked service unavailable"):
+            with self.assertRaisesRegex(RuntimeError, "all Google Play download paths failed"):
                 aurora_play.download_candidate("com.example.app", candidate, Path("."))
 
+        fast.assert_called_once_with("com.example.app", candidate, Path("."))
         linked.assert_called_once_with("com.example.app", candidate, Path("."))
 
-    def test_missing_api_key_refuses_google_play(self) -> None:
+    def test_missing_api_key_refuses_fast_gplaydl(self) -> None:
         candidate = VersionCandidate(name="1.2.3", code="123")
         with mock.patch.dict(os.environ, {"GPLAYDL_API_KEY": ""}, clear=False):
             with self.assertRaisesRegex(RuntimeError, "anonymous Google Play downloads are disabled"):
-                aurora_play.download_candidate("com.example.app", candidate, Path("."))
+                aurora_play._download_with_fast_gplaydl(
+                    "com.example.app", candidate, Path(".")
+                )
 
     @mock.patch("src.aurora_play.shutil.which", return_value="/usr/bin/gplaydl")
     @mock.patch("src.aurora_play._run")
@@ -154,7 +166,7 @@ class AuroraPlayTests(unittest.TestCase):
         run.side_effect = fake_run
         with mock.patch.dict(os.environ, {"GPLAYDL_API_KEY": "secret-key"}, clear=False):
             with tempfile.TemporaryDirectory() as directory:
-                result = aurora_play._download_with_linked_gplaydl(
+                result = aurora_play._download_with_fast_gplaydl(
                     "com.example.app",
                     None,
                     Path(directory),
@@ -165,11 +177,11 @@ class AuroraPlayTests(unittest.TestCase):
         self.assertNotIn("-v", command)
         self.assertEqual(command[command.index("download") + 1], "com.example.app")
 
-    @mock.patch("src.aurora_play._download_with_linked_gplaydl")
-    def test_adguard_never_touches_google_play(self, linked: mock.Mock) -> None:
+    @mock.patch("src.aurora_play._download_with_fast_gplaydl")
+    def test_adguard_never_touches_google_play(self, fast: mock.Mock) -> None:
         with self.assertRaises(aurora_play.GooglePlayDisabled):
             aurora_play.download_current("com.adguard.android", Path("."))
-        linked.assert_not_called()
+        fast.assert_not_called()
 
     @mock.patch("src.aurora_play.apk_identity.validate_identity")
     @mock.patch("src.aurora_play.shutil.which", return_value="/usr/bin/apkeep")
@@ -274,14 +286,43 @@ class AuroraPlayTests(unittest.TestCase):
     @mock.patch("src.aurora_play._download_with_linked_gplaydl")
     @mock.patch("src.aurora_play._download_with_apkeep_google_play")
     @mock.patch("src.aurora_play._download_with_playfetch_google_play")
-    def test_current_release_prefers_playfetch_google_play(
+    @mock.patch("src.aurora_play._download_with_fast_gplaydl")
+    def test_current_release_prefers_fast_gplaydl(
         self,
+        fast: mock.Mock,
         playfetch: mock.Mock,
         apkeep: mock.Mock,
-        gplaydl: mock.Mock,
+        linked: mock.Mock,
     ) -> None:
         with tempfile.TemporaryDirectory() as directory:
-            expected = Path(directory) / "fallback.apk"
+            expected = Path(directory) / "gplaydl.apk"
+            expected.write_bytes(b"official")
+            fast.return_value = expected
+            result = aurora_play.download_current(
+                "jp.example.bank",
+                Path(directory),
+            )
+
+        self.assertIs(result, expected)
+        fast.assert_called_once_with("jp.example.bank", None, Path(directory))
+        playfetch.assert_not_called()
+        apkeep.assert_not_called()
+        linked.assert_not_called()
+
+    @mock.patch("src.aurora_play._download_with_linked_gplaydl")
+    @mock.patch("src.aurora_play._download_with_apkeep_google_play")
+    @mock.patch("src.aurora_play._download_with_playfetch_google_play")
+    @mock.patch("src.aurora_play._download_with_fast_gplaydl")
+    def test_current_release_fast_failure_uses_playfetch(
+        self,
+        fast: mock.Mock,
+        playfetch: mock.Mock,
+        apkeep: mock.Mock,
+        linked: mock.Mock,
+    ) -> None:
+        fast.side_effect = RuntimeError("temporary gplaydl failure")
+        with tempfile.TemporaryDirectory() as directory:
+            expected = Path(directory) / "playfetch.apk"
             expected.write_bytes(b"official")
             playfetch.return_value = expected
             result = aurora_play.download_current(
@@ -292,53 +333,48 @@ class AuroraPlayTests(unittest.TestCase):
         self.assertIs(result, expected)
         playfetch.assert_called_once_with("jp.example.bank", Path(directory))
         apkeep.assert_not_called()
-        gplaydl.assert_not_called()
+        linked.assert_not_called()
 
     @mock.patch("src.aurora_play._download_with_linked_gplaydl")
     @mock.patch("src.aurora_play._download_with_apkeep_google_play")
     @mock.patch("src.aurora_play._download_with_playfetch_google_play")
-    def test_current_release_playfetch_failure_uses_apkeep(
+    @mock.patch("src.aurora_play._download_with_fast_gplaydl")
+    def test_current_release_three_fast_paths_fail_uses_fresh_profile_gplaydl(
         self,
+        fast: mock.Mock,
         playfetch: mock.Mock,
         apkeep: mock.Mock,
-        gplaydl: mock.Mock,
+        linked: mock.Mock,
     ) -> None:
-        playfetch.side_effect = RuntimeError("current DFE temporarily unavailable")
-        with tempfile.TemporaryDirectory() as directory:
-            expected = Path(directory) / "fallback.apk"
-            expected.write_bytes(b"official")
-            apkeep.return_value = expected
-            result = aurora_play.download_current(
-                "jp.example.bank",
-                Path(directory),
-            )
-
-        self.assertIs(result, expected)
-        apkeep.assert_called_once_with("jp.example.bank", Path(directory))
-        gplaydl.assert_not_called()
-
-    @mock.patch("src.aurora_play._download_with_linked_gplaydl")
-    @mock.patch("src.aurora_play._download_with_apkeep_google_play")
-    @mock.patch("src.aurora_play._download_with_playfetch_google_play")
-    def test_current_release_two_failures_use_gplaydl_profile_retry(
-        self,
-        playfetch: mock.Mock,
-        apkeep: mock.Mock,
-        gplaydl: mock.Mock,
-    ) -> None:
+        fast.side_effect = RuntimeError("gplaydl unavailable")
         playfetch.side_effect = RuntimeError("playfetch unavailable")
         apkeep.side_effect = RuntimeError("apkeep unavailable")
         with tempfile.TemporaryDirectory() as directory:
             expected = Path(directory) / "fallback.apk"
             expected.write_bytes(b"official")
-            gplaydl.return_value = expected
+            linked.return_value = expected
             result = aurora_play.download_current(
                 "jp.example.bank",
                 Path(directory),
             )
 
         self.assertIs(result, expected)
-        gplaydl.assert_called_once_with("jp.example.bank", None, Path(directory))
+        linked.assert_called_once_with("jp.example.bank", None, Path(directory))
+
+    @mock.patch("src.aurora_play.shutil.which", return_value="/usr/bin/gplaydl")
+    @mock.patch("src.aurora_play._run")
+    def test_fast_gplaydl_rejects_zero_exit_without_complete_apk_output(
+        self,
+        run: mock.Mock,
+        _which: mock.Mock,
+    ) -> None:
+        run.return_value = mock.Mock(returncode=0, stdout="connection closed early")
+        with mock.patch.dict(os.environ, {"GPLAYDL_API_KEY": "secret-key"}, clear=False):
+            with tempfile.TemporaryDirectory() as directory:
+                with self.assertRaisesRegex(IOError, "produced no APK files"):
+                    aurora_play._download_with_fast_gplaydl(
+                        "jp.example.bank", None, Path(directory)
+                    )
 
 
 if __name__ == "__main__":
