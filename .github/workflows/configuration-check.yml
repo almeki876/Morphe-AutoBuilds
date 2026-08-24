@@ -10,6 +10,7 @@ on:
 permissions:
   actions: read
   contents: write
+  issues: write
 
 concurrency:
   group: configuration-${{ github.ref }}
@@ -32,6 +33,19 @@ jobs:
 
       - name: Apply one-time integrated finalization migration
         run: python3 scripts/_migrate_integrated_finalization.py
+
+      - name: Report migration failure
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          body="Migration failed in run ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          existing=$(gh issue list --state open --search 'TEMP integrated finalization migration failure in:title' --json number,title --jq '.[] | select(.title == "TEMP integrated finalization migration failure") | .number' | head -n 1)
+          if [ -n "$existing" ]; then
+            gh issue comment "$existing" --body "$body"
+          else
+            gh issue create --title 'TEMP integrated finalization migration failure' --body "$body"
+          fi
 
       - name: Commit integrated finalization migration
         run: |
