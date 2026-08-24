@@ -8,6 +8,7 @@ on:
       - master
 
 permissions:
+  actions: read
   contents: read
 
 concurrency:
@@ -45,6 +46,20 @@ jobs:
 
       - name: Lint GitHub Actions Workflows
         run: /tmp/actionlint
+
+      - name: Summarize Recent Workflow Health
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api --paginate \
+            "repos/${{ github.repository }}/actions/runs?per_page=100" \
+            --slurp > /tmp/workflow-runs.json
+          python3 scripts/summarize_workflow_history.py \
+            /tmp/workflow-runs.json \
+            --current-run-id "${{ github.run_id }}" \
+            --output /tmp/workflow-health.md
+          cat /tmp/workflow-health.md >> "$GITHUB_STEP_SUMMARY"
 
       - name: Validate Configuration
         run: python3 scripts/validate_repository.py
