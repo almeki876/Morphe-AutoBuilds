@@ -15,7 +15,7 @@ GitHub Actionsがパッチや対象アプリの更新を確認し、互換性の
 
 ## APKをダウンロードする
 
-完成したAPKは[最新リリース](https://github.com/almeki876/Morphe-AutoBuilds/releases/latest)からダウンロードできます。リリース名には作成日時がJSTで記録されます。[Obtainium / ObtainX用リンク一覧](./Morphe-AutoBuilds-Obtainium.md)から、アプリとパッチソースの組み合わせごとに更新を登録することもできます。
+完成したAPKは[最新リリース](https://github.com/almeki876/Morphe-AutoBuilds/releases/latest)からダウンロードできます。リリース名には作成日時がJSTで記録されます。[APK直リンク一覧](./Morphe-AutoBuilds-Direct-Download.md)では、アプリ・パッチソース・アーキテクチャごとに現在入手できる最新版APKを直接ダウンロードできます。[Obtainium / ObtainX用リンク一覧](./Morphe-AutoBuilds-Obtainium.md)から、アプリとパッチソースの組み合わせごとに更新を登録することもできます。
 
 各リリースの説明には、次の情報が掲載されます。
 
