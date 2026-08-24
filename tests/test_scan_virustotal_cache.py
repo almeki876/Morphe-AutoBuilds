@@ -5,9 +5,10 @@ import tempfile
 import unittest
 from dataclasses import replace
 from pathlib import Path
+from unittest.mock import patch
 
 from scripts.scan_virustotal import _load_cache, _save_cache, _scan_all
-from scripts.virustotal import ScanResult, sha256_file
+from scripts.virustotal import HashLookup, ScanResult, sha256_file
 
 
 def _result(path: Path, sha256: str) -> ScanResult:
@@ -36,8 +37,31 @@ class ExplodingClient:
     def lookup_hash(self, *_args, **_kwargs):
         raise AssertionError("VirusTotal must not be called for a cached SHA-256")
 
-    def scan_lookup(self, *_args, **_kwargs):
+    def prepare_lookup(self, *_args, **_kwargs):
         raise AssertionError("VirusTotal must not be called for a cached SHA-256")
+
+    def finish_lookup(self, *_args, **_kwargs):
+        raise AssertionError("VirusTotal must not be called for a cached SHA-256")
+
+
+class PipelineClient:
+    def __init__(self, expected_starts: int):
+        self.expected_starts = expected_starts
+        self.started: list[str] = []
+        self.finished: list[str] = []
+
+    def lookup_hash(self, path: Path, digest: str) -> HashLookup:
+        return HashLookup(digest, None, {}, {}, "uploaded", None, False)
+
+    def prepare_lookup(self, path: Path, lookup: HashLookup) -> HashLookup:
+        self.started.append(path.name)
+        return replace(lookup, analysis_id=f"analysis-{path.name}")
+
+    def finish_lookup(self, path: Path, lookup: HashLookup) -> ScanResult:
+        if len(self.started) != self.expected_starts:
+            raise AssertionError("polling started before every hash was submitted")
+        self.finished.append(path.name)
+        return _result(path, lookup.sha256)
 
 
 class VirusTotalPersistentCacheTests(unittest.TestCase):
@@ -108,6 +132,30 @@ class VirusTotalPersistentCacheTests(unittest.TestCase):
             loaded = _load_cache(cache_path)[digest]
             self.assertEqual(set(loaded.engines), {"DetectedEngine"})
             self.assertEqual(loaded.verdict, "unsafe")
+
+    def test_all_unknown_hashes_are_started_before_any_polling(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            first = root / "first.apk"
+            second = root / "second.apk"
+            first.write_bytes(b"first-unique-apk")
+            second.write_bytes(b"second-unique-apk")
+            cache_path = root / "cache" / "hash-results.json"
+            client = PipelineClient(expected_starts=2)
+
+            with patch.dict("os.environ", {"VT_WORKERS": "2"}):
+                results, failures = _scan_all(
+                    client,
+                    [first, second],
+                    {},
+                    cache_path,
+                )
+
+            self.assertEqual(failures, [])
+            self.assertCountEqual(client.started, ["first.apk", "second.apk"])
+            self.assertCountEqual(client.finished, ["first.apk", "second.apk"])
+            self.assertEqual(len(results), 2)
+            self.assertEqual(len(_load_cache(cache_path)), 2)
 
 
 if __name__ == "__main__":
