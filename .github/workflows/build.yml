@@ -135,19 +135,11 @@ jobs:
       - name: Validate Repository Configuration
         run: python3 scripts/validate_repository.py
 
-      # ---------------------------------------------------------------
-      # 1. 各ソースの実際のパッチバージョンを確定させる
-      #    "latest" が渡された場合はプレリリースを含む最新1件を解決する。
-      #    解決済みのタグをキャッシュキーに組み込むことで、
-      #    パッチが更新されるたびに必ずキャッシュミスが発生し
-      #    古いパッチが再利用されることを防ぐ。
-      # ---------------------------------------------------------------
       - name: Resolve Patch Tags and Compute Cache Key
         id: resolve-tags
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # プレリリースを含む全リリースから最新1件のタグを返す
           resolve_tag() {
             local repo="$1" hint="$2"
             if [ -n "$hint" ] && [ "$hint" != "latest" ]; then
@@ -164,7 +156,7 @@ jobs:
           rushiranpise_resolved=$(resolve_tag "rushiranpise/morphe-patches" "${{ github.event.inputs.rushiranpise_tag }}")
           rookie_resolved=$(resolve_tag  "RookieEnough/De-Vanced"              "${{ github.event.inputs.rookie_tag }}")
           tosox_resolved=$(resolve_tag   "Tosox/revanced-patches"             "${{ github.event.inputs.tosox_tag }}")
-          yuzu_resolved="patche"  # 固定リリースタグ (matchadaisuke/morphe-patches)
+          yuzu_resolved="patche"
           dropped_resolved=$(resolve_tag "indrastorms/Dropped-Patches"        "${{ github.event.inputs.dropped_tag }}")
 
           echo "morphe_resolved=$morphe_resolved"   >> $GITHUB_OUTPUT
@@ -175,8 +167,6 @@ jobs:
           echo "yuzu_resolved=$yuzu_resolved"       >> $GITHUB_OUTPUT
           echo "dropped_resolved=$dropped_resolved" >> $GITHUB_OUTPUT
 
-          # キャッシュキー = ファイルハッシュ + 全パッチバージョンの結合
-          # パッチが1つでも変わればキャッシュミスになる
           version_string="${morphe_resolved}__${anddea_resolved}__${rushiranpise_resolved}__${rookie_resolved}__${tosox_resolved}__${yuzu_resolved}__${dropped_resolved}"
           file_hash="${{ hashFiles('my-patch-config.json', 'arch-config.json', 'sources/**') }}"
           cache_key="build-tools-${file_hash}-${version_string}"
@@ -420,15 +410,9 @@ jobs:
           BASE_APK_CACHE_TAG: 'base-apk-cache-v2'
           BASE_APK_CACHE_REPOSITORY: ${{ github.repository }}
         run: |
-          # Do not let a failed/stale Tailscale route slow the final mirror rescue.
           if command -v tailscale >/dev/null 2>&1; then
             sudo tailscale set --exit-node= 2>/dev/null || true
           fi
-          # GITHUB_ACTIONS is intentionally removed only for this child process so
-          # download_apks treats a Google Play failure as permission to continue to
-          # configured providers instead of requesting another Tailscale handoff.
-          # No Google Play credentials are supplied to this step, so the Play
-          # clients fail closed immediately and the provider chain starts quickly.
           env -u GITHUB_ACTIONS python3 scripts/download_apks.py 2>&1 | tee download-provider-rescue.log
           exit ${PIPESTATUS[0]}
 
@@ -496,23 +480,14 @@ jobs:
           path: download-status/*.txt
           retention-days: 7
 
-      - name: Upload Base APK Input
+      - name: Upload Shared Base APK Input
         if: success()
         uses: actions/upload-artifact@v7
         with:
           name: base-input-${{ matrix.app_name }}-${{ matrix.source }}
           path: |
             base-apk-input/*
-            base-apk-cache-out/*
             build-metadata/apk-sources.json
-          retention-days: 1
-
-      - name: Upload Unmodified Base APK for VirusTotal
-        if: success()
-        uses: actions/upload-artifact@v7
-        with:
-          name: base-scan-${{ matrix.app_name }}-${{ matrix.source }}
-          path: base-apk-scan-out/*
           retention-days: 1
 
   scan-base-apks:
@@ -542,11 +517,11 @@ jobs:
           restore-keys: |
             virustotal-hash-v1-${{ runner.os }}-
 
-      - name: Download Unmodified Base APKs
+      - name: Download Shared Base APK Inputs
         uses: actions/download-artifact@v8
         with:
           path: ./base-apks
-          pattern: base-scan-*
+          pattern: base-input-*
           merge-multiple: true
 
       - name: Scan Unmodified Base APKs with VirusTotal
@@ -637,7 +612,7 @@ jobs:
           "$HOME/.local/bin/playfetch" version
           "$HOME/.local/bin/apkeep" --version
 
-      - name: Download APK Input Artifact
+      - name: Download Shared Base APK Input
         uses: actions/download-artifact@v8
         with:
           name: base-input-${{ matrix.app_name }}-${{ matrix.source }}
@@ -729,14 +704,6 @@ jobs:
           path: build-status/*
           retention-days: 7
 
-      - name: Upload Verified Base APK Cache Candidate
-        if: success() && hashFiles('base-apk-cache-out/*') != ''
-        uses: actions/upload-artifact@v7
-        with:
-          name: base-apk-${{ matrix.app_name }}-${{ matrix.source }}
-          path: base-apk-cache-out/*
-          retention-days: 1
-
       - name: Upload APK Artifact
         if: success()
         uses: actions/upload-artifact@v7
@@ -809,7 +776,7 @@ jobs:
 
   update-base-apk-cache:
     name: Update Base APK Cache
-    needs: [build-apps]
+    needs: [download-apks, build-apps]
     if: ${{ !cancelled() && needs.build-apps.result != 'skipped' }}
     runs-on: ubuntu-latest
     permissions:
@@ -824,24 +791,38 @@ jobs:
         with:
           python-version: 3.11
 
-      - name: Download Cache Candidates
-        id: candidates
+      - name: Download Shared Base APK Inputs
+        id: shared-inputs
         continue-on-error: true
         uses: actions/download-artifact@v8
         with:
-          path: base-apk-cache-in
-          pattern: base-apk-*
+          path: base-input-artifacts
+          pattern: base-input-*
+
+      - name: Download Build Results for Cache Promotion
+        id: build-results
+        continue-on-error: true
+        uses: actions/download-artifact@v8
+        with:
+          path: build-results
+          pattern: build-status-*
           merge-multiple: true
 
+      - name: Stage Verified Cache Candidates from Shared Inputs
+        if: steps.shared-inputs.outcome == 'success' && steps.build-results.outcome == 'success'
+        env:
+          BASE_APK_CACHE_DIR: base-apk-cache-in
+        run: |
+          pip install -r requirements.txt
+          python3 -m scripts.stage_shared_base_apk_cache
+
       - name: Update Hidden Durable Cache
-        if: steps.candidates.outcome == 'success'
+        if: hashFiles('base-apk-cache-in/*') != ''
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           BASE_APK_CACHE_TAG: 'base-apk-cache-v2'
           BASE_APK_CACHE_KEEP: '10'
-        run: |
-          pip install -r requirements.txt
-          python3 -m scripts.update_base_apk_cache
+        run: python3 -m scripts.update_base_apk_cache
 
   create-release:
     name: Create Integrated Release
