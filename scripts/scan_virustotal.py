@@ -59,7 +59,7 @@ def _client(api_key: str) -> VirusTotalClient:
         api_key,
         request_interval=initial_interval,
         min_request_interval=float(
-            os.environ.get("VT_MIN_REQUEST_INTERVAL_SECONDS", str(initial_interval))
+            os.environ.get("VT_MIN_REQUEST_INTERVAL_SECONDS", "2")
         ),
         rate_success_window=int(os.environ.get("VT_RATE_SUCCESS_WINDOW", "8")),
         poll_interval=float(os.environ.get("VT_POLL_INTERVAL_SECONDS", "30")),
@@ -276,9 +276,6 @@ def _scan_all(
             _report_result(path, result)
         progress()
 
-    # Phase 1 deliberately excludes polling. Every unknown hash gets its lookup,
-    # reanalysis request, or upload started before completed analyses consume API
-    # slots. This is much faster for large first-time batches under a shared quota.
     prepared: list[tuple[str, Path, HashLookup]] = []
 
     def prepare_unique(item: tuple[str, Path]) -> tuple[str, Path, HashLookup]:
@@ -307,8 +304,6 @@ def _scan_all(
             except (VirusTotalError, OSError, ValueError) as error:
                 fail_hash(digest, error)
 
-    # Phase 2 only polls analyses that have already started. Poll requests can no
-    # longer delay submission of a different APK.
     if prepared:
         print(
             f"Polling {len(prepared)} started VirusTotal analysis/analyses in parallel.",
