@@ -1,0 +1,154 @@
+name: "一時移行: Release detailsをRelease作成へ統合"
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/apply-release-details-integration.yml
+
+permissions:
+  contents: write
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Integrate release details into create-release
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          build = Path('.github/workflows/build.yml')
+          text = build.read_text(encoding='utf-8')
+
+          anchor = '''      - name: Download Build Results
+            if: always()
+            continue-on-error: true
+            uses: actions/download-artifact@v8
+            with:
+              path: ./build-results
+              pattern: build-status-*
+              merge-multiple: true
+
+          - name: Collect All APKs
+          '''
+          replacement = '''      - name: Download Build Results
+            if: always()
+            continue-on-error: true
+            uses: actions/download-artifact@v8
+            with:
+              path: ./build-results
+              pattern: build-status-*
+              merge-multiple: true
+
+          - name: Download Download Results
+            if: always()
+            continue-on-error: true
+            uses: actions/download-artifact@v8
+            with:
+              path: ./download-results
+              pattern: download-status-*
+              merge-multiple: true
+
+          - name: Download Shared Base APK Provenance
+            if: always()
+            continue-on-error: true
+            uses: actions/download-artifact@v8
+            with:
+              path: ./base-inputs
+              pattern: base-input-*
+              merge-multiple: false
+
+          - name: Restore Cached Tools for Release Details
+            uses: actions/cache/restore@v6
+            with:
+              path: tools/
+              key: ${{ needs.download-tools.outputs.cache-key }}
+              fail-on-cache-miss: true
+
+          - name: Collect All APKs
+          '''
+          if anchor not in text:
+              raise SystemExit('Download Build Results anchor not found')
+          text = text.replace(anchor, replacement, 1)
+
+          pattern = re.compile(r'''(?ms)^      - name: Generate Release Notes\n.*?^          python3 -m scripts\.release_notes\n''')
+          replacement = '''      - name: Generate persistent Release details and linked Release Notes
+            if: steps.check-apks.outputs.skip_release == 'false'
+            env:
+              RELEASE_TAG: ${{ steps.tag.outputs.release_tag }}
+              RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+            run: |
+              python3 scripts/generate_release_details.py \\
+                --tag "$RELEASE_TAG" \\
+                --repository "${{ github.repository }}" \\
+                --run-url "$RUN_URL" \\
+                --build-results ./build-results \\
+                --download-results ./download-results \\
+                --base-inputs ./base-inputs \\
+                --virustotal ./virustotal_base_results.json \\
+                --output-root ./release-details \\
+                --release-notes ./release_notes.md
+
+          - name: Commit Release details before publishing
+            if: steps.check-apks.outputs.skip_release == 'false'
+            env:
+              RELEASE_TAG: ${{ steps.tag.outputs.release_tag }}
+            run: |
+              git config user.name "github-actions[bot]"
+              git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+              git add -- "release-details/$RELEASE_TAG"
+              if git diff --cached --quiet; then
+                echo "Release details already exist."
+              else
+                git commit -m "docs: archive build details for $RELEASE_TAG [skip ci]"
+                git pull --rebase origin main
+                git push origin HEAD:main
+              fi
+'''
+          text, count = pattern.subn(replacement, text, count=1)
+          if count != 1:
+              raise SystemExit(f'Generate Release Notes replacement count={count}')
+          build.write_text(text, encoding='utf-8')
+
+          publish = Path('.github/workflows/publish-release-details.yml')
+          p = publish.read_text(encoding='utf-8')
+          p = re.sub(
+              r'''(?ms)^  workflow_run:\n    workflows:\n      - Build and Release APKs\n    types:\n      - completed\n''',
+              '',
+              p,
+              count=1,
+          )
+          p = p.replace(
+              "    if: >-\n      ${{\n        github.event_name == 'workflow_dispatch' ||\n        github.event.workflow_run.conclusion == 'success'\n      }}\n",
+              "    if: ${{ github.event_name == 'workflow_dispatch' }}\n",
+              1,
+          )
+          publish.write_text(p, encoding='utf-8')
+          PY
+
+      - name: Validate YAML-facing changes
+        run: |
+          python3 -m py_compile scripts/generate_release_details.py scripts/release_notes.py
+          grep -q 'Generate persistent Release details and linked Release Notes' .github/workflows/build.yml
+          grep -q 'Commit Release details before publishing' .github/workflows/build.yml
+          if grep -q '^  workflow_run:' .github/workflows/publish-release-details.yml; then
+            echo 'workflow_run must be removed from repair workflow' >&2
+            exit 1
+          fi
+
+      - name: Commit migration and remove temporary workflow
+        run: |
+          git rm .github/workflows/apply-release-details-integration.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .github/workflows/build.yml .github/workflows/publish-release-details.yml
+          git commit -m "ci: generate Release details before publishing Release"
+          git pull --rebase origin main
+          git push origin HEAD:main
