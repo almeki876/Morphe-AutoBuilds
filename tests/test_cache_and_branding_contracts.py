@@ -1,4 +1,3 @@
-import hashlib
 import os
 import tempfile
 import unittest
@@ -10,16 +9,12 @@ from src import apk_cache, apk_validation
 
 
 class CacheAndBrandingContractTests(unittest.TestCase):
-    def test_google_play_profile_is_distinct_from_generic(self) -> None:
-        self.assertEqual(
-            apk_cache.delivery_profile("aurora-google-play"),
-            apk_cache.GOOGLE_PLAY_JA_PROFILE,
-        )
-        self.assertEqual(apk_cache.delivery_profile("apkmirror"), apk_cache.GENERIC_PROFILE)
+    def test_provider_does_not_control_language_acceptance(self) -> None:
         self.assertNotEqual(
             apk_cache.delivery_profile("aurora-google-play"),
             apk_cache.delivery_profile("apkmirror"),
         )
+        self.assertTrue(apk_cache.delivery_profile("apkmirror").endswith("generic-v1"))
 
     def test_legacy_profileless_asset_is_not_parseable(self) -> None:
         legacy = (
@@ -29,21 +24,28 @@ class CacheAndBrandingContractTests(unittest.TestCase):
         )
         self.assertIsNone(apk_cache.parse_asset_name(legacy))
 
-    def test_split_container_requires_japanese_language_split_for_play_cache(self) -> None:
+    def test_cache_stage_requires_japanese_payload_for_any_provider(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
-            root = Path(temp)
-            good = root / "good.apks"
-            bad = root / "bad.apks"
-            for target, names in (
-                (good, ["base.apk", "config.ja.apk", "config.arm64_v8a.apk"]),
-                (bad, ["base.apk", "config.arm64_v8a.apk", "config.xxhdpi.apk"]),
-            ):
-                with zipfile.ZipFile(target, "w") as archive:
-                    for name in names:
-                        archive.writestr(name, b"placeholder")
+            apk = Path(temp) / "base.apk"
+            with zipfile.ZipFile(apk, "w") as archive:
+                archive.writestr("AndroidManifest.xml", b"manifest")
+                archive.writestr("classes.dex", b"dex")
 
-            self.assertTrue(apk_cache._contains_japanese_language_split(good))
-            self.assertFalse(apk_cache._contains_japanese_language_split(bad))
+            with patch("src.apk_cache._contains_japanese", return_value=False):
+                self.assertIsNone(
+                    apk_cache.stage(apk, "com.example.app", "1.0", "apkmirror")
+                )
+                self.assertIsNone(
+                    apk_cache.stage(apk, "com.example.app", "1.0", "aurora-google-play")
+                )
+
+            with patch("src.apk_cache._contains_japanese", return_value=True):
+                with patch.dict(os.environ, {"BASE_APK_CACHE_DIR": temp}, clear=False):
+                    staged = apk_cache.stage(
+                        apk, "com.example.app", "1.0", "apkmirror"
+                    )
+                self.assertIsNotNone(staged)
+                self.assertIn("apkmirror-generic-v1", staged.name)
 
     def test_anddea_icon_validator_rejects_default_icon_output(self) -> None:
         app = "youtube"

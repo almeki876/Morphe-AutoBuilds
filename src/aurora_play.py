@@ -32,6 +32,7 @@ import time
 from pathlib import Path
 
 from src import archive_stability, apk_identity, local_gplaydl_dispenser, play_version_resolver
+from src import DEFAULT_GPLAYDL_LOCALES
 from src.versioning import VersionCandidate
 
 OFFICIAL_GPLAYDL_COMMAND = "gplaydl"
