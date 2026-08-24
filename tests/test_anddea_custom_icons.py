@@ -28,7 +28,7 @@ class AnddeaCustomIconTests(unittest.TestCase):
         self.assertEqual(len(entries), 1)
         return entries[0]["options"]
 
-    def test_only_legacy_icon_options_were_migrated_to_aggregate_patch(self) -> None:
+    def test_icon_and_name_options_use_current_aggregate_branding_patch(self) -> None:
         youtube_options = self._options("youtube")
         music_options = self._options("youtube-music")
 
@@ -42,82 +42,50 @@ class AnddeaCustomIconTests(unittest.TestCase):
         )
         self.assertIn(
             {
-                "patch": "Custom branding for YouTube Music",
-                "key": "customIcon",
-                "value": "patch-assets/anddea/youtube-music/xisr_yellow",
-            },
-            music_options,
-        )
-
-        all_options = youtube_options + music_options
-        legacy_icon_patches = {
-            "Custom branding icon for YouTube",
-            "Custom branding icon for YouTube Music",
-        }
-        legacy_icon_keys = {
-            "appIcon",
-            "changeSplashIcon",
-            "restoreOldSplashAnimation",
-            "restoreOldSplashIcon",
-        }
-        self.assertFalse(
-            any(option.get("patch") in legacy_icon_patches for option in all_options)
-        )
-        self.assertFalse(any(option.get("key") in legacy_icon_keys for option in all_options))
-        self.assertFalse(
-            any(
-                option.get("patch")
-                in {
-                    "Custom branding for YouTube",
-                    "Custom branding for YouTube Music",
-                }
-                and option.get("key") != "customIcon"
-                for option in all_options
-            )
-        )
-
-        # The requested migration is icon-only. Keep historical name/header
-        # values untouched; dev.2 runtime policy removes their retired patches.
-        self.assertIn(
-            {
-                "patch": "Custom branding name for YouTube",
-                "key": "appName",
+                "patch": "Custom branding for YouTube",
+                "key": "customName",
                 "value": "RVA",
             },
             youtube_options,
         )
         self.assertIn(
             {
-                "patch": "Custom header for YouTube",
-                "key": "customHeader",
-                "value": "custom_branding_icon",
+                "patch": "Custom branding for YouTube Music",
+                "key": "customIcon",
+                "value": "patch-assets/anddea/youtube-music/xisr_yellow",
             },
-            youtube_options,
+            music_options,
         )
         self.assertIn(
             {
-                "patch": "Custom branding name for YouTube Music",
-                "key": "appNameNotification",
+                "patch": "Custom branding for YouTube Music",
+                "key": "customName",
                 "value": "RVA Music",
             },
             music_options,
         )
-        self.assertIn(
-            {
-                "patch": "Custom branding name for YouTube Music",
-                "key": "appNameLauncher",
-                "value": "RVA Music",
-            },
-            music_options,
-        )
-        self.assertIn(
-            {
-                "patch": "Custom header for YouTube Music",
-                "key": "customHeader",
-                "value": "custom_branding_icon",
-            },
-            music_options,
-        )
+
+        all_options = youtube_options + music_options
+        retired_patches = {
+            "Custom branding icon for YouTube",
+            "Custom branding icon for YouTube Music",
+            "Custom branding name for YouTube",
+            "Custom branding name for YouTube Music",
+            "Custom header for YouTube",
+            "Custom header for YouTube Music",
+        }
+        retired_keys = {
+            "appIcon",
+            "appName",
+            "appNameNotification",
+            "appNameLauncher",
+            "customHeader",
+            "changeSplashIcon",
+            "restoreOldSplashAnimation",
+            "restoreOldSplashIcon",
+        }
+        self.assertFalse(any(option.get("patch") in retired_patches for option in all_options))
+        self.assertFalse(any(option.get("key") in retired_keys for option in all_options))
 
     def test_custom_icon_folders_match_anddea_copy_contract(self) -> None:
         expected_dimensions = {
@@ -153,10 +121,6 @@ class AnddeaCustomIconTests(unittest.TestCase):
             drawable_path = icon_path / "drawable"
             monochrome = drawable_path / "morphe_adaptive_monochrome_custom.xml"
             notification = drawable_path / "morphe_notification_icon_custom.xml"
-            # Anddea dev.2 writes the optional monochrome resource reference
-            # with a literal `.xml` suffix, which aapt treats as a missing
-            # resource. Omitting that optional input avoids the upstream bug;
-            # the launcher's adaptive foreground/background remain complete.
             self.assertFalse(monochrome.exists())
             ET.parse(notification)
 
