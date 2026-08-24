@@ -11,7 +11,7 @@ loaded:
 * only options/required entries for upstream-recommended patches remain active;
 * ``force_enable`` is ignored unless the app/source is an explicit exception;
 * explicit exceptions remain enabled even when upstream marks the patch
-  disabled by default, and may remain ``required`` so a missing application
+  disabled by default, and are made ``required`` so a missing application
   fails closed;
 * legacy per-app patch allowlists are ignored when recommendation metadata is
   unavailable, leaving selection to the CLI defaults;
@@ -152,14 +152,18 @@ def _sanitize_patch_config(
             entry["options"] = filtered_options
             changed = True
 
-        for key in ("required", "required_patches"):
-            if key not in entry:
-                continue
-            values = entry.get(key) or []
-            filtered = [name for name in values if name in allowed]
-            if filtered != values:
-                entry[key] = filtered
-                changed = True
+        existing_required = [
+            str(name)
+            for name in (entry.get("required") or entry.get("required_patches") or [])
+        ]
+        filtered_required = [name for name in existing_required if name in allowed]
+        for name in preserved_force:
+            if name not in filtered_required:
+                filtered_required.append(name)
+        if filtered_required != existing_required or (preserved_force and "required" not in entry):
+            entry["required"] = filtered_required
+            entry.pop("required_patches", None)
+            changed = True
         break
 
     if changed:
