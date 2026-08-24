@@ -34,11 +34,10 @@ class DirectDownloadMarkdownTests(unittest.TestCase):
         self.assertEqual(parsed.source, "morphe")
         self.assertEqual(parsed.version, "21.04.223")
 
-    def test_render_is_compact_and_shows_only_architecture_links(self):
+    def test_render_is_minimal_and_uses_architecture_as_link_text(self):
         release = {
             "tag_name": "build-2026-08-24",
             "published_at": "2026-08-24T00:00:00Z",
-            "html_url": "https://github.com/example/repo/releases/tag/build-2026-08-24",
             "assets": [
                 {
                     "name": "youtube-universal-morphe-v21.04.223.apk",
@@ -60,14 +59,14 @@ class DirectDownloadMarkdownTests(unittest.TestCase):
 
         self.assertIn("## Morphe", output)
         self.assertIn("### YouTube", output)
-        self.assertIn("[⬇️ universal](https://example.invalid/youtube-universal.apk)", output)
-        self.assertIn("[⬇️ arm64-v8a](https://example.invalid/youtube-arm64.apk)", output)
+        self.assertIn("[universal](https://example.invalid/youtube-universal.apk)", output)
+        self.assertIn("[arm64-v8a](https://example.invalid/youtube-arm64.apk)", output)
+        self.assertNotIn("⬇️", output)
         self.assertNotIn("Version:", output)
         self.assertNotIn("youtube-universal-morphe-v21.04.223.apk", output)
         self.assertNotIn("youtube-arm64-v8a-morphe-v21.04.223.apk", output)
-        self.assertNotIn("最新Release", output)
-        self.assertNotIn("掲載APK数", output)
-        self.assertNotIn("### YouTube (Morphe)", output)
+        self.assertNotIn("最終更新", output)
+        self.assertNotIn("ダウンロードしてください", output)
 
     def test_partial_release_preserves_unaffected_apps_and_replaces_updated_asset(self):
         old_youtube_url = "https://example.invalid/old/youtube.apk"
