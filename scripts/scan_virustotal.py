@@ -1,8 +1,8 @@
-"""CLI orchestration for fail-closed VirusTotal release scanning.
+"""Orchestrate fail-closed VirusTotal scanning with persistent SHA-256 reuse.
 
-The scanner deduplicates files by SHA-256, reuses conclusive results from a
-persistent local cache, and pipelines VirusTotal hash lookup/upload/analysis in
-parallel for hashes that have never been seen before.
+The scanner hashes/deduplicates locally, serves conclusive SHA-256 hits from a
+persistent cache without any VirusTotal request, starts every new lookup/upload
+before polling analyses, and checkpoints results after every completed hash.
 """
 
 from __future__ import annotations
@@ -17,6 +17,7 @@ from pathlib import Path
 from typing import Callable
 
 from scripts.virustotal import (
+    HashLookup,
     ScanResult,
     VirusTotalClient,
     VirusTotalError,
@@ -53,11 +54,21 @@ def parse_args() -> argparse.Namespace:
 
 
 def _client(api_key: str) -> VirusTotalClient:
+    initial_interval = float(os.environ.get("VT_REQUEST_INTERVAL_SECONDS", "8"))
     return VirusTotalClient(
         api_key,
-        request_interval=float(os.environ.get("VT_REQUEST_INTERVAL_SECONDS", "16")),
+        request_interval=initial_interval,
+        min_request_interval=float(
+            os.environ.get("VT_MIN_REQUEST_INTERVAL_SECONDS", str(initial_interval))
+        ),
+        rate_success_window=int(os.environ.get("VT_RATE_SUCCESS_WINDOW", "8")),
         poll_interval=float(os.environ.get("VT_POLL_INTERVAL_SECONDS", "30")),
-        analysis_timeout=float(os.environ.get("VT_ANALYSIS_TIMEOUT_SECONDS", "2700")),
+        initial_poll_delay=float(
+            os.environ.get("VT_INITIAL_POLL_DELAY_SECONDS", "20")
+        ),
+        analysis_timeout=float(
+            os.environ.get("VT_ANALYSIS_TIMEOUT_SECONDS", "2700")
+        ),
         max_retries=int(os.environ.get("VT_MAX_RETRIES", "6")),
         max_analysis_age_days=float(
             os.environ.get("VT_MAX_ANALYSIS_AGE_DAYS", "90")
@@ -86,14 +97,12 @@ def _load_cache(path: Path) -> dict[str, ScanResult]:
             flush=True,
         )
         return {}
-
     if not isinstance(payload, dict) or payload.get("version") != CACHE_VERSION:
         print(
             f"::warning::Ignoring unsupported VirusTotal hash cache format in {path}",
             flush=True,
         )
         return {}
-
     raw_results = payload.get("results")
     if not isinstance(raw_results, dict):
         return {}
@@ -107,22 +116,22 @@ def _load_cache(path: Path) -> dict[str, ScanResult]:
             result = ScanResult(**normalized)
         except (KeyError, TypeError, ValueError):
             continue
-        if result.sha256 != sha256:
-            continue
-        cache[sha256] = result
+        if result.sha256 == sha256:
+            cache[sha256] = result
     return cache
 
 
 def _cache_result(result: ScanResult) -> ScanResult:
-    """Drop non-detection engine details that are not needed on cache reuse."""
     detected_engines = {
         engine: details
         for engine, details in result.engines.items()
         if details.get("category") in CACHE_ENGINE_CATEGORIES
     }
-    if detected_engines == result.engines:
-        return result
-    return replace(result, engines=detected_engines)
+    return (
+        result
+        if detected_engines == result.engines
+        else replace(result, engines=detected_engines)
+    )
 
 
 def _save_cache(path: Path, cache: dict[str, ScanResult]) -> None:
@@ -139,7 +148,6 @@ def _save_cache(path: Path, cache: dict[str, ScanResult]) -> None:
 
 
 def _cached_result_for_path(result: ScanResult, path: Path) -> ScanResult:
-    """Reuse a conclusive result while reporting the current artifact name/size."""
     return replace(
         result,
         file=path.name,
@@ -151,9 +159,8 @@ def _cached_result_for_path(result: ScanResult, path: Path) -> ScanResult:
 
 def _report_result(apk: Path, result: ScanResult) -> None:
     print(
-        f"{apk.name}: malicious={result.malicious}, "
-        f"suspicious={result.suspicious}, verdict={result.verdict}, "
-        f"method={result.method}",
+        f"{apk.name}: malicious={result.malicious}, suspicious={result.suspicious}, "
+        f"verdict={result.verdict}, method={result.method}",
         flush=True,
     )
     detected = [
@@ -172,8 +179,8 @@ def _report_result(apk: Path, result: ScanResult) -> None:
         )
     if result.verdict != "clean" and not detected:
         print(
-            f"::warning::{apk.name}: VirusTotal reported detections, "
-            "but engine-level details were not returned by the API.",
+            f"::warning::{apk.name}: VirusTotal reported detections, but "
+            "engine-level details were not returned by the API.",
             flush=True,
         )
 
@@ -189,10 +196,7 @@ def _scan_all(
     failures: list[str] = []
     workers = max(
         1,
-        min(
-            len(apk_files),
-            int(os.environ.get("VT_WORKERS", "16")),
-        ),
+        min(len(apk_files), int(os.environ.get("VT_WORKERS", "16"))),
     )
 
     print(
@@ -217,8 +221,7 @@ def _scan_all(
     duplicate_count = len(apk_files) - len(hash_groups)
     if duplicate_count:
         print(
-            f"Deduplicated {duplicate_count} duplicate artifact(s) by SHA-256; "
-            "each unique hash will be checked at most once.",
+            f"Deduplicated {duplicate_count} duplicate artifact(s) by SHA-256.",
             flush=True,
         )
 
@@ -237,40 +240,96 @@ def _scan_all(
 
     print(
         f"Persistent cache: {cache_hits} unique hash hit(s), "
-        f"{len(misses)} new hash(es) requiring VirusTotal. "
-        "New hashes are lookup/upload/analysis pipelined in parallel.",
+        f"{len(misses)} new hash(es).",
         flush=True,
     )
+    if not misses:
+        results.sort(key=lambda result: result.file)
+        failures.sort()
+        return results, failures
 
-    def scan_unique(item: tuple[str, Path]) -> tuple[str, Path, ScanResult]:
+    def progress() -> None:
+        if on_progress:
+            on_progress(results, failures)
+
+    def fail_hash(digest: str, error: Exception) -> None:
+        for path in hash_groups[digest]:
+            message = f"{path.name}: {error}"
+            failures.append(message)
+            print(f"::error::{message}", file=sys.stderr, flush=True)
+        progress()
+
+    def accept_result(
+        digest: str,
+        representative: Path,
+        scanned: ScanResult,
+    ) -> None:
+        cache[digest] = scanned
+        _save_cache(cache_path, cache)
+        for path in hash_groups[digest]:
+            result = (
+                scanned
+                if path == representative
+                else _cached_result_for_path(scanned, path)
+            )
+            results.append(result)
+            _report_result(path, result)
+        progress()
+
+    # Phase 1 deliberately excludes polling. Every unknown hash gets its lookup,
+    # reanalysis request, or upload started before completed analyses consume API
+    # slots. This is much faster for large first-time batches under a shared quota.
+    prepared: list[tuple[str, Path, HashLookup]] = []
+
+    def prepare_unique(item: tuple[str, Path]) -> tuple[str, Path, HashLookup]:
         digest, apk = item
         lookup = client.lookup_hash(apk, digest)
-        return digest, apk, client.scan_lookup(apk, lookup)
+        return digest, apk, client.prepare_lookup(apk, lookup)
 
-    with ThreadPoolExecutor(max_workers=workers, thread_name_prefix="vt-scan") as pool:
-        pending = {pool.submit(scan_unique, item): item for item in misses}
+    print(
+        "Starting all required VirusTotal lookups/uploads before analysis polling.",
+        flush=True,
+    )
+    with ThreadPoolExecutor(max_workers=workers, thread_name_prefix="vt-start") as pool:
+        pending = {pool.submit(prepare_unique, item): item for item in misses}
         for future in as_completed(pending):
             digest, representative = pending[future]
-            paths = hash_groups[digest]
             try:
-                _, scanned_path, scanned = future.result()
-                cache[digest] = scanned
-                _save_cache(cache_path, cache)
-                for path in paths:
-                    result = (
-                        scanned
-                        if path == scanned_path
-                        else _cached_result_for_path(scanned, path)
+                digest, representative, lookup = future.result()
+                if lookup.analysis_id is None:
+                    accept_result(
+                        digest,
+                        representative,
+                        client.finish_lookup(representative, lookup),
                     )
-                    results.append(result)
-                    _report_result(path, result)
+                else:
+                    prepared.append((digest, representative, lookup))
             except (VirusTotalError, OSError, ValueError) as error:
-                for path in paths:
-                    message = f"{path.name}: {error}"
-                    failures.append(message)
-                    print(f"::error::{message}", file=sys.stderr, flush=True)
-            if on_progress:
-                on_progress(results, failures)
+                fail_hash(digest, error)
+
+    # Phase 2 only polls analyses that have already started. Poll requests can no
+    # longer delay submission of a different APK.
+    if prepared:
+        print(
+            f"Polling {len(prepared)} started VirusTotal analysis/analyses in parallel.",
+            flush=True,
+        )
+
+    def finish_unique(
+        item: tuple[str, Path, HashLookup],
+    ) -> tuple[str, Path, ScanResult]:
+        digest, apk, lookup = item
+        return digest, apk, client.finish_lookup(apk, lookup)
+
+    with ThreadPoolExecutor(max_workers=workers, thread_name_prefix="vt-poll") as pool:
+        pending = {pool.submit(finish_unique, item): item for item in prepared}
+        for future in as_completed(pending):
+            digest, representative, _lookup = pending[future]
+            try:
+                digest, representative, scanned = future.result()
+                accept_result(digest, representative, scanned)
+            except (VirusTotalError, OSError, ValueError) as error:
+                fail_hash(digest, error)
 
     results.sort(key=lambda result: result.file)
     failures.sort()
