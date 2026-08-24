@@ -1,8 +1,2 @@
 blank_issues_enabled: true
-contact_links:
-  - name: GitHub Releases (最新APKダウンロード)
-    url: https://github.com/almeki876/Morphe-AutoBuilds/releases/latest
-    about: リリースされた最新のAPKファイルはこちらから取得できます。
-  - name: SETUP Documentation (運用セットアップガイド)
-    url: https://github.com/almeki876/Morphe-AutoBuilds/blob/main/SETUP.md
-    about: リポジトリを独自運用・フォークする管理者はSETUP.mdを参照してください。
+contact_links: []
