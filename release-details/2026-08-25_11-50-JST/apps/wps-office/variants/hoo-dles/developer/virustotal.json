@@ -1,0 +1,23 @@
+{
+  "results": [
+    {
+      "file": "wps-office-hoo-dles-universal.xapk",
+      "sha256": "eb8d54239da3e10dcd819a752cda453644a24a3932cbc6caf7090ffffd5e2de1",
+      "size": 167219010,
+      "analysis_id": "OWRjNmYyYzc0ZGVjNGQyZjdiMTljZjA4ZDZjMzU3Zjc6MTc4NzYyMzU4MQ==",
+      "malicious": 0,
+      "suspicious": 0,
+      "harmless": 0,
+      "undetected": 55,
+      "timeout": 9,
+      "failure": 1,
+      "unsupported": 10,
+      "verdict": "clean",
+      "method": "persistent hash cache",
+      "engines": {},
+      "permalink": "https://www.virustotal.com/gui/file/eb8d54239da3e10dcd819a752cda453644a24a3932cbc6caf7090ffffd5e2de1/detection",
+      "last_analysis_date": 1787623581,
+      "reanalyzed": false
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "results": [
+    {
+      "file": "proton-vpn-paresh-universal.apkm",
+      "sha256": "2e68b7a57fb957fbc4b5da256a40aad6b1170eccfa5f85a22e709343e0ace2c8",
+      "size": 58432706,
+      "analysis_id": "",
+      "malicious": 0,
+      "suspicious": 0,
+      "harmless": 0,
+      "undetected": 62,
+      "timeout": 1,
+      "failure": 0,
+      "unsupported": 7,
+      "verdict": "clean",
+      "method": "persistent hash cache",
+      "engines": {},
+      "permalink": "https://www.virustotal.com/gui/file/2e68b7a57fb957fbc4b5da256a40aad6b1170eccfa5f85a22e709343e0ace2c8/detection",
+      "last_analysis_date": 1785755882,
+      "reanalyzed": false
+    }
+  ]
+}

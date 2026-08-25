@@ -1,0 +1,89 @@
+app=inshot
+source=hoomans
+source_name=arandomhooman
+phase=Patch
+status=success
+run=https://github.com/almeki876/Morphe-AutoBuilds/actions/runs/32801148255
+
+traceback_or_error_tail<<EOF
+	at app.morphe.patcher.patch.Patch.execute(Patch.kt:117)
+	at app.morphe.patcher.patch.RawResourcePatch.execute$morphe_patcher(Patch.kt:327)
+	at app.morphe.patcher.Patcher$invoke$1.invokeSuspend$execute(Patcher.kt:96)
+	at app.morphe.patcher.Patcher$invoke$1.invokeSuspend$execute(Patcher.kt:84)
+	at app.morphe.patcher.Patcher$invoke$1.invokeSuspend(Patcher.kt:120)
+	at app.morphe.patcher.Patcher$invoke$1.invoke(Patcher.kt)
+	at app.morphe.patcher.Patcher$invoke$1.invoke(Patcher.kt)
+	at kotlinx.coroutines.flow.SafeFlow.collectSafely(Builders.kt:57)
+	at kotlinx.coroutines.flow.AbstractFlow.collect(Flow.kt:226)
+	at app.morphe.desktop.command.PatchCommand$call$3$3$1.invokeSuspend(PatchCommand.kt:789)
+	at kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:34)
+	at kotlinx.coroutines.DispatchedTask.run(DispatchedTask.kt:100)
+	at kotlinx.coroutines.EventLoopImplBase.processNextEvent(EventLoop.common.kt:256)
+	at kotlinx.coroutines.BlockingCoroutine.joinBlocking(Builders.kt:54)
+	at kotlinx.coroutines.BuildersKt__BuildersKt.runBlockingImpl(Builders.kt:30)
+	at kotlinx.coroutines.BuildersKt.runBlockingImpl(Unknown Source)
+	at kotlinx.coroutines.BuildersKt__Builders_concurrentKt.runBlockingK(Builders.concurrent.kt:172)
+	at kotlinx.coroutines.BuildersKt.runBlockingK(Unknown Source)
+	at kotlinx.coroutines.BuildersKt__Builders_concurrentKt.runBlockingK$default(Builders.concurrent.kt:157)
+	at kotlinx.coroutines.BuildersKt.runBlockingK$default(Unknown Source)
+	at app.morphe.desktop.command.PatchCommand.call$lambda$13$2(PatchCommand.kt:788)
+	at app.morphe.desktop.command.model.PatchingResultKt.addStepResult(PatchingResult.kt:29)
+	at app.morphe.desktop.command.PatchCommand.call(PatchCommand.kt:785)
+	at app.morphe.desktop.command.PatchCommand.call(PatchCommand.kt:54)
+	at picocli.CommandLine.executeUserObject(CommandLine.java:2031)
+	at picocli.CommandLine.access$1500(CommandLine.java:148)
+	at picocli.CommandLine$RunLast.executeUserObjectOfLastSubcommandWithSameParent(CommandLine.java:2469)
+	at picocli.CommandLine$RunLast.handle(CommandLine.java:2461)
+	at picocli.CommandLine$RunLast.handle(CommandLine.java:2423)
+	at picocli.CommandLine$AbstractParseResultHandler.execute(CommandLine.java:2277)
+	at picocli.CommandLine$RunLast.execute(CommandLine.java:2425)
+	at picocli.CommandLine.execute(CommandLine.java:2174)
+	at app.morphe.MorpheLauncherKt.main(MorpheLauncher.kt:81)
+
+	at app.morphe.patcher.Patcher$invoke$1.invokeSuspend$execute(Patcher.kt:87)
+	at app.morphe.patcher.Patcher$invoke$1.invokeSuspend(Patcher.kt:120)
+	at app.morphe.patcher.Patcher$invoke$1.invoke(Patcher.kt)
+	at app.morphe.patcher.Patcher$invoke$1.invoke(Patcher.kt)
+	at kotlinx.coroutines.flow.SafeFlow.collectSafely(Builders.kt:57)
+	at kotlinx.coroutines.flow.AbstractFlow.collect(Flow.kt:226)
+	at app.morphe.desktop.command.PatchCommand$call$3$3$1.invokeSuspend(PatchCommand.kt:789)
+	at kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:34)
+	at kotlinx.coroutines.DispatchedTask.run(DispatchedTask.kt:100)
+	at kotlinx.coroutines.EventLoopImplBase.processNextEvent(EventLoop.common.kt:256)
+	at kotlinx.coroutines.BlockingCoroutine.joinBlocking(Builders.kt:54)
+	at kotlinx.coroutines.BuildersKt__BuildersKt.runBlockingImpl(Builders.kt:30)
+	at kotlinx.coroutines.BuildersKt.runBlockingImpl(Unknown Source)
+	at kotlinx.coroutines.BuildersKt__Builders_concurrentKt.runBlockingK(Builders.concurrent.kt:172)
+	at kotlinx.coroutines.BuildersKt.runBlockingK(Unknown Source)
+	at kotlinx.coroutines.BuildersKt__Builders_concurrentKt.runBlockingK$default(Builders.concurrent.kt:157)
+	at kotlinx.coroutines.BuildersKt.runBlockingK$default(Unknown Source)
+	at app.morphe.desktop.command.PatchCommand.call$lambda$13$2(PatchCommand.kt:788)
+	at app.morphe.desktop.command.model.PatchingResultKt.addStepResult(PatchingResult.kt:29)
+	at app.morphe.desktop.command.PatchCommand.call(PatchCommand.kt:785)
+	at app.morphe.desktop.command.PatchCommand.call(PatchCommand.kt:54)
+	at picocli.CommandLine.executeUserObject(CommandLine.java:2031)
+	at picocli.CommandLine.access$1500(CommandLine.java:148)
+	at picocli.CommandLine$RunLast.executeUserObjectOfLastSubcommandWithSameParent(CommandLine.java:2469)
+	at picocli.CommandLine$RunLast.handle(CommandLine.java:2461)
+	at picocli.CommandLine$RunLast.handle(CommandLine.java:2423)
+	at picocli.CommandLine$AbstractParseResultHandler.execute(CommandLine.java:2277)
+	at picocli.CommandLine$RunLast.execute(CommandLine.java:2425)
+	at picocli.CommandLine.execute(CommandLine.java:2174)
+	at app.morphe.MorpheLauncherKt.main(MorpheLauncher.kt:81)
+
+INFO: Compiling patched dex files (mode: STRIP_FAST)
+INFO: Moving 1 resource files
+INFO: Aligning APK
+INFO: Signing APK
+INFO: Saved to /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/inshot-arm64-v8a-patch-v2.214.1539.apk
+INFO: Purged this session's temp files: patching-1787625993324
+2026-08-25 02:46:40 Validated patched APK: 45952248 bytes (ABIs: none)
+2026-08-25 02:46:40 [SIZE] patched: 45952248 bytes (inshot-arm64-v8a-patch-v2.214.1539.apk)
+Signed
+2026-08-25 02:46:42 [SIZE] signed: 45948152 bytes (inshot-arm64-v8a-hoomans-v2.214.1539.apk)
+✅ APK built: inshot-arm64-v8a-hoomans-v2.214.1539.apk
+✅ Built arm64-v8a: inshot-arm64-v8a-hoomans-v2.214.1539.apk
+
+🎯 1 APK(s) built for 'inshot':
+   📱 inshot-arm64-v8a-hoomans-v2.214.1539.apk
+EOF

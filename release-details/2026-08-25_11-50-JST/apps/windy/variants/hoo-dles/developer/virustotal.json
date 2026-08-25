@@ -1,0 +1,23 @@
+{
+  "results": [
+    {
+      "file": "windy-hoo-dles-universal.apk",
+      "sha256": "4f9293842a0a096ba4c62617d5986b18a02fd2250993163008e8cb3ed1c918ba",
+      "size": 45205250,
+      "analysis_id": "",
+      "malicious": 0,
+      "suspicious": 0,
+      "harmless": 0,
+      "undetected": 58,
+      "timeout": 6,
+      "failure": 2,
+      "unsupported": 9,
+      "verdict": "clean",
+      "method": "persistent hash cache",
+      "engines": {},
+      "permalink": "https://www.virustotal.com/gui/file/4f9293842a0a096ba4c62617d5986b18a02fd2250993163008e8cb3ed1c918ba/detection",
+      "last_analysis_date": 1787000557,
+      "reanalyzed": false
+    }
+  ]
+}

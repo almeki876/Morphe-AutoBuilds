@@ -1,0 +1,89 @@
+app=threads
+source=durgesh0505
+source_name=durgesh0505
+phase=Patch
+status=success
+run=https://github.com/almeki876/Morphe-AutoBuilds/actions/runs/32801148255
+
+traceback_or_error_tail<<EOF
+Description: Removes ZEE5 non-video display ads: the home-screen native masthead banner (HomeActivityViewModel.getNeedToShowNativeMastheadAd() forced false, so it never loads) and the on-pause display overlay (FetchPlaybackUrlUseCase.toPauseAds() forced null). No extra ad requests are made, so this makes the UI lighter rather than laggier.
+Enabled: true
+
+Index: 61
+Name: Change app name
+Description: Changes the app name shown under the launcher icon. Set the desired name in the patch options.
+Enabled: true
+
+Index: 62
+Name: Disable nuisance popups
+Description: Suppresses the ZEE5 app-rating prompt and the subscription 'Buy Plan' upsell popup on the home screen by forcing HomeActivityViewModel.canLaunchAppRating() and toShowBuyPlanPopup() to false. Both are plain boolean gates, so this only stops the dialogs from being shown; nothing else changes.
+Enabled: true
+
+Index: 63
+Name: Make installable on TV
+Description: Makes the ZEE5 APK install on Android TV / Chromecast with Google TV. The build marks android.software.live_tv as required, but streamer devices without a TV tuner do not have that feature, so the installer reports "not compatible with your TV". This marks live_tv and leanback optional so it installs everywhere; the leanback launcher entry is kept, so it still appears on the TV home screen.
+Enabled: true
+
+Index: 64
+Name: Disable forced upgrade
+Description: Stops ZEE5 from forcing an app update. BlockerScreenInfo.isBlocked() gates the block/upgrade wall; forcing it false lets the current version keep running. This is the only hard client block screen in the app (there is no geo/VPN/tamper block).
+Enabled: true
+
+Index: 65
+Name: Auto-skip intro and recap
+Description: Automatically skips the intro and recap of a show instead of waiting for you to press the Skip button. When the player reaches an intro (SKIP_INTRO_MARKER=1) or recap (SKIP_RECAP_MARKER=2) marker, it does exactly what tapping the Skip button does — sets seek-exact and seeks straight to that marker's end. Seek-exact is required: without it the seek snaps to a keyframe before the intro end, which lands back inside the marker window and loops. It only acts on intro/recap markers, never on next-episode or ad markers. Disable this if a title's markers are wrong and it skips too far.
+Enabled: true
+
+Index: 66
+Name: Faster video start
+Description: Lowers the ExoPlayer start buffer (bufferForPlayback) to 1500ms by forcing DefaultPlayerConfig.defaultBuffersForPlaybackMs() to return 1500 instead of the server value (~2500ms). Playback starts after less initial buffering, so the first frame appears sooner. The player still fills the full min/max buffer in the background; only the start threshold drops. On a weak network or slow CPU this slightly raises the chance of an early re-buffer. Does not affect the DRM-license/manifest part of startup.
+Enabled: true
+
+Index: 67
+Name: Remove player logo
+Description: Removes the ZEE5/channel logo overlaid on the video player. The logo is shown via WaterMarkViewModel's _logoVisibility LiveData; forcing updateLogoVisibility(...) to always post false keeps the logo hidden. Client render only — this does not affect any logo baked into a partner's video stream.
+Enabled: true
+2026-08-25 02:44:23 enable_patches=[]  disable_patches=[]
+2026-08-25 02:44:23 Running: java -Djava.awt.headless=true -Xmx6g -Xms3g -Dfile.encoding=UTF-8 -XX:-UsePerfData -XX:+UseG1GC -XX:MaxGCPauseMillis=150 -XX:G1HeapRegionSize=2m -XX:+UseStringDeduplication -XX:+ParallelRefProcEnabled -XX:ConcGCThreads=2 -XX:ParallelGCThreads=4 -XX:CICompilerCount=3 -XX:+UseCompressedOops -XX:+OptimizeStringConcat -XX:+DisableExplicitGC -XX:+TieredCompilation -XX:ReservedCodeCacheSize=128m -XX:InitialCodeCacheSize=32m -XX:MaxMetaspaceSize=128m -XX:SoftRefLRUPolicyMSPerMB=50 --add-opens=java.base/java.lang=ALL-UNNAMED --add-opens=java.base/java.util=ALL-UNNAMED --add-opens=java.base/java.io=ALL-UNNAMED -jar morphe-desktop-1.14.0-dev.1-all.jar patch --force --continue-on-error -p patches-1.19.0.mpp --out=threads-arm64-v8a-patch-v434.0.0.41.74.apk --bytecode-mode=STRIP_FAST .build-input-arm64-v8a.apk
+⚠️  Ignoring legacy BASE_APK_CACHE_TAG='base-apk-cache-v2'; using 'base-apk-cache-v4-ja-jp-px9a-split'
+INFO: Update available: v1.14.0-dev.2 (current: v1.14.0-dev.1)
+Download from https://github.com/MorpheApp/morphe-desktop/releases/
+INFO: Morphe data root: /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/morphe-data (JAR-adjacent)
+INFO: Loading patches...
+INFO: Initializing patcher...
+INFO: Filtering patches for com.instagram.barcelona v434.0.0.41.74...
+INFO: Applying 4 patches...
+INFO: Deleting existing temporary files directory
+INFO: Decoding all resources
+INFO: Sanitizing unpatched strings
+INFO: Escaping strings
+INFO: Executing patches
+INFO: Applied: Change app name
+INFO: Applied: Hide ads
+INFO: Applied: Remove AD_ID permission
+INFO: Applied: Change package name
+INFO: Compiling patched dex files (mode: STRIP_FAST)
+INFO: Writing 2 new classes to new DEX files
+INFO: Processing 2 classes (single threaded mode)
+INFO: Wrote 1 dex files to /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/morphe-data/tmp/patching-1787625865685/patched/dex
+INFO: Stripping 2 modified classes from original DEX files
+INFO: Compiling modified resources
+INFO: Unescaping strings
+INFO: Post-processing package name change
+INFO: Processing aapt macros
+INFO: Generating new resource IDs
+INFO: Writing resource APK
+INFO: Aligning APK
+INFO: Signing APK
+INFO: Saved to /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/threads-arm64-v8a-patch-v434.0.0.41.74.apk
+INFO: Purged this session's temp files: patching-1787625865685
+2026-08-25 02:44:51 Validated patched APK: 133608585 bytes (ABIs: arm64-v8a)
+2026-08-25 02:44:51 [SIZE] patched: 133608585 bytes (threads-arm64-v8a-patch-v434.0.0.41.74.apk)
+Signed
+2026-08-25 02:44:54 [SIZE] signed: 133604489 bytes (threads-arm64-v8a-durgesh0505-v434.0.0.41.74.apk)
+✅ APK built: threads-arm64-v8a-durgesh0505-v434.0.0.41.74.apk
+✅ Built arm64-v8a: threads-arm64-v8a-durgesh0505-v434.0.0.41.74.apk
+
+🎯 1 APK(s) built for 'threads':
+   📱 threads-arm64-v8a-durgesh0505-v434.0.0.41.74.apk
+EOF

@@ -1,0 +1,89 @@
+app=tumblr
+source=hoomans
+source_name=arandomhooman
+phase=Patch
+status=success
+run=https://github.com/almeki876/Morphe-AutoBuilds/actions/runs/32801148255
+
+traceback_or_error_tail<<EOF
+Name: Block live ads
+Description: Routes live streams through a free third-party proxy that strips the ads baked into the stream, so the proxy has to be up for playback to work; turn this patch off if it goes down. Mid-stream ads get dropped reliably, but a single preroll can still slip through when you first open a channel and Twitch has flagged the shared proxy. VOD ads aren't covered.
+Enabled: true
+
+Index: 55
+Name: Hide display ads
+Description: Hides the banner, overlay, and in-feed display ads Twitch shows around the app. This doesn't touch the video ads in the stream itself.
+Enabled: true
+
+Index: 56
+Name: Auto claim channel points
+Description: Claims the channel points bonus chest for you automatically. Whenever Twitch makes a bonus available, the claim fires on its own so you don't have to tap the chest.
+Enabled: true
+
+Index: 57
+Name: Show deleted messages
+Description: Keeps deleted or moderated chat messages readable instead of replacing them with "<message deleted>". The message turns into a tappable spoiler: tap it to reveal the original text. Normally only moderators can do this; the patch grants that access to everyone.
+Enabled: true
+
+Index: 58
+Name: 7TV and BTTV emotes
+Description: Displays 7TV and BTTV emotes directly in Twitch live chat. It loads the global emote sets and the emotes for the channel you are watching, then replaces matching emote codes in incoming messages with their emote images. Sending works through normal Twitch chat: type an emote's text code and send it normally. The patch does not add an emote picker, 7TV/BTTV login, or account linking.
+Enabled: true
+
+Index: 59
+Name: Fix login
+Description: Fixes the "This app version/OS is not currently supported" error that blocks login after the app has been patched. Twitch runs a Play Integrity check in the background and reports the result to its login server; re-signing makes that check fail, so the server refuses the login. This stops the app from sending that attestation, so it looks like a device without Google Play, where login works normally. It does not change anything else about how you log in.
+Enabled: true
+
+Index: 60
+Name: Unlock Pro
+Description: Unlocks Video Converter's Pro features without a subscription: 4K output, the full resolution and bitrate range, batch conversion, and watermark removal. Everything runs on the device's own FFmpeg encoder, so the unlocked settings produce real output. This is the arm64 build. The app has no ads, so there is nothing extra to remove.
+Enabled: true
+
+Index: 61
+Name: Unlock Pro
+Description: Lifts Wanderlog's free-tier caps without a subscription: unlimited places per trip, the in-app feature gates unlocked, and no more upgrade nags. Your trips already sync on any tier, so this surfaces them rather than faking data. Features that run on Wanderlog's own servers still need the real subscription and may not work with this alone, including the AI Trip Assistant (the query cap is lifted on-device, but the assistant itself is server-run), offline guide downloads, and live flight-price tracking.
+Enabled: true
+
+Index: 62
+Name: Remove ads
+Description: Removes the ads WEBTOON shows while reading and browsing: the in-viewer top and end ads, the home feed ads, and the title-page banner. Locked episodes (Fast Pass, Daily Pass, coin-unlocked) are served by WEBTOON's servers and still need coins or a wait, so this does not unlock them.
+Enabled: true
+2026-08-25 02:44:42 enable_patches=[]  disable_patches=[]
+2026-08-25 02:44:43 Running: java -Djava.awt.headless=true -Xmx6g -Xms3g -Dfile.encoding=UTF-8 -XX:-UsePerfData -XX:+UseG1GC -XX:MaxGCPauseMillis=150 -XX:G1HeapRegionSize=2m -XX:+UseStringDeduplication -XX:+ParallelRefProcEnabled -XX:ConcGCThreads=2 -XX:ParallelGCThreads=4 -XX:CICompilerCount=3 -XX:+UseCompressedOops -XX:+OptimizeStringConcat -XX:+DisableExplicitGC -XX:+TieredCompilation -XX:ReservedCodeCacheSize=128m -XX:InitialCodeCacheSize=32m -XX:MaxMetaspaceSize=128m -XX:SoftRefLRUPolicyMSPerMB=50 --add-opens=java.base/java.lang=ALL-UNNAMED --add-opens=java.base/java.util=ALL-UNNAMED --add-opens=java.base/java.io=ALL-UNNAMED -jar morphe-desktop-1.14.0-dev.1-all.jar patch --force --continue-on-error -p patches-1.50.3.mpp --out=tumblr-arm64-v8a-patch-v45.8.0.110.apk --bytecode-mode=STRIP_FAST .build-input-arm64-v8a.apk
+⚠️  Ignoring legacy BASE_APK_CACHE_TAG='base-apk-cache-v2'; using 'base-apk-cache-v4-ja-jp-px9a-split'
+INFO: Update available: v1.14.0-dev.2 (current: v1.14.0-dev.1)
+Download from https://github.com/MorpheApp/morphe-desktop/releases/
+INFO: Morphe data root: /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/morphe-data (JAR-adjacent)
+INFO: Loading patches...
+INFO: Initializing patcher...
+INFO: Filtering patches for com.tumblr v45.8.0.110...
+INFO: Applying 8 patches...
+INFO: Executing patches
+INFO: Applied: Disable Tumblr TV
+INFO: Applied: Disable ad-free banner
+INFO: Applied: Disable blog notification reminder
+INFO: Applied: Disable gift message popup
+INFO: Applied: Disable in-app update
+INFO: Applied: Disable screenshot sharing
+INFO: Applied: Enable premium UI
+INFO: Applied: Remove ads
+INFO: Compiling patched dex files (mode: STRIP_FAST)
+INFO: Writing 11 new classes to new DEX files
+INFO: Processing 11 classes (single threaded mode)
+INFO: Wrote 1 dex files to /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/morphe-data/tmp/patching-1787625885363/patched/dex
+INFO: Stripping 11 modified classes from original DEX files
+INFO: Aligning APK
+INFO: Signing APK
+INFO: Saved to /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/tumblr-arm64-v8a-patch-v45.8.0.110.apk
+INFO: Purged this session's temp files: patching-1787625885363
+2026-08-25 02:44:53 Validated patched APK: 42869951 bytes (ABIs: arm64-v8a)
+2026-08-25 02:44:53 [SIZE] patched: 42869951 bytes (tumblr-arm64-v8a-patch-v45.8.0.110.apk)
+Signed
+2026-08-25 02:44:55 [SIZE] signed: 42865855 bytes (tumblr-arm64-v8a-hoomans-v45.8.0.110.apk)
+✅ APK built: tumblr-arm64-v8a-hoomans-v45.8.0.110.apk
+✅ Built arm64-v8a: tumblr-arm64-v8a-hoomans-v45.8.0.110.apk
+
+🎯 1 APK(s) built for 'tumblr':
+   📱 tumblr-arm64-v8a-hoomans-v45.8.0.110.apk
+EOF

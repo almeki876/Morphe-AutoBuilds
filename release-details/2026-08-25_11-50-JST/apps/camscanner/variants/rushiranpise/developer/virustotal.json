@@ -1,0 +1,23 @@
+{
+  "results": [
+    {
+      "file": "camscanner-rushiranpise-universal.apkm",
+      "sha256": "678b64a2461035372f60e89e019af515c58e30567f3931bd1d03117bd643d20f",
+      "size": 208725188,
+      "analysis_id": "",
+      "malicious": 0,
+      "suspicious": 0,
+      "harmless": 0,
+      "undetected": 55,
+      "timeout": 8,
+      "failure": 2,
+      "unsupported": 10,
+      "verdict": "clean",
+      "method": "persistent hash cache",
+      "engines": {},
+      "permalink": "https://www.virustotal.com/gui/file/678b64a2461035372f60e89e019af515c58e30567f3931bd1d03117bd643d20f/detection",
+      "last_analysis_date": 1787305728,
+      "reanalyzed": false
+    }
+  ]
+}

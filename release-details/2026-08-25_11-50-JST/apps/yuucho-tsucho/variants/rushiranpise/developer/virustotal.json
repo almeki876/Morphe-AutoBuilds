@@ -1,0 +1,23 @@
+{
+  "results": [
+    {
+      "file": "yuucho-tsucho-rushiranpise-universal.xapk",
+      "sha256": "44a54b10d8a61f961b3d5c58ca0618f7b1a3028a86f9a6fadef4d9675e695509",
+      "size": 153665593,
+      "analysis_id": "YTZkYTkyMjk1MzBjOTdiNjM3MmEzN2NlNDU0YjAyNjU6MTc4NzYyMzU3NA==",
+      "malicious": 0,
+      "suspicious": 0,
+      "harmless": 0,
+      "undetected": 65,
+      "timeout": 0,
+      "failure": 1,
+      "unsupported": 9,
+      "verdict": "clean",
+      "method": "persistent hash cache",
+      "engines": {},
+      "permalink": "https://www.virustotal.com/gui/file/44a54b10d8a61f961b3d5c58ca0618f7b1a3028a86f9a6fadef4d9675e695509/detection",
+      "last_analysis_date": 1787623574,
+      "reanalyzed": false
+    }
+  ]
+}

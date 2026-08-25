@@ -1,0 +1,89 @@
+app=aliexpress
+source=quantro
+source_name=Quantro100
+phase=Patch
+status=success
+run=https://github.com/almeki876/Morphe-AutoBuilds/actions/runs/32801148255
+
+traceback_or_error_tail<<EOF
+Enabled: true
+
+Index: 2
+Name: Disable analytics
+Description: Blocks analytics and tracking sent to AliExpress servers.
+Enabled: true
+
+Index: 3
+Name: Remove coupons popup
+Description: Removes the coupon and promotion popup dialogs.
+Enabled: true
+
+Index: 4
+Name: Enable image saving
+Description: Enables saving product images directly to the device gallery.
+Enabled: false
+
+Index: 5
+Name: Disable promotions notifications
+Description: Disables promotional push notifications for deals and coupons.
+Enabled: true
+
+Index: 6
+Name: Bypass signature check
+Description: Bypasses SecurityGuard integrity checks to restore login on patched APKs.
+Enabled: true
+
+Index: 7
+Name: Disable splash screen
+Description: Skips the splash screen on app launch.
+Enabled: false
+
+Index: 8
+Name: Remove affiliate tracking
+Description: Removes affiliate tracking parameters from shared links.
+Enabled: true
+
+Index: 9
+Name: Disable forced updates
+Description: Disables the forced update popup that prevents using older versions of the app.
+Enabled: true
+2026-08-25 02:46:09 enable_patches=[]  disable_patches=[]
+2026-08-25 02:46:10 Running: java -Djava.awt.headless=true -Xmx6g -Xms3g -Dfile.encoding=UTF-8 -XX:-UsePerfData -XX:+UseG1GC -XX:MaxGCPauseMillis=150 -XX:G1HeapRegionSize=2m -XX:+UseStringDeduplication -XX:+ParallelRefProcEnabled -XX:ConcGCThreads=2 -XX:ParallelGCThreads=4 -XX:CICompilerCount=3 -XX:+UseCompressedOops -XX:+OptimizeStringConcat -XX:+DisableExplicitGC -XX:+TieredCompilation -XX:ReservedCodeCacheSize=128m -XX:InitialCodeCacheSize=32m -XX:MaxMetaspaceSize=128m -XX:SoftRefLRUPolicyMSPerMB=50 --add-opens=java.base/java.lang=ALL-UNNAMED --add-opens=java.base/java.util=ALL-UNNAMED --add-opens=java.base/java.io=ALL-UNNAMED -jar morphe-desktop-1.14.0-dev.1-all.jar patch --force --continue-on-error -p patches-1.0.7.mpp --out=aliexpress-arm64-v8a-patch-v8.162.8.apk --bytecode-mode=STRIP_FAST .build-input-arm64-v8a.apk
+⚠️  Ignoring legacy BASE_APK_CACHE_TAG='base-apk-cache-v2'; using 'base-apk-cache-v4-ja-jp-px9a-split'
+INFO: Update available: v1.14.0-dev.2 (current: v1.14.0-dev.1)
+Download from https://github.com/MorpheApp/morphe-desktop/releases/
+INFO: Morphe data root: /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/morphe-data (JAR-adjacent)
+INFO: Loading patches...
+INFO: Initializing patcher...
+INFO: Filtering patches for com.alibaba.aliexpresshd v8.162.8...
+INFO: Skipping disabled: Enable image saving (default)
+INFO: Skipping disabled: Disable splash screen (default)
+INFO: Applying 8 patches...
+INFO: Executing patches
+INFO: Applied: Bypass signature check
+INFO: Applied: Disable analytics
+INFO: Applied: Disable forced updates
+INFO: Applied: Disable promotions notifications
+INFO: Applied: Remove ads
+INFO: Applied: Remove affiliate tracking
+INFO: Applied: Remove coupons popup
+INFO: Applied: Remove sponsored items from search
+INFO: Compiling patched dex files (mode: STRIP_FAST)
+INFO: Writing 7 new classes to new DEX files
+INFO: Processing 7 classes (single threaded mode)
+INFO: Wrote 1 dex files to /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/morphe-data/tmp/patching-1787625972571/patched/dex
+INFO: Stripping 7 modified classes from original DEX files
+INFO: Aligning APK
+INFO: Signing APK
+INFO: Saved to /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/aliexpress-arm64-v8a-patch-v8.162.8.apk
+INFO: Purged this session's temp files: patching-1787625972571
+2026-08-25 02:46:21 Validated patched APK: 82068549 bytes (ABIs: arm64-v8a)
+2026-08-25 02:46:21 [SIZE] patched: 82068549 bytes (aliexpress-arm64-v8a-patch-v8.162.8.apk)
+Signed
+2026-08-25 02:46:24 [SIZE] signed: 82064453 bytes (aliexpress-arm64-v8a-quantro-v8.162.8.apk)
+✅ APK built: aliexpress-arm64-v8a-quantro-v8.162.8.apk
+✅ Built arm64-v8a: aliexpress-arm64-v8a-quantro-v8.162.8.apk
+
+🎯 1 APK(s) built for 'aliexpress':
+   📱 aliexpress-arm64-v8a-quantro-v8.162.8.apk
+EOF
