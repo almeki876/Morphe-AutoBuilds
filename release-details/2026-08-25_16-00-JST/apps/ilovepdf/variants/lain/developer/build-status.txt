@@ -1,0 +1,89 @@
+app=ilovepdf
+source=lain
+source_name=kiraio-moe
+phase=Patch
+status=success
+run=https://github.com/almeki876/Morphe-AutoBuilds/actions/runs/32817738878
+
+traceback_or_error_tail<<EOF
+Enabled: true
+
+Index: 36
+Name: Unlock Pro
+Description: Enable pro features.
+Enabled: true
+
+Index: 37
+Name: Unlock Premium
+Description: Unlock 'Remove Ads' premium feature.
+Enabled: true
+
+Index: 38
+Name: Enable Pro
+Description: Unlock all pro features.
+Enabled: true
+
+Index: 39
+Name: Enable Premium
+Description: Unlock pixiv premium features such as Search by Popularity, Hide Ads & Tags and see Browsing History.
+Enabled: true
+
+Index: 40
+Name: Enable Premium
+Description: Unlock premium features such as Advanced Color Tools, Clipping Masks & Alpha Masks, Manage layers with Groups, Import & customize brushes, and more...
+Enabled: true
+
+Index: 41
+Name: Unlock Pro
+Description: Unlock pro features such as Unlimited proxy usage, Allow/disallow specific apps, Block apps in firewall and many more...
+Enabled: true
+
+Index: 42
+Name: Disable Ads
+Description: Disable banner ads. NOTICE: Use alongside the universal 'Change Google Maps API Key' patch to fix maps rendering issue.
+Enabled: true
+
+Index: 43
+Name: Unlock Premium
+Description: Enable UDisc premium features. NOTICE: Use alongside the universal 'Spoof Install Source' patch to fix the login issue and 'Change Google Maps API Key' patch to fix the maps not rendering.
+Enabled: true
+
+Index: 44
+Name: Spoof Install Source
+Description: Spoofs package installer checks to report the configured package name as the installation source. Default is Play Store.
+Enabled: false
+2026-08-25 06:55:11 enable_patches=[]  disable_patches=[]
+2026-08-25 06:55:12 Running: java -Djava.awt.headless=true -Xmx6g -Xms3g -Dfile.encoding=UTF-8 -XX:-UsePerfData -XX:+UseG1GC -XX:MaxGCPauseMillis=150 -XX:G1HeapRegionSize=2m -XX:+UseStringDeduplication -XX:+ParallelRefProcEnabled -XX:ConcGCThreads=2 -XX:ParallelGCThreads=4 -XX:CICompilerCount=3 -XX:+UseCompressedOops -XX:+OptimizeStringConcat -XX:+DisableExplicitGC -XX:+TieredCompilation -XX:ReservedCodeCacheSize=128m -XX:InitialCodeCacheSize=32m -XX:MaxMetaspaceSize=128m -XX:SoftRefLRUPolicyMSPerMB=50 --add-opens=java.base/java.lang=ALL-UNNAMED --add-opens=java.base/java.util=ALL-UNNAMED --add-opens=java.base/java.io=ALL-UNNAMED -jar morphe-desktop-1.14.0-dev.2-all.jar patch --force --continue-on-error -p patches-1.4.0-dev.3.mpp --out=ilovepdf-arm64-v8a-patch-v4.0.1.apk --bytecode-mode=STRIP_FAST .build-input-arm64-v8a.apk
+⚠️  Ignoring legacy BASE_APK_CACHE_TAG='base-apk-cache-v2'; using 'base-apk-cache-v4-ja-jp-px9a-split'
+INFO: Morphe data root: /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/morphe-data (JAR-adjacent)
+INFO: Loading patches...
+INFO: Initializing patcher...
+INFO: Filtering patches for com.ilovepdf.www v4.0.1...
+INFO: Skipping disabled: Override certificate pinning (default)
+INFO: Skipping disabled: Hide app icon (default)
+INFO: Skipping disabled: Change package name (default)
+INFO: Skipping disabled: Disable Pairip license check (default)
+INFO: Skipping disabled: Change Google Maps API Key (default)
+INFO: Skipping disabled: Spoof Install Source (default)
+INFO: Applying 1 patches...
+INFO: Executing patches
+INFO: Applied: Enable Premium
+INFO: Compiling patched dex files (mode: STRIP_FAST)
+INFO: Writing 4 new classes to new DEX files
+INFO: Processing 4 classes (single threaded mode)
+INFO: Wrote 1 dex files to /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/morphe-data/tmp/patching-1787640913548/patched/dex
+INFO: Stripping 4 modified classes from original DEX files
+INFO: Aligning APK
+INFO: Signing APK
+INFO: Saved to /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/ilovepdf-arm64-v8a-patch-v4.0.1.apk
+INFO: Purged this session's temp files: patching-1787640913548
+2026-08-25 06:55:29 Validated patched APK: 240563519 bytes (ABIs: arm64-v8a)
+2026-08-25 06:55:29 [SIZE] patched: 240563519 bytes (ilovepdf-arm64-v8a-patch-v4.0.1.apk)
+Signed
+2026-08-25 06:55:32 [SIZE] signed: 240559423 bytes (ilovepdf-arm64-v8a-lain-v4.0.1.apk)
+✅ APK built: ilovepdf-arm64-v8a-lain-v4.0.1.apk
+✅ Built arm64-v8a: ilovepdf-arm64-v8a-lain-v4.0.1.apk
+
+🎯 1 APK(s) built for 'ilovepdf':
+   📱 ilovepdf-arm64-v8a-lain-v4.0.1.apk
+EOF

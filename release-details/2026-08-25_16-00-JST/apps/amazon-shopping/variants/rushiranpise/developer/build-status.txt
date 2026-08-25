@@ -1,0 +1,89 @@
+app=amazon-shopping
+source=rushiranpise
+source_name=rushiranpise
+phase=Patch
+status=success
+run=https://github.com/almeki876/Morphe-AutoBuilds/actions/runs/32817738878
+
+traceback_or_error_tail<<EOF
+INFO: Morphe data root: /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/morphe-data (JAR-adjacent)
+INFO: Loading patches...
+INFO: Initializing patcher...
+INFO: Filtering patches for com.amazon.mShop.android.shopping v32.13.2.100...
+INFO: Skipping disabled: Disable PairIP license check (default)
+INFO: Skipping disabled: Provide Original app certificate (default)
+INFO: Skipping disabled: Spoof Widevine / DRM level (default)
+INFO: Skipping disabled: Fix Firebase after re-signing (default)
+INFO: Skipping disabled: GmsCore support (MicroG) (default)
+INFO: Skipping disabled: Spoof install source (default)
+INFO: Skipping disabled: Spoof Pixel device (default)
+INFO: Skipping disabled: Spoof app signature (default)
+INFO: Skipping disabled: Remove internet permission (default)
+INFO: Skipping disabled: Enable debug build target (default)
+INFO: Skipping disabled: Spoof Android ID (default)
+INFO: Skipping disabled: Spoof telephony IDs (default)
+INFO: Skipping disabled: Spoof Wi-Fi identifiers (default)
+INFO: Skipping disabled: Spoof Bluetooth identifiers (default)
+INFO: Skipping disabled: Enable Android debugging (default)
+INFO: Skipping disabled: Hide app icon (default)
+INFO: Skipping disabled: Predictive back gesture (default)
+INFO: Skipping disabled: Export all activities (default)
+INFO: Skipping disabled: Change version code (default)
+INFO: Skipping disabled: Set target SDK 34 (default)
+INFO: Skipping disabled: Remove share targets (default)
+INFO: Skipping disabled: Force dark theme (default)
+INFO: Skipping disabled: Hide mock location (default)
+INFO: Skipping disabled: Hide ADB status (default)
+INFO: Skipping disabled: Spoof build info (default)
+INFO: Skipping disabled: Spoof SIM provider (default)
+INFO: Skipping disabled: Spoof Wi-Fi connection (default)
+INFO: Skipping disabled: Override certificate pinning (default)
+INFO: Skipping disabled: Export internal data documents provider (default)
+INFO: Skipping disabled: Enable ROM signature spoofing (default)
+INFO: Skipping disabled: Spoof keystore security level (default)
+INFO: Skipping disabled: Spoof root of trust (default)
+INFO: Skipping disabled: Spoof Play age signals (default)
+INFO: Skipping disabled: Remove ad manifest entries (default)
+INFO: Skipping disabled: Disable ad SDK calls (default)
+INFO: Skipping disabled: Disable shake ads (default)
+INFO: Skipping disabled: Disable clipboard access (default)
+INFO: Skipping disabled: Hide VPN and proxy (default)
+INFO: Applying 9 patches...
+INFO: Deleting existing temporary files directory
+INFO: Decoding all resources
+INFO: Sanitizing unpatched strings
+INFO: Escaping strings
+INFO: Executing patches
+INFO: Applied: Dark mode
+INFO: Applied: Disable search suggestions tracking
+INFO: Applied: Disable video autoplay
+INFO: Applied: Disable video autoplay
+INFO: Applied: Fix Amazon manifest conflicts
+INFO: Applied: Hide Rufus tab
+INFO: Applied: Open links in browser
+INFO: Applied: Price history charts
+INFO: Applied: Remove ads
+INFO: Compiling patched dex files (mode: STRIP_FAST)
+INFO: Writing 667 new classes to new DEX files
+INFO: Processing 667 classes (single threaded mode)
+INFO: Wrote 1 dex files to /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/morphe-data/tmp/patching-1787640772182/patched/dex
+INFO: Stripping 27 modified classes from original DEX files
+INFO: Compiling modified resources
+INFO: Unescaping strings
+INFO: Processing aapt macros
+INFO: Generating new resource IDs
+INFO: Writing resource APK
+INFO: Aligning APK
+INFO: Signing APK
+INFO: Saved to /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/amazon-shopping-arm64-v8a-patch-v32.13.2.100.apk
+INFO: Purged this session's temp files: patching-1787640772182
+2026-08-25 06:53:21 Validated patched APK: 138018792 bytes (ABIs: arm64-v8a)
+2026-08-25 06:53:21 [SIZE] patched: 138018792 bytes (amazon-shopping-arm64-v8a-patch-v32.13.2.100.apk)
+Signed
+2026-08-25 06:53:24 [SIZE] signed: 138014696 bytes (amazon-shopping-arm64-v8a-rushiranpise-v32.13.2.100.apk)
+✅ APK built: amazon-shopping-arm64-v8a-rushiranpise-v32.13.2.100.apk
+✅ Built arm64-v8a: amazon-shopping-arm64-v8a-rushiranpise-v32.13.2.100.apk
+
+🎯 1 APK(s) built for 'amazon-shopping':
+   📱 amazon-shopping-arm64-v8a-rushiranpise-v32.13.2.100.apk
+EOF

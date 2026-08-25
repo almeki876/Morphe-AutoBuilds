@@ -1,0 +1,89 @@
+app=twitch-android-tv
+source=ajstrick81
+source_name=ajstrick81
+phase=Patch
+status=success
+run=https://github.com/almeki876/Morphe-AutoBuilds/actions/runs/32817738878
+
+traceback_or_error_tail<<EOF
+Description: Loads libpvhook.so at startup to blank Remote (ad) items from the PRS intraTitlePlaylist in-process (libignite memcpy/memmove GOT/PLT import hook).
+Enabled: true
+
+Index: 21
+Name: Skip ads
+Description: Suppresses all ad delivery systems in Tubi Android TV.
+Enabled: true
+
+Index: 22
+Name: Block TV ads
+Description: Blocks live ads on the Twitch ANDROID TV app (tv.twitch.android.app v13.0.0.2, the "Starshot" living-room build — NOT the phone app). That app runs the Twitch web player (laserarray/hls.js) in a WebView, and live ads are server-stitched into the video-weaver HLS playlist. This wraps the app's WebViewClient so a native shouldInterceptRequest override re-fetches the weaver playlist and strips the twitch-stitched-ad segments before hls.js sees them — timing-independent, no proxy, Twitch's own servers only.
+Enabled: true
+
+Index: 23
+Name: Skip ads
+Description: Suppresses ViX ad delivery by stopping the LuraPlayer linear ad-break scheduler (client-side VAST) and preventing the Innovid SSAI ad overlay from mounting.
+Enabled: true
+
+Index: 24
+Name: Override certificate pinning
+Description: Allows HTTPS traffic inspection tools like AdGuard Premium to intercept app connections. Enables ViX live (Lura SSAI) ad suppression when used alongside AdGuard Premium.
+Enabled: true
+
+Index: 25
+Name: Disney+ Android TV
+Description: Removes mid-roll / pre-roll ads and pause ads.
+Enabled: true
+
+Index: 26
+Name: Suppress Household Prompt
+Description: Hides the Disney+ "Verify Household Network" / out-of-household prompt by forcing the client's out-of-household check to report in-household, so the app routes straight to home. Does NOT change what Disney's servers detect (that's driven by your public IP — use a VPN for that); it only suppresses the on-screen prompt/routing. Opt-in / experimental; only takes visible effect when the device would otherwise be prompted.
+Enabled: false
+
+Index: 27
+Name: HBO Max - Disable Ads
+Description: Suppresses nonlinear overlay ads (Bolt), SSAI linear ad timeline registration (GMSS/AdSparx), and live stream preroll ad timeline entry generation for all content types.
+Enabled: true
+
+Index: 28
+Name: HBO Max - Block SSAI Ad Origins
+Description: Reproduces the AdGuard DNS ad-block inside the app: fails media3 segment requests to HBO's SSAI ad origins (amer-free/emea-free.prd.media.max.com, gmss, FreeWheel) so the player's resiliency layer falls back to the clean, ad-free manifest — removing the stitched ad VIDEO the default Disable Ads patch leaves behind. Opt-in / experimental; verify playback on-device.
+Enabled: false
+
+Index: 29
+Name: MLB At Bat Android TV
+Description: Removes VOD ads and shows a commercial-break overlay over live gambling ads while preserving live game playback.
+Enabled: true
+
+Index: 30
+Name: Paramount+ Android TV
+Description: Removes VOD pre-roll/mid-roll ads and pause ads, and replaces live sports commercial breaks with the "Commercial in Progress" slate, while preserving playback.
+Enabled: true
+2026-08-25 06:53:10 enable_patches=[]  disable_patches=[]
+2026-08-25 06:53:11 Running: java -Djava.awt.headless=true -Xmx6g -Xms3g -Dfile.encoding=UTF-8 -XX:-UsePerfData -XX:+UseG1GC -XX:MaxGCPauseMillis=150 -XX:G1HeapRegionSize=2m -XX:+UseStringDeduplication -XX:+ParallelRefProcEnabled -XX:ConcGCThreads=2 -XX:ParallelGCThreads=4 -XX:CICompilerCount=3 -XX:+UseCompressedOops -XX:+OptimizeStringConcat -XX:+DisableExplicitGC -XX:+TieredCompilation -XX:ReservedCodeCacheSize=128m -XX:InitialCodeCacheSize=32m -XX:MaxMetaspaceSize=128m -XX:SoftRefLRUPolicyMSPerMB=50 --add-opens=java.base/java.lang=ALL-UNNAMED --add-opens=java.base/java.util=ALL-UNNAMED --add-opens=java.base/java.io=ALL-UNNAMED -jar morphe-desktop-1.14.0-dev.2-all.jar patch --force --continue-on-error -p patches-1.29.2.mpp --out=twitch-android-tv-arm64-v8a-patch-v13.0.0.2.apk --bytecode-mode=STRIP_FAST .build-input-arm64-v8a.apk
+⚠️  Ignoring legacy BASE_APK_CACHE_TAG='base-apk-cache-v2'; using 'base-apk-cache-v4-ja-jp-px9a-split'
+INFO: Morphe data root: /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/morphe-data (JAR-adjacent)
+INFO: Loading patches...
+INFO: Initializing patcher...
+INFO: Filtering patches for tv.twitch.android.app v13.0.0.2...
+INFO: Applying 1 patches...
+INFO: Executing patches
+INFO: Applied: Block TV ads
+INFO: Compiling patched dex files (mode: STRIP_FAST)
+INFO: Writing 73 new classes to new DEX files
+INFO: Processing 73 classes (single threaded mode)
+INFO: Wrote 1 dex files to /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/morphe-data/tmp/patching-1787640794212/patched/dex
+INFO: Stripping 1 modified classes from original DEX files
+INFO: Aligning APK
+INFO: Signing APK
+INFO: Saved to /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/twitch-android-tv-arm64-v8a-patch-v13.0.0.2.apk
+INFO: Purged this session's temp files: patching-1787640794212
+2026-08-25 06:53:18 Validated patched APK: 56944995 bytes (ABIs: arm64-v8a)
+2026-08-25 06:53:18 [SIZE] patched: 56944995 bytes (twitch-android-tv-arm64-v8a-patch-v13.0.0.2.apk)
+Signed
+2026-08-25 06:53:21 [SIZE] signed: 56940899 bytes (twitch-android-tv-arm64-v8a-ajstrick81-v13.0.0.2.apk)
+✅ APK built: twitch-android-tv-arm64-v8a-ajstrick81-v13.0.0.2.apk
+✅ Built arm64-v8a: twitch-android-tv-arm64-v8a-ajstrick81-v13.0.0.2.apk
+
+🎯 1 APK(s) built for 'twitch-android-tv':
+   📱 twitch-android-tv-arm64-v8a-ajstrick81-v13.0.0.2.apk
+EOF
