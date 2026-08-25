@@ -304,6 +304,16 @@ def _render_origin_page(app: str, origin: dict | None) -> str:
         lines.append(f"- **Provider:** [公式/配布ページ]({provider_url})")
     if origin_url:
         lines.append(f"- **元リンク:** [取得元を開く]({origin_url})")
+    language = str(origin.get("japanese_resources") or "unverified")
+    detail = _safe(origin.get("japanese_resources_detail"))
+    if language == "present":
+        lines.append("- **日本語リソース:** 確認済み")
+    elif language == "absent":
+        lines.append(
+            f"- **日本語リソース:** 未検出。日本語非対応の可能性があります（{detail}）"
+        )
+    else:
+        lines.append(f"- **日本語リソース:** 検証できず（{detail}）")
     if cached:
         lines.append(f"- **Cache tag:** `{_safe(origin.get('cache_tag'))}`")
         if origin.get("legacy_cache_origin_unknown"):

@@ -15,9 +15,9 @@ from pathlib import Path
 from github import Auth, Github
 from github.GithubException import GithubException, UnknownObjectException
 from src.apk_language import (
-    JapaneseResourceError,
-    JapaneseResourceVerificationUnavailable,
-    contains_japanese,
+    JapaneseResourceStatus,
+    contains_japanese,  # compatibility for existing integrations that patch this symbol
+    inspect_japanese_resources,
 )
 
 CACHE_TAG = os.getenv("BASE_APK_CACHE_TAG", "base-apk-cache-v4-ja-verified")
@@ -99,14 +99,15 @@ def _validate(path: Path, expected_sha256: str | None = None) -> bool:
 
 
 def _contains_japanese(path: Path) -> bool:
-    try:
-        return contains_japanese(path)
-    except JapaneseResourceVerificationUnavailable as error:
-        logging.warning("⚠️  %s; accepting unverified APK: %s", error, path)
-        return True
-    except JapaneseResourceError as error:
-        logging.warning("APK rejected because Japanese resources were not detected: %s", error)
-        return False
+    inspection = inspect_japanese_resources(path)
+    if inspection.status is not JapaneseResourceStatus.PRESENT:
+        logging.warning(
+            "⚠️  Japanese resources: %s; accepting APK: %s (%s)",
+            inspection.status.value,
+            path,
+            inspection.detail,
+        )
+    return True
 
 
 def validate_asset(path: Path, *, require_japanese: bool = True) -> bool:
@@ -263,9 +264,8 @@ def stage(
     """Stage an integrity-checked provider APK."""
     if not _enabled() or not package or not version or not _validate(path):
         return None
-    if require_japanese and not _contains_japanese(path):
-        logging.error("❌ Refusing to cache APK because Japanese resources were not detected: %s", path)
-        return None
+    if require_japanese:
+        _contains_japanese(path)
     digest = _sha256(path)
     suffix = path.suffix.lower()
     if suffix not in {".apk", ".apkm", ".apks", ".xapk", ".zip"}:

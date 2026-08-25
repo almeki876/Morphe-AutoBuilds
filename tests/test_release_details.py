@@ -107,6 +107,8 @@ class ReleaseDetailsTests(unittest.TestCase):
                 "provider_label": "APKMirror",
                 "provider_url": "https://www.apkmirror.com/",
                 "origin_url": "https://www.apkmirror.com/example/",
+                "japanese_resources": "absent",
+                "japanese_resources_detail": "aapt completed; ja not found",
                 "cached": True,
                 "cache_tag": "base-apk-cache-v2",
             }
@@ -199,6 +201,8 @@ class ReleaseDetailsTests(unittest.TestCase):
             self.assertIn("Entree3k", patches)
             self.assertIn("GitHub Base APK Cache から復元", apk_source)
             self.assertIn("APKMirror", apk_source)
+            self.assertIn("日本語リソース:** 未検出", apk_source)
+            self.assertIn("日本語非対応の可能性", apk_source)
             self.assertIn("パッチ適用前", vt)
             self.assertIn("virustotal.com/gui/file/abc", vt)
             self.assertIn(

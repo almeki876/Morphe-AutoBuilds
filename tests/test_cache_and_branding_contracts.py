@@ -6,7 +6,6 @@ from pathlib import Path
 from unittest.mock import patch
 
 from src import apk_cache, apk_validation
-from src.apk_language import JapaneseResourceVerificationUnavailable
 
 
 class CacheAndBrandingContractTests(unittest.TestCase):
@@ -15,15 +14,10 @@ class CacheAndBrandingContractTests(unittest.TestCase):
             apk = Path(temp) / "base.apk"
             with zipfile.ZipFile(apk, "w") as archive:
                 archive.writestr("AndroidManifest.xml", b"manifest")
-            with patch(
-                "src.apk_cache.contains_japanese",
-                side_effect=JapaneseResourceVerificationUnavailable(
-                    "Japanese resources could not be verified (aapt/aapt2 unavailable)"
-                ),
-            ):
+            with patch("src.apk_language._find_aapt", return_value=None):
                 with self.assertLogs(level="WARNING") as logs:
                     self.assertTrue(apk_cache.is_valid_apk_archive(apk))
-            self.assertIn("accepting unverified APK", "\n".join(logs.output))
+            self.assertIn("Japanese resources: unverified", "\n".join(logs.output))
 
     def test_provider_does_not_control_language_acceptance(self) -> None:
         self.assertNotEqual(
@@ -40,7 +34,7 @@ class CacheAndBrandingContractTests(unittest.TestCase):
         )
         self.assertIsNone(apk_cache.parse_asset_name(legacy))
 
-    def test_cache_stage_requires_japanese_payload_for_any_provider(self) -> None:
+    def test_cache_stage_does_not_reject_absent_japanese_resources(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             apk = Path(temp) / "base.apk"
             with zipfile.ZipFile(apk, "w") as archive:
@@ -48,13 +42,15 @@ class CacheAndBrandingContractTests(unittest.TestCase):
                 archive.writestr("classes.dex", b"dex")
 
             with patch("src.apk_cache._contains_japanese", return_value=False):
-                self.assertIsNone(
-                    apk_cache.stage(apk, "com.example.app", "1.0", "apkmirror")
-                )
-                self.assertIsNone(
-                    apk_cache.stage(apk, "com.example.app", "1.0", "aurora-google-play")
-                )
                 with patch.object(apk_cache, "CACHE_DIR", Path(temp) / "cache"):
+                    self.assertIsNotNone(
+                        apk_cache.stage(apk, "com.example.app", "1.0", "apkmirror")
+                    )
+                    self.assertIsNotNone(
+                        apk_cache.stage(
+                            apk, "com.example.app", "1.0", "aurora-google-play"
+                        )
+                    )
                     staged_without_japanese = apk_cache.stage(
                         apk,
                         "com.example.app",

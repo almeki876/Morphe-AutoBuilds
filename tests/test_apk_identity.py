@@ -11,15 +11,19 @@ from src.apk_identity import (
     read_identity,
     validate_identity,
 )
-from src.apk_language import JapaneseResourceVerificationUnavailable
+from src.apk_language import (
+    JapaneseResourceInspection,
+    JapaneseResourceStatus,
+)
 from src.versioning import VersionCandidate, parse_candidate
 
 
 class ApkIdentityTests(unittest.TestCase):
     @mock.patch(
-        "src.apk_identity.contains_japanese",
-        side_effect=JapaneseResourceVerificationUnavailable(
-            "Japanese resources could not be verified (aapt/aapt2 unavailable)"
+        "src.apk_identity.inspect_japanese_resources",
+        return_value=JapaneseResourceInspection(
+            JapaneseResourceStatus.UNVERIFIED,
+            "aapt/aapt2 unavailable",
         ),
     )
     @mock.patch("src.apk_identity.read_identity")
@@ -32,7 +36,7 @@ class ApkIdentityTests(unittest.TestCase):
         with self.assertLogs(level="WARNING") as logs:
             result = validate_identity(Path("app.apk"), "com.example.app")
         self.assertEqual(result.version_name, "1.2.3")
-        self.assertIn("accepting unverified APK", "\n".join(logs.output))
+        self.assertIn("Japanese resources: unverified", "\n".join(logs.output))
 
     def test_parse_badging(self) -> None:
         identity = parse_badging(
@@ -108,7 +112,13 @@ class ApkIdentityTests(unittest.TestCase):
         with self.assertRaisesRegex(ApkIdentityError, "version mismatch"):
             validate_identity(Path("app.apk"), "com.example.app", VersionCandidate(name="1.2.3", code="123"))
 
-    @mock.patch("src.apk_identity.contains_japanese", return_value=False)
+    @mock.patch(
+        "src.apk_identity.inspect_japanese_resources",
+        return_value=JapaneseResourceInspection(
+            JapaneseResourceStatus.ABSENT,
+            "aapt completed but no Japanese resource configuration was found",
+        ),
+    )
     @mock.patch("src.apk_identity.read_identity")
     def test_provider_chain_can_accept_missing_japanese(
         self, read_identity_mock: mock.Mock, _ja: mock.Mock
@@ -123,6 +133,7 @@ class ApkIdentityTests(unittest.TestCase):
             require_japanese=False,
         )
         self.assertEqual(result.version_name, "1.2.3")
+        self.assertEqual(result.japanese_resources, "absent")
 
 
 if __name__ == "__main__":

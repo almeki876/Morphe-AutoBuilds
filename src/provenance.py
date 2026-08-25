@@ -193,6 +193,9 @@ def record(
     config = dict(config or {})
     package = str(config.get("package") or "").strip()
     label, provider_url = source_details(provider, config)
+    from src.apk_language import inspect_japanese_resources
+
+    language = inspect_japanese_resources(filepath)
 
     original_provider = provider
     original_label = label
@@ -237,6 +240,8 @@ def record(
         "legacy_cache_origin_unknown": legacy_cache_origin,
         "filename": filepath.name,
         "sha256": _sha256(filepath),
+        "japanese_resources": language.status.value,
+        "japanese_resources_detail": language.detail,
         "recorded_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
     }
     entries = _merge_entry(_read_entries(), entry)

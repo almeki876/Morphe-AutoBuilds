@@ -13,9 +13,9 @@ import zipfile
 from pathlib import Path
 
 from src.apk_language import (
-    JapaneseResourceError,
-    JapaneseResourceVerificationUnavailable,
-    contains_japanese,
+    JapaneseResourceStatus,
+    contains_japanese,  # compatibility for existing integrations that patch this symbol
+    inspect_japanese_resources,
 )
 from src.versioning import VersionCandidate
 
@@ -37,6 +37,8 @@ class ApkIdentity:
     package_name: str
     version_name: str
     version_code: str | None
+    japanese_resources: str = JapaneseResourceStatus.UNVERIFIED.value
+    japanese_resources_detail: str = "not inspected"
 
 
 def _build_tools_dirs() -> list[Path]:
@@ -169,13 +171,23 @@ def validate_identity(
             "APK version mismatch: expected "
             f"{expected_candidate.describe()}, actual {identity.version_code or '?'} ({identity.version_name})"
         )
-    try:
-        if not contains_japanese(path):
-            raise JapaneseResourceError("Japanese resources were not detected")
-    except JapaneseResourceVerificationUnavailable as error:
-        logging.warning("⚠️  %s; accepting unverified APK: %s", error, path)
-    except JapaneseResourceError as error:
-        if require_japanese:
-            raise ApkIdentityError(f"APK does not contain Japanese resources: {error}") from error
-        logging.warning("⚠️  APK accepted although Japanese resources were not detected: %s", path)
-    return identity
+    inspection = inspect_japanese_resources(path)
+    if inspection.status is JapaneseResourceStatus.PRESENT:
+        logging.info("Japanese resources: present (%s)", inspection.detail)
+    elif inspection.status is JapaneseResourceStatus.ABSENT:
+        logging.warning(
+            "⚠️  Japanese resources: absent; Japanese support may be unavailable: %s",
+            inspection.detail,
+        )
+    else:
+        logging.warning(
+            "⚠️  Japanese resources: unverified; continuing build: %s",
+            inspection.detail,
+        )
+    return ApkIdentity(
+        identity.package_name,
+        identity.version_name,
+        identity.version_code,
+        inspection.status.value,
+        inspection.detail,
+    )
