@@ -1,0 +1,23 @@
+{
+  "results": [
+    {
+      "file": "brave-beta-dh6k-universal.apkm",
+      "sha256": "d3d4b3a09e43f0e41fb2845c6e21681a142246bbc7341820f7113afbb87050be",
+      "size": 135654546,
+      "analysis_id": "",
+      "malicious": 0,
+      "suspicious": 0,
+      "harmless": 0,
+      "undetected": 55,
+      "timeout": 9,
+      "failure": 2,
+      "unsupported": 9,
+      "verdict": "clean",
+      "method": "persistent hash cache",
+      "engines": {},
+      "permalink": "https://www.virustotal.com/gui/file/d3d4b3a09e43f0e41fb2845c6e21681a142246bbc7341820f7113afbb87050be/detection",
+      "last_analysis_date": 1787295817,
+      "reanalyzed": false
+    }
+  ]
+}

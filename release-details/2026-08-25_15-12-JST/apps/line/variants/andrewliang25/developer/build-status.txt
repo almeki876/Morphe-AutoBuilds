@@ -1,0 +1,89 @@
+app=line
+source=andrewliang25
+source_name=andrewliang25
+phase=Patch
+status=success
+run=https://github.com/almeki876/Morphe-AutoBuilds/actions/runs/32814376958
+
+traceback_or_error_tail<<EOF
+Enabled: true
+
+Index: 19
+Name: Hide Wallet tab
+Description: Removes the Wallet (LINE Pay) tab from the main bottom navigation, in both the normal and mini-tab layouts.
+Enabled: true
+
+Index: 20
+Name: Keep chats unread
+Description: When you open a 1:1 or group chat, LINE does not mark it read and sends no read receipt. If you use "Mark as read" or "Mark all as read", LINE marks the chat read and sends the receipt.
+Enabled: true
+
+Index: 21
+Name: Keep unsent messages
+Description: Keeps unsent messages from 1:1 and group chats on your device instead of erasing them. This patch shows the usual "unsent a message" notice directly below the message that it kept. This patch does not apply to OpenChat.
+Enabled: true
+
+Index: 22
+Name: Remove banner ads
+Description: LINE no longer loads the Smart Channel banner ads. This patch makes the getBanners and getPrefetchableBanners responses null.
+Enabled: true
+2026-08-25 06:09:19 enable_patches=[]  disable_patches=[]
+2026-08-25 06:09:20 Running: java -Djava.awt.headless=true -Xmx6g -Xms3g -Dfile.encoding=UTF-8 -XX:-UsePerfData -XX:+UseG1GC -XX:MaxGCPauseMillis=150 -XX:G1HeapRegionSize=2m -XX:+UseStringDeduplication -XX:+ParallelRefProcEnabled -XX:ConcGCThreads=2 -XX:ParallelGCThreads=4 -XX:CICompilerCount=3 -XX:+UseCompressedOops -XX:+OptimizeStringConcat -XX:+DisableExplicitGC -XX:+TieredCompilation -XX:ReservedCodeCacheSize=128m -XX:InitialCodeCacheSize=32m -XX:MaxMetaspaceSize=128m -XX:SoftRefLRUPolicyMSPerMB=50 --add-opens=java.base/java.lang=ALL-UNNAMED --add-opens=java.base/java.util=ALL-UNNAMED --add-opens=java.base/java.io=ALL-UNNAMED -jar morphe-desktop-1.14.0-dev.2-all.jar patch --force --continue-on-error -p patches-1.8.0.mpp --out=line-arm64-v8a-patch-v26.11.0.apk --bytecode-mode=STRIP_FAST .build-input-arm64-v8a.apk
+⚠️  Ignoring legacy BASE_APK_CACHE_TAG='base-apk-cache-v2'; using 'base-apk-cache-v4-ja-jp-px9a-split'
+INFO: Morphe data root: /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/morphe-data (JAR-adjacent)
+INFO: Loading patches...
+INFO: Initializing patcher...
+INFO: Filtering patches for jp.naver.line.android v26.11.0...
+INFO: Applying 23 patches...
+INFO: Deleting existing temporary files directory
+INFO: Decoding all resources
+INFO: Sanitizing unpatched strings
+INFO: Escaping strings
+INFO: Executing patches
+INFO: Applied: Disable LINE Premium
+INFO: Applied: Disable VOOM
+INFO: Applied: Fix chat backup sign-in via GmsCore
+INFO: Applied: Fix push notifications
+INFO: Applied: Hide Events button
+INFO: Applied: Hide Home content feed
+INFO: Applied: Hide Home modules
+INFO: Applied: Hide LINE GIFT button
+INFO: Applied: Hide LINE TODAY tab
+INFO: Applied: Hide Shopping tab
+INFO: Applied: Hide Transfer button
+INFO: Applied: Hide VOOM tab
+INFO: Applied: Hide Wallet tab
+INFO: Applied: Hide ad views
+INFO: Applied: Hide attach menu extra tools
+INFO: Applied: Hide calendar buttons
+INFO: Applied: Hide community button
+INFO: Applied: Hide premium unsend upsells
+INFO: Applied: Keep chats unread
+INFO: Applied: Keep unsent messages
+INFO: Applied: Open links in external browser
+INFO: Applied: Redirect LINE Pay
+INFO: Applied: Remove banner ads
+INFO: Compiling patched dex files (mode: STRIP_FAST)
+INFO: Writing 1045 new classes to new DEX files
+INFO: Processing 1045 classes (single threaded mode)
+INFO: Wrote 1 dex files to /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/morphe-data/tmp/patching-1787638161301/patched/dex
+INFO: Stripping 74 modified classes from original DEX files
+INFO: Compiling modified resources
+INFO: Unescaping strings
+INFO: Processing aapt macros
+INFO: Generating new resource IDs
+INFO: Writing resource APK
+INFO: Aligning APK
+INFO: Signing APK
+INFO: Saved to /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/line-arm64-v8a-patch-v26.11.0.apk
+INFO: Purged this session's temp files: patching-1787638161301
+2026-08-25 06:10:39 Validated patched APK: 218138262 bytes (ABIs: arm64-v8a)
+2026-08-25 06:10:39 [SIZE] patched: 218138262 bytes (line-arm64-v8a-patch-v26.11.0.apk)
+Signed
+2026-08-25 06:10:43 [SIZE] signed: 218134166 bytes (line-arm64-v8a-andrewliang25-v26.11.0.apk)
+✅ APK built: line-arm64-v8a-andrewliang25-v26.11.0.apk
+✅ Built arm64-v8a: line-arm64-v8a-andrewliang25-v26.11.0.apk
+
+🎯 1 APK(s) built for 'line':
+   📱 line-arm64-v8a-andrewliang25-v26.11.0.apk
+EOF
