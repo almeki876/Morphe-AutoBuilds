@@ -1,0 +1,89 @@
+app=tiktok
+source=icysymmetra
+source_name=icysymmetra
+phase=Patch
+status=success
+run=https://github.com/almeki876/Morphe-AutoBuilds/actions/runs/32798913975
+
+traceback_or_error_tail<<EOF
+Description: Spoofs SIM country and operator information retrieved by TikTok, with country presets for easier setup.
+Enabled: true
+
+Index: 28
+Name: Translate comments
+Description: Adds comment translation controls using TikTok's translation system, with selectable language exclusions.
+Enabled: true
+
+Index: 29
+Name: Hide floating promotions
+Description: Removes floating promotional badges, coin icons, and timer banners from the Home feed.
+Enabled: true
+2026-08-25 02:03:23 enable_patches=[]  disable_patches=[]
+2026-08-25 02:03:24 Running: java -Djava.awt.headless=true -Xmx6g -Xms3g -Dfile.encoding=UTF-8 -XX:-UsePerfData -XX:+UseG1GC -XX:MaxGCPauseMillis=150 -XX:G1HeapRegionSize=2m -XX:+UseStringDeduplication -XX:+ParallelRefProcEnabled -XX:ConcGCThreads=2 -XX:ParallelGCThreads=4 -XX:CICompilerCount=3 -XX:+UseCompressedOops -XX:+OptimizeStringConcat -XX:+DisableExplicitGC -XX:+TieredCompilation -XX:ReservedCodeCacheSize=128m -XX:InitialCodeCacheSize=32m -XX:MaxMetaspaceSize=128m -XX:SoftRefLRUPolicyMSPerMB=50 --add-opens=java.base/java.lang=ALL-UNNAMED --add-opens=java.base/java.util=ALL-UNNAMED --add-opens=java.base/java.io=ALL-UNNAMED -jar morphe-desktop-1.14.0-dev.1-all.jar patch --force --continue-on-error -p patches-0.7.0.mpp --out=tiktok-arm64-v8a-patch-v46.2.3.apk --bytecode-mode=STRIP_FAST .build-input-arm64-v8a.apk
+⚠️  Ignoring legacy BASE_APK_CACHE_TAG='base-apk-cache-v2'; using 'base-apk-cache-v4-ja-jp-px9a-split'
+INFO: Update available: v1.14.0-dev.2 (current: v1.14.0-dev.1)
+Download from https://github.com/MorpheApp/morphe-desktop/releases/
+INFO: Morphe data root: /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/morphe-data (JAR-adjacent)
+INFO: Loading patches...
+INFO: Initializing patcher...
+INFO: Filtering patches for com.zhiliaoapp.musically v46.2.3...
+INFO: Skipping disabled: Diagnostic tools (default)
+INFO: Applying 29 patches...
+INFO: Deleting existing temporary files directory
+INFO: Decoding all resources
+INFO: Sanitizing unpatched strings
+INFO: Escaping strings
+INFO: Executing patches
+INFO: Applied: Always show publish date
+INFO: Applied: Copy comments without username
+INFO: Applied: Custom offline videos limit
+INFO: Applied: Disable login requirement
+INFO: Applied: Disable long-press quick share
+INFO: Applied: Disable long-press repost
+INFO: Applied: Downloads
+INFO: Applied: Enable Live search
+INFO: Applied: Enable non-personalized search
+INFO: Applied: Feature Gate Lab
+INFO: Applied: Feed filter
+INFO: Applied: Feed tab navigation
+INFO: Applied: Fix Google login
+INFO: Applied: Hide CAPTCHA popups
+INFO: Applied: Hide floating promotions
+INFO: Applied: Hide quick comment reactions
+INFO: Applied: Hold-and-slide 2x lock
+INFO: Applied: Open external links directly
+INFO: Applied: Playback speed
+INFO: Applied: Remember clear display
+INFO: Applied: Resume videos after scrolling
+INFO: Applied: SIM spoof
+INFO: Applied: Sanitize sharing links
+INFO: Applied: Settings
+INFO: Applied: Show seekbar
+INFO: Applied: Show seekbar thumbnail
+INFO: Applied: Stop video looping
+INFO: Applied: Translate comments
+INFO: Applied: Disable screen capture detection
+INFO: Compiling patched dex files (mode: STRIP_FAST)
+INFO: Writing 687 new classes to new DEX files
+INFO: Processing 687 classes (single threaded mode)
+INFO: Wrote 1 dex files to /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/morphe-data/tmp/patching-1787623406386/patched/dex
+INFO: Stripping 99 modified classes from original DEX files
+INFO: Compiling modified resources
+INFO: Unescaping strings
+INFO: Processing aapt macros
+INFO: Generating new resource IDs
+INFO: Writing resource APK
+INFO: Aligning APK
+INFO: Signing APK
+INFO: Saved to /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/tiktok-arm64-v8a-patch-v46.2.3.apk
+INFO: Purged this session's temp files: patching-1787623406386
+2026-08-25 02:06:08 Validated patched APK: 389346431 bytes (ABIs: arm64-v8a)
+2026-08-25 02:06:08 [SIZE] patched: 389346431 bytes (tiktok-arm64-v8a-patch-v46.2.3.apk)
+Signed
+2026-08-25 02:06:20 [SIZE] signed: 389342335 bytes (tiktok-arm64-v8a-icysymmetra-v46.2.3.apk)
+✅ APK built: tiktok-arm64-v8a-icysymmetra-v46.2.3.apk
+✅ Built arm64-v8a: tiktok-arm64-v8a-icysymmetra-v46.2.3.apk
+
+🎯 1 APK(s) built for 'tiktok':
+   📱 tiktok-arm64-v8a-icysymmetra-v46.2.3.apk
+EOF

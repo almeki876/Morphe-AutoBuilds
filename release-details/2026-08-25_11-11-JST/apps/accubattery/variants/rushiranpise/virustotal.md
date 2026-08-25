@@ -1,0 +1,16 @@
+# AccuBattery — VirusTotal
+
+**対象:** パッチ適用前に取得したBase APK（配布元から取得/キャッシュ復元した原本）
+
+- **結果:** ✅ Clean
+- **スキャン対象:** 1 file(s)
+
+| File | SHA-256 | Malicious | Suspicious | Method | VirusTotal |
+| --- | --- | ---: | ---: | --- | --- |
+| `accubattery-rushiranpise-universal.apk` | `5503bf7d19c81ec180d07a5b25c7fa6b6d6694f3838d50ad3e84102c0b93a054` | 0 | 0 | `hash lookup` | [Open](https://www.virustotal.com/gui/file/5503bf7d19c81ec180d07a5b25c7fa6b6d6694f3838d50ad3e84102c0b93a054/detection) |
+
+## Scanner telemetry
+
+- Persistent cache hits: `37`
+- New hashes: `34`
+- Analyses started: `10`

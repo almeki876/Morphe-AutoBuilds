@@ -1,0 +1,23 @@
+{
+  "results": [
+    {
+      "file": "pixiv-rookie-universal.apk",
+      "sha256": "7e654a627e88326196771d14ddc00dc8fa54cc2915f3321e0d9b128e21e0aed6",
+      "size": 47791239,
+      "analysis_id": "",
+      "malicious": 0,
+      "suspicious": 0,
+      "harmless": 0,
+      "undetected": 65,
+      "timeout": 1,
+      "failure": 0,
+      "unsupported": 9,
+      "verdict": "clean",
+      "method": "persistent hash cache",
+      "engines": {},
+      "permalink": "https://www.virustotal.com/gui/file/7e654a627e88326196771d14ddc00dc8fa54cc2915f3321e0d9b128e21e0aed6/detection",
+      "last_analysis_date": 1770571388,
+      "reanalyzed": false
+    }
+  ]
+}
