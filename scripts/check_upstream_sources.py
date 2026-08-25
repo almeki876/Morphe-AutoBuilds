@@ -1,8 +1,7 @@
 """Check every patch source declared in sources/*.json for a new release.
 
-GitHub Releases are authoritative and prereleases are included. Tag-only refs
-are deliberately ignored because the build requires Release assets. A source
-whose configured tag is not ``latest`` is an explicit pin and is not monitored.
+GitHub/GitLab Releases are authoritative and prereleases are included. Tag-only
+refs are deliberately ignored because the build requires Release assets.
 """
 
 from __future__ import annotations
@@ -11,6 +10,7 @@ import json
 import os
 from pathlib import Path
 from urllib.error import HTTPError, URLError
+from urllib.parse import quote
 from urllib.request import Request, urlopen
 
 
@@ -35,6 +35,19 @@ def latest_tag(owner: str, repo: str) -> str:
     return releases[0]["tag_name"] if releases else ""
 
 
+def latest_gitlab_tag(owner: str, repo: str) -> str:
+    project = quote(f"{owner}/{repo}", safe="")
+    request = Request(
+        f"https://gitlab.com/api/v4/projects/{project}/releases?per_page=100",
+        headers={"User-Agent": "Morphe-AutoBuilds"},
+    )
+    with urlopen(request, timeout=30) as response:
+        releases = json.load(response)
+    releases = [release for release in releases if release.get("released_at")]
+    releases.sort(key=lambda release: release["released_at"], reverse=True)
+    return releases[0]["tag_name"] if releases else ""
+
+
 def iter_sources() -> list[dict]:
     sources = []
     for source_path in sorted(SOURCES_DIR.glob("*.json")):
@@ -56,7 +69,7 @@ def resolve_source_tag(source: dict) -> str:
     if source["ref"] != "latest":
         return source["ref"]
     if source["gitlab"]:
-        raise RuntimeError("GitLab latest-release monitoring is not configured")
+        return latest_gitlab_tag(source["owner"], source["repo"])
     return latest_tag(source["owner"], source["repo"])
 
 

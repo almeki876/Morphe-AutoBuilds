@@ -31,7 +31,7 @@ class IncrementalReleaseSelectionTests(unittest.TestCase):
             self.ITEMS,
             {
                 "updated_apps": "amazon-shopping",
-                "updated_sources": "anddea",
+                "updated_sources": "revanced-anddea",
                 "build_all_sources": "false",
             },
         )

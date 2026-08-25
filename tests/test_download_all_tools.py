@@ -11,60 +11,6 @@ from scripts import download_all_tools
 
 
 class DownloadAllToolsTests(unittest.TestCase):
-    def _run_main(self, patch_list: list[dict]) -> tuple[int, mock.Mock]:
-        with tempfile.TemporaryDirectory() as temp_dir:
-            root = Path(temp_dir)
-            sources_dir = root / "sources"
-            sources_dir.mkdir()
-            config_path = root / "my-patch-config.json"
-            config_path.write_text(
-                json.dumps({"patch_list": patch_list}),
-                encoding="utf-8",
-            )
-            download = mock.Mock(return_value=True)
-            fake_src = types.ModuleType("src")
-            fake_src.utils = types.ModuleType("src.utils")
-            with (
-                mock.patch.dict(
-                    sys.modules,
-                    {"src": fake_src, "src.utils": fake_src.utils},
-                ),
-                mock.patch.object(download_all_tools, "SOURCES_DIR", sources_dir),
-                mock.patch.object(download_all_tools, "TOOLS_DIR", root / "tools"),
-                mock.patch.object(
-                    download_all_tools,
-                    "PATCH_CONFIG_PATH",
-                    config_path,
-                ),
-                mock.patch.object(download_all_tools, "download_asset_gh", download),
-            ):
-                result = download_all_tools.main()
-            return result, download
-
-    def test_unused_private_yuzu_bundle_is_not_a_global_dependency(self) -> None:
-        result, download = self._run_main(
-            [{"app_name": "youtube", "source": "morphe"}]
-        )
-
-        self.assertEqual(result, 0)
-        download.assert_not_called()
-
-    def test_yuzu_bundle_is_required_when_an_enabled_build_uses_it(self) -> None:
-        result, download = self._run_main(
-            [{"app_name": "example", "source": "yuzu"}]
-        )
-
-        self.assertEqual(result, 0)
-        download.assert_called_once()
-
-    def test_disabled_yuzu_build_does_not_require_private_credentials(self) -> None:
-        result, download = self._run_main(
-            [{"app_name": "example", "source": "yuzu", "enabled": False}]
-        )
-
-        self.assertEqual(result, 0)
-        download.assert_not_called()
-
     def test_anddea_metadata_is_pinned_to_the_downloaded_bundle_tag(self) -> None:
         pinned_tag = "v4.3.0-dev.1"
         with tempfile.TemporaryDirectory() as temp_dir:

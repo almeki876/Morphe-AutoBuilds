@@ -123,16 +123,6 @@ APP_LABELS = {
     "yuucho-tsucho": "Yuucho Tsucho",
 }
 
-# Legacy env names still supplied by build.yml. They are used only as an
-# additional signal/fresh-tag override; app grouping never comes from them.
-LEGACY_ENV_KEYS = {
-    "morphe": "MORPHE",
-    "revanced-anddea": "ANDDEA",
-    "rushiranpise": "RUSHIRANPISE",
-    "rookie": "ROOKIE",
-}
-
-
 def _truthy(value: object) -> bool:
     return str(value or "").strip().casefold() == "true"
 
@@ -229,20 +219,10 @@ def _source_url(source: str) -> str:
     return f"https://github.com/{user}/{repo}"
 
 
-def _legacy_flag(source: str, suffix: str) -> bool:
-    env_key = LEGACY_ENV_KEYS.get(source)
-    if not env_key:
-        return False
-    return _truthy(os.environ.get(f"{env_key}_{suffix}"))
-
-
 def _requested_matrix(items: list[dict], inputs: dict[str, object]) -> list[dict]:
     """Mirror the high-level selection modes in scripts/prepare_matrix.py."""
     build_all = _truthy(inputs.get("build_all_sources"))
     updated_sources = _csv(inputs.get("updated_sources"))
-    if "anddea" in updated_sources:
-        updated_sources.add("revanced-anddea")
-
     updated_apps = _csv(inputs.get("updated_apps"))
 
     if build_all:
@@ -255,34 +235,6 @@ def _requested_matrix(items: list[dict], inputs: dict[str, object]) -> list[dict
                 or str(item["app_name"]) in updated_apps
             )
         ]
-
-    legacy_sources = {
-        source
-        for source in LEGACY_ENV_KEYS
-        if _legacy_flag(source, "UPDATED") or _legacy_flag(source, "FORCE")
-    }
-    if legacy_sources:
-        apk_updated_apps: set[str] = set()
-        raw = inputs.get("apk_updated_apps", "[]")
-        try:
-            parsed = json.loads(str(raw))
-            if isinstance(parsed, list):
-                apk_updated_apps = {str(app) for app in parsed}
-        except json.JSONDecodeError:
-            pass
-
-        selected: list[dict] = []
-        for item in items:
-            source = str(item["source"])
-            app = str(item["app_name"])
-            if source not in legacy_sources:
-                continue
-            if _legacy_flag(source, "FORCE") and not _legacy_flag(source, "UPDATED"):
-                if apk_updated_apps and app not in apk_updated_apps:
-                    continue
-            selected.append(item)
-        if selected:
-            return selected
 
     return list(items)
 

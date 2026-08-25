@@ -57,25 +57,6 @@ def tagged_patches_list_url(
     )
 
 
-def active_patch_sources(config_path: pathlib.Path | None = None) -> set[str]:
-    """Return patch sources that can actually be selected for a build.
-
-    Some historical sources (notably the private Yuzu bundle) are downloaded
-    outside ``sources/*.json``.  Treating those optional sources as global
-    dependencies makes every build fail when their credentials expire, even
-    when no configured app uses them.
-    """
-    config_path = config_path or PATCH_CONFIG_PATH
-    with config_path.open(encoding="utf-8") as config_file:
-        items = json.load(config_file)["patch_list"]
-
-    return {
-        item["source"]
-        for item in items
-        if item.get("enabled", True) is not False
-        and item.get("skip_build", False) is not True
-    }
-
 def download_asset(url: str, dest: pathlib.Path, retries: int = 3, token: str = "") -> bool:
     """Download an asset atomically so a failed attempt never leaves a valid-looking file."""
     for attempt in range(1, retries + 1):
@@ -284,47 +265,6 @@ def main() -> int:
     from src import utils
 
     failures = []
-    configured_sources = active_patch_sources()
-
-    # ── yuzu: patches-1.0.rvp をプライベートリリースから取得 ──────────────
-    # PAT が失効していても、現在のリポジトリ用 GITHUB_TOKEN で参照可能な
-    # 構成ならフォールバックする。異なるプライベートリポジトリの場合は、
-    # read access を持つ PAT が必要。
-    if "yuzu" in configured_sources:
-        yuzu_pat = os.environ.get("PAT", "").strip()
-        github_token = os.environ.get("GITHUB_TOKEN", "").strip()
-        workflow_repo = os.environ.get("GITHUB_REPOSITORY", "").strip()
-        yuzu_repo = "matchadaisuke/morphe-patches"
-        yuzu_tag = "patche"
-        yuzu_file = "patches-1.0.rvp"
-        yuzu_dest_dir = TOOLS_DIR / "yuzu"
-        yuzu_dest_dir.mkdir(parents=True, exist_ok=True)
-        yuzu_dest_file = yuzu_dest_dir / yuzu_file
-
-        logging.info("\n📦 Downloading yuzu patches from private release")
-        logging.info(f"  ⬇️  {yuzu_file}")
-        fallback_token = (
-            github_token if _same_repository(workflow_repo, yuzu_repo) else ""
-        )
-        if github_token and not fallback_token:
-            logging.info(
-                f"  ℹ️  Not using GITHUB_TOKEN for {yuzu_repo}: workflow token is "
-                f"scoped to {workflow_repo or '(unknown repository)'}."
-            )
-        if not download_asset_gh(
-            yuzu_repo,
-            yuzu_tag,
-            yuzu_file,
-            yuzu_dest_file,
-            token=yuzu_pat,
-            fallback_token=fallback_token,
-        ):
-            failures.append("yuzu: patches-1.0.rvp")
-    else:
-        logging.info(
-            "\n⏭️  Skipping optional yuzu patches: no enabled build uses yuzu"
-        )
-
     try:
         source_tags = json.loads(os.environ.get("SOURCE_TAGS_JSON", "{}"))
     except json.JSONDecodeError as error:

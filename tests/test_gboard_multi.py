@@ -117,7 +117,7 @@ class GboardMultiSourceTests(unittest.TestCase):
         )
 
     def test_anddea_update_builds_only_anddea_targets(self):
-        matrix = self._prepare_matrix(UPDATED_SOURCES="anddea")
+        matrix = self._prepare_matrix(UPDATED_SOURCES="revanced-anddea")
         self.assertTrue(matrix)
         self.assertEqual(
             {item["source"] for item in matrix},
@@ -126,7 +126,7 @@ class GboardMultiSourceTests(unittest.TestCase):
 
     def test_source_and_apk_updates_are_combined_without_expanding_apk_source(self):
         matrix = self._prepare_matrix(
-            UPDATED_SOURCES="anddea",
+            UPDATED_SOURCES="revanced-anddea",
             UPDATED_APPS="amazon-shopping",
         )
         selected = {(item["app_name"], item["source"]) for item in matrix}

@@ -17,5 +17,3 @@ for app in apps:
 for src in sources_to_force:
     varname = src.replace("-", "_").upper()
     print(f"FORCE_{varname}=true")
-    if varname == "REVANCED_ANDDEA":
-        print("FORCE_ANDDEA=true")

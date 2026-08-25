@@ -15,62 +15,6 @@ on:
         description: 'JSON object of source names to exact patch Release tags'
         required: false
         default: '{}'
-      morphe_updated:
-        description: 'Whether Morphe (Official) was updated'
-        required: false
-        default: 'false'
-      anddea_updated:
-        description: 'Whether Anddea was updated'
-        required: false
-        default: 'false'
-      rushiranpise_updated:
-        description: 'Whether rushiranpise was updated'
-        required: false
-        default: 'false'
-      rookie_updated:
-        description: 'Whether RookieEnough was updated'
-        required: false
-        default: 'false'
-      tosox_updated:
-        description: 'Whether Tosox was updated'
-        required: false
-        default: 'false'
-      yuzu_updated:
-        description: 'Whether YuzuMikan404 was updated'
-        required: false
-        default: 'false'
-      dropped_updated:
-        description: 'Whether Dropped-Patches was updated'
-        required: false
-        default: 'false'
-      morphe_force_build:
-        description: 'Force build Morphe due to APK update (no NEW badge)'
-        required: false
-        default: 'false'
-      anddea_force_build:
-        description: 'Force build Anddea due to APK update (no NEW badge)'
-        required: false
-        default: 'false'
-      rushiranpise_force_build:
-        description: 'Force build rushiranpise due to APK update (no NEW badge)'
-        required: false
-        default: 'false'
-      rookie_force_build:
-        description: 'Force build RookieEnough due to APK update (no NEW badge)'
-        required: false
-        default: 'false'
-      tosox_force_build:
-        description: 'Force build Tosox due to APK update (no NEW badge)'
-        required: false
-        default: 'false'
-      yuzu_force_build:
-        description: 'Force build YuzuMikan404 due to APK update (no NEW badge)'
-        required: false
-        default: 'false'
-      dropped_force_build:
-        description: 'Force build Dropped-Patches due to APK update (no NEW badge)'
-        required: false
-        default: 'false'
       apk_updated_apps:
         description: 'JSON array of apps whose APK was updated'
         required: false
@@ -130,15 +74,7 @@ jobs:
         if: steps.cache-restore.outputs.cache-hit != 'true'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          UPD_MORPHE:   ${{ github.event.inputs.morphe_updated }}
-          UPD_ANDDEA:   ${{ github.event.inputs.anddea_updated }}
-          UPD_RUSHIRANPISE: ${{ github.event.inputs.rushiranpise_updated }}
-          UPD_ROOKIE:   ${{ github.event.inputs.rookie_updated }}
-          UPD_TOSOX:    ${{ github.event.inputs.tosox_updated }}
-          UPD_YUZU:     ${{ github.event.inputs.yuzu_updated }}
-          UPD_DROPPED:  ${{ github.event.inputs.dropped_updated }}
           SOURCE_TAGS_JSON:           ${{ steps.resolve-tags.outputs.resolved_tags }}
-          PAT:                        ${{ secrets.PAT }}
         run: |
           pip install -r requirements.txt -q
           python3 scripts/download_all_tools.py
@@ -164,20 +100,6 @@ jobs:
       - name: Read Patch Config and Filter by Updated Sources
         id: read-matrix
         env:
-          UPD_MORPHE:   ${{ github.event.inputs.morphe_updated }}
-          UPD_ANDDEA:   ${{ github.event.inputs.anddea_updated }}
-          UPD_RUSHIRANPISE: ${{ github.event.inputs.rushiranpise_updated }}
-          UPD_ROOKIE:   ${{ github.event.inputs.rookie_updated }}
-          UPD_TOSOX:    ${{ github.event.inputs.tosox_updated }}
-          UPD_YUZU:     ${{ github.event.inputs.yuzu_updated }}
-          UPD_DROPPED:  ${{ github.event.inputs.dropped_updated }}
-          FORCE_MORPHE:  ${{ github.event.inputs.morphe_force_build }}
-          FORCE_ANDDEA:  ${{ github.event.inputs.anddea_force_build }}
-          FORCE_RUSHIRANPISE: ${{ github.event.inputs.rushiranpise_force_build }}
-          FORCE_ROOKIE:  ${{ github.event.inputs.rookie_force_build }}
-          FORCE_TOSOX:   ${{ github.event.inputs.tosox_force_build }}
-          FORCE_YUZU:    ${{ github.event.inputs.yuzu_force_build }}
-          FORCE_DROPPED: ${{ github.event.inputs.dropped_force_build }}
           BUILD_ALL_SOURCES: ${{ github.event.inputs.build_all_sources }}
           UPDATED_SOURCES: ${{ github.event.inputs.updated_sources }}
           UPDATED_APPS: ${{ github.event.inputs.updated_apps }}
@@ -702,20 +624,6 @@ jobs:
         env:
           EXPECTED_MATRIX: ${{ needs.prepare-matrix.outputs.matrix }}
           SOURCE_TAGS_JSON: ${{ needs.download-tools.outputs.resolved-tags }}
-          MORPHE_UPDATED: ${{ github.event.inputs.morphe_updated }}
-          ANDDEA_UPDATED: ${{ github.event.inputs.anddea_updated }}
-          RUSHIRANPISE_UPDATED: ${{ github.event.inputs.rushiranpise_updated }}
-          ROOKIE_UPDATED: ${{ github.event.inputs.rookie_updated }}
-          TOSOX_UPDATED: ${{ github.event.inputs.tosox_updated }}
-          YUZU_UPDATED: ${{ github.event.inputs.yuzu_updated }}
-          DROPPED_UPDATED: ${{ github.event.inputs.dropped_updated }}
-          MORPHE_FORCE: ${{ github.event.inputs.morphe_force_build }}
-          ANDDEA_FORCE: ${{ github.event.inputs.anddea_force_build }}
-          RUSHIRANPISE_FORCE: ${{ github.event.inputs.rushiranpise_force_build }}
-          ROOKIE_FORCE: ${{ github.event.inputs.rookie_force_build }}
-          TOSOX_FORCE: ${{ github.event.inputs.tosox_force_build }}
-          YUZU_FORCE: ${{ github.event.inputs.yuzu_force_build }}
-          DROPPED_FORCE: ${{ github.event.inputs.dropped_force_build }}
         run: |
           python3 -m scripts.release_notes
 
