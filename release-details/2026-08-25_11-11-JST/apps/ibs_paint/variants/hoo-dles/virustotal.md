@@ -1,0 +1,16 @@
+# ibis Paint X — VirusTotal
+
+**対象:** パッチ適用前に取得したBase APK（配布元から取得/キャッシュ復元した原本）
+
+- **結果:** ✅ Clean
+- **スキャン対象:** 1 file(s)
+
+| File | SHA-256 | Malicious | Suspicious | Method | VirusTotal |
+| --- | --- | ---: | ---: | --- | --- |
+| `ibs_paint-hoo-dles-universal.apks` | `bdc6c6e4a32f294e85755b61457689ad676acb680118d1d8ce8f214a018b86cd` | 0 | 0 | `uploaded` | [Open](https://www.virustotal.com/gui/file/bdc6c6e4a32f294e85755b61457689ad676acb680118d1d8ce8f214a018b86cd/detection) |
+
+## Scanner telemetry
+
+- Persistent cache hits: `37`
+- New hashes: `34`
+- Analyses started: `10`
