@@ -220,6 +220,8 @@ class DownloadApksTests(unittest.TestCase):
         download_platform.assert_not_called()
         record.assert_called_once()
 
+    @mock.patch("src.provenance.record")
+    @mock.patch("scripts.download_apks.apk_cache.stage")
     @mock.patch("scripts.download_apks._cache_snapshot", return_value=set())
     @mock.patch("scripts.download_apks._new_cache_entries", return_value=set())
     @mock.patch("scripts.download_apks.providers.load_config", return_value={})
@@ -232,7 +234,7 @@ class DownloadApksTests(unittest.TestCase):
     @mock.patch("scripts.download_apks.aurora_play.download_candidate")
     @mock.patch("scripts.download_apks.apk_cache.is_valid_apk_archive", return_value=True)
     @mock.patch("scripts.download_apks.apk_identity.validate_identity")
-    def test_google_play_version_mismatch_tries_configured_provider(
+    def test_provider_version_mismatch_tries_google_play_rescue(
         self,
         validate_identity: mock.Mock,
         is_valid_apk_archive: mock.Mock,
@@ -246,6 +248,8 @@ class DownloadApksTests(unittest.TestCase):
         load_config: mock.Mock,
         new_cache_entries: mock.Mock,
         cache_snapshot: mock.Mock,
+        stage: mock.Mock,
+        record: mock.Mock,
     ) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -257,8 +261,8 @@ class DownloadApksTests(unittest.TestCase):
 
             find_tools.return_value = ([], Path("cli.jar"), Path("patches.mpp"))
             supported_versions.return_value = [candidate]
-            play_download.return_value = wrong
-            download_platform.return_value = (correct, "1.2.3")
+            download_platform.return_value = (wrong, "1.2.3")
+            play_download.return_value = correct
             validate_identity.side_effect = [
                 ApkIdentityError(
                     "APK version mismatch: expected 1.2.3, actual 999 (9.9.9)"
@@ -272,7 +276,10 @@ class DownloadApksTests(unittest.TestCase):
         self.assertEqual(version, "1.2.3")
         self.assertFalse(wrong.exists())
         download_platform.assert_called_once()
-        remove_origin.assert_not_called()
+        remove_origin.assert_called_once_with("example", "arm64-v8a")
+        play_download.assert_called_once()
+        stage.assert_called_once()
+        record.assert_called_once()
 
     @mock.patch("src.provenance.record")
     @mock.patch("scripts.download_apks.apk_cache.stage")

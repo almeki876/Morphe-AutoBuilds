@@ -26,10 +26,9 @@ class SmartDownloadRoutingTests(unittest.TestCase):
             old = Path.cwd()
             os.chdir(directory)
             try:
-                with mock.patch.object(download_apks, "_tailscale_fallback_active", return_value=False):
-                    download_apks._require_japan_fallback_before_providers(
-                        "example", RuntimeError("play failed")
-                    )
+                with mock.patch.object(download_apks, "_tailscale_fallback_active") as active:
+                    download_apks._request_japan_first_handoff("example")
+                active.assert_not_called()
             finally:
                 os.chdir(old)
 
