@@ -97,7 +97,7 @@
     {"app_name":"ibs_paint","source":"hoo-dles","disable":[]},
     {"app_name":"icon-packer","source":"hoo-dles","disable":[]},
     {"app_name":"nova","source":"morning-entree","disable":[]},
-    {"app_name":"proton-vpn","source":"paresh","disable":[]},
+    {"app_name":"proton-vpn","source":"rushiranpise","disable":[],"required":["Unlock VPN Plus"]},
     {"app_name":"smart_launcher","source":"hoo-dles","disable":[]},
     {"app_name":"soundcloud","source":"hoo-dles","disable":[]},
     {"app_name":"wps-office","source":"hoo-dles","disable":[]},
