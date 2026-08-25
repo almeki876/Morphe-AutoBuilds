@@ -1,0 +1,23 @@
+{
+  "results": [
+    {
+      "file": "proton-vpn-rushiranpise-universal.apk",
+      "sha256": "ab1927d9ee4cdb66c4f1cdaa64ca6e33e9bd52d8c160f99e6408d23064be1337",
+      "size": 61532765,
+      "analysis_id": "",
+      "malicious": 0,
+      "suspicious": 0,
+      "harmless": 0,
+      "undetected": 50,
+      "timeout": 16,
+      "failure": 1,
+      "unsupported": 8,
+      "verdict": "clean",
+      "method": "persistent hash cache",
+      "engines": {},
+      "permalink": "https://www.virustotal.com/gui/file/ab1927d9ee4cdb66c4f1cdaa64ca6e33e9bd52d8c160f99e6408d23064be1337/detection",
+      "last_analysis_date": 1787562789,
+      "reanalyzed": false
+    }
+  ]
+}
