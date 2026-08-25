@@ -1,0 +1,5 @@
+{
+  "package": "ch.protonvpn.android",
+  "source_policy": "google-play-first",
+  "egress_policy": "japan-first"
+}
