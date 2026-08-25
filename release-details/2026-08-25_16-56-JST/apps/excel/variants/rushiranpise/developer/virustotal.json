@@ -1,0 +1,23 @@
+{
+  "results": [
+    {
+      "file": "excel-rushiranpise-arm64-v8a.apkm",
+      "sha256": "12c98199568162f4aee57d5661e5b29a7afadf3e23435294af8b55f182a94fcd",
+      "size": 125396656,
+      "analysis_id": "",
+      "malicious": 0,
+      "suspicious": 0,
+      "harmless": 0,
+      "undetected": 47,
+      "timeout": 4,
+      "failure": 14,
+      "unsupported": 10,
+      "verdict": "clean",
+      "method": "persistent hash cache",
+      "engines": {},
+      "permalink": "https://www.virustotal.com/gui/file/12c98199568162f4aee57d5661e5b29a7afadf3e23435294af8b55f182a94fcd/detection",
+      "last_analysis_date": 1787208467,
+      "reanalyzed": false
+    }
+  ]
+}

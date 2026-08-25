@@ -1,0 +1,72 @@
+app=alarmy
+source=fluffy
+source_name=rabilrbl
+phase=Patch
+status=success
+run=https://github.com/almeki876/Morphe-AutoBuilds/actions/runs/32822467749
+
+traceback_or_error_tail<<EOF
+2026-08-25 07:51:39 CLI raw output lines: ['INFO: Package name: droom.sleepIfUCan', 'Most common compatible versions:', '\t26.32.1 (1 patch)']
+2026-08-25 07:51:39 CLI parsed compatible versions: ['26.32.1']
+2026-08-25 07:51:39 🔨 Building 'alarmy' for arm64-v8a…
+2026-08-25 07:51:39 📦 Using pre-downloaded tools from tools/fluffy (2 files)
+2026-08-25 07:51:39 📦 Downloaded 2 file(s) for 'fluffy':
+2026-08-25 07:51:39    • patches-1.1.0-dev.1.mpp  (638784 bytes)
+2026-08-25 07:51:39    • morphe-desktop-1.14.0-dev.2-all.jar  (40387872 bytes)
+2026-08-25 07:51:39 🔍 Detected: Morphe patching system
+2026-08-25 07:51:39 ✅ CLI:    morphe-desktop-1.14.0-dev.2-all.jar
+2026-08-25 07:51:39 ✅ Bundle: patches-1.1.0-dev.1.mpp
+2026-08-25 07:51:39 ✅ Using pre-downloaded APK input: .build-input-arm64-v8a.apk
+2026-08-25 07:51:39 [SIZE] downloaded: 211483038 bytes (.build-input-arm64-v8a.apk)
+2026-08-25 07:51:39 Preserved unmodified base APK for VirusTotal: base-apk-scan-out/alarmy-fluffy-arm64-v8a-v26.32.1.apk
+2026-08-25 07:51:39 Processing APK for 'arm64-v8a' architecture…
+2026-08-25 07:51:40 Validated input APK: 211483038 bytes (ABIs: none)
+2026-08-25 07:51:40 [SIZE] prepared: 211483038 bytes (.build-input-arm64-v8a.apk)
+2026-08-25 07:51:40 ℹ️  No explicit patch allowlist for patches/alarmy-fluffy.txt; using patch bundle defaults
+2026-08-25 07:51:40 Checking APK integrity…
+2026-08-25 07:51:40 APK integrity check passed.
+2026-08-25 07:51:40 🔧 Patching with morphe CLI (morphe-desktop-1.14.0-dev.2-all.jar)…
+2026-08-25 07:51:41 Available patches in patches-1.1.0-dev.1.mpp:
+INFO: Index: 0
+Name: Unlock Premium
+Description: Unlocks premium features and disables ads by forcing both premium gates true.
+Enabled: true
+
+Index: 1
+Name: Bypass Instant Approval
+Description: Bypasses the local coin redemption step for Instant Approval actions.
+Enabled: true
+
+Index: 2
+Name: Enable Premium
+Description: Enables BlockerX premium gates and premium module access.
+Enabled: true
+2026-08-25 07:51:41 enable_patches=[]  disable_patches=[]
+2026-08-25 07:51:41 Running: java -Djava.awt.headless=true -Xmx6g -Xms3g -Dfile.encoding=UTF-8 -XX:-UsePerfData -XX:+UseG1GC -XX:MaxGCPauseMillis=150 -XX:G1HeapRegionSize=2m -XX:+UseStringDeduplication -XX:+ParallelRefProcEnabled -XX:ConcGCThreads=2 -XX:ParallelGCThreads=4 -XX:CICompilerCount=3 -XX:+UseCompressedOops -XX:+OptimizeStringConcat -XX:+DisableExplicitGC -XX:+TieredCompilation -XX:ReservedCodeCacheSize=128m -XX:InitialCodeCacheSize=32m -XX:MaxMetaspaceSize=128m -XX:SoftRefLRUPolicyMSPerMB=50 --add-opens=java.base/java.lang=ALL-UNNAMED --add-opens=java.base/java.util=ALL-UNNAMED --add-opens=java.base/java.io=ALL-UNNAMED -jar morphe-desktop-1.14.0-dev.2-all.jar patch --force --continue-on-error -p patches-1.1.0-dev.1.mpp --out=alarmy-arm64-v8a-patch-v26.32.1.apk --bytecode-mode=STRIP_FAST .build-input-arm64-v8a.apk
+⚠️  Ignoring legacy BASE_APK_CACHE_TAG='base-apk-cache-v2'; using 'base-apk-cache-v4-ja-jp-px9a-split'
+INFO: Morphe data root: /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/morphe-data (JAR-adjacent)
+INFO: Loading patches...
+INFO: Initializing patcher...
+INFO: Filtering patches for droom.sleepIfUCan v26.32.1...
+INFO: Applying 1 patches...
+INFO: Executing patches
+INFO: Applied: Unlock Premium
+INFO: Compiling patched dex files (mode: STRIP_FAST)
+INFO: Writing 1 new classes to new DEX files
+INFO: Processing 1 classes (single threaded mode)
+INFO: Wrote 1 dex files to /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/morphe-data/tmp/patching-1787644303785/patched/dex
+INFO: Stripping 1 modified classes from original DEX files
+INFO: Aligning APK
+INFO: Signing APK
+INFO: Saved to /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/alarmy-arm64-v8a-patch-v26.32.1.apk
+INFO: Purged this session's temp files: patching-1787644303785
+2026-08-25 07:51:56 Validated patched APK: 112904797 bytes (ABIs: none)
+2026-08-25 07:51:56 [SIZE] patched: 112904797 bytes (alarmy-arm64-v8a-patch-v26.32.1.apk)
+Signed
+2026-08-25 07:51:59 [SIZE] signed: 112900701 bytes (alarmy-arm64-v8a-fluffy-v26.32.1.apk)
+✅ APK built: alarmy-arm64-v8a-fluffy-v26.32.1.apk
+✅ Built arm64-v8a: alarmy-arm64-v8a-fluffy-v26.32.1.apk
+
+🎯 1 APK(s) built for 'alarmy':
+   📱 alarmy-arm64-v8a-fluffy-v26.32.1.apk
+EOF
