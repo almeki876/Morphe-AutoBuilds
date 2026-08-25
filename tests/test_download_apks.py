@@ -100,6 +100,7 @@ class DownloadApksTests(unittest.TestCase):
     @mock.patch("scripts.download_apks.downloader.download_with_apkeep")
     @mock.patch("scripts.download_apks.downloader.download_with_justapk")
     @mock.patch("scripts.download_apks.providers.download_priority")
+    @mock.patch("scripts.download_apks.providers.google_play_first", return_value=True)
     @mock.patch("scripts.download_apks.providers.google_play_only", return_value=True)
     @mock.patch("scripts.download_apks.providers.configured_package", return_value="com.example.jp")
     @mock.patch("scripts.download_apks.utils.get_supported_version_candidates", return_value=[])
@@ -117,6 +118,7 @@ class DownloadApksTests(unittest.TestCase):
         supported_versions: mock.Mock,
         configured_package: mock.Mock,
         play_only: mock.Mock,
+        play_first: mock.Mock,
         download_priority: mock.Mock,
         justapk: mock.Mock,
         apkeep: mock.Mock,
