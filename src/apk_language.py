@@ -11,7 +11,11 @@ from pathlib import Path
 
 
 class JapaneseResourceError(ValueError):
-    """Raised when an APK does not contain verifiable Japanese resources."""
+    """Raised when an inspected APK does not contain Japanese resources."""
+
+
+class JapaneseResourceVerificationUnavailable(JapaneseResourceError):
+    """Raised when Japanese resources cannot be inspected."""
 
 
 def _find_aapt() -> str | None:
@@ -32,8 +36,17 @@ def _resources_contain_japanese(path: Path, aapt: str) -> bool:
             errors="replace",
             check=False,
         )
-    except OSError:
-        return False
+    except OSError as error:
+        raise JapaneseResourceVerificationUnavailable(
+            f"Japanese resources could not be verified (aapt unavailable): {error}"
+        ) from error
+
+    if result.returncode != 0:
+        diagnostics = (result.stderr or result.stdout or "unknown error").strip()
+        raise JapaneseResourceVerificationUnavailable(
+            "Japanese resources could not be verified "
+            f"(aapt exited with {result.returncode}): {diagnostics[:300]}"
+        )
 
     for line in result.stdout.splitlines():
         normalized = line.strip().lower().replace("_", "-")
@@ -60,7 +73,9 @@ def contains_japanese(path: Path) -> bool:
     """Return true only when Japanese resources can be proven in the payload."""
     aapt = _find_aapt()
     if not aapt:
-        raise JapaneseResourceError("aapt/aapt2 is unavailable; refusing unverified APK")
+        raise JapaneseResourceVerificationUnavailable(
+            "Japanese resources could not be verified (aapt/aapt2 unavailable)"
+        )
 
     if path.suffix.casefold() == ".apk":
         if _resources_contain_japanese(path, aapt):

@@ -325,6 +325,13 @@ def main() -> int:
             "\n⏭️  Skipping optional yuzu patches: no enabled build uses yuzu"
         )
 
+    try:
+        source_tags = json.loads(os.environ.get("SOURCE_TAGS_JSON", "{}"))
+    except json.JSONDecodeError as error:
+        raise ValueError("SOURCE_TAGS_JSON must be valid JSON") from error
+    if not isinstance(source_tags, dict):
+        raise ValueError("SOURCE_TAGS_JSON must be a JSON object")
+
     for source_path in sorted(SOURCES_DIR.glob("*.json")):
         source_name = source_path.stem
         if source_name == "github":
@@ -344,7 +351,7 @@ def main() -> int:
 
         # SOURCE_TAG_<SOURCE_NAME> 環境変数が渡されていればそのタグを優先する
         env_tag_key = f"SOURCE_TAG_{source_name.upper().replace('-', '_')}"
-        env_tag = os.environ.get(env_tag_key, "").strip()
+        env_tag = str(source_tags.get(name) or os.environ.get(env_tag_key, "")).strip()
         logging.info(
             f"  SOURCE_TAG env ({env_tag_key}): "
             f"{env_tag or '(not set, will use sources json)'}"

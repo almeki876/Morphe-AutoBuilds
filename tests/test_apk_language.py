@@ -3,10 +3,22 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from src.apk_language import JapaneseResourceError, contains_japanese
+from src.apk_language import (
+    JapaneseResourceError,
+    JapaneseResourceVerificationUnavailable,
+    contains_japanese,
+)
 
 
 class ApkLanguageTests(unittest.TestCase):
+    @mock.patch("src.apk_language._find_aapt", return_value=None)
+    def test_missing_aapt_is_reported_as_unverified(self, _aapt: mock.Mock) -> None:
+        with self.assertRaisesRegex(
+            JapaneseResourceVerificationUnavailable,
+            "could not be verified.*unavailable",
+        ):
+            contains_japanese(Path("app.apk"))
+
     @mock.patch("src.apk_language._find_aapt", return_value="aapt")
     @mock.patch("src.apk_language._resources_contain_japanese", return_value=True)
     def test_plain_apk_with_japanese_resources_is_accepted(self, resources: mock.Mock, _aapt: mock.Mock) -> None:

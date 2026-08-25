@@ -6,9 +6,25 @@ from pathlib import Path
 from unittest.mock import patch
 
 from src import apk_cache, apk_validation
+from src.apk_language import JapaneseResourceVerificationUnavailable
 
 
 class CacheAndBrandingContractTests(unittest.TestCase):
+    def test_cache_accepts_structurally_valid_apk_when_aapt_is_unavailable(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            apk = Path(temp) / "base.apk"
+            with zipfile.ZipFile(apk, "w") as archive:
+                archive.writestr("AndroidManifest.xml", b"manifest")
+            with patch(
+                "src.apk_cache.contains_japanese",
+                side_effect=JapaneseResourceVerificationUnavailable(
+                    "Japanese resources could not be verified (aapt/aapt2 unavailable)"
+                ),
+            ):
+                with self.assertLogs(level="WARNING") as logs:
+                    self.assertTrue(apk_cache.is_valid_apk_archive(apk))
+            self.assertIn("accepting unverified APK", "\n".join(logs.output))
+
     def test_provider_does_not_control_language_acceptance(self) -> None:
         self.assertNotEqual(
             apk_cache.delivery_profile("aurora-google-play"),

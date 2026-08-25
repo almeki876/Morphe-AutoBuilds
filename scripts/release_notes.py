@@ -406,24 +406,20 @@ def _temporarily_overlay_source_tags() -> bytes | None:
     if not isinstance(data, dict):
         return original
 
-    mappings = {
-        "MORPHE_TAG": ("morphe",),
-        "ANDDEA_TAG": ("anddea", "revanced-anddea"),
-        "RUSHIRANPISE_TAG": ("rushiranpise",),
-        "ROOKIE_TAG": ("rookie",),
-        "TOSOX_TAG": ("tosox",),
-        "YUZU_TAG": ("yuzu",),
-        "DROPPED_TAG": ("dropped",),
-    }
+    try:
+        mappings = json.loads(os.environ.get("SOURCE_TAGS_JSON", "{}"))
+    except json.JSONDecodeError:
+        mappings = {}
+    if not isinstance(mappings, dict):
+        mappings = {}
     changed = False
-    for env_name, keys in mappings.items():
-        value = os.environ.get(env_name, "").strip()
+    for key, raw_value in mappings.items():
+        value = str(raw_value).strip()
         if not value:
             continue
-        for key in keys:
-            if data.get(key) != value:
-                data[key] = value
-                changed = True
+        if data.get(key) != value:
+            data[key] = value
+            changed = True
     if changed:
         path.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     return original

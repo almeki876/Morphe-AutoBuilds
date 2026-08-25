@@ -50,6 +50,9 @@ for app in apps:
     cur = None
     provider_errors = []
     package = providers.configured_package(app)
+    play_required = providers.google_play_only(app)
+    if play_required:
+        print(f"POLICY: {app}: google-play-only; provider fallback is disabled")
 
     # Google Play is the freshest source for an unrestricted/current release.
     # This is metadata-only: no APK bytes are downloaded. If Play is unavailable
@@ -72,7 +75,9 @@ for app in apps:
                 f"{utils.safe_text_for_log(error, 300)}"
             )
 
-    if cur is None:
+    if cur is None and not play_required:
+        if package:
+            print(f"FALLBACK: {app}: Google Play failed; trying configured providers")
         for platform in providers.download_priority(app):
             try:
                 config = providers.load_config(app, platform)
@@ -90,6 +95,8 @@ for app in apps:
                     f"{utils.safe_text_for_log(error, 300)}"
                 )
                 continue
+    elif cur is None and play_required:
+        provider_errors.append("policy: google-play-only; provider fallback disabled")
 
     if cur is None:
         print(f"WARNING: {app}: could not resolve APK version, skipping")

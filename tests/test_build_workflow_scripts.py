@@ -9,12 +9,15 @@ from scripts import create_release, install_google_play_clients, resolve_build_t
 
 
 class ResolveBuildToolsTests(unittest.TestCase):
-    def test_explicit_tag_skips_github_lookup(self) -> None:
-        with mock.patch.object(resolve_build_tools.subprocess, "run") as run:
-            self.assertEqual(resolve_build_tools.resolve_tag("owner/repo", "v1.2.3"), "v1.2.3")
-        run.assert_not_called()
+    def test_supplied_source_tags_skip_resolution(self) -> None:
+        with mock.patch.object(resolve_build_tools, "iter_sources", return_value=[{"name": "new"}]), mock.patch.object(
+            resolve_build_tools, "resolve_source_tag"
+        ) as resolve:
+            result = resolve_build_tools.resolve_all({"SOURCE_TAGS_JSON": '{"new":"v1.2.3"}'})
+        self.assertEqual(result, {"new": "v1.2.3"})
+        resolve.assert_not_called()
 
-    def test_cache_key_preserves_source_order(self) -> None:
+    def test_cache_key_is_independent_of_source_order(self) -> None:
         resolved = {
             "morphe": "m",
             "anddea": "a",
@@ -24,10 +27,9 @@ class ResolveBuildToolsTests(unittest.TestCase):
             "yuzu": "y",
             "dropped": "d",
         }
-        self.assertEqual(
-            resolve_build_tools.cache_key("hash", resolved),
-            "build-tools-hash-m__a__r__k__t__y__d",
-        )
+        first = resolve_build_tools.cache_key("hash", resolved)
+        self.assertEqual(first, resolve_build_tools.cache_key("hash", dict(reversed(resolved.items()))))
+        self.assertRegex(first, r"^build-tools-hash-[0-9a-f]{20}$")
 
 
 class InstallGooglePlayClientsTests(unittest.TestCase):

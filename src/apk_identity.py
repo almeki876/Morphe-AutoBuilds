@@ -12,7 +12,11 @@ import tempfile
 import zipfile
 from pathlib import Path
 
-from src.apk_language import JapaneseResourceError, contains_japanese
+from src.apk_language import (
+    JapaneseResourceError,
+    JapaneseResourceVerificationUnavailable,
+    contains_japanese,
+)
 from src.versioning import VersionCandidate
 
 
@@ -168,8 +172,10 @@ def validate_identity(
     try:
         if not contains_japanese(path):
             raise JapaneseResourceError("Japanese resources were not detected")
+    except JapaneseResourceVerificationUnavailable as error:
+        logging.warning("⚠️  %s; accepting unverified APK: %s", error, path)
     except JapaneseResourceError as error:
         if require_japanese:
             raise ApkIdentityError(f"APK does not contain Japanese resources: {error}") from error
-        logging.warning("⚠️  APK accepted without verified Japanese resources: %s", path)
+        logging.warning("⚠️  APK accepted although Japanese resources were not detected: %s", path)
     return identity

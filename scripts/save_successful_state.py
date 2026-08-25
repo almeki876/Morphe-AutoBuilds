@@ -26,17 +26,6 @@ if str(REPOSITORY_ROOT) not in sys.path:
 STATE_FILE = Path("last-tags.json")
 DIRECT_DOWNLOAD_FILE = Path("Morphe-AutoBuilds-Direct-Download.md")
 BUILD_RESULTS_DIR = Path("build-results")
-SOURCE_ENV = {
-    "morphe": "SOURCE_TAG_MORPHE",
-    "anddea": "SOURCE_TAG_ANDDEA",
-    "rushiranpise": "SOURCE_TAG_RUSHIRANPISE",
-    "rookie": "SOURCE_TAG_ROOKIE",
-    "tosox": "SOURCE_TAG_TOSOX",
-    "yuzu": "SOURCE_TAG_YUZU",
-    "dropped": "SOURCE_TAG_DROPPED",
-}
-
-
 def _github_headers() -> dict[str, str]:
     return {
         "Accept": "application/vnd.github+json",
@@ -283,14 +272,18 @@ def main() -> None:
             "toolchain pair; retaining the existing safety anchor."
         )
 
-    for key, env_name in SOURCE_ENV.items():
+    try:
+        resolved_source_tags = json.loads(os.getenv("SOURCE_TAGS_JSON", "{}"))
+    except json.JSONDecodeError:
+        resolved_source_tags = {}
+    if not isinstance(resolved_source_tags, dict):
+        resolved_source_tags = {}
+    for key, raw_value in resolved_source_tags.items():
         # Morphe safety state is managed only from exact build-report evidence
         # above, never from the requested/resolved tag or a later API lookup.
         if key == "morphe":
             continue
-        value = os.getenv(env_name, "").strip()
-        if not value and key == "anddea":
-            value = os.getenv("SOURCE_TAG_REVANCED_ANDDEA", "").strip()
+        value = str(raw_value).strip()
         if value and value not in {"latest", "unknown"} and not value.startswith("{"):
             state[key] = value
 

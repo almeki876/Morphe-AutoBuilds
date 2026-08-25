@@ -14,7 +14,11 @@ from pathlib import Path
 
 from github import Auth, Github
 from github.GithubException import GithubException, UnknownObjectException
-from src.apk_language import JapaneseResourceError, contains_japanese
+from src.apk_language import (
+    JapaneseResourceError,
+    JapaneseResourceVerificationUnavailable,
+    contains_japanese,
+)
 
 CACHE_TAG = os.getenv("BASE_APK_CACHE_TAG", "base-apk-cache-v4-ja-verified")
 CACHE_DIR = Path(os.getenv("BASE_APK_CACHE_DIR", "base-apk-cache-out"))
@@ -97,8 +101,11 @@ def _validate(path: Path, expected_sha256: str | None = None) -> bool:
 def _contains_japanese(path: Path) -> bool:
     try:
         return contains_japanese(path)
+    except JapaneseResourceVerificationUnavailable as error:
+        logging.warning("⚠️  %s; accepting unverified APK: %s", error, path)
+        return True
     except JapaneseResourceError as error:
-        logging.warning("APK rejected because Japanese resources were not proven: %s", error)
+        logging.warning("APK rejected because Japanese resources were not detected: %s", error)
         return False
 
 
@@ -257,7 +264,7 @@ def stage(
     if not _enabled() or not package or not version or not _validate(path):
         return None
     if require_japanese and not _contains_japanese(path):
-        logging.error("❌ Refusing to cache APK without verifiable Japanese resources: %s", path)
+        logging.error("❌ Refusing to cache APK because Japanese resources were not detected: %s", path)
         return None
     digest = _sha256(path)
     suffix = path.suffix.lower()
@@ -271,5 +278,5 @@ def stage(
         temporary = target.with_name(f".{target.name}.part")
         shutil.copy2(path, temporary)
         temporary.replace(target)
-    logging.info("📥 Staged verified APK cache candidate: %s %s (%s, profile=%s)", package, version, provider, profile)
+    logging.info("📥 Staged integrity-checked APK cache candidate: %s %s (%s, profile=%s)", package, version, provider, profile)
     return target

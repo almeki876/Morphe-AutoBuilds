@@ -11,10 +11,29 @@ from src.apk_identity import (
     read_identity,
     validate_identity,
 )
+from src.apk_language import JapaneseResourceVerificationUnavailable
 from src.versioning import VersionCandidate, parse_candidate
 
 
 class ApkIdentityTests(unittest.TestCase):
+    @mock.patch(
+        "src.apk_identity.contains_japanese",
+        side_effect=JapaneseResourceVerificationUnavailable(
+            "Japanese resources could not be verified (aapt/aapt2 unavailable)"
+        ),
+    )
+    @mock.patch("src.apk_identity.read_identity")
+    def test_accepts_matching_identity_when_japanese_check_is_unavailable(
+        self, read_identity_mock: mock.Mock, _ja: mock.Mock
+    ) -> None:
+        read_identity_mock.return_value = ApkIdentity(
+            "com.example.app", "1.2.3", "123"
+        )
+        with self.assertLogs(level="WARNING") as logs:
+            result = validate_identity(Path("app.apk"), "com.example.app")
+        self.assertEqual(result.version_name, "1.2.3")
+        self.assertIn("accepting unverified APK", "\n".join(logs.output))
+
     def test_parse_badging(self) -> None:
         identity = parse_badging(
             "package: name='com.example.app' versionCode='123' versionName='1.2.3' platformBuildVersionName=''\n"

@@ -1,4 +1,9 @@
-"""Check every patch source declared in sources/*.json for a new release."""
+"""Check every patch source declared in sources/*.json for a new release.
+
+GitHub Releases are authoritative and prereleases are included. Tag-only refs
+are deliberately ignored because the build requires Release assets. A source
+whose configured tag is not ``latest`` is an explicit pin and is not monitored.
+"""
 
 from __future__ import annotations
 
@@ -30,6 +35,31 @@ def latest_tag(owner: str, repo: str) -> str:
     return releases[0]["tag_name"] if releases else ""
 
 
+def iter_sources() -> list[dict]:
+    sources = []
+    for source_path in sorted(SOURCES_DIR.glob("*.json")):
+        repositories = json.loads(source_path.read_text(encoding="utf-8"))
+        if not isinstance(repositories, list) or len(repositories) < 3:
+            continue
+        patch = repositories[2]
+        sources.append({
+            "name": str(repositories[0].get("name") or source_path.stem),
+            "owner": str(patch["user"]),
+            "repo": str(patch["repo"]),
+            "ref": str(patch.get("tag") or "latest"),
+            "gitlab": bool(patch.get("gitlab")),
+        })
+    return sources
+
+
+def resolve_source_tag(source: dict) -> str:
+    if source["ref"] != "latest":
+        return source["ref"]
+    if source["gitlab"]:
+        raise RuntimeError("GitLab latest-release monitoring is not configured")
+    return latest_tag(source["owner"], source["repo"])
+
+
 def main() -> int:
     try:
         state = json.loads(STATE_FILE.read_text(encoding="utf-8"))
@@ -39,23 +69,23 @@ def main() -> int:
         state = {}
 
     updated_sources: list[str] = []
-    for source_path in sorted(SOURCES_DIR.glob("*.json")):
-        repositories = json.loads(source_path.read_text(encoding="utf-8"))
-        if not isinstance(repositories, list) or len(repositories) < 3:
-            continue
-        source = repositories[0]["name"]
-        patch_repository = repositories[2]
+    source_tags: dict[str, str] = {}
+    for source_spec in iter_sources():
+        source = source_spec["name"]
         try:
-            current = latest_tag(patch_repository["user"], patch_repository["repo"])
-        except (HTTPError, URLError, TimeoutError, KeyError, IndexError) as error:
+            current = resolve_source_tag(source_spec)
+        except (HTTPError, URLError, TimeoutError, KeyError, IndexError, RuntimeError) as error:
             print(f"WARNING: {source}: could not fetch release: {error}")
             continue
 
+        source_tags[source] = current
+
         previous = state.get(source, "")
-        if previous and current and current != previous:
-            workflow_source = "anddea" if source == "revanced-anddea" else source
-            updated_sources.append(workflow_source)
-            print(f"UPDATED: {source}: {previous} -> {current}")
+        if source_spec["ref"] != "latest":
+            print(f"PINNED: {source}: {current} (automatic update detection disabled)")
+        elif current and current != previous:
+            updated_sources.append(source)
+            print(f"UPDATED: {source}: {previous or '(untracked)'} -> {current}")
         elif current:
             print(f"UNCHANGED: {source}: {current}")
         else:
@@ -66,6 +96,7 @@ def main() -> int:
         with open(output_file, "a", encoding="utf-8") as output:
             output.write(f"any_updated={'true' if updated_sources else 'false'}\n")
             output.write(f"updated_sources={','.join(sorted(updated_sources))}\n")
+            output.write(f"source_tags={json.dumps(source_tags, separators=(',', ':'))}\n")
     return 0
 
 

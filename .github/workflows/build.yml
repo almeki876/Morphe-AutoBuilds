@@ -11,34 +11,10 @@ concurrency:
 on:
   workflow_dispatch:
     inputs:
-      morphe_tag:
-        description: 'Morphe (Official) tag'
+      source_tags:
+        description: 'JSON object of source names to exact patch Release tags'
         required: false
-        default: 'latest'
-      anddea_tag:
-        description: 'Anddea tag'
-        required: false
-        default: 'latest'
-      rushiranpise_tag:
-        description: 'rushiranpise tag'
-        required: false
-        default: 'latest'
-      rookie_tag:
-        description: 'RookieEnough tag'
-        required: false
-        default: 'latest'
-      tosox_tag:
-        description: 'Tosox tag'
-        required: false
-        default: 'latest'
-      yuzu_tag:
-        description: 'YuzuMikan404 tag'
-        required: false
-        default: 'latest'
-      dropped_tag:
-        description: 'Dropped-Patches tag'
-        required: false
-        default: 'latest'
+        default: '{}'
       morphe_updated:
         description: 'Whether Morphe (Official) was updated'
         required: false
@@ -120,13 +96,7 @@ jobs:
       contents: read
     outputs:
       cache-key: ${{ steps.resolve-tags.outputs.cache-key }}
-      morphe_resolved:  ${{ steps.resolve-tags.outputs.morphe_resolved }}
-      anddea_resolved:  ${{ steps.resolve-tags.outputs.anddea_resolved }}
-      rushiranpise_resolved: ${{ steps.resolve-tags.outputs.rushiranpise_resolved }}
-      rookie_resolved:  ${{ steps.resolve-tags.outputs.rookie_resolved }}
-      tosox_resolved:   ${{ steps.resolve-tags.outputs.tosox_resolved }}
-      yuzu_resolved:    ${{ steps.resolve-tags.outputs.yuzu_resolved }}
-      dropped_resolved: ${{ steps.resolve-tags.outputs.dropped_resolved }}
+      resolved-tags: ${{ steps.resolve-tags.outputs.resolved_tags }}
 
     steps:
       - name: Checkout Repository
@@ -139,12 +109,7 @@ jobs:
         id: resolve-tags
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          MORPHE_TAG: ${{ github.event.inputs.morphe_tag }}
-          ANDDEA_TAG: ${{ github.event.inputs.anddea_tag }}
-          RUSHIRANPISE_TAG: ${{ github.event.inputs.rushiranpise_tag }}
-          ROOKIE_TAG: ${{ github.event.inputs.rookie_tag }}
-          TOSOX_TAG: ${{ github.event.inputs.tosox_tag }}
-          DROPPED_TAG: ${{ github.event.inputs.dropped_tag }}
+          SOURCE_TAGS_JSON: ${{ github.event.inputs.source_tags }}
           CONFIG_HASH: ${{ hashFiles('my-patch-config.json', 'arch-config.json', 'sources/**') }}
         run: python3 scripts/resolve_build_tools.py
 
@@ -172,15 +137,8 @@ jobs:
           UPD_TOSOX:    ${{ github.event.inputs.tosox_updated }}
           UPD_YUZU:     ${{ github.event.inputs.yuzu_updated }}
           UPD_DROPPED:  ${{ github.event.inputs.dropped_updated }}
-          SOURCE_TAG_MORPHE:          ${{ steps.resolve-tags.outputs.morphe_resolved }}
-          SOURCE_TAG_ANDDEA:          ${{ steps.resolve-tags.outputs.anddea_resolved }}
-          SOURCE_TAG_REVANCED_ANDDEA: ${{ steps.resolve-tags.outputs.anddea_resolved }}
-          SOURCE_TAG_RUSHIRANPISE:    ${{ steps.resolve-tags.outputs.rushiranpise_resolved }}
-          SOURCE_TAG_ROOKIE:          ${{ steps.resolve-tags.outputs.rookie_resolved }}
-          SOURCE_TAG_TOSOX:           ${{ steps.resolve-tags.outputs.tosox_resolved }}
-          SOURCE_TAG_YUZU:            ${{ steps.resolve-tags.outputs.yuzu_resolved }}
+          SOURCE_TAGS_JSON:           ${{ steps.resolve-tags.outputs.resolved_tags }}
           PAT:                        ${{ secrets.PAT }}
-          SOURCE_TAG_DROPPED:         ${{ steps.resolve-tags.outputs.dropped_resolved }}
         run: |
           pip install -r requirements.txt -q
           python3 scripts/download_all_tools.py
@@ -743,13 +701,7 @@ jobs:
         if: steps.check-apks.outputs.skip_release == 'false'
         env:
           EXPECTED_MATRIX: ${{ needs.prepare-matrix.outputs.matrix }}
-          MORPHE_TAG: ${{ needs.download-tools.outputs.morphe_resolved }}
-          ANDDEA_TAG: ${{ needs.download-tools.outputs.anddea_resolved }}
-          RUSHIRANPISE_TAG: ${{ needs.download-tools.outputs.rushiranpise_resolved }}
-          ROOKIE_TAG: ${{ needs.download-tools.outputs.rookie_resolved }}
-          TOSOX_TAG: ${{ needs.download-tools.outputs.tosox_resolved }}
-          YUZU_TAG: ${{ needs.download-tools.outputs.yuzu_resolved }}
-          DROPPED_TAG: ${{ needs.download-tools.outputs.dropped_resolved }}
+          SOURCE_TAGS_JSON: ${{ needs.download-tools.outputs.resolved-tags }}
           MORPHE_UPDATED: ${{ github.event.inputs.morphe_updated }}
           ANDDEA_UPDATED: ${{ github.event.inputs.anddea_updated }}
           RUSHIRANPISE_UPDATED: ${{ github.event.inputs.rushiranpise_updated }}
@@ -833,13 +785,7 @@ jobs:
       - name: Save Resolved Patch and APK Versions
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          SOURCE_TAG_MORPHE: ${{ needs.download-tools.outputs.morphe_resolved }}
-          SOURCE_TAG_ANDDEA: ${{ needs.download-tools.outputs.anddea_resolved }}
-          SOURCE_TAG_RUSHIRANPISE: ${{ needs.download-tools.outputs.rushiranpise_resolved }}
-          SOURCE_TAG_ROOKIE: ${{ needs.download-tools.outputs.rookie_resolved }}
-          SOURCE_TAG_TOSOX: ${{ needs.download-tools.outputs.tosox_resolved }}
-          SOURCE_TAG_YUZU: ${{ needs.download-tools.outputs.yuzu_resolved }}
-          SOURCE_TAG_DROPPED: ${{ needs.download-tools.outputs.dropped_resolved }}
+          SOURCE_TAGS_JSON: ${{ needs.download-tools.outputs.resolved-tags }}
         run: |
           pip install -r requirements.txt
           python3 scripts/save_successful_state.py

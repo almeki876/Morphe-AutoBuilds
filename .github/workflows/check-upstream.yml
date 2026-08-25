@@ -24,35 +24,6 @@ jobs:
       - name: Validate Repository Configuration
         run: python3 scripts/validate_repository.py
 
-      - name: Fetch current tags used as build inputs
-        id: fetch
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          fetch_tag() {
-            gh api "repos/${1}/releases?per_page=100" \
-              --jq 'sort_by(.published_at) | reverse | .[0].tag_name' \
-              2>/dev/null || echo ""
-          }
-
-          declare -A repos=(
-            [morphe]="MorpheApp/morphe-patches"
-            [anddea]="anddea/revanced-patches"
-            [rushiranpise]="rushiranpise/morphe-patches"
-            [rookie]="RookieEnough/De-Vanced"
-            [tosox]="Tosox/revanced-patches"
-            [dropped]="indrastorms/Dropped-Patches"
-          )
-          for key in morphe anddea rushiranpise rookie tosox dropped; do
-            tag="$(fetch_tag "${repos[$key]}")"
-            if [ -z "$tag" ]; then
-              echo "::warning::Could not fetch tag for $key"
-            else
-              echo "$key: $tag"
-            fi
-            echo "${key}_tag=$tag" >> "$GITHUB_OUTPUT"
-          done
-
       - name: Check all declared patch sources
         id: all_sources
         env:
@@ -71,12 +42,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PAT: ${{ secrets.PAT }}
-          SOURCE_TAG_MORPHE: ${{ steps.fetch.outputs.morphe_tag }}
-          SOURCE_TAG_REVANCED_ANDDEA: ${{ steps.fetch.outputs.anddea_tag }}
-          SOURCE_TAG_RUSHIRANPISE: ${{ steps.fetch.outputs.rushiranpise_tag }}
-          SOURCE_TAG_ROOKIE: ${{ steps.fetch.outputs.rookie_tag }}
-          SOURCE_TAG_TOSOX: ${{ steps.fetch.outputs.tosox_tag }}
-          SOURCE_TAG_DROPPED: ${{ steps.fetch.outputs.dropped_tag }}
+          SOURCE_TAGS_JSON: ${{ steps.all_sources.outputs.source_tags }}
         run: |
           pip install -r requirements.txt --quiet
           python3 scripts/download_all_tools.py
@@ -86,12 +52,7 @@ jobs:
         continue-on-error: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          SOURCE_TAG_MORPHE: ${{ steps.fetch.outputs.morphe_tag }}
-          SOURCE_TAG_REVANCED_ANDDEA: ${{ steps.fetch.outputs.anddea_tag }}
-          SOURCE_TAG_RUSHIRANPISE: ${{ steps.fetch.outputs.rushiranpise_tag }}
-          SOURCE_TAG_ROOKIE: ${{ steps.fetch.outputs.rookie_tag }}
-          SOURCE_TAG_TOSOX: ${{ steps.fetch.outputs.tosox_tag }}
-          SOURCE_TAG_DROPPED: ${{ steps.fetch.outputs.dropped_tag }}
+          SOURCE_TAGS_JSON: ${{ steps.all_sources.outputs.source_tags }}
         run: python3 scripts/detect_version_pinned.py
 
       - name: Connect version discovery to Tailscale
@@ -146,13 +107,7 @@ jobs:
           gh workflow run build.yml \
             --repo "${{ github.repository }}" \
             --ref main \
-            -f morphe_tag="${{ steps.fetch.outputs.morphe_tag }}" \
-            -f anddea_tag="${{ steps.fetch.outputs.anddea_tag }}" \
-            -f rushiranpise_tag="${{ steps.fetch.outputs.rushiranpise_tag }}" \
-            -f rookie_tag="${{ steps.fetch.outputs.rookie_tag }}" \
-            -f tosox_tag="${{ steps.fetch.outputs.tosox_tag }}" \
-            -f yuzu_tag="patche" \
-            -f dropped_tag="${{ steps.fetch.outputs.dropped_tag }}" \
+            -f source_tags='${{ steps.all_sources.outputs.source_tags }}' \
             -f updated_sources="$UPDATED_SOURCES" \
             -f updated_apps="$UPDATED_APPS" \
             -f apk_updated_apps="${APK_UPDATED_APPS:-[]}"
