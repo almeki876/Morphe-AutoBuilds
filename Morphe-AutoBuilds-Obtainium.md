@@ -1,11 +1,10 @@
 # Obtainium / ObtainX Install Links
 
-最終更新: 2026-08-23 | 掲載ビルド数: 74（69アプリ）
+最終更新: 2026-08-25 | 掲載ビルド数: 74（69アプリ）
 
-各ボタンは[almeki876/Morphe-AutoBuilds](https://github.com/almeki876/Morphe-AutoBuilds)のリリースを登録し、アプリ名とパッチソースが一致するAPKだけを追跡します。目的の組み合わせのボタンをAndroid端末で開き、ObtainiumまたはObtainXへ追加してください。同じアプリでもパッチソースが異なるAPKは別項目です。
+各ボタンは[almeki876/Morphe-AutoBuilds](https://github.com/almeki876/Morphe-AutoBuilds)のリリースを登録し、アプリ名とパッチソースが一致するAPKだけを追跡します。目的の組み合わせのリンクをAndroid端末で開き、ObtainiumまたはObtainXへインポートしてください。同じアプリでもパッチソースが異なるAPKは別項目に分類しています。
 
-リンクにはアーキテクチャの自動選択、VirusTotal照会、過去リリースへのフォールバックが設定されています。ただし、この一覧はビルド済みAPKの更新を追跡するもので、元APKの取得やビルド成功を保証するものではありません。取得元、版、SHA-256、未加工の元APKに対する検査結果は[最新リリース](https://github.com/almeki876/Morphe-AutoBuilds/releases/latest)で確認してください。ゆうちょ2アプリはGoogle Play限定のため、ビルドが成功したリリースに資産がある場合だけ更新されます。
-
+取得元、版、SHA-256、未加工の元APKに対する検査結果は[最新リリース](https://github.com/almeki876/Morphe-AutoBuilds/releases/latest)で確認してください。
 ## [Morphe](https://github.com/MorpheApp/morphe-patches)
 
 ### YouTube (Morphe)
