@@ -171,10 +171,6 @@
 
 ## [Paresh-Maheshwari](https://github.com/Paresh-Maheshwari/paresh-patches)
 
-### Proton Vpn
-
-[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026-08-25_16-00-JST/proton-vpn-arm64-v8a-paresh-v5.19.72.0.apk)
-
 ### Fing
 
 [arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026-08-25_16-00-JST/fing-arm64-v8a-paresh-v12.12.0.apk)
