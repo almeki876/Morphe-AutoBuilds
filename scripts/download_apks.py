@@ -12,7 +12,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from src import apk_cache, apk_identity, aurora_play, browser_fallback, downloader, google_play_metadata, providers, utils, versioning
+from src import apk_cache, apk_identity, apk_validation, aurora_play, browser_fallback, downloader, google_play_metadata, providers, utils, versioning
 from src.versioning import VersionCandidate, pinned_candidate
 
 
@@ -188,6 +188,7 @@ def _enable_unique_japan_exit_node() -> None:
 
 
 def _validate_downloaded_identity(
+    app_name: str,
     input_apk: Path,
     package: str,
     candidate: VersionCandidate | None,
@@ -199,6 +200,9 @@ def _validate_downloaded_identity(
         package,
         candidate,
         require_japanese=require_japanese,
+    )
+    apk_validation.validate_required_entries(
+        input_apk, providers.required_apk_entries(app_name)
     )
     logging.info(
         "🪪 Verified APK identity: package=%s versionName=%s versionCode=%s",
@@ -248,8 +252,8 @@ def _restore_cached_candidate(
         if cached is None:
             continue
         try:
-            _validate_downloaded_identity(cached, package, candidate)
-        except apk_identity.ApkIdentityError as error:
+            _validate_downloaded_identity(app_name, cached, package, candidate)
+        except (apk_identity.ApkIdentityError, apk_validation.ApkValidationError) as error:
             logging.warning(
                 "APK cache returned an identity mismatch for %s %s: %s",
                 app_name,
@@ -373,12 +377,13 @@ def _download(
             candidate = _expected_candidate(app_name, platform, version, candidates)
             try:
                 _validate_downloaded_identity(
+                    app_name,
                     input_apk,
                     package,
                     candidate,
                     require_japanese=play_only,
                 )
-            except apk_identity.ApkIdentityError as error:
+            except (apk_identity.ApkIdentityError, apk_validation.ApkValidationError) as error:
                 identity_errors.append(f"{platform}: {error}")
                 logging.error("❌ %s: rejecting mislabeled APK for %s: %s", platform, app_name, error)
                 input_apk.unlink(missing_ok=True)
@@ -390,6 +395,7 @@ def _download(
         return None
 
     play_only = providers.google_play_only(app_name)
+    play_first = providers.google_play_first(app_name)
     play_enabled = aurora_play.google_play_enabled(package)
     if play_only and not play_enabled:
         raise RuntimeError(
@@ -407,9 +413,9 @@ def _download(
         if restored_current is not None:
             return restored_current
 
-    # Provider-chain apps prefer the configured public providers. Google Play
-    # remains available below as a rescue path after every provider fails.
-    if not play_only and not skip_play:
+    # Provider-chain apps prefer public providers; Play-first/only apps skip
+    # this block and enter the common Google Play path below.
+    if not play_first and not skip_play:
         provider_result = try_providers()
         if provider_result is not None:
             return provider_result
@@ -443,6 +449,7 @@ def _download(
                 play_input.unlink(missing_ok=True)
                 raise RuntimeError("Google Play returned a corrupt APK archive")
             identity = _validate_downloaded_identity(
+                app_name,
                 play_input,
                 package,
                 play_candidate,
@@ -459,7 +466,7 @@ def _download(
             )
             logging.info("✅ Google Play selected as APK origin for %s v%s", app_name, version)
             return play_input, version
-        except apk_identity.ApkIdentityError as error:
+        except (apk_identity.ApkIdentityError, apk_validation.ApkValidationError) as error:
             if play_input is not None:
                 play_input.unlink(missing_ok=True)
             identity_errors.append(f"aurora-google-play: {error}")
@@ -473,6 +480,7 @@ def _download(
                 app_name,
                 error,
             )
+
         except Exception as error:
             if play_input is not None:
                 play_input.unlink(missing_ok=True)
@@ -487,12 +495,18 @@ def _download(
                 type(error).__name__,
                 error,
             )
-    elif skip_play:
+
+    if play_first and not play_only and not skip_play:
+        provider_result = try_providers()
+        if provider_result is not None:
+            return provider_result
+
+    if skip_play:
         logging.info(
             "⏭️  Final Tailscale rescue skips Google Play and retries provider/CDN origins only for %s",
             app_name,
         )
-    else:
+    elif not play_enabled:
         logging.info(
             "⏭️  Google Play disabled by repository policy for %s; using configured provider only",
             app_name,
@@ -539,12 +553,13 @@ def _download(
                 input_apk.unlink(missing_ok=True)
                 raise RuntimeError("returned HTML or a corrupt APK archive")
             _validate_downloaded_identity(
+                app_name,
                 input_apk,
                 package,
                 fallback_candidate,
                 require_japanese=play_only,
             )
-        except apk_identity.ApkIdentityError as error:
+        except (apk_identity.ApkIdentityError, apk_validation.ApkValidationError) as error:
             if input_apk is not None:
                 input_apk.unlink(missing_ok=True)
             identity_errors.append(f"{fallback_name}: {error}")
@@ -591,6 +606,7 @@ def _download(
             browser_input.unlink(missing_ok=True)
             raise RuntimeError("returned HTML or a corrupt APK archive")
         _validate_downloaded_identity(
+            app_name,
             browser_input,
             package,
             fallback_candidate,
@@ -614,7 +630,7 @@ def _download(
         )
         logging.info("✅ %s selected as final APK origin for %s v%s", browser_name, app_name, version)
         return browser_input, version
-    except apk_identity.ApkIdentityError as error:
+    except (apk_identity.ApkIdentityError, apk_validation.ApkValidationError) as error:
         if browser_input is not None:
             browser_input.unlink(missing_ok=True)
         identity_errors.append(f"{browser_name}: {error}")

@@ -197,6 +197,11 @@ def _version(status: dict[str, str], report_root: Path, app: str, source: str) -
 
 def _hypothesis(log: str, phase: str) -> str:
     lowered = log.casefold()
+    if "missing required entry" in lowered or "libisvideoengine.so" in lowered:
+        return (
+            "The downloaded APK is incomplete for this patch: a required native "
+            "library is absent. Use a merged universal APK containing the reported entry."
+        )
     if "403" in lowered or "429" in lowered or "bot protection" in lowered:
         return "APK provider rate limiting or bot protection prevented the download."
     if "404" in lowered or "no download link" in lowered:

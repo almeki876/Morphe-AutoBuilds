@@ -1,0 +1,7 @@
+{
+  "package": "com.camerasideas.instashot",
+  "source_policy": "google-play-first",
+  "required_apk_entries": [
+    "lib/*/libisvideoengine.so"
+  ]
+}

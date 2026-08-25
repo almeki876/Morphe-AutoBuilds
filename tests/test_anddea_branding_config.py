@@ -26,10 +26,10 @@ class AnddeaBrandingConfigTests(unittest.TestCase):
         options = {(item["patch"], item["key"]): item["value"] for item in entry.get("options", [])}
         self.assertEqual(options[("Custom branding for YouTube", "customName")], "RVA")
         self.assertEqual(
-            options[("Custom branding for YouTube", "appIcon")],
+            options[("Custom branding for YouTube", "customIcon")],
             "patch-assets/anddea/youtube/xisr_evergreen",
         )
-        self.assertNotIn(("Custom branding for YouTube", "customIcon"), options)
+        self.assertNotIn(("Custom branding for YouTube", "appIcon"), options)
         self.assertFalse(any("Custom branding name for YouTube" == patch for patch, _ in options))
         self.assertFalse(any("Custom header for YouTube" == patch for patch, _ in options))
 
@@ -40,10 +40,10 @@ class AnddeaBrandingConfigTests(unittest.TestCase):
         options = {(item["patch"], item["key"]): item["value"] for item in entry.get("options", [])}
         self.assertEqual(options[("Custom branding for YouTube Music", "customName")], "RVA Music")
         self.assertEqual(
-            options[("Custom branding for YouTube Music", "appIcon")],
+            options[("Custom branding for YouTube Music", "customIcon")],
             "patch-assets/anddea/youtube-music/xisr_yellow",
         )
-        self.assertNotIn(("Custom branding for YouTube Music", "customIcon"), options)
+        self.assertNotIn(("Custom branding for YouTube Music", "appIcon"), options)
         self.assertFalse(any("Custom branding name for YouTube Music" == patch for patch, _ in options))
         self.assertFalse(any("Custom header for YouTube Music" == patch for patch, _ in options))
 

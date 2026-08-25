@@ -43,6 +43,22 @@ class AppMetadataTests(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, "invalid source_policy"):
                     providers.load_app_metadata("bad-policy-example")
 
+    def test_google_play_first_is_preferred_but_not_exclusive(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            metadata_dir = Path(directory)
+            (metadata_dir / "play-first-example.json").write_text(
+                json.dumps(
+                    {
+                        "package": "com.example.playfirst",
+                        "source_policy": "google-play-first",
+                    }
+                ),
+                encoding="utf-8",
+            )
+            with mock.patch.object(providers, "APP_METADATA_DIR", metadata_dir):
+                self.assertTrue(providers.google_play_first("play-first-example"))
+                self.assertFalse(providers.google_play_only("play-first-example"))
+
 
 if __name__ == "__main__":
     unittest.main()

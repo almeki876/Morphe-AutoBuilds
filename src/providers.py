@@ -36,7 +36,9 @@ IDENTITY_RESOLUTION_PRIORITY = (
 PRIMARY_PROVIDER_KEY = "primary"
 APP_METADATA_DIR = Path("app-metadata")
 DEFAULT_SOURCE_POLICY = "provider-chain"
-SOURCE_POLICIES = frozenset({DEFAULT_SOURCE_POLICY, "google-play-only"})
+SOURCE_POLICIES = frozenset(
+    {DEFAULT_SOURCE_POLICY, "google-play-first", "google-play-only"}
+)
 
 MODULES: dict[str, ModuleType] = {
     "github": github,
@@ -94,6 +96,11 @@ def load_app_metadata(app_name: str) -> dict:
             f"invalid source_policy {policy!r} in {path}; "
             f"expected one of {', '.join(sorted(SOURCE_POLICIES))}"
         )
+    required_entries = metadata.get("required_apk_entries", [])
+    if not isinstance(required_entries, list) or not all(
+        isinstance(value, str) and value.strip() for value in required_entries
+    ):
+        raise ValueError(f"invalid required_apk_entries in {path}")
     return metadata
 
 
@@ -106,6 +113,21 @@ def source_policy(app_name: str) -> str:
 def google_play_only(app_name: str) -> bool:
     """Return whether non-Play APK origins are forbidden for this app."""
     return source_policy(app_name) == "google-play-only"
+
+
+def google_play_first(app_name: str) -> bool:
+    """Return whether Play must be attempted before public APK providers."""
+    return source_policy(app_name) in {"google-play-first", "google-play-only"}
+
+
+def required_apk_entries(app_name: str) -> tuple[str, ...]:
+    """Return app-specific archive entries required by the patch bundle."""
+    values = load_app_metadata(app_name).get("required_apk_entries", [])
+    if not isinstance(values, list) or not all(
+        isinstance(value, str) and value.strip() for value in values
+    ):
+        raise ValueError(f"invalid required_apk_entries for {app_name}")
+    return tuple(value.strip() for value in values)
 
 
 def load_config(

@@ -25,7 +25,7 @@ KNOWN_PROVIDERS = {
     "aptoide",
     "apkcombo",
 }
-SOURCE_POLICIES = {"provider-chain", "google-play-only"}
+SOURCE_POLICIES = {"provider-chain", "google-play-first", "google-play-only"}
 # Normal apps must follow the patch bundle's current default/recommended set.
 # These are deliberate exceptions with app-specific patch-selection semantics:
 # YouTube/YouTube Music carry user customizations, Gboard combines overlapping

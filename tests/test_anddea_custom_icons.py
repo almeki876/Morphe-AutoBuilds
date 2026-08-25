@@ -35,7 +35,7 @@ class AnddeaCustomIconTests(unittest.TestCase):
         self.assertIn(
             {
                 "patch": "Custom branding for YouTube",
-                "key": "appIcon",
+                "key": "customIcon",
                 "value": "patch-assets/anddea/youtube/xisr_evergreen",
             },
             youtube_options,
@@ -51,7 +51,7 @@ class AnddeaCustomIconTests(unittest.TestCase):
         self.assertIn(
             {
                 "patch": "Custom branding for YouTube Music",
-                "key": "appIcon",
+                "key": "customIcon",
                 "value": "patch-assets/anddea/youtube-music/xisr_yellow",
             },
             music_options,
@@ -77,7 +77,7 @@ class AnddeaCustomIconTests(unittest.TestCase):
         self.assertFalse(any(option.get("patch") in retired_patches for option in all_options))
         self.assertFalse(
             any(
-                option.get("key") == "customIcon"
+                option.get("key") == "appIcon"
                 for option in all_options
             )
         )

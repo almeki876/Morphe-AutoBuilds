@@ -1,5 +1,5 @@
 {
   "package": "jp.japanpost.jp_bank.FIDOapp",
-  "source_policy": "provider-chain",
+  "source_policy": "google-play-only",
   "egress_policy": "japan-first"
 }

@@ -3,7 +3,7 @@ import unittest
 import zipfile
 from pathlib import Path
 
-from src.apk_validation import ApkValidationError, validate_apk
+from src.apk_validation import ApkValidationError, validate_apk, validate_required_entries
 
 
 class ApkValidationTests(unittest.TestCase):
@@ -56,6 +56,22 @@ class ApkValidationTests(unittest.TestCase):
     def test_accepts_native_less_apk_for_concrete_abi(self) -> None:
         path = self._apk(["AndroidManifest.xml", "classes.dex"])
         self.assertEqual(validate_apk(path, "arm64-v8a"), set())
+
+    def test_required_patch_library_rejects_incomplete_apk(self) -> None:
+        path = self._apk(["AndroidManifest.xml", "classes.dex"])
+        with self.assertRaisesRegex(ApkValidationError, "libisvideoengine"):
+            validate_required_entries(path, ("lib/*/libisvideoengine.so",))
+
+    def test_required_patch_library_accepts_split_container(self) -> None:
+        directory = Path(tempfile.mkdtemp())
+        split = directory / "config.arm64_v8a.apk"
+        with zipfile.ZipFile(split, "w") as archive:
+            archive.writestr("lib/arm64-v8a/libisvideoengine.so", b"native")
+        container = directory / "inshot.xapk"
+        with zipfile.ZipFile(container, "w") as archive:
+            archive.writestr("base.apk", self._apk(["AndroidManifest.xml", "classes.dex"]).read_bytes())
+            archive.writestr(split.name, split.read_bytes())
+        validate_required_entries(container, ("lib/*/libisvideoengine.so",))
 
 
 if __name__ == "__main__":

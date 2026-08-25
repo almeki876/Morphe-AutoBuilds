@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import hashlib
+import fnmatch
+import io
 import json
 import os
 import re
@@ -20,6 +22,38 @@ _BRANDED_APPS = {
     "youtube": "patch-assets/anddea/youtube/xisr_evergreen",
     "youtube-music": "patch-assets/anddea/youtube-music/xisr_yellow",
 }
+
+
+def validate_required_entries(path: Path, patterns: tuple[str, ...]) -> None:
+    """Require patch-critical files in an APK or one of its split APKs."""
+    if not patterns:
+        return
+    found: set[str] = set()
+    try:
+        with zipfile.ZipFile(path) as archive:
+            names = [name.replace("\\", "/").lstrip("/") for name in archive.namelist()]
+            for pattern in patterns:
+                if any(fnmatch.fnmatchcase(name, pattern) for name in names):
+                    found.add(pattern)
+            for name in names:
+                if len(found) == len(patterns) or not name.lower().endswith(".apk"):
+                    continue
+                with archive.open(name) as nested_file:
+                    with zipfile.ZipFile(io.BytesIO(nested_file.read())) as nested:
+                        nested_names = [
+                            item.replace("\\", "/").lstrip("/")
+                            for item in nested.namelist()
+                        ]
+                    for pattern in patterns:
+                        if any(fnmatch.fnmatchcase(item, pattern) for item in nested_names):
+                            found.add(pattern)
+    except (OSError, zipfile.BadZipFile) as error:
+        raise ApkValidationError(f"could not inspect required APK entries: {path}") from error
+    missing = [pattern for pattern in patterns if pattern not in found]
+    if missing:
+        raise ApkValidationError(
+            f"APK is incomplete for patching; missing required entry: {', '.join(missing)}"
+        )
 
 
 def _is_patched_artifact(path: Path) -> bool:
@@ -128,6 +162,11 @@ def validate_apk(path: Path, expected_abi: str | None = None) -> set[str]:
         )
 
     _validate_anddea_custom_icon(path)
+    app_name = os.getenv("APP_NAME", "").strip()
+    if app_name:
+        from src import providers
+
+        validate_required_entries(path, providers.required_apk_entries(app_name))
     return abis
 
 

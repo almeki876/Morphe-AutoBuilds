@@ -14,6 +14,14 @@ class FailureReportingTests(unittest.TestCase):
         self.assertIn("incomplete split bundle", message)
         self.assertNotIn("likely does not match", message)
 
+    def test_missing_native_library_reports_the_actual_input_problem(self) -> None:
+        message = _hypothesis(
+            "No lib/<abi>/libisvideoengine.so found in the APK.",
+            "Patch",
+        )
+        self.assertIn("required native library is absent", message)
+        self.assertIn("merged universal APK", message)
+
     def test_youtube_aggregate_branding_result_satisfies_formal_option_patches(self) -> None:
         report = {
             "app_name": "youtube",
