@@ -489,7 +489,12 @@ def _verified_playfetch_files(manifest_path: Path, package: str) -> list[Path]:
     return apk_files
 
 
-def _download_with_playfetch_google_play(package: str, output_dir: Path) -> Path:
+def _download_with_playfetch_google_play(
+    package: str,
+    output_dir: Path,
+    *,
+    require_japanese: bool = True,
+) -> Path:
     executable = shutil.which(OFFICIAL_PLAYFETCH_COMMAND)
     if not executable:
         raise FileNotFoundError(f"playfetch {SUPPORTED_PLAYFETCH_VERSION} is required for Google Play")
@@ -542,7 +547,12 @@ def _download_with_playfetch_google_play(package: str, output_dir: Path) -> Path
         apk_files = _verified_playfetch_files(downloads / "manifest.json", package)
         packaged = _package_apks(apk_files, package, output_dir)
         try:
-            identity = apk_identity.validate_identity(packaged, package, None)
+            if require_japanese:
+                identity = apk_identity.validate_identity(packaged, package, None)
+            else:
+                identity = apk_identity.validate_identity(
+                    packaged, package, None, require_japanese=False
+                )
         except Exception:
             packaged.unlink(missing_ok=True)
             raise
@@ -557,7 +567,12 @@ def _download_with_playfetch_google_play(package: str, output_dir: Path) -> Path
         return packaged
 
 
-def _download_with_apkeep_google_play(package: str, output_dir: Path) -> Path:
+def _download_with_apkeep_google_play(
+    package: str,
+    output_dir: Path,
+    *,
+    require_japanese: bool = True,
+) -> Path:
     executable = shutil.which(OFFICIAL_APKEEP_COMMAND)
     if not executable:
         raise FileNotFoundError("apkeep 1.0.0 is required for Google Play fallback")
@@ -606,7 +621,12 @@ def _download_with_apkeep_google_play(package: str, output_dir: Path) -> Path:
             raise RuntimeError(f"apkeep Google Play fallback produced no usable APKs: {detail}")
         packaged = _package_apks(apk_files, package, output_dir)
         try:
-            identity = apk_identity.validate_identity(packaged, package, None)
+            if require_japanese:
+                identity = apk_identity.validate_identity(packaged, package, None)
+            else:
+                identity = apk_identity.validate_identity(
+                    packaged, package, None, require_japanese=False
+                )
         except Exception:
             packaged.unlink(missing_ok=True)
             raise
@@ -699,9 +719,16 @@ def _validate_current_fallback(
     package: str,
     candidate: VersionCandidate,
     label: str,
+    *,
+    require_japanese: bool = True,
 ) -> Path:
     try:
-        identity = apk_identity.validate_identity(path, package, candidate)
+        if require_japanese:
+            identity = apk_identity.validate_identity(path, package, candidate)
+        else:
+            identity = apk_identity.validate_identity(
+                path, package, candidate, require_japanese=False
+            )
     except Exception:
         path.unlink(missing_ok=True)
         raise
@@ -720,6 +747,8 @@ def download_candidate(
     package: str,
     candidate: VersionCandidate | None,
     output_dir: Path | None = None,
+    *,
+    require_japanese: bool = True,
 ) -> Path:
     if not google_play_enabled(package):
         raise GooglePlayDisabled(
@@ -730,6 +759,7 @@ def download_candidate(
     output_dir = output_dir or Path(".")
     output_dir.mkdir(parents=True, exist_ok=True)
     errors: list[tuple[str, Exception]] = []
+    japanese_options = {} if require_japanese else {"require_japanese": False}
 
     try:
         return _download_with_fast_gplaydl(package, play_candidate, output_dir)
@@ -743,7 +773,9 @@ def download_candidate(
 
     if play_candidate is None:
         try:
-            return _download_with_playfetch_google_play(package, output_dir)
+            return _download_with_playfetch_google_play(
+                package, output_dir, **japanese_options
+            )
         except Exception as error:
             errors.append(("playfetch", error))
             logging.warning(
@@ -752,7 +784,9 @@ def download_candidate(
                 _secret_safe_text(str(error)),
             )
         try:
-            return _download_with_apkeep_google_play(package, output_dir)
+            return _download_with_apkeep_google_play(
+                package, output_dir, **japanese_options
+            )
         except Exception as error:
             errors.append(("apkeep", error))
             logging.warning(
@@ -766,9 +800,15 @@ def download_candidate(
             errors.append(("fresh-profile-gplaydl", error))
     else:
         try:
-            current = _download_with_playfetch_google_play(package, output_dir)
+            current = _download_with_playfetch_google_play(
+                package, output_dir, **japanese_options
+            )
             return _validate_current_fallback(
-                current, package, play_candidate, "playfetch"
+                current,
+                package,
+                play_candidate,
+                "playfetch",
+                **japanese_options,
             )
         except Exception as error:
             errors.append(("playfetch-current-probe", error))
@@ -778,9 +818,15 @@ def download_candidate(
                 package,
             )
         try:
-            current = _download_with_apkeep_google_play(package, output_dir)
+            current = _download_with_apkeep_google_play(
+                package, output_dir, **japanese_options
+            )
             return _validate_current_fallback(
-                current, package, play_candidate, "apkeep"
+                current,
+                package,
+                play_candidate,
+                "apkeep",
+                **japanese_options,
             )
         except Exception as error:
             errors.append(("apkeep-current-probe", error))

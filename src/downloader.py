@@ -28,6 +28,7 @@ def download_resource(
     referer: str = None,
     headers: dict | None = None,
     validate_apk: bool = False,
+    require_japanese: bool = True,
 ) -> Path:
     if not isinstance(url, str) or not url.strip():
         raise ValueError("download URL must be a non-empty string")
@@ -87,7 +88,9 @@ def download_resource(
                     f"expected {total_size} bytes, received {downloaded_size}"
                 )
 
-            if validate_apk and not apk_cache.is_valid_apk_archive(part_path):
+            if validate_apk and not apk_cache.is_valid_apk_archive(
+                part_path, require_japanese=require_japanese
+            ):
                 raise IOError(
                     f"downloaded response is not a valid APK archive from "
                     f"{safe_final_url}"
@@ -252,6 +255,7 @@ def download_platform(
     patches: str,
     arch: str = None,
     version_candidates: list[VersionCandidate] | None = None,
+    require_japanese: bool = True,
 ) -> tuple[Path | None, str | None]:
     try:
         config = providers.load_config(app_name, platform)
@@ -309,7 +313,12 @@ def download_platform(
                 version = version or "latest"
                 package = config.get("package")
                 if cache_enabled and package and version != "latest":
-                    cached = apk_cache.restore(package, version, app_name)
+                    cached = apk_cache.restore(
+                        package,
+                        version,
+                        app_name,
+                        require_japanese=require_japanese,
+                    )
                     if cached:
                         provenance.record(
                             app_name,
@@ -322,13 +331,25 @@ def download_platform(
                         )
                         return cached, version
 
-                filepath = download_resource(direct_url, validate_apk=True)
-                if not apk_cache.is_valid_apk_archive(filepath):
+                filepath = download_resource(
+                    direct_url,
+                    validate_apk=True,
+                    require_japanese=require_japanese,
+                )
+                if not apk_cache.is_valid_apk_archive(
+                    filepath, require_japanese=require_japanese
+                ):
                     filepath.unlink(missing_ok=True)
                     raise ValueError("direct_url returned a non-APK response")
                 logging.info(f"✅ {platform}: downloaded {app_name} via direct_url -> {filepath.name} (version={version})")
                 if cache_enabled and package and version != "latest":
-                    apk_cache.stage(filepath, package, version, platform)
+                    apk_cache.stage(
+                        filepath,
+                        package,
+                        version,
+                        platform,
+                        require_japanese=require_japanese,
+                    )
                 provenance.record(
                     app_name,
                     version,
@@ -416,7 +437,10 @@ def download_platform(
 
             if cache_enabled:
                 cached = apk_cache.restore(
-                    config.get("package", ""), version, app_name
+                    config.get("package", ""),
+                    version,
+                    app_name,
+                    require_japanese=require_japanese,
                 )
                 if cached:
                     provenance.record(
@@ -472,8 +496,11 @@ def download_platform(
                     ),
                     headers=download_spec.headers,
                     validate_apk=True,
+                    require_japanese=require_japanese,
                 )
-                if not apk_cache.is_valid_apk_archive(filepath):
+                if not apk_cache.is_valid_apk_archive(
+                    filepath, require_japanese=require_japanese
+                ):
                     filepath.unlink(missing_ok=True)
                     raise ValueError(
                         "provider returned HTML or a corrupt APK archive"
@@ -484,6 +511,7 @@ def download_platform(
                         config.get("package", ""),
                         version,
                         platform,
+                        require_japanese=require_japanese,
                     )
                 provenance.record(
                     app_name,

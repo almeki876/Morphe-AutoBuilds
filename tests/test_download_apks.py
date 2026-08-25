@@ -124,7 +124,9 @@ class DownloadApksTests(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, "Google Play-only source failed"):
             download_apks._download("example", "source", "arm64-v8a")
 
-        play_download.assert_called_once_with("com.example.jp", None, Path("."))
+        play_download.assert_called_once_with(
+            "com.example.jp", None, Path("."), require_japanese=True
+        )
         download_priority.assert_not_called()
         download_platform.assert_not_called()
         justapk.assert_not_called()
@@ -133,13 +135,14 @@ class DownloadApksTests(unittest.TestCase):
     @mock.patch("src.provenance.record")
     @mock.patch("scripts.download_apks.apk_cache.stage")
     @mock.patch("scripts.download_apks.apk_cache.is_valid_apk_archive", return_value=True)
+    @mock.patch("scripts.download_apks.providers.download_priority", return_value=["apkmirror"])
     @mock.patch("scripts.download_apks.providers.configured_package", return_value="com.example.app")
     @mock.patch("scripts.download_apks.utils.get_supported_version_candidates")
     @mock.patch("scripts.download_apks._find_tools")
     @mock.patch("scripts.download_apks.downloader.download_platform")
     @mock.patch("scripts.download_apks.aurora_play.download_candidate")
     @mock.patch("scripts.download_apks.apk_identity.validate_identity")
-    def test_google_play_is_first_and_short_circuits_third_party(
+    def test_provider_chain_uses_provider_before_google_play(
         self,
         validate_identity: mock.Mock,
         play_download: mock.Mock,
@@ -147,6 +150,7 @@ class DownloadApksTests(unittest.TestCase):
         find_tools: mock.Mock,
         supported_versions: mock.Mock,
         configured_package: mock.Mock,
+        download_priority: mock.Mock,
         is_valid_apk_archive: mock.Mock,
         stage: mock.Mock,
         record: mock.Mock,
@@ -157,17 +161,17 @@ class DownloadApksTests(unittest.TestCase):
             candidate = VersionCandidate(name="1.2.3", code="123")
             find_tools.return_value = ([], Path("cli.jar"), Path("patches.mpp"))
             supported_versions.return_value = [candidate]
-            play_download.return_value = play
+            provider_apk = Path(directory) / "provider.apk"
+            provider_apk.write_bytes(b"provider")
+            download_platform.return_value = (provider_apk, "1.2.3")
             validate_identity.return_value = ApkIdentity("com.example.app", "1.2.3", "123")
 
             path, version = download_apks._download("example", "source", "arm64-v8a")
 
-        self.assertEqual(path, play)
+        self.assertEqual(path, provider_apk)
         self.assertEqual(version, "1.2.3")
-        play_download.assert_called_once_with("com.example.app", candidate, Path("."))
-        download_platform.assert_not_called()
-        stage.assert_called_once_with(play, "com.example.app", "1.2.3", "aurora-google-play")
-        record.assert_called_once()
+        download_platform.assert_called_once()
+        play_download.assert_not_called()
 
     @mock.patch("src.provenance.record")
     @mock.patch("scripts.download_apks.apk_cache.stage")
@@ -211,6 +215,7 @@ class DownloadApksTests(unittest.TestCase):
             "com.google.android.apps.recorder",
             "42422313",
             "aurora-google-play",
+            require_japanese=False,
         )
         download_platform.assert_not_called()
         record.assert_called_once()
@@ -320,7 +325,13 @@ class DownloadApksTests(unittest.TestCase):
         self.assertFalse(wrong.exists())
         download_with_justapk.assert_called_once()
         download_with_apkeep.assert_called_once()
-        stage.assert_called_once_with(correct, "com.example.app", "1.2.3", "apkeep")
+        stage.assert_called_once_with(
+            correct,
+            "com.example.app",
+            "1.2.3",
+            "apkeep",
+            require_japanese=False,
+        )
         record.assert_called_once()
 
 

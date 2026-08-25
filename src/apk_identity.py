@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import logging
 import os
 import re
 import shutil
@@ -152,8 +153,10 @@ def validate_identity(
     path: Path,
     expected_package: str,
     expected_candidate: VersionCandidate | None = None,
+    *,
+    require_japanese: bool = True,
 ) -> ApkIdentity:
-    """Verify package/version and require Japanese resources in the actual payload."""
+    """Verify package/version and inspect Japanese resources in the payload."""
     identity = read_identity(path)
     if identity.package_name != expected_package:
         raise ApkIdentityError(f"APK package mismatch: expected {expected_package}, actual {identity.package_name}")
@@ -166,5 +169,7 @@ def validate_identity(
         if not contains_japanese(path):
             raise JapaneseResourceError("Japanese resources were not detected")
     except JapaneseResourceError as error:
-        raise ApkIdentityError(f"APK does not contain Japanese resources: {error}") from error
+        if require_japanese:
+            raise ApkIdentityError(f"APK does not contain Japanese resources: {error}") from error
+        logging.warning("⚠️  APK accepted without verified Japanese resources: %s", path)
     return identity

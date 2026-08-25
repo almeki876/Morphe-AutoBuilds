@@ -38,6 +38,15 @@ class CacheAndBrandingContractTests(unittest.TestCase):
                 self.assertIsNone(
                     apk_cache.stage(apk, "com.example.app", "1.0", "aurora-google-play")
                 )
+                with patch.object(apk_cache, "CACHE_DIR", Path(temp) / "cache"):
+                    staged_without_japanese = apk_cache.stage(
+                        apk,
+                        "com.example.app",
+                        "1.0",
+                        "apkmirror",
+                        require_japanese=False,
+                    )
+                self.assertIsNotNone(staged_without_japanese)
 
             with patch("src.apk_cache._contains_japanese", return_value=True):
                 with patch.dict(os.environ, {"BASE_APK_CACHE_DIR": temp}, clear=False):

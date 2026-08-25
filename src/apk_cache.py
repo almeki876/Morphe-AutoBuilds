@@ -102,14 +102,18 @@ def _contains_japanese(path: Path) -> bool:
         return False
 
 
-def validate_asset(path: Path) -> bool:
+def validate_asset(path: Path, *, require_japanese: bool = True) -> bool:
     parsed = parse_asset_name(path.name)
-    return bool(parsed and _validate(path, parsed[2]) and _contains_japanese(path))
+    return bool(
+        parsed
+        and _validate(path, parsed[2])
+        and (not require_japanese or _contains_japanese(path))
+    )
 
 
-def is_valid_apk_archive(path: Path) -> bool:
-    """Validate provider output and require verifiable Japanese resources."""
-    return _validate(path) and _contains_japanese(path)
+def is_valid_apk_archive(path: Path, *, require_japanese: bool = True) -> bool:
+    """Validate provider output, optionally requiring Japanese resources."""
+    return _validate(path) and (not require_japanese or _contains_japanese(path))
 
 
 def find_release(repo, tag: str = CACHE_TAG):
@@ -162,18 +166,27 @@ def _candidate_sort_key(path: Path) -> int:
         return 0
 
 
-def _usable_candidate(path: Path) -> bool:
-    return bool(parse_asset_name(path.name) and validate_asset(path))
+def _usable_candidate(path: Path, *, require_japanese: bool = True) -> bool:
+    return bool(
+        parse_asset_name(path.name)
+        and validate_asset(path, require_japanese=require_japanese)
+    )
 
 
-def restore(package: str, version: str, app_name: str) -> Path | None:
-    """Restore only an exact, integrity-checked cache asset containing Japanese resources."""
+def restore(
+    package: str,
+    version: str,
+    app_name: str,
+    *,
+    require_japanese: bool = True,
+) -> Path | None:
+    """Restore an exact, integrity-checked cache asset."""
     if not _enabled() or not package or not version:
         return None
     prefix = _asset_prefix(package, version)
     if CACHE_DIR.exists():
         for candidate in sorted(CACHE_DIR.glob(f"{prefix}*"), key=_candidate_sort_key):
-            if _usable_candidate(candidate):
+            if _usable_candidate(candidate, require_japanese=require_japanese):
                 restored = _copy_for_build(candidate, app_name, version)
                 logging.info("📦 APK cache hit (local): %s %s profile=%s", package, version, _asset_profile(candidate.name))
                 return restored
@@ -194,7 +207,7 @@ def restore(package: str, version: str, app_name: str) -> Path | None:
             return None
         downloaded = _download_with_gh(repository, release.tag_name, prefix)
         for candidate in sorted(downloaded, key=_candidate_sort_key):
-            if _usable_candidate(candidate):
+            if _usable_candidate(candidate, require_japanese=require_japanese):
                 restored = _copy_for_build(candidate, app_name, version)
                 logging.info("📦 APK cache hit (GitHub CLI): %s %s profile=%s", package, version, _asset_profile(candidate.name))
                 return restored
@@ -213,7 +226,9 @@ def restore(package: str, version: str, app_name: str) -> Path | None:
                         "X-GitHub-Api-Version": "2022-11-28",
                     },
                 )
-                if not _usable_candidate(candidate):
+                if not _usable_candidate(
+                    candidate, require_japanese=require_japanese
+                ):
                     candidate.unlink(missing_ok=True)
                     continue
                 restored = _copy_for_build(candidate, app_name, version)
@@ -230,11 +245,18 @@ def restore(package: str, version: str, app_name: str) -> Path | None:
     return None
 
 
-def stage(path: Path, package: str, version: str, provider: str) -> Path | None:
-    """Stage a provider APK only after proving it contains Japanese resources."""
+def stage(
+    path: Path,
+    package: str,
+    version: str,
+    provider: str,
+    *,
+    require_japanese: bool = True,
+) -> Path | None:
+    """Stage an integrity-checked provider APK."""
     if not _enabled() or not package or not version or not _validate(path):
         return None
-    if not _contains_japanese(path):
+    if require_japanese and not _contains_japanese(path):
         logging.error("❌ Refusing to cache APK without verifiable Japanese resources: %s", path)
         return None
     digest = _sha256(path)
@@ -249,5 +271,5 @@ def stage(path: Path, package: str, version: str, provider: str) -> Path | None:
         temporary = target.with_name(f".{target.name}.part")
         shutil.copy2(path, temporary)
         temporary.replace(target)
-    logging.info("📥 Staged verified Japanese APK cache candidate: %s %s (%s, profile=%s)", package, version, provider, profile)
+    logging.info("📥 Staged verified APK cache candidate: %s %s (%s, profile=%s)", package, version, provider, profile)
     return target

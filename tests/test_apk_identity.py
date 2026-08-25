@@ -89,6 +89,22 @@ class ApkIdentityTests(unittest.TestCase):
         with self.assertRaisesRegex(ApkIdentityError, "version mismatch"):
             validate_identity(Path("app.apk"), "com.example.app", VersionCandidate(name="1.2.3", code="123"))
 
+    @mock.patch("src.apk_identity.contains_japanese", return_value=False)
+    @mock.patch("src.apk_identity.read_identity")
+    def test_provider_chain_can_accept_missing_japanese(
+        self, read_identity_mock: mock.Mock, _ja: mock.Mock
+    ) -> None:
+        read_identity_mock.return_value = ApkIdentity(
+            "com.example.app", "1.2.3", "123"
+        )
+        result = validate_identity(
+            Path("app.apk"),
+            "com.example.app",
+            VersionCandidate(name="1.2.3", code="123"),
+            require_japanese=False,
+        )
+        self.assertEqual(result.version_name, "1.2.3")
+
 
 if __name__ == "__main__":
     unittest.main()

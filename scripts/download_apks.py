@@ -141,30 +141,6 @@ def _request_japan_first_handoff(app_name: str) -> None:
     )
 
 
-def _require_japan_fallback_before_providers(app_name: str, error: Exception) -> None:
-    """Hand only Japan-first apps to Tailscale before mirror providers.
-
-    Normal apps continue through their regular provider/CDN chain first. If the
-    complete primary chain still fails, the workflow's final Tailscale retry
-    remains available as the last network-path fallback.
-    """
-    if _egress_policy(app_name) != "japan-first":
-        return
-    if not _japan_handoff_enabled(app_name):
-        return
-    if _tailscale_fallback_active():
-        logging.warning(
-            "🇯🇵 Google Play still failed for %s through verified Japanese egress; "
-            "continuing with configured mirror providers",
-            app_name,
-        )
-        return
-    raise RuntimeError(
-        f"Google Play failed for {app_name} before the Japanese egress fallback; "
-        "requesting the workflow Tailscale retry before mirror providers"
-    ) from error
-
-
 def _final_tailscale_provider_retry_enabled(app_name: str) -> bool:
     """Use the existing tailnet only in the final provider-rescue child process."""
     return (
@@ -215,8 +191,15 @@ def _validate_downloaded_identity(
     input_apk: Path,
     package: str,
     candidate: VersionCandidate | None,
+    *,
+    require_japanese: bool = True,
 ) -> apk_identity.ApkIdentity:
-    identity = apk_identity.validate_identity(input_apk, package, candidate)
+    identity = apk_identity.validate_identity(
+        input_apk,
+        package,
+        candidate,
+        require_japanese=require_japanese,
+    )
     logging.info(
         "🪪 Verified APK identity: package=%s versionName=%s versionCode=%s",
         identity.package_name,
@@ -256,7 +239,12 @@ def _restore_cached_candidate(
         version = candidate.canonical
         if not version:
             continue
-        cached = apk_cache.restore(package, version, app_name)
+        cached = apk_cache.restore(
+            package,
+            version,
+            app_name,
+            require_japanese=providers.google_play_only(app_name),
+        )
         if cached is None:
             continue
         try:
@@ -316,8 +304,16 @@ def _record_play_download(
     arch: str,
     input_apk: Path,
     version: str,
+    *,
+    require_japanese: bool,
 ) -> None:
-    apk_cache.stage(input_apk, package, version, "aurora-google-play")
+    apk_cache.stage(
+        input_apk,
+        package,
+        version,
+        "aurora-google-play",
+        require_japanese=require_japanese,
+    )
     from src import provenance
     provenance.record(
         app_name,
@@ -358,6 +354,41 @@ def _download(
             return restored
 
     identity_errors: list[str] = []
+
+    def try_providers() -> tuple[Path, str] | None:
+        for platform in providers.download_priority(app_name):
+            cache_before = _cache_snapshot()
+            input_apk, version = downloader.download_platform(
+                app_name,
+                platform,
+                str(cli),
+                str(bundle),
+                arch,
+                version_candidates=candidates,
+                require_japanese=play_only,
+            )
+            if not input_apk:
+                continue
+            version = str(version)
+            candidate = _expected_candidate(app_name, platform, version, candidates)
+            try:
+                _validate_downloaded_identity(
+                    input_apk,
+                    package,
+                    candidate,
+                    require_japanese=play_only,
+                )
+            except apk_identity.ApkIdentityError as error:
+                identity_errors.append(f"{platform}: {error}")
+                logging.error("❌ %s: rejecting mislabeled APK for %s: %s", platform, app_name, error)
+                input_apk.unlink(missing_ok=True)
+                downloader.remove_apk_origin(app_name, arch)
+                for staged in _new_cache_entries(cache_before):
+                    staged.unlink(missing_ok=True)
+                continue
+            return input_apk, version
+        return None
+
     play_only = providers.google_play_only(app_name)
     play_enabled = aurora_play.google_play_enabled(package)
     if play_only and not play_enabled:
@@ -369,12 +400,26 @@ def _download(
             f"Source policy for {app_name} requires Google Play; refusing provider-only retry"
         )
 
-    if play_enabled and not skip_play:
+    if play_only and play_enabled and not skip_play:
         restored_current = _restore_current_play_cache(
             app_name, package, arch, candidates
         )
         if restored_current is not None:
             return restored_current
+
+    # Provider-chain apps prefer the configured public providers. Google Play
+    # remains available below as a rescue path after every provider fails.
+    if not play_only and not skip_play:
+        provider_result = try_providers()
+        if provider_result is not None:
+            return provider_result
+
+        if play_enabled:
+            restored_current = _restore_current_play_cache(
+                app_name, package, arch, candidates
+            )
+            if restored_current is not None:
+                return restored_current
 
     # Known region-bound apps should not spend time on a network route that is
     # known to be unusable. The workflow owns Tailscale setup; this process only
@@ -386,13 +431,32 @@ def _download(
         play_candidate = _preferred_play_candidate(app_name, package, candidates)
         play_input: Path | None = None
         try:
-            play_input = aurora_play.download_candidate(package, play_candidate, Path("."))
-            if not apk_cache.is_valid_apk_archive(play_input):
+            play_input = aurora_play.download_candidate(
+                package,
+                play_candidate,
+                Path("."),
+                require_japanese=play_only,
+            )
+            if not apk_cache.is_valid_apk_archive(
+                play_input, require_japanese=play_only
+            ):
                 play_input.unlink(missing_ok=True)
                 raise RuntimeError("Google Play returned a corrupt APK archive")
-            identity = _validate_downloaded_identity(play_input, package, play_candidate)
+            identity = _validate_downloaded_identity(
+                play_input,
+                package,
+                play_candidate,
+                require_japanese=play_only,
+            )
             version = identity.version_name or identity.version_code or "unknown"
-            _record_play_download(app_name, package, arch, play_input, version)
+            _record_play_download(
+                app_name,
+                package,
+                arch,
+                play_input,
+                version,
+                require_japanese=play_only,
+            )
             logging.info("✅ Google Play selected as APK origin for %s v%s", app_name, version)
             return play_input, version
         except apk_identity.ApkIdentityError as error:
@@ -403,10 +467,9 @@ def _download(
                 raise RuntimeError(
                     f"Google Play-only source failed identity validation for {app_name}: {error}"
                 ) from error
-            _require_japan_fallback_before_providers(app_name, error)
             logging.warning(
                 "⚠️  Google Play release does not match the requested release for %s: %s; "
-                "trying configured providers",
+                "continuing with fallback downloaders",
                 app_name,
                 error,
             )
@@ -417,10 +480,9 @@ def _download(
                 raise RuntimeError(
                     f"Google Play-only source failed for {app_name}: {type(error).__name__}: {error}"
                 ) from error
-            _require_japan_fallback_before_providers(app_name, error)
             logging.warning(
-                "⚠️  Google Play first-choice download failed for %s: %s: %s; "
-                "trying configured providers",
+                "⚠️  Google Play rescue download failed for %s: %s: %s; "
+                "continuing with fallback downloaders",
                 app_name,
                 type(error).__name__,
                 error,
@@ -436,31 +498,10 @@ def _download(
             app_name,
         )
 
-    for platform in providers.download_priority(app_name):
-        cache_before = _cache_snapshot()
-        input_apk, version = downloader.download_platform(
-            app_name,
-            platform,
-            str(cli),
-            str(bundle),
-            arch,
-            version_candidates=candidates,
-        )
-        if not input_apk:
-            continue
-        version = str(version)
-        candidate = _expected_candidate(app_name, platform, version, candidates)
-        try:
-            _validate_downloaded_identity(input_apk, package, candidate)
-        except apk_identity.ApkIdentityError as error:
-            identity_errors.append(f"{platform}: {error}")
-            logging.error("❌ %s: rejecting mislabeled APK for %s: %s", platform, app_name, error)
-            input_apk.unlink(missing_ok=True)
-            downloader.remove_apk_origin(app_name, arch)
-            for staged in _new_cache_entries(cache_before):
-                staged.unlink(missing_ok=True)
-            continue
-        return input_apk, version
+    if skip_play:
+        provider_result = try_providers()
+        if provider_result is not None:
+            return provider_result
 
     if not play_enabled:
         suffix = f" Identity errors: {'; '.join(identity_errors)}" if identity_errors else ""
@@ -492,10 +533,17 @@ def _download(
         input_apk: Path | None = None
         try:
             input_apk = fallback_downloader(package, version, Path("."))
-            if not apk_cache.is_valid_apk_archive(input_apk):
+            if not apk_cache.is_valid_apk_archive(
+                input_apk, require_japanese=play_only
+            ):
                 input_apk.unlink(missing_ok=True)
                 raise RuntimeError("returned HTML or a corrupt APK archive")
-            _validate_downloaded_identity(input_apk, package, fallback_candidate)
+            _validate_downloaded_identity(
+                input_apk,
+                package,
+                fallback_candidate,
+                require_japanese=play_only,
+            )
         except apk_identity.ApkIdentityError as error:
             if input_apk is not None:
                 input_apk.unlink(missing_ok=True)
@@ -510,7 +558,13 @@ def _download(
             logging.warning("⚠️  %s fallback failed for %s: %s", fallback_name, app_name, error)
             continue
 
-        apk_cache.stage(input_apk, package, version, fallback_name)
+        apk_cache.stage(
+            input_apk,
+            package,
+            version,
+            fallback_name,
+            require_japanese=play_only,
+        )
         from src import provenance
         provenance.record(
             app_name,
@@ -531,11 +585,24 @@ def _download(
             fallback_candidate,
             Path("."),
         )
-        if not apk_cache.is_valid_apk_archive(browser_input):
+        if not apk_cache.is_valid_apk_archive(
+            browser_input, require_japanese=play_only
+        ):
             browser_input.unlink(missing_ok=True)
             raise RuntimeError("returned HTML or a corrupt APK archive")
-        _validate_downloaded_identity(browser_input, package, fallback_candidate)
-        apk_cache.stage(browser_input, package, version, browser_name)
+        _validate_downloaded_identity(
+            browser_input,
+            package,
+            fallback_candidate,
+            require_japanese=play_only,
+        )
+        apk_cache.stage(
+            browser_input,
+            package,
+            version,
+            browser_name,
+            require_japanese=play_only,
+        )
         from src import provenance
         provenance.record(
             app_name,

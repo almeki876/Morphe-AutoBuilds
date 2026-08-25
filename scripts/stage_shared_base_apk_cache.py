@@ -103,14 +103,24 @@ def main() -> int:
         if key in seen:
             continue
         seen.add(key)
+        require_japanese = providers.google_play_only(app)
         try:
-            apk_identity.validate_identity(input_apk, package, VersionCandidate(name=version))
+            apk_identity.validate_identity(
+                input_apk,
+                package,
+                VersionCandidate(name=version),
+                require_japanese=require_japanese,
+            )
         except apk_identity.ApkIdentityError as error:
             logging.warning("Refusing durable cache promotion for %s %s: %s", app, version, error)
             continue
-        # apk_cache.stage() performs the authoritative payload validation,
-        # including verification that Japanese resources actually exist.
-        staged = apk_cache.stage(input_apk, package, version, provider)
+        staged = apk_cache.stage(
+            input_apk,
+            package,
+            version,
+            provider,
+            require_japanese=require_japanese,
+        )
         if staged is not None:
             _copy_origin_sidecar(manifest_path, staged)
             staged_count += 1
