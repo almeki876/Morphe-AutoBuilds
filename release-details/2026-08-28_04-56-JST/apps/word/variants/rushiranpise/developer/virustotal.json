@@ -1,0 +1,23 @@
+{
+  "results": [
+    {
+      "file": "word-rushiranpise-arm64-v8a.apkm",
+      "sha256": "bbd9d5d565c7179aa69ab3164e61797a77561a6b936b3d01e7de86feab8e5500",
+      "size": 130697927,
+      "analysis_id": "",
+      "malicious": 0,
+      "suspicious": 0,
+      "harmless": 0,
+      "undetected": 55,
+      "timeout": 10,
+      "failure": 1,
+      "unsupported": 9,
+      "verdict": "clean",
+      "method": "persistent hash cache",
+      "engines": {},
+      "permalink": "https://www.virustotal.com/gui/file/bbd9d5d565c7179aa69ab3164e61797a77561a6b936b3d01e7de86feab8e5500/detection",
+      "last_analysis_date": 1787069752,
+      "reanalyzed": false
+    }
+  ]
+}

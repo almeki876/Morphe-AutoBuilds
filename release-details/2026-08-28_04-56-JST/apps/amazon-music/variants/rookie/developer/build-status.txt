@@ -1,0 +1,89 @@
+app=amazon-music
+source=rookie
+source_name=RookieEnough
+phase=Patch
+status=success
+run=https://github.com/almeki876/Morphe-AutoBuilds/actions/runs/33109386119
+
+traceback_or_error_tail<<EOF
+Name: Block audio ads
+Description: Blocks audio ads in streams and VODs.
+Enabled: true
+
+Index: 53
+Name: Block embedded ads
+Description: Blocks embedded stream ads using services like Luminous or PurpleAdBlocker.
+Enabled: true
+
+Index: 54
+Name: Block video ads
+Description: Blocks video ads in streams and VODs.
+Enabled: true
+
+Index: 55
+Name: Show deleted messages
+Description: Shows deleted chat messages behind a clickable spoiler.
+Enabled: true
+
+Index: 56
+Name: Auto claim channel points
+Description: Automatically claim Channel Points.
+Enabled: true
+
+Index: 57
+Name: Debug mode
+Description: Enables Twitch's internal debugging mode.
+Enabled: false
+
+Index: 58
+Name: Hide Ads
+Description: Hides ad banners between chats.
+Enabled: true
+
+Index: 59
+Name: Hide navigation buttons
+Description: Permanently hides navigation bar buttons, such as Explore and Marketplace.
+Enabled: false
+2026-08-27 19:54:30 enable_patches=[]  disable_patches=[]
+2026-08-27 19:54:31 Running: java -Djava.awt.headless=true -Xmx6g -Xms3g -Dfile.encoding=UTF-8 -XX:-UsePerfData -XX:+UseG1GC -XX:MaxGCPauseMillis=150 -XX:G1HeapRegionSize=2m -XX:+UseStringDeduplication -XX:+ParallelRefProcEnabled -XX:ConcGCThreads=2 -XX:ParallelGCThreads=4 -XX:CICompilerCount=3 -XX:+UseCompressedOops -XX:+OptimizeStringConcat -XX:+DisableExplicitGC -XX:+TieredCompilation -XX:ReservedCodeCacheSize=128m -XX:InitialCodeCacheSize=32m -XX:MaxMetaspaceSize=128m -XX:SoftRefLRUPolicyMSPerMB=50 --add-opens=java.base/java.lang=ALL-UNNAMED --add-opens=java.base/java.util=ALL-UNNAMED --add-opens=java.base/java.io=ALL-UNNAMED -jar morphe-desktop-1.15.0-dev.2-all.jar patch --force --continue-on-error -p patches-1.3.0-dev.4.mpp --out=amazon-music-arm64-v8a-patch-v26.29.0.apk --bytecode-mode=STRIP_FAST .build-input-arm64-v8a.apk
+⚠️  Ignoring legacy BASE_APK_CACHE_TAG='base-apk-cache-v2'; using 'base-apk-cache-v4-ja-jp-px9a-split'
+INFO: Morphe data root: /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/morphe-data (JAR-adjacent)
+INFO: Loading patches...
+INFO: Initializing patcher...
+INFO: Filtering patches for com.amazon.mp3 v26.29.0...
+INFO: Skipping disabled: Change package name (default)
+INFO: Applying 5 patches...
+INFO: Deleting existing temporary files directory
+INFO: Decoding all resources
+INFO: Sanitizing unpatched strings
+INFO: Escaping strings
+INFO: Executing patches
+INFO: Applied: Prevent log upload
+INFO: Applied: Rename shared permissions
+INFO: Applied: Skip ads
+INFO: Applied: Unlimited track skipping
+INFO: Applied: Unlock Unlimited
+INFO: Compiling patched dex files (mode: STRIP_FAST)
+INFO: Writing 247 new classes to new DEX files
+INFO: Processing 247 classes (single threaded mode)
+INFO: Wrote 1 dex files to /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/morphe-data/tmp/patching-1787860473131/patched/dex
+INFO: Stripping 7 modified classes from original DEX files
+INFO: Compiling modified resources
+INFO: Unescaping strings
+INFO: Processing aapt macros
+INFO: Generating new resource IDs
+INFO: Writing resource APK
+INFO: Aligning APK
+INFO: Signing APK
+INFO: Saved to /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/amazon-music-arm64-v8a-patch-v26.29.0.apk
+INFO: Purged this session's temp files: patching-1787860473131
+2026-08-27 19:55:10 Validated patched APK: 179391669 bytes (ABIs: arm64-v8a)
+2026-08-27 19:55:10 [SIZE] patched: 179391669 bytes (amazon-music-arm64-v8a-patch-v26.29.0.apk)
+Signed
+2026-08-27 19:55:14 [SIZE] signed: 179387573 bytes (amazon-music-arm64-v8a-rookie-v26.29.0.apk)
+✅ APK built: amazon-music-arm64-v8a-rookie-v26.29.0.apk
+✅ Built arm64-v8a: amazon-music-arm64-v8a-rookie-v26.29.0.apk
+
+🎯 1 APK(s) built for 'amazon-music':
+   📱 amazon-music-arm64-v8a-rookie-v26.29.0.apk
+EOF
