@@ -196,10 +196,11 @@ def source_metadata(root: Path = Path("sources")) -> dict[str, tuple[str, str | 
             (item for item in repositories if "patch" in str(item["repo"]).lower()),
             repositories[-1] if repositories else None,
         )
-        url = (
-            f"https://github.com/{preferred['user']}/{preferred['repo']}"
-            if preferred else None
-        )
+        if preferred:
+            host = "gitlab.com" if preferred.get("gitlab") else "github.com"
+            url = f"https://{host}/{preferred['user']}/{preferred['repo']}"
+        else:
+            url = None
         metadata[output_name] = (SOURCE_LABELS.get(path.stem, output_name), url)
     return metadata
 

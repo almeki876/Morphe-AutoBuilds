@@ -694,6 +694,11 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SOURCE_TAGS_JSON: ${{ needs.download-tools.outputs.resolved-tags }}
+          GPLAYDL_API_KEY: ${{ secrets.GPLAYDL_API_KEY }}
+          GPLAY_EMAIL: ${{ secrets.GPLAY_EMAIL }}
+          GPLAY_AAS_TOKEN: ${{ secrets.GPLAY_AAS_TOKEN }}
+          GPLAYDL_PREFERRED_PROFILE: ${{ vars.GPLAYDL_PREFERRED_PROFILE }}
+          GPLAY_AUTH_TOKEN: ${{ secrets.GPLAY_AUTH_TOKEN }}
         run: |
           pip install -r requirements.txt
           python3 scripts/save_successful_state.py

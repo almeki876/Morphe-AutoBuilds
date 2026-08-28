@@ -307,7 +307,7 @@
 
 [arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026-08-25_16-56-JST/speedtest-arm64-v8a-bholey-v7.0.4.apk)
 
-## [Paresh-Maheshwari](https://github.com/Paresh-Maheshwari/paresh-patches)
+## [Paresh-Maheshwari](https://gitlab.com/Paresh-Maheshwari/paresh-patches)
 
 ### Fing
 

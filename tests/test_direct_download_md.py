@@ -118,6 +118,40 @@ class DirectDownloadMarkdownTests(unittest.TestCase):
         self.assertLess(morphe_youtube, morphe_music)
         self.assertLess(morphe_music, anddea)
 
+    def test_render_uses_gitlab_url_for_gitlab_patch_source(self):
+        release = {
+            "assets": [
+                {
+                    "name": "fing-arm64-v8a-paresh-v12.12.0.apk",
+                    "browser_download_url": "https://example.invalid/fing.apk",
+                }
+            ]
+        }
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "paresh.json").write_text(
+                json.dumps([
+                    {"name": "paresh"},
+                    {"user": "MorpheApp", "repo": "morphe-cli"},
+                    {
+                        "user": "Paresh-Maheshwari",
+                        "repo": "paresh-patches",
+                        "gitlab": True,
+                    },
+                ]),
+                encoding="utf-8",
+            )
+            output = render(
+                release,
+                source_root=root,
+                config_path=self._config(root, [("fing", "paresh")]),
+            )
+
+        self.assertIn(
+            "## [Paresh-Maheshwari](https://gitlab.com/Paresh-Maheshwari/paresh-patches)",
+            output,
+        )
+
     def test_partial_release_preserves_unaffected_apps_and_replaces_updated_asset(self):
         old_youtube_url = "https://example.invalid/old/youtube.apk"
         old_photos_url = "https://example.invalid/old/photos.apk"
