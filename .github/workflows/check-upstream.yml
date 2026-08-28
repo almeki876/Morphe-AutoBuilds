@@ -2,7 +2,9 @@ name: "自動: アップストリーム更新を確認"
 
 on:
   schedule:
-    - cron: '0 9 * * *'   # JST 18:00
+    # GitHub Actions cron is UTC: 03:00 JST is 18:00 UTC on the previous day.
+    - cron: '0 18 * * *'  # JST 03:00
+    - cron: '0 12 * * *'  # JST 21:00
   workflow_dispatch:
 
 concurrency:

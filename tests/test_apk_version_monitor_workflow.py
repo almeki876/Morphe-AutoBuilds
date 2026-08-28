@@ -21,6 +21,11 @@ class ApkVersionMonitorWorkflowTests(unittest.TestCase):
             self.workflow,
         )
 
+    def test_upstream_monitor_runs_twice_daily_in_japan_time(self) -> None:
+        self.assertIn("cron: '0 18 * * *'", self.workflow)
+        self.assertIn("cron: '0 12 * * *'", self.workflow)
+        self.assertEqual(self.workflow.count("    - cron:"), 2)
+
     def test_version_monitor_receives_google_play_credentials(self) -> None:
         check_section = self.workflow.split("      - name: Check APK versions\n", 1)[1].split(
             "      - name:", 1

@@ -185,7 +185,7 @@ python3 scripts/probe_apk_sources.py \
 
 ## 自動更新と状態保存
 
-`自動: アップストリーム更新を確認` がpatch sourceとAPK更新を確認し、変更対象だけ `build.yml` をdispatchします。
+`自動: アップストリーム更新を確認` が毎日2回（日本時間03:00と21:00）patch sourceとAPK更新を確認し、変更対象だけ `build.yml` をdispatchします。GitHub ActionsのscheduleはUTC指定のため、workflowではそれぞれ`18:00 UTC`（前日）と`12:00 UTC`に設定しています。
 
 成功したビルド状態は `last-tags.json` に保存します。mainへ別workflowが同時pushしてもnon-fast-forwardで失敗しにくいよう、state保存処理は最新mainへこのrunの変更だけを再適用してpushします。force pushは使用しません。
 
