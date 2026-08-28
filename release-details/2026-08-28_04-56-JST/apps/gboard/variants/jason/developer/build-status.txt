@@ -1,0 +1,89 @@
+app=gboard
+source=jason
+source_name=jasonwu1994 + jkennethcarino + Entree3k
+phase=Patch
+status=success
+run=https://github.com/almeki876/Morphe-AutoBuilds/actions/runs/33109386119
+
+traceback_or_error_tail<<EOF
+INFO: Skipping disabled: Toggle feature flags (from options file)
+INFO: Skipping disabled: Remove promotional banners (from options file)
+INFO: Skipping disabled: Change package name (from options file)
+INFO: Skipping disabled: Disable telemetry & federated learning (from options file)
+INFO: Skipping disabled: Network privacy (from options file)
+INFO: Applying 40 patches...
+INFO: Deleting existing temporary files directory
+INFO: Decoding all resources
+INFO: Sanitizing unpatched strings
+INFO: Escaping strings
+INFO: Executing patches
+INFO: Applied: AI Writing Tools
+INFO: Applied: Access Points menu style
+INFO: Applied: Add Gboard Signature Bypass
+INFO: Applied: Advanced Voice Typing
+INFO: [Found] Enabled clipboard in incognito.
+INFO: [Found] Enabled dictation in incognito (18.x gate).
+INFO: [Found] Enabled voice typing in incognito (legacy gate).
+INFO: Applied: Always incognito mode
+INFO: [Found] federatedcompute-pa.googleapis.com blocked.
+INFO: Applied: Block tracking and analytics
+INFO: Applied: Change emoji size
+INFO: Applied: Clipboard Custom Character Limit
+INFO: Applied: Clipboard Enhancements
+INFO: Applied: Close Proactive Suggestions
+INFO: Applied: Custom Symbols
+INFO: Applied: Developer options
+INFO: Applied: Emojis, stickers & GIFs Tab Order
+INFO: Applied: Enable Inline Autofill Suggestions
+INFO: Applied: Enable OCR / Scan Text
+INFO: Skipping 'Enable Undo feature': already enabled by default since 17.3.3.902587967
+INFO: Applied: Enable Undo feature
+INFO: Applied: Enable accessibility layout
+INFO: Applied: Enable cursor trackpad mode
+INFO: Applied: Enable split keyboard
+INFO: Applied: English QWERTY Up-Flick Uppercase
+INFO: Applied: Floating Web Search
+INFO: Applied: G Logo on Spacebar
+INFO: Applied: Grammar Checker
+INFO: Applied: Hyperspeed Typing Animation
+INFO: Applied: Incognito Mode Toggle
+INFO: Applied: Inline Suggestions
+INFO: Applied: Key Shape Selection
+INFO: Applied: Latin Globe Key Ignore Interval
+INFO: Applied: Long-Press Editing Shortcuts
+INFO: Applied: Quick Insert
+INFO: Applied: Rounded Keyboard Panel
+INFO: Applied: Settings Homepage Override
+INFO: Applied: Swipeable Custom Top Row
+INFO: Applied: Top Toolbar Item Count
+INFO: Applied: Use Bluetooth Microphone
+INFO: Applied: Web Clipboard
+INFO: Applied: Zhuyin Bottom Row Key Sizes
+INFO: Applied: Zhuyin Quick Traditional/Simplified Toggle
+INFO: Applied: Zhuyin Slide Input
+INFO: Applied: Package Rename
+INFO: Compiling patched dex files (mode: STRIP_FAST)
+INFO: Writing 1965 new classes to new DEX files
+INFO: Processing 1965 classes (single threaded mode)
+INFO: Wrote 1 dex files to /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/morphe-data/tmp/patching-1787860491104/patched/dex
+INFO: Stripping 57 modified classes from original DEX files
+INFO: Compiling modified resources
+INFO: Unescaping strings
+INFO: Post-processing package name change
+INFO: Processing aapt macros
+INFO: Generating new resource IDs
+INFO: Writing resource APK
+INFO: Aligning APK
+INFO: Signing APK
+INFO: Saved to /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/gboard-arm64-v8a-patch-v18.0.3.954559732-release-arm64-v8a.apk
+INFO: Purged this session's temp files: patching-1787860491104
+2026-08-27 19:55:36 Validated patched APK: 89028037 bytes (ABIs: arm64-v8a)
+2026-08-27 19:55:36 [SIZE] patched: 89028037 bytes (gboard-arm64-v8a-patch-v18.0.3.954559732-release-arm64-v8a.apk)
+Signed
+2026-08-27 19:55:38 [SIZE] signed: 89023941 bytes (gboard-arm64-v8a-jason-v18.0.3.954559732-release-arm64-v8a.apk)
+✅ APK built: gboard-arm64-v8a-jason-v18.0.3.954559732-release-arm64-v8a.apk
+✅ Built arm64-v8a: gboard-arm64-v8a-jason-v18.0.3.954559732-release-arm64-v8a.apk
+
+🎯 1 APK(s) built for 'gboard':
+   📱 gboard-arm64-v8a-jason-v18.0.3.954559732-release-arm64-v8a.apk
+EOF
