@@ -1,0 +1,23 @@
+{
+  "results": [
+    {
+      "file": "google-news-hoo-dles-universal.apk",
+      "sha256": "f5b04a816a85813cce43343cc2ae57dd0c6f4f535f5d9cdf61a1d31079a84d75",
+      "size": 18659208,
+      "analysis_id": "",
+      "malicious": 0,
+      "suspicious": 0,
+      "harmless": 0,
+      "undetected": 52,
+      "timeout": 10,
+      "failure": 6,
+      "unsupported": 6,
+      "verdict": "clean",
+      "method": "persistent hash cache",
+      "engines": {},
+      "permalink": "https://www.virustotal.com/gui/file/f5b04a816a85813cce43343cc2ae57dd0c6f4f535f5d9cdf61a1d31079a84d75/detection",
+      "last_analysis_date": 1785352014,
+      "reanalyzed": false
+    }
+  ]
+}

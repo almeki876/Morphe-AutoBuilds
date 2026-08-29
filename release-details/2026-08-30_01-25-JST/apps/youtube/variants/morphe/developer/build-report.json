@@ -1,0 +1,184 @@
+{
+  "app_name": "youtube",
+  "source": "morphe",
+  "patch_source": "morphe",
+  "source_name": "morphe",
+  "version": "21.04.223",
+  "status": "success",
+  "lifecycle_status": "success_full",
+  "requested_patches": [
+    "Hide Shorts components",
+    "Theme"
+  ],
+  "requested_options": [
+    {
+      "patch": "Hide Shorts components",
+      "key": "hideShortsAppShortcut",
+      "value": false
+    },
+    {
+      "patch": "Hide Shorts components",
+      "key": "hideShortsWidget",
+      "value": false
+    },
+    {
+      "patch": "Theme",
+      "key": "darkThemeBackgroundColor",
+      "value": "@android:color/black"
+    },
+    {
+      "patch": "Theme",
+      "key": "lightThemeBackgroundColor",
+      "value": "@android:color/white"
+    }
+  ],
+  "applying_count": 68,
+  "applied_patches": [
+    "Alternative thumbnails",
+    "Ambient mode",
+    "Bypass image region restrictions",
+    "Captions",
+    "Change form factor",
+    "Change header",
+    "Change start page",
+    "Check watch history domain name resolution",
+    "Custom branding",
+    "Custom player overlay opacity",
+    "Disable DRC audio",
+    "Disable QUIC protocol",
+    "Disable Shorts resuming on startup",
+    "Disable double tap actions",
+    "Disable haptic feedback",
+    "Disable layout updates",
+    "Disable player popup panels",
+    "Disable rolling number animations",
+    "Disable sign in to TV popup",
+    "Disable video codecs",
+    "Double tap to seek",
+    "Downloads",
+    "Enable debugging",
+    "Exit fullscreen mode",
+    "Force original audio",
+    "GmsCore support",
+    "Hide Shorts components",
+    "Hide ads",
+    "Hide autoplay preview",
+    "Hide end screen cards",
+    "Hide end screen suggested video",
+    "Hide info cards",
+    "Hide layout components",
+    "Hide player flyout menu components",
+    "Hide player overlay buttons",
+    "Hide related video overlay",
+    "Hide related videos",
+    "Hide timestamp",
+    "Hide video action buttons",
+    "Loop video",
+    "Media notification controls",
+    "Miniplayer",
+    "Navigation bar",
+    "Open Shorts in regular player",
+    "Open channel of live avatar",
+    "Open links externally",
+    "Open system share sheet",
+    "Open videos fullscreen",
+    "Override YouTube Music buttons",
+    "Override certificate pinning",
+    "Play all",
+    "Playback speed",
+    "Reload video",
+    "Remove background playback restrictions",
+    "Remove viewer discretion dialog",
+    "Return YouTube Dislike",
+    "Sanitize sharing links",
+    "Save to Watch later",
+    "Seekbar",
+    "Shorts autoplay",
+    "SponsorBlock",
+    "Spoof app version",
+    "Spoof device dimensions",
+    "Spoof video streams",
+    "Swipe controls",
+    "Theme",
+    "Video quality",
+    "Disable Play Store updates"
+  ],
+  "excluded_patches": [],
+  "disabled_patches": [],
+  "feature_failures": [
+    {
+      "name": "Clone app",
+      "reason": "[runtime-skipped-default] default"
+    },
+    {
+      "name": "Change installer source",
+      "reason": "[runtime-skipped-default] default"
+    },
+    {
+      "name": "Copy video link",
+      "reason": "[runtime-skipped-default] default"
+    },
+    {
+      "name": "Add to queue",
+      "reason": "[runtime-skipped-default] default"
+    },
+    {
+      "name": "Settings menu filter",
+      "reason": "[runtime-skipped-default] default"
+    },
+    {
+      "name": "Playback in feeds",
+      "reason": "[runtime-skipped-default] default"
+    },
+    {
+      "name": "Mute button",
+      "reason": "[runtime-skipped-default] default"
+    },
+    {
+      "name": "Disable fullscreen gestures",
+      "reason": "[runtime-skipped-default] default"
+    },
+    {
+      "name": "Fullscreen video scale",
+      "reason": "[runtime-skipped-default] default"
+    },
+    {
+      "name": "Disable playlist autoplay",
+      "reason": "[runtime-skipped-default] default"
+    },
+    {
+      "name": "Disable scrolling speed limit",
+      "reason": "[runtime-skipped-default] default"
+    },
+    {
+      "name": "Wide search bar",
+      "reason": "[runtime-skipped-default] default"
+    },
+    {
+      "name": "Bypass link redirects",
+      "reason": "[runtime-skipped-default] default"
+    },
+    {
+      "name": "PoToken provider",
+      "reason": "[runtime-skipped-default] default"
+    },
+    {
+      "name": "Network proxy",
+      "reason": "[runtime-skipped-default] default"
+    },
+    {
+      "name": "Voice over translation",
+      "reason": "[runtime-skipped-default] default"
+    }
+  ],
+  "failed_patches": [],
+  "required_patches": [],
+  "required_failures": [],
+  "required_patches_satisfied": true,
+  "fully_applied": true,
+  "error_category": null,
+  "error_summary": null,
+  "toolchain_fallback_used": false,
+  "toolchain_primary_cli_tag": "v1.15.0-dev.4",
+  "toolchain_primary_patch_tag": "v1.41.0-dev.4"
+}
