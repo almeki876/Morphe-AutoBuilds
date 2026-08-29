@@ -1,0 +1,47 @@
+{
+  "app_name": "soundcloud",
+  "source": "hoo-dles",
+  "patch_source": "hoo-dles",
+  "source_name": "hoo-dles",
+  "version": "2026.08.26-release",
+  "status": "success",
+  "lifecycle_status": "success_full",
+  "requested_patches": [],
+  "requested_options": [],
+  "applying_count": 2,
+  "applied_patches": [
+    "Disable telemetry",
+    "Enable SoundCloud Go"
+  ],
+  "excluded_patches": [],
+  "disabled_patches": [],
+  "feature_failures": [
+    {
+      "name": "Hide app icon",
+      "reason": "[runtime-skipped-default] default"
+    },
+    {
+      "name": "Enable debug",
+      "reason": "[runtime-skipped-default] default"
+    },
+    {
+      "name": "Change package name",
+      "reason": "[runtime-skipped-default] default"
+    },
+    {
+      "name": "Disable Pairip license check",
+      "reason": "[runtime-skipped-default] default"
+    },
+    {
+      "name": "AMOLED dark theme",
+      "reason": "[runtime-skipped-default] default"
+    }
+  ],
+  "failed_patches": [],
+  "required_patches": [],
+  "required_failures": [],
+  "required_patches_satisfied": true,
+  "fully_applied": true,
+  "error_category": null,
+  "error_summary": null
+}
