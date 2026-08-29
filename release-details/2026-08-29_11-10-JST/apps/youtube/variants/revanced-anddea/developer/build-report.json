@@ -1,0 +1,311 @@
+{
+  "app_name": "youtube",
+  "source": "revanced-anddea",
+  "patch_source": "revanced-anddea",
+  "source_name": "revanced-anddea",
+  "version": "20.51.39",
+  "status": "success",
+  "lifecycle_status": "success_full",
+  "requested_patches": [
+    "Change version code",
+    "Custom Shorts action buttons",
+    "Custom branding for YouTube",
+    "Custom double tap length",
+    "Force player buttons background",
+    "GmsCore support",
+    "Hide shortcuts",
+    "Overlay buttons",
+    "Settings for YouTube",
+    "Snack bar components",
+    "SponsorBlock",
+    "Theme",
+    "Translations for YouTube",
+    "Visual preferences icons for YouTube"
+  ],
+  "requested_options": [
+    {
+      "patch": "Change version code",
+      "key": "versionCode",
+      "value": "2147483647"
+    },
+    {
+      "patch": "Custom Shorts action buttons",
+      "key": "iconType",
+      "value": "round"
+    },
+    {
+      "patch": "Custom branding for YouTube",
+      "key": "customIcon",
+      "value": "patch-assets/anddea/youtube/xisr_evergreen"
+    },
+    {
+      "patch": "Custom branding for YouTube",
+      "key": "customName",
+      "value": "RVA"
+    },
+    {
+      "patch": "Custom double tap length",
+      "key": "doubleTapLengthArrays",
+      "value": "3, 5, 10, 15, 20, 30, 60, 120, 180"
+    },
+    {
+      "patch": "Force player buttons background",
+      "key": "BackgroundColor",
+      "value": "?ytOverlayBackgroundMediumLight"
+    },
+    {
+      "patch": "GmsCore support",
+      "key": "gmsCoreVendorGroupId",
+      "value": "app.revanced"
+    },
+    {
+      "patch": "GmsCore support",
+      "key": "checkGmsCore",
+      "value": true
+    },
+    {
+      "patch": "GmsCore support",
+      "key": "disableCoreServices",
+      "value": false
+    },
+    {
+      "patch": "GmsCore support",
+      "key": "packageNameYouTube",
+      "value": "bill.youtube"
+    },
+    {
+      "patch": "GmsCore support",
+      "key": "packageNameYouTubeMusic",
+      "value": "bill.youtube.music"
+    },
+    {
+      "patch": "GmsCore support",
+      "key": "patchAllManifest",
+      "value": true
+    },
+    {
+      "patch": "Overlay buttons",
+      "key": "iconType",
+      "value": "rounded"
+    },
+    {
+      "patch": "Overlay buttons",
+      "key": "bottomMargin",
+      "value": "2.5dip"
+    },
+    {
+      "patch": "Overlay buttons",
+      "key": "widerButtonsSpace",
+      "value": false
+    },
+    {
+      "patch": "Overlay buttons",
+      "key": "changeTopButtons",
+      "value": true
+    },
+    {
+      "patch": "Settings for YouTube",
+      "key": "rvxSettingsLabel",
+      "value": "RVA"
+    },
+    {
+      "patch": "Snack bar components",
+      "key": "cornerRadius",
+      "value": "8.0dip"
+    },
+    {
+      "patch": "Snack bar components",
+      "key": "applyCornerRadiusToPlaylistBottomBar",
+      "value": false
+    },
+    {
+      "patch": "Snack bar components",
+      "key": "darkThemeBackgroundColor",
+      "value": "@color/yt_black3"
+    },
+    {
+      "patch": "Snack bar components",
+      "key": "lightThemeBackgroundColor",
+      "value": "@color/yt_white3"
+    },
+    {
+      "patch": "Snack bar components",
+      "key": "strokeColor",
+      "value": ""
+    },
+    {
+      "patch": "SponsorBlock",
+      "key": "NewSegmentAlignment",
+      "value": "right"
+    },
+    {
+      "patch": "Theme",
+      "key": "darkThemeBackgroundColor",
+      "value": "@android:color/black"
+    },
+    {
+      "patch": "Theme",
+      "key": "lightThemeBackgroundColor",
+      "value": "@android:color/white"
+    },
+    {
+      "patch": "Translations for YouTube",
+      "key": "customTranslations",
+      "value": ""
+    },
+    {
+      "patch": "Translations for YouTube",
+      "key": "selectedTranslations",
+      "value": "ar, az-rAZ, be-rBY, bg-rBG, cs-rCZ, da-rDK, de-rDE, el-rGR, en-rGB, en-rUS, es-rES, es-rUS, fa-rIR, fil-rPH, fr-rFR, ga-rIE, hu-rHU, id-rID, in, it-rIT, iw-rIL, ja-rJP, ko-rKR, lo-rLA, my-rMM, nl-rNL, pa-rIN, pl-rPL, pt-rBR, ru-rRU, sk-rSK, sv-rSE, ta-rIN, tr-rTR, uk-rUA, ur-rPK, uz-rUZ, vi-rVN, zh-rCN, zh-rTW"
+    },
+    {
+      "patch": "Translations for YouTube",
+      "key": "selectedStringResources",
+      "value": "af, am, ar, ar-rXB, as, az, b+es+419, b+sr+Latn, be, bg, bn, bs, ca, cs, da, de, el, en-rAU, en-rCA, en-rGB, en-rIN, en-rXA, en-rXC, es, es-rUS, et, eu, fa, fi, fil-rPH, fr, fr-rCA, gl, gu, hi, hr, hu, hy, id, in, is, it, iw, ja, ka, kk, km, kn, ko, ky, lo, lt, lv, mk, ml, mn, mr, ms, my, nb, ne, nl, no, or, pa, pl, pt, pt-rBR, pt-rPT, ro, ru, si, sk, sl, sq, sr, sv, sw, ta, te, th, tl, tr, uk, ur, uz, vi, zh, zh-rCN, zh-rHK, zh-rTW, zu"
+    },
+    {
+      "patch": "Visual preferences icons for YouTube",
+      "key": "settingsMenuIcon",
+      "value": "extension"
+    },
+    {
+      "patch": "Visual preferences icons for YouTube",
+      "key": "applyToAll",
+      "value": true
+    },
+    {
+      "patch": "Hide shortcuts",
+      "key": "explore",
+      "value": false
+    },
+    {
+      "patch": "Hide shortcuts",
+      "key": "subscriptions",
+      "value": false
+    },
+    {
+      "patch": "Hide shortcuts",
+      "key": "search",
+      "value": false
+    },
+    {
+      "patch": "Hide shortcuts",
+      "key": "shorts",
+      "value": false
+    }
+  ],
+  "applying_count": 70,
+  "applied_patches": [
+    "Alternative thumbnails",
+    "Ambient mode control",
+    "Bypass URL redirects",
+    "Bypass image region restrictions",
+    "Change form factor",
+    "Change player flyout menu toggles",
+    "Change share sheet",
+    "Change start page",
+    "Change version code",
+    "Custom DPI",
+    "Custom Shorts action buttons",
+    "Custom branding for YouTube",
+    "Custom double tap length",
+    "Description components",
+    "Disable QUIC protocol",
+    "Disable forced auto captions",
+    "Disable haptic feedback",
+    "Disable layout updates",
+    "Disable resuming Miniplayer on startup",
+    "Disable resuming Shorts on startup",
+    "Disable sign in to TV popup",
+    "Enable debug logging",
+    "Enable gradient loading screen",
+    "Force original audio",
+    "Force player buttons background",
+    "Fullscreen components",
+    "Fullscreen video scale",
+    "Gemini",
+    "GmsCore support",
+    "Hide action buttons",
+    "Hide ads",
+    "Hide comments components",
+    "Hide feed components",
+    "Hide feed flyout menu",
+    "Hide layout components",
+    "Hide player buttons",
+    "Hide player flyout menu",
+    "Hide shortcuts",
+    "Hook download actions",
+    "Miniplayer",
+    "Navigation bar components",
+    "Open links externally",
+    "Overlay buttons",
+    "Override YouTube Music buttons",
+    "Playback in feeds",
+    "Player components",
+    "Remove background playback restrictions",
+    "Remove viewer discretion dialog",
+    "Return YouTube Dislike",
+    "Return YouTube Username",
+    "Sanitize sharing links",
+    "Seekbar components",
+    "Set transcript cookies",
+    "Settings menu filter",
+    "Shorts components",
+    "Snack bar components",
+    "SponsorBlock",
+    "Spoof app version",
+    "Spoof video streams",
+    "Spoof watch history",
+    "Swipe controls",
+    "Theme",
+    "Toolbar components",
+    "Translations for YouTube",
+    "Video playback",
+    "Voice Over Translation",
+    "Wide search bar",
+    "Visual preferences icons for YouTube",
+    "Reload video",
+    "Settings for YouTube"
+  ],
+  "excluded_patches": [],
+  "disabled_patches": [],
+  "feature_failures": [
+    {
+      "name": "Spoof Wi-Fi connection",
+      "reason": "[runtime-skipped-default] default"
+    },
+    {
+      "name": "Disable edge-to-edge display",
+      "reason": "[runtime-skipped-default] default"
+    },
+    {
+      "name": "Change installer package name",
+      "reason": "[runtime-skipped-default] default"
+    },
+    {
+      "name": "Override certificate pinning",
+      "reason": "[runtime-skipped-default] default"
+    },
+    {
+      "name": "Spoof signature",
+      "reason": "[runtime-skipped-default] default"
+    },
+    {
+      "name": "Hide Shorts dimming",
+      "reason": "[runtime-skipped-default] default"
+    },
+    {
+      "name": "Hide accessibility controls dialog",
+      "reason": "[runtime-skipped-default] default"
+    }
+  ],
+  "failed_patches": [],
+  "required_patches": [
+    "Custom branding for YouTube"
+  ],
+  "required_failures": [],
+  "required_patches_satisfied": true,
+  "fully_applied": true,
+  "error_category": null,
+  "error_summary": null
+}

@@ -1,0 +1,89 @@
+app=xrecorder
+source=hoo-dles
+source_name=hoo-dles
+phase=Patch
+status=success
+run=https://github.com/almeki876/Morphe-AutoBuilds/actions/runs/33227661952
+
+traceback_or_error_tail<<EOF
+Index: 72
+Name: Enable Premium
+Description: Enables app features locked behind the subscription paywall.
+Enabled: true
+
+Index: 73
+Name: Enable Premium
+Description: Enables app features locked behind the subscription paywall.
+Enabled: true
+
+Index: 74
+Name: Enable Premium
+Description: Enables app features locked behind the subscription paywall.
+Enabled: true
+
+Index: 75
+Name: Enable Premium
+Description: Enables some app features locked behind the subscription paywall. Not all premium functionality is available.
+Enabled: true
+
+Index: 76
+Name: Disable anti-tamper
+Description: Disables various anti-tamper checks that causes the app to force-close.
+Enabled: true
+
+Index: 77
+Name: Enable Pro
+Description: Enables app features locked behind the subscription paywall. Login is required and AI functionality is unavailable.
+Enabled: true
+
+Index: 78
+Name: Enable Pro
+Description: Enables app features locked behind the subscription paywall.
+Enabled: true
+
+Index: 79
+Name: Enable Pro
+Description: null
+Enabled: true
+2026-08-29 02:07:50 enable_patches=[]  disable_patches=[]
+2026-08-29 02:07:50 Running: java -Djava.awt.headless=true -Xmx6g -Xms3g -Dfile.encoding=UTF-8 -XX:-UsePerfData -XX:+UseG1GC -XX:MaxGCPauseMillis=150 -XX:G1HeapRegionSize=2m -XX:+UseStringDeduplication -XX:+ParallelRefProcEnabled -XX:ConcGCThreads=2 -XX:ParallelGCThreads=4 -XX:CICompilerCount=3 -XX:+UseCompressedOops -XX:+OptimizeStringConcat -XX:+DisableExplicitGC -XX:+TieredCompilation -XX:ReservedCodeCacheSize=128m -XX:InitialCodeCacheSize=32m -XX:MaxMetaspaceSize=128m -XX:SoftRefLRUPolicyMSPerMB=50 --add-opens=java.base/java.lang=ALL-UNNAMED --add-opens=java.base/java.util=ALL-UNNAMED --add-opens=java.base/java.io=ALL-UNNAMED -jar morphe-desktop-1.15.0-dev.2-all.jar patch --force --continue-on-error -p patches-1.43.0-dev.1.mpp --out=xrecorder-arm64-v8a-patch-v2.5.1.1.apk --bytecode-mode=STRIP_FAST .build-input-arm64-v8a.apk
+⚠️  Ignoring legacy BASE_APK_CACHE_TAG='base-apk-cache-v2'; using 'base-apk-cache-v4-ja-jp-px9a-split'
+INFO: Morphe data root: /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/morphe-data (JAR-adjacent)
+INFO: Loading patches...
+INFO: Initializing patcher...
+INFO: Filtering patches for videoeditor.videorecorder.screenrecorder v2.5.1.1...
+INFO: Skipping disabled: Hide app icon (default)
+INFO: Skipping disabled: Enable debug (default)
+INFO: Skipping disabled: Change package name (default)
+INFO: Skipping disabled: Disable Pairip license check (default)
+INFO: Applying 1 patches...
+INFO: Deleting existing temporary files directory
+INFO: Decoding all resources
+INFO: Sanitizing unpatched strings
+INFO: Escaping strings
+INFO: Executing patches
+INFO: Applied: Enable Pro
+INFO: Compiling patched dex files (mode: STRIP_FAST)
+INFO: Writing 184 new classes to new DEX files
+INFO: Processing 184 classes (single threaded mode)
+INFO: Wrote 1 dex files to /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/morphe-data/tmp/patching-1787969272423/patched/dex
+INFO: Stripping 9 modified classes from original DEX files
+INFO: Compiling modified resources
+INFO: Unescaping strings
+INFO: Processing aapt macros
+INFO: Generating new resource IDs
+INFO: Writing resource APK
+INFO: Aligning APK
+INFO: Signing APK
+INFO: Saved to /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/xrecorder-arm64-v8a-patch-v2.5.1.1.apk
+INFO: Purged this session's temp files: patching-1787969272423
+2026-08-29 02:08:06 Validated patched APK: 24710024 bytes (ABIs: arm64-v8a)
+2026-08-29 02:08:06 [SIZE] patched: 24710024 bytes (xrecorder-arm64-v8a-patch-v2.5.1.1.apk)
+Signed
+2026-08-29 02:08:07 [SIZE] signed: 24705928 bytes (xrecorder-arm64-v8a-hoo-dles-v2.5.1.1.apk)
+✅ APK built: xrecorder-arm64-v8a-hoo-dles-v2.5.1.1.apk
+✅ Built arm64-v8a: xrecorder-arm64-v8a-hoo-dles-v2.5.1.1.apk
+
+🎯 1 APK(s) built for 'xrecorder':
+   📱 xrecorder-arm64-v8a-hoo-dles-v2.5.1.1.apk
+EOF
