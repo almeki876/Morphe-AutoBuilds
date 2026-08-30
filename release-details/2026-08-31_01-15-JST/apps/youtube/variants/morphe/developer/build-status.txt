@@ -1,0 +1,89 @@
+app=youtube
+source=morphe
+source_name=Morphe
+phase=Patch
+status=success
+run=https://github.com/almeki876/Morphe-AutoBuilds/actions/runs/33321514032
+
+traceback_or_error_tail<<EOF
+INFO: Applied: Disable layout updates
+INFO: Applied: Disable player popup panels
+INFO: Applied: Disable rolling number animations
+INFO: Applied: Disable sign in to TV popup
+INFO: Applied: Disable video codecs
+INFO: Applied: Double tap to seek
+INFO: Applied: Downloads
+INFO: Applied: Enable debugging
+INFO: Applied: Exit fullscreen mode
+INFO: Applied: Force original audio
+INFO: Applied: GmsCore support
+INFO: Applied: Hide Shorts components
+INFO: Applied: Hide ads
+INFO: Applied: Hide autoplay preview
+INFO: Applied: Hide end screen cards
+INFO: Applied: Hide end screen suggested video
+INFO: Applied: Hide info cards
+INFO: Applied: Hide layout components
+INFO: Applied: Hide player flyout menu components
+INFO: Applied: Hide player overlay buttons
+INFO: Applied: Hide related video overlay
+INFO: Applied: Hide related videos
+INFO: Applied: Hide timestamp
+INFO: Applied: Hide video action buttons
+INFO: Applied: Loop video
+INFO: Applied: Media notification controls
+INFO: Applied: Miniplayer
+INFO: Applied: Navigation bar
+INFO: Applied: Open Shorts in regular player
+INFO: Applied: Open channel of live avatar
+INFO: Applied: Open links externally
+INFO: Applied: Open system share sheet
+INFO: Applied: Open videos fullscreen
+INFO: Applied: Override YouTube Music buttons
+INFO: Applied: Override certificate pinning
+INFO: Applied: Play all
+INFO: Applied: Playback speed
+INFO: Applied: Reload video
+INFO: Applied: Remove background playback restrictions
+INFO: Applied: Remove viewer discretion dialog
+INFO: Applied: Return YouTube Dislike
+INFO: Applied: Sanitize sharing links
+INFO: Applied: Save to Watch later
+INFO: Applied: Seekbar
+INFO: Applied: Shorts autoplay
+INFO: Applied: SponsorBlock
+INFO: Applied: Spoof app version
+INFO: Applied: Spoof device dimensions
+INFO: Applied: Spoof video streams
+INFO: Applied: Swipe controls
+INFO: Applied: Theme
+INFO: Applied: Video quality
+INFO: Applied: Disable Play Store updates
+INFO: Compiling patched dex files (mode: STRIP_FAST)
+INFO: Writing 6713 new classes to new DEX files
+INFO: Processing 6713 classes in parallel (4 threads)
+INFO: Wrote 4 dex files to /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/morphe-data/tmp/patching-1788106366507/patched/dex
+INFO: Stripping 806 modified classes from original DEX files
+INFO: Compiling modified resources
+INFO: Unescaping strings
+INFO: Post-processing package name change
+INFO: Processing aapt macros
+INFO: Generating new resource IDs
+INFO: Writing resource APK
+INFO: Holding back 541 resource configurations of patches
+INFO: Encoded 541 resource configurations of patches (sparse=true)
+INFO: Moving 3 resource files
+INFO: Aligning APK
+INFO: Signing APK
+INFO: Saved to /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/youtube-arm64-v8a-patch-v21.04.223.apk
+INFO: Purged this session's temp files: patching-1788106366507
+2026-08-30 16:14:17 Validated patched APK: 96863698 bytes (ABIs: arm64-v8a)
+2026-08-30 16:14:17 [SIZE] patched: 96863698 bytes (youtube-arm64-v8a-patch-v21.04.223.apk)
+Signed
+2026-08-30 16:14:20 [SIZE] signed: 96859602 bytes (youtube-arm64-v8a-morphe-v21.04.223.apk)
+✅ APK built: youtube-arm64-v8a-morphe-v21.04.223.apk
+✅ Built arm64-v8a: youtube-arm64-v8a-morphe-v21.04.223.apk
+
+🎯 1 APK(s) built for 'youtube':
+   📱 youtube-arm64-v8a-morphe-v21.04.223.apk
+EOF
