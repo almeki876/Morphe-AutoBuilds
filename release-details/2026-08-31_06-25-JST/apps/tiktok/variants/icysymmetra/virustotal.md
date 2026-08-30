@@ -1,0 +1,16 @@
+# TikTok — VirusTotal
+
+**対象:** パッチ適用前に取得したBase APK（配布元から取得/キャッシュ復元した原本）
+
+- **結果:** ✅ Clean
+- **スキャン対象:** 1 file(s)
+
+| File | SHA-256 | Malicious | Suspicious | Method | VirusTotal |
+| --- | --- | ---: | ---: | --- | --- |
+| `tiktok-icysymmetra-arm64-v8a.apkm` | `f15edb3b344beeec7bbb63f8ce79cfccec5803bd6e0a4f103030e59f805f470a` | 0 | 0 | `persistent hash cache` | [Open](https://www.virustotal.com/gui/file/f15edb3b344beeec7bbb63f8ce79cfccec5803bd6e0a4f103030e59f805f470a/detection) |
+
+## Scanner telemetry
+
+- Persistent cache hits: `28`
+- New hashes: `1`
+- Analyses started: `1`

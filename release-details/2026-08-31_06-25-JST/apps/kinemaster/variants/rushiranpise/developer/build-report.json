@@ -1,0 +1,178 @@
+{
+  "app_name": "kinemaster",
+  "source": "rushiranpise",
+  "patch_source": "rushiranpise",
+  "source_name": "rushiranpise",
+  "version": "8.1.13.36552.GP",
+  "status": "success",
+  "lifecycle_status": "success_full",
+  "requested_patches": [],
+  "requested_options": [],
+  "applying_count": 1,
+  "applied_patches": [
+    "Unlock Premium"
+  ],
+  "excluded_patches": [],
+  "disabled_patches": [],
+  "feature_failures": [
+    {
+      "name": "Disable PairIP license check",
+      "reason": "[runtime-skipped-default] default"
+    },
+    {
+      "name": "Provide Original app certificate",
+      "reason": "[runtime-skipped-default] default"
+    },
+    {
+      "name": "Spoof Widevine / DRM level",
+      "reason": "[runtime-skipped-default] default"
+    },
+    {
+      "name": "Fix Firebase after re-signing",
+      "reason": "[runtime-skipped-default] default"
+    },
+    {
+      "name": "GmsCore support",
+      "reason": "[runtime-skipped] MicroG"
+    },
+    {
+      "name": "Spoof install source",
+      "reason": "[runtime-skipped-default] default"
+    },
+    {
+      "name": "Spoof Pixel device",
+      "reason": "[runtime-skipped-default] default"
+    },
+    {
+      "name": "Spoof app signature",
+      "reason": "[runtime-skipped-default] default"
+    },
+    {
+      "name": "Remove internet permission",
+      "reason": "[runtime-skipped-default] default"
+    },
+    {
+      "name": "Enable debug build target",
+      "reason": "[runtime-skipped-default] default"
+    },
+    {
+      "name": "Spoof Android ID",
+      "reason": "[runtime-skipped-default] default"
+    },
+    {
+      "name": "Spoof Wi-Fi identifiers",
+      "reason": "[runtime-skipped-default] default"
+    },
+    {
+      "name": "Spoof Bluetooth identifiers",
+      "reason": "[runtime-skipped-default] default"
+    },
+    {
+      "name": "Spoof telephony IDs",
+      "reason": "[runtime-skipped-default] default"
+    },
+    {
+      "name": "Enable Android debugging",
+      "reason": "[runtime-skipped-default] default"
+    },
+    {
+      "name": "Hide app icon",
+      "reason": "[runtime-skipped-default] default"
+    },
+    {
+      "name": "Predictive back gesture",
+      "reason": "[runtime-skipped-default] default"
+    },
+    {
+      "name": "Change version code",
+      "reason": "[runtime-skipped-default] default"
+    },
+    {
+      "name": "Set target SDK 34",
+      "reason": "[runtime-skipped-default] default"
+    },
+    {
+      "name": "Export all activities",
+      "reason": "[runtime-skipped-default] default"
+    },
+    {
+      "name": "Remove share targets",
+      "reason": "[runtime-skipped-default] default"
+    },
+    {
+      "name": "Force dark theme",
+      "reason": "[runtime-skipped-default] default"
+    },
+    {
+      "name": "Hide mock location",
+      "reason": "[runtime-skipped-default] default"
+    },
+    {
+      "name": "Hide ADB status",
+      "reason": "[runtime-skipped-default] default"
+    },
+    {
+      "name": "Spoof SIM provider",
+      "reason": "[runtime-skipped-default] default"
+    },
+    {
+      "name": "Spoof build info",
+      "reason": "[runtime-skipped-default] default"
+    },
+    {
+      "name": "Spoof Wi-Fi connection",
+      "reason": "[runtime-skipped-default] default"
+    },
+    {
+      "name": "Override certificate pinning",
+      "reason": "[runtime-skipped-default] default"
+    },
+    {
+      "name": "Spoof root of trust",
+      "reason": "[runtime-skipped-default] default"
+    },
+    {
+      "name": "Export internal data documents provider",
+      "reason": "[runtime-skipped-default] default"
+    },
+    {
+      "name": "Enable ROM signature spoofing",
+      "reason": "[runtime-skipped-default] default"
+    },
+    {
+      "name": "Spoof keystore security level",
+      "reason": "[runtime-skipped-default] default"
+    },
+    {
+      "name": "Spoof Play age signals",
+      "reason": "[runtime-skipped-default] default"
+    },
+    {
+      "name": "Remove ad manifest entries",
+      "reason": "[runtime-skipped-default] default"
+    },
+    {
+      "name": "Disable ad SDK calls",
+      "reason": "[runtime-skipped-default] default"
+    },
+    {
+      "name": "Disable shake ads",
+      "reason": "[runtime-skipped-default] default"
+    },
+    {
+      "name": "Disable clipboard access",
+      "reason": "[runtime-skipped-default] default"
+    },
+    {
+      "name": "Hide VPN and proxy",
+      "reason": "[runtime-skipped-default] default"
+    }
+  ],
+  "failed_patches": [],
+  "required_patches": [],
+  "required_failures": [],
+  "required_patches_satisfied": true,
+  "fully_applied": true,
+  "error_category": null,
+  "error_summary": null
+}
