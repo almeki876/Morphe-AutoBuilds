@@ -1,0 +1,89 @@
+app=1-1-1-1
+source=rushiranpise
+source_name=rushiranpise
+phase=Patch
+status=success
+run=https://github.com/almeki876/Morphe-AutoBuilds/actions/runs/33427351372
+
+traceback_or_error_tail<<EOF
+Description: Unlocks Professional features inapp.
+Enabled: true
+
+Index: 328
+Name: Unlock Word
+Description: Removes login requirement, unlocks premium, blocks ads, bypasses signature and code transparency checks.
+Enabled: true
+
+Index: 329
+Name: Unlock VIP
+Description: Unlocks Yatri VIP by forcing active plan status and spoofing active plan DB query.
+Enabled: true
+2026-08-31 19:01:01 enable_patches=[]  disable_patches=[]
+2026-08-31 19:01:01 Running: java -Djava.awt.headless=true -Xmx6g -Xms3g -Dfile.encoding=UTF-8 -XX:-UsePerfData -XX:+UseG1GC -XX:MaxGCPauseMillis=150 -XX:G1HeapRegionSize=2m -XX:+UseStringDeduplication -XX:+ParallelRefProcEnabled -XX:ConcGCThreads=2 -XX:ParallelGCThreads=4 -XX:CICompilerCount=3 -XX:+UseCompressedOops -XX:+OptimizeStringConcat -XX:+DisableExplicitGC -XX:+TieredCompilation -XX:ReservedCodeCacheSize=128m -XX:InitialCodeCacheSize=32m -XX:MaxMetaspaceSize=128m -XX:SoftRefLRUPolicyMSPerMB=50 --add-opens=java.base/java.lang=ALL-UNNAMED --add-opens=java.base/java.util=ALL-UNNAMED --add-opens=java.base/java.io=ALL-UNNAMED -jar morphe-desktop-1.15.0-dev.4-all.jar patch --force --continue-on-error -p patches-1.21.2.mpp --out=1-1-1-1-arm64-v8a-patch-v6.38.9.apk --bytecode-mode=STRIP_FAST .build-input-arm64-v8a.apk
+⚠️  Ignoring legacy BASE_APK_CACHE_TAG='base-apk-cache-v2'; using 'base-apk-cache-v4-ja-jp-px9a-split'
+INFO: Morphe data root: /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/morphe-data (JAR-adjacent)
+INFO: Loading patches...
+INFO: Initializing patcher...
+INFO: Filtering patches for com.cloudflare.onedotonedotonedotone v6.38.9...
+INFO: Skipping disabled: Disable SSL Pinning (default)
+INFO: Skipping disabled: Disable PairIP license check (default)
+INFO: Skipping disabled: Provide Original app certificate (default)
+INFO: Skipping disabled: Spoof Widevine / DRM level (default)
+INFO: Skipping disabled: Fix Firebase after re-signing (default)
+INFO: Skipping disabled: GmsCore support (MicroG) (default)
+INFO: Skipping disabled: Spoof install source (default)
+INFO: Skipping disabled: Spoof Pixel device (default)
+INFO: Skipping disabled: Spoof app signature (default)
+INFO: Skipping disabled: Remove internet permission (default)
+INFO: Skipping disabled: Enable debug build target (default)
+INFO: Skipping disabled: Spoof Android ID (default)
+INFO: Skipping disabled: Spoof Bluetooth identifiers (default)
+INFO: Skipping disabled: Spoof telephony IDs (default)
+INFO: Skipping disabled: Spoof Wi-Fi identifiers (default)
+INFO: Skipping disabled: Hide app icon (default)
+INFO: Skipping disabled: Export all activities (default)
+INFO: Skipping disabled: Enable Android debugging (default)
+INFO: Skipping disabled: Predictive back gesture (default)
+INFO: Skipping disabled: Change version code (default)
+INFO: Skipping disabled: Set target SDK 34 (default)
+INFO: Skipping disabled: Remove share targets (default)
+INFO: Skipping disabled: Force dark theme (default)
+INFO: Skipping disabled: Hide mock location (default)
+INFO: Skipping disabled: Hide ADB status (default)
+INFO: Skipping disabled: Spoof build info (default)
+INFO: Skipping disabled: Spoof Wi-Fi connection (default)
+INFO: Skipping disabled: Override certificate pinning (default)
+INFO: Skipping disabled: Export internal data documents provider (default)
+INFO: Skipping disabled: Enable ROM signature spoofing (default)
+INFO: Skipping disabled: Spoof keystore security level (default)
+INFO: Skipping disabled: Spoof root of trust (default)
+INFO: Skipping disabled: Spoof Play age signals (default)
+INFO: Skipping disabled: Remove ad manifest entries (default)
+INFO: Skipping disabled: Disable ad SDK calls (default)
+INFO: Skipping disabled: Disable shake ads (default)
+INFO: Skipping disabled: Disable clipboard access (default)
+INFO: Skipping disabled: Hide VPN and proxy (default)
+INFO: Skipping disabled: Spoof SIM provider (default)
+INFO: Applying 2 patches...
+INFO: Executing patches
+INFO: Applied: Disable Analytics / Telemetry
+INFO: Applied: Spoof WARP+ Unlimited UI
+INFO: Compiling patched dex files (mode: STRIP_FAST)
+INFO: Writing 2 new classes to new DEX files
+INFO: Processing 2 classes (single threaded mode)
+INFO: Wrote 1 dex files to /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/morphe-data/tmp/patching-1788202863472/patched/dex
+INFO: Stripping 2 modified classes from original DEX files
+INFO: Aligning APK
+INFO: Signing APK
+INFO: Saved to /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/1-1-1-1-arm64-v8a-patch-v6.38.9.apk
+INFO: Purged this session's temp files: patching-1788202863472
+2026-08-31 19:01:08 Validated patched APK: 46516525 bytes (ABIs: arm64-v8a)
+2026-08-31 19:01:08 [SIZE] patched: 46516525 bytes (1-1-1-1-arm64-v8a-patch-v6.38.9.apk)
+Signed
+2026-08-31 19:01:10 [SIZE] signed: 46512429 bytes (1-1-1-1-arm64-v8a-rushiranpise-v6.38.9.apk)
+✅ APK built: 1-1-1-1-arm64-v8a-rushiranpise-v6.38.9.apk
+✅ Built arm64-v8a: 1-1-1-1-arm64-v8a-rushiranpise-v6.38.9.apk
+
+🎯 1 APK(s) built for '1-1-1-1':
+   📱 1-1-1-1-arm64-v8a-rushiranpise-v6.38.9.apk
+EOF

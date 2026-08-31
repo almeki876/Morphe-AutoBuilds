@@ -1,0 +1,210 @@
+{
+  "app_name": "gboard",
+  "source": "jason",
+  "patch_source": "jason",
+  "source_name": "jason",
+  "version": "18.0.3.954559732-release-arm64-v8a",
+  "status": "success",
+  "lifecycle_status": "success_full",
+  "requested_patches": [],
+  "requested_options": [],
+  "applying_count": 41,
+  "applied_patches": [
+    "AI Writing Tools",
+    "Access Points menu style",
+    "Add Gboard Signature Bypass",
+    "Advanced Voice Typing",
+    "Always incognito mode",
+    "Block tracking and analytics",
+    "Change emoji size",
+    "Clipboard Custom Character Limit",
+    "Clipboard Enhancements",
+    "Close Proactive Suggestions",
+    "Custom Symbols",
+    "Developer options",
+    "Emojis, stickers & GIFs Tab Order",
+    "Enable Inline Autofill Suggestions",
+    "Enable OCR / Scan Text",
+    "Enable Undo feature",
+    "Enable accessibility layout",
+    "Enable cursor trackpad mode",
+    "Enable split keyboard",
+    "English QWERTY Up-Flick Uppercase",
+    "FTP Server",
+    "Floating Web Search",
+    "G Logo on Spacebar",
+    "Grammar Checker",
+    "Hyperspeed Typing Animation",
+    "Incognito Mode Toggle",
+    "Inline Suggestions",
+    "Key Shape Selection",
+    "Latin Globe Key Ignore Interval",
+    "Long-Press Editing Shortcuts",
+    "Quick Insert",
+    "Rounded Keyboard Panel",
+    "Settings Homepage Override",
+    "Swipeable Custom Top Row",
+    "Top Toolbar Item Count",
+    "Use Bluetooth Microphone",
+    "Web Clipboard",
+    "Zhuyin Bottom Row Key Sizes",
+    "Zhuyin Quick Traditional/Simplified Toggle",
+    "Zhuyin Slide Input",
+    "Package Rename"
+  ],
+  "excluded_patches": [],
+  "disabled_patches": [],
+  "feature_failures": [
+    {
+      "name": "Disable mobile ads",
+      "reason": "[runtime-skipped] from options file"
+    },
+    {
+      "name": "Block ads, trackers, and analytics",
+      "reason": "[runtime-skipped] from options file"
+    },
+    {
+      "name": "Spoof signature verification",
+      "reason": "[runtime-skipped] from options file"
+    },
+    {
+      "name": "Deactivate Firebase Analytics",
+      "reason": "[runtime-skipped] from options file"
+    },
+    {
+      "name": "Spoof Firebase certificate hash",
+      "reason": "[runtime-skipped] from options file"
+    },
+    {
+      "name": "Deactivate Firebase Performance Monitoring",
+      "reason": "[runtime-skipped] from options file"
+    },
+    {
+      "name": "Replace Google Maps API key",
+      "reason": "[runtime-skipped] from options file"
+    },
+    {
+      "name": "Spoof Advertising ID",
+      "reason": "[runtime-skipped] from options file"
+    },
+    {
+      "name": "Remove internet permission",
+      "reason": "[runtime-skipped] from options file"
+    },
+    {
+      "name": "Change package name",
+      "reason": "[runtime-skipped] from options file"
+    },
+    {
+      "name": "Remove screenshot detection",
+      "reason": "[runtime-skipped] from options file"
+    },
+    {
+      "name": "Disable metrics collection in WebView",
+      "reason": "[runtime-skipped] from options file"
+    },
+    {
+      "name": "Disable Google Safe Browsing in WebView",
+      "reason": "[runtime-skipped] from options file"
+    },
+    {
+      "name": "Toggle feature flags",
+      "reason": "[runtime-skipped] from options file"
+    },
+    {
+      "name": "Enable clipboard in incognito",
+      "reason": "[runtime-skipped] from options file"
+    },
+    {
+      "name": "Enable voice typing in incognito",
+      "reason": "[runtime-skipped] from options file"
+    },
+    {
+      "name": "Enable extended clipboard history",
+      "reason": "[runtime-skipped] from options file"
+    },
+    {
+      "name": "Enable key shape selection",
+      "reason": "[runtime-skipped] from options file"
+    },
+    {
+      "name": "Enable access points menu redesign",
+      "reason": "[runtime-skipped] from options file"
+    },
+    {
+      "name": "Always-incognito mode",
+      "reason": "[runtime-skipped] from options file"
+    },
+    {
+      "name": "Enable OCR feature",
+      "reason": "[runtime-skipped] from options file"
+    },
+    {
+      "name": "Provide original app certificate",
+      "reason": "[runtime-skipped] from options file"
+    },
+    {
+      "name": "Bypass battery optimization nag",
+      "reason": "[runtime-skipped] from options file"
+    },
+    {
+      "name": "Disable clipboard access",
+      "reason": "[runtime-skipped] from options file"
+    },
+    {
+      "name": "GmsCore support",
+      "reason": "[runtime-skipped] MicroG"
+    },
+    {
+      "name": "Spoof install source",
+      "reason": "[runtime-skipped] from options file"
+    },
+    {
+      "name": "Spoof SIM provider",
+      "reason": "[runtime-skipped] from options file"
+    },
+    {
+      "name": "Spoof telephony IDs",
+      "reason": "[runtime-skipped] from options file"
+    },
+    {
+      "name": "Spoof Wi-Fi connection",
+      "reason": "[runtime-skipped] from options file"
+    },
+    {
+      "name": "Spoof Wi-Fi identifiers",
+      "reason": "[runtime-skipped] from options file"
+    },
+    {
+      "name": "Block tracking hosts",
+      "reason": "[runtime-skipped] from options file"
+    },
+    {
+      "name": "Disable analytics & ad tracking",
+      "reason": "[runtime-skipped] from options file"
+    },
+    {
+      "name": "Unlock RevenueCat",
+      "reason": "[runtime-skipped] from options file"
+    },
+    {
+      "name": "Remove promotional banners",
+      "reason": "[runtime-skipped] from options file"
+    },
+    {
+      "name": "Disable telemetry & federated learning",
+      "reason": "[runtime-skipped] from options file"
+    },
+    {
+      "name": "Network privacy",
+      "reason": "[runtime-skipped] from options file"
+    }
+  ],
+  "failed_patches": [],
+  "required_patches": [],
+  "required_failures": [],
+  "required_patches_satisfied": true,
+  "fully_applied": true,
+  "error_category": null,
+  "error_summary": null
+}

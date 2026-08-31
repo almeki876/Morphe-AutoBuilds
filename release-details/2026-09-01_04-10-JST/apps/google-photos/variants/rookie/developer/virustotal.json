@@ -1,0 +1,23 @@
+{
+  "results": [
+    {
+      "file": "google-photos-rookie-universal.apk",
+      "sha256": "93f9254756a00d232c3ab27e84b78b3e99400f259453ba1396a5b74d0a66548b",
+      "size": 231872593,
+      "analysis_id": "",
+      "malicious": 0,
+      "suspicious": 0,
+      "harmless": 0,
+      "undetected": 60,
+      "timeout": 6,
+      "failure": 2,
+      "unsupported": 7,
+      "verdict": "clean",
+      "method": "persistent hash cache",
+      "engines": {},
+      "permalink": "https://www.virustotal.com/gui/file/93f9254756a00d232c3ab27e84b78b3e99400f259453ba1396a5b74d0a66548b/detection",
+      "last_analysis_date": 1787859623,
+      "reanalyzed": false
+    }
+  ]
+}
