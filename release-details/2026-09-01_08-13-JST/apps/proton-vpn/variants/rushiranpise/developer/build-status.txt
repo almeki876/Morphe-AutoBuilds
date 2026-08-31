@@ -1,0 +1,89 @@
+app=proton-vpn
+source=rushiranpise
+source_name=rushiranpise
+phase=Patch
+status=success
+run=https://github.com/almeki876/Morphe-AutoBuilds/actions/runs/33448639835
+
+traceback_or_error_tail<<EOF
+Index: 324
+Name: Unlock Professional
+Description: Unlocks Professional features inapp.
+Enabled: true
+
+Index: 325
+Name: Unlock Word
+Description: Removes login requirement, unlocks premium, blocks ads, bypasses signature and code transparency checks.
+Enabled: true
+
+Index: 326
+Name: Unlock VIP
+Description: Unlocks Yatri VIP by forcing active plan status and spoofing active plan DB query.
+Enabled: true
+2026-08-31 23:10:13 enable_patches=[]  disable_patches=[]
+2026-08-31 23:10:13 Running: java -Djava.awt.headless=true -Xmx6g -Xms3g -Dfile.encoding=UTF-8 -XX:-UsePerfData -XX:+UseG1GC -XX:MaxGCPauseMillis=150 -XX:G1HeapRegionSize=2m -XX:+UseStringDeduplication -XX:+ParallelRefProcEnabled -XX:ConcGCThreads=2 -XX:ParallelGCThreads=4 -XX:CICompilerCount=3 -XX:+UseCompressedOops -XX:+OptimizeStringConcat -XX:+DisableExplicitGC -XX:+TieredCompilation -XX:ReservedCodeCacheSize=128m -XX:InitialCodeCacheSize=32m -XX:MaxMetaspaceSize=128m -XX:SoftRefLRUPolicyMSPerMB=50 --add-opens=java.base/java.lang=ALL-UNNAMED --add-opens=java.base/java.util=ALL-UNNAMED --add-opens=java.base/java.io=ALL-UNNAMED -jar morphe-desktop-1.15.0-dev.4-all.jar patch --force --continue-on-error -p patches-1.21.3.mpp --out=proton-vpn-arm64-v8a-patch-v5.19.78.0.apk --bytecode-mode=STRIP_FAST .build-input-arm64-v8a.apk
+⚠️  Ignoring legacy BASE_APK_CACHE_TAG='base-apk-cache-v2'; using 'base-apk-cache-v4-ja-jp-px9a-split'
+INFO: Morphe data root: /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/morphe-data (JAR-adjacent)
+INFO: Loading patches...
+INFO: Initializing patcher...
+INFO: Filtering patches for ch.protonvpn.android v5.19.78.0...
+INFO: Skipping disabled: Disable PairIP license check (default)
+INFO: Skipping disabled: Provide Original app certificate (default)
+INFO: Skipping disabled: Spoof Widevine / DRM level (default)
+INFO: Skipping disabled: Fix Firebase after re-signing (default)
+INFO: Skipping disabled: GmsCore support (MicroG) (default)
+INFO: Skipping disabled: Spoof install source (default)
+INFO: Skipping disabled: Spoof Pixel device (default)
+INFO: Skipping disabled: Spoof app signature (default)
+INFO: Skipping disabled: Remove internet permission (default)
+INFO: Skipping disabled: Enable debug build target (default)
+INFO: Skipping disabled: Spoof Android ID (default)
+INFO: Skipping disabled: Spoof telephony IDs (default)
+INFO: Skipping disabled: Spoof Wi-Fi identifiers (default)
+INFO: Skipping disabled: Spoof Bluetooth identifiers (default)
+INFO: Skipping disabled: Export all activities (default)
+INFO: Skipping disabled: Enable Android debugging (default)
+INFO: Skipping disabled: Hide app icon (default)
+INFO: Skipping disabled: Predictive back gesture (default)
+INFO: Skipping disabled: Change version code (default)
+INFO: Skipping disabled: Set target SDK 34 (default)
+INFO: Skipping disabled: Remove share targets (default)
+INFO: Skipping disabled: Force dark theme (default)
+INFO: Skipping disabled: Hide mock location (default)
+INFO: Skipping disabled: Hide ADB status (default)
+INFO: Skipping disabled: Spoof build info (default)
+INFO: Skipping disabled: Spoof Wi-Fi connection (default)
+INFO: Skipping disabled: Override certificate pinning (default)
+INFO: Skipping disabled: Export internal data documents provider (default)
+INFO: Skipping disabled: Enable ROM signature spoofing (default)
+INFO: Skipping disabled: Spoof keystore security level (default)
+INFO: Skipping disabled: Spoof root of trust (default)
+INFO: Skipping disabled: Spoof Play age signals (default)
+INFO: Skipping disabled: Remove ad manifest entries (default)
+INFO: Skipping disabled: Disable ad SDK calls (default)
+INFO: Skipping disabled: Disable shake ads (default)
+INFO: Skipping disabled: Disable clipboard access (default)
+INFO: Skipping disabled: Hide VPN and proxy (default)
+INFO: Skipping disabled: Spoof SIM provider (default)
+INFO: Applying 1 patches...
+INFO: Executing patches
+INFO: Applied: Unlock VPN Plus
+INFO: Compiling patched dex files (mode: STRIP_FAST)
+INFO: Writing 10 new classes to new DEX files
+INFO: Processing 10 classes (single threaded mode)
+INFO: Wrote 1 dex files to /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/morphe-data/tmp/patching-1788217816017/patched/dex
+INFO: Stripping 10 modified classes from original DEX files
+INFO: Aligning APK
+INFO: Signing APK
+INFO: Saved to /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/proton-vpn-arm64-v8a-patch-v5.19.78.0.apk
+INFO: Purged this session's temp files: patching-1788217816017
+2026-08-31 23:10:22 Validated patched APK: 38098311 bytes (ABIs: arm64-v8a)
+2026-08-31 23:10:22 [SIZE] patched: 38098311 bytes (proton-vpn-arm64-v8a-patch-v5.19.78.0.apk)
+Signed
+2026-08-31 23:10:24 [SIZE] signed: 38094215 bytes (proton-vpn-arm64-v8a-rushiranpise-v5.19.78.0.apk)
+✅ APK built: proton-vpn-arm64-v8a-rushiranpise-v5.19.78.0.apk
+✅ Built arm64-v8a: proton-vpn-arm64-v8a-rushiranpise-v5.19.78.0.apk
+
+🎯 1 APK(s) built for 'proton-vpn':
+   📱 proton-vpn-arm64-v8a-rushiranpise-v5.19.78.0.apk
+EOF

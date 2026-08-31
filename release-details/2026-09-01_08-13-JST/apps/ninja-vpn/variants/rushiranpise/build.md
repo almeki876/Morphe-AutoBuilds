@@ -1,0 +1,10 @@
+# Ninja VPN — ビルド詳細
+
+- **Status:** `success_full`
+- **Version:** `1.4.7`
+- **Patch source:** rushiranpise
+- **Applying count:** `1`
+- **Applied count:** `1`
+- **Required satisfied:** `True`
+
+[GitHub Actions run を開く](https://github.com/almeki876/Morphe-AutoBuilds/actions/runs/33448639835)
