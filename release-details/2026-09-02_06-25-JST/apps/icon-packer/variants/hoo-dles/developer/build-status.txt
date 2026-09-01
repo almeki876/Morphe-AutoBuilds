@@ -1,0 +1,89 @@
+app=icon-packer
+source=hoo-dles
+source_name=hoo-dles
+phase=Patch
+status=success
+run=https://github.com/almeki876/Morphe-AutoBuilds/actions/runs/33559555594
+
+traceback_or_error_tail<<EOF
+Name: Unlock all lessons
+Description: Only unlocks lessons on the client UI! This is useful for pre-downloading content during free trial periods.
+Enabled: true
+
+Index: 72
+Name: Enable Premium
+Description: Enables app features locked behind the subscription paywall. Requirements: strict apk version
+Enabled: true
+
+Index: 73
+Name: Enable Premium
+Description: Enables app features locked behind the subscription paywall.
+Enabled: true
+
+Index: 74
+Name: Enable Premium
+Description: Enables app features locked behind the subscription paywall.
+Enabled: true
+
+Index: 75
+Name: Enable Premium
+Description: Enables app features locked behind the subscription paywall.
+Enabled: true
+
+Index: 76
+Name: Enable Premium
+Description: Enables some app features locked behind the subscription paywall. Not all premium functionality is available.
+Enabled: true
+
+Index: 77
+Name: Disable anti-tamper
+Description: Disables various anti-tamper checks that causes the app to force-close.
+Enabled: true
+
+Index: 78
+Name: Enable Pro
+Description: Enables app features locked behind the subscription paywall. Login is required and AI functionality is unavailable.
+Enabled: true
+
+Index: 79
+Name: Enable Pro
+Description: Enables app features locked behind the subscription paywall.
+Enabled: true
+
+Index: 80
+Name: Enable Pro
+Description: null
+Enabled: true
+2026-09-01 21:20:51 enable_patches=[]  disable_patches=[]
+2026-09-01 21:20:51 Running: java -Djava.awt.headless=true -Xmx6g -Xms3g -Dfile.encoding=UTF-8 -XX:-UsePerfData -XX:+UseG1GC -XX:MaxGCPauseMillis=150 -XX:G1HeapRegionSize=2m -XX:+UseStringDeduplication -XX:+ParallelRefProcEnabled -XX:ConcGCThreads=2 -XX:ParallelGCThreads=4 -XX:CICompilerCount=3 -XX:+UseCompressedOops -XX:+OptimizeStringConcat -XX:+DisableExplicitGC -XX:+TieredCompilation -XX:ReservedCodeCacheSize=128m -XX:InitialCodeCacheSize=32m -XX:MaxMetaspaceSize=128m -XX:SoftRefLRUPolicyMSPerMB=50 --add-opens=java.base/java.lang=ALL-UNNAMED --add-opens=java.base/java.util=ALL-UNNAMED --add-opens=java.base/java.io=ALL-UNNAMED -jar morphe-desktop-1.15.0-dev.6-all.jar patch --force --continue-on-error -p patches-1.44.0-dev.1.mpp --out=icon-packer-arm64-v8a-patch-v1.21.0-release.apk --bytecode-mode=STRIP_FAST .build-input-arm64-v8a.apk
+⚠️  Ignoring legacy BASE_APK_CACHE_TAG='base-apk-cache-v2'; using 'base-apk-cache-v4-ja-jp-px9a-split'
+INFO: Morphe data root: /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/morphe-data (JAR-adjacent)
+INFO: Loading patches...
+INFO: Initializing patcher...
+INFO: Filtering patches for cn.ommiao.iconpacker v1.21.0-release...
+INFO: Skipping disabled: Hide app icon (default)
+INFO: Skipping disabled: Enable debug (default)
+INFO: Skipping disabled: Change package name (default)
+INFO: Skipping disabled: Disable Pairip license check (default)
+INFO: Applying 1 patches...
+INFO: Executing patches
+INFO: Applied: Unlock premium features
+INFO: Compiling patched dex files (mode: STRIP_FAST)
+INFO: Writing 4 new classes to new DEX files
+INFO: Processing 4 classes (single threaded mode)
+INFO: Wrote 1 dex files to /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/morphe-data/tmp/patching-1788297654772/patched/dex
+INFO: Stripping 4 modified classes from original DEX files
+INFO: Aligning APK
+INFO: Signing APK
+INFO: Saved to /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/icon-packer-arm64-v8a-patch-v1.21.0-release.apk
+INFO: Purged this session's temp files: patching-1788297654772
+2026-09-01 21:20:58 Validated patched APK: 15596643 bytes (ABIs: none)
+2026-09-01 21:20:58 [SIZE] patched: 15596643 bytes (icon-packer-arm64-v8a-patch-v1.21.0-release.apk)
+Signed
+2026-09-01 21:20:59 [SIZE] signed: 15592547 bytes (icon-packer-arm64-v8a-hoo-dles-v1.21.0-release.apk)
+✅ APK built: icon-packer-arm64-v8a-hoo-dles-v1.21.0-release.apk
+✅ Built arm64-v8a: icon-packer-arm64-v8a-hoo-dles-v1.21.0-release.apk
+
+🎯 1 APK(s) built for 'icon-packer':
+   📱 icon-packer-arm64-v8a-hoo-dles-v1.21.0-release.apk
+EOF

@@ -1,0 +1,23 @@
+{
+  "results": [
+    {
+      "file": "ibs_paint-hoo-dles-universal.apks",
+      "sha256": "e7408020fddbdbc1381519a66f75d2b34d22ff345130937866195b4b1f76ad36",
+      "size": 51247680,
+      "analysis_id": "OTE2ZWI2OTRhNjc2MTJkZjQ0MTllNTRjY2QxNTY1OGY6MTc4NzkyODIzNA==",
+      "malicious": 0,
+      "suspicious": 0,
+      "harmless": 0,
+      "undetected": 65,
+      "timeout": 0,
+      "failure": 1,
+      "unsupported": 9,
+      "verdict": "clean",
+      "method": "persistent hash cache",
+      "engines": {},
+      "permalink": "https://www.virustotal.com/gui/file/e7408020fddbdbc1381519a66f75d2b34d22ff345130937866195b4b1f76ad36/detection",
+      "last_analysis_date": 1787928234,
+      "reanalyzed": false
+    }
+  ]
+}

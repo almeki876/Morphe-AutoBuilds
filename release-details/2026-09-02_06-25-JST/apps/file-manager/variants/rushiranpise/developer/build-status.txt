@@ -1,0 +1,89 @@
+app=file-manager
+source=rushiranpise
+source_name=rushiranpise
+phase=Patch
+status=success
+run=https://github.com/almeki876/Morphe-AutoBuilds/actions/runs/33559555594
+
+traceback_or_error_tail<<EOF
+Name: Unlock donation
+Description: Forces h0() to return "yes" so donate dialog never shows and providers unlock.
+Enabled: true
+
+Index: 288
+Name: Unlock Premium
+Description: Unlocks all premium widgets, themes, and features in Widget 2026 by bypassing the PremiumHelper SDK subscription check at both the public API (d.b()) and SharedPreferences root (yd/e.j()).
+Enabled: true
+
+Index: 289
+Name: Unlock Premium
+Description: Unlocks Windscribe premium account.
+Enabled: true
+
+Index: 290
+Name: Unlock Premium
+Description: Unlocks Windy Pro features by patching the versioned JS bundle. Sets subscription store default to 'premium' (P1), forces gr=true (P2) and hasAny()=true (P3) at module load. Prevents cu() from clearing the subscription store (P4) and flips its body class call from remove to add (P5), ensuring the 'subs-premium' CSS class persists on <body> even when the server reports no active subscription. Unlocks higher tile zoom, 1-hour forecast steps, premium minifest API params, the premium calendar view, and all premium UI.
+Enabled: true
+
+Index: 291
+Name: Unlock Professional
+Description: Unlocks Professional features inapp.
+Enabled: true
+
+Index: 292
+Name: Unlock Word
+Description: Removes login requirement, unlocks premium, blocks ads, bypasses signature and code transparency checks.
+Enabled: true
+
+Index: 293
+Name: Unlock VIP
+Description: Unlocks Yatri VIP by forcing active plan status and spoofing active plan DB query.
+Enabled: true
+2026-09-01 21:22:55 enable_patches=[]  disable_patches=[]
+2026-09-01 21:22:56 Running: java -Djava.awt.headless=true -Xmx6g -Xms3g -Dfile.encoding=UTF-8 -XX:-UsePerfData -XX:+UseG1GC -XX:MaxGCPauseMillis=150 -XX:G1HeapRegionSize=2m -XX:+UseStringDeduplication -XX:+ParallelRefProcEnabled -XX:ConcGCThreads=2 -XX:ParallelGCThreads=4 -XX:CICompilerCount=3 -XX:+UseCompressedOops -XX:+OptimizeStringConcat -XX:+DisableExplicitGC -XX:+TieredCompilation -XX:ReservedCodeCacheSize=128m -XX:InitialCodeCacheSize=32m -XX:MaxMetaspaceSize=128m -XX:SoftRefLRUPolicyMSPerMB=50 --add-opens=java.base/java.lang=ALL-UNNAMED --add-opens=java.base/java.util=ALL-UNNAMED --add-opens=java.base/java.io=ALL-UNNAMED -jar morphe-desktop-1.15.0-dev.6-all.jar patch --force --continue-on-error -p patches-1.21.4.mpp --out=file-manager-arm64-v8a-patch-v3.8.2.apk --bytecode-mode=STRIP_FAST .build-input-arm64-v8a.apk
+⚠️  Ignoring legacy BASE_APK_CACHE_TAG='base-apk-cache-v2'; using 'base-apk-cache-v4-ja-jp-px9a-split'
+INFO: Morphe data root: /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/morphe-data (JAR-adjacent)
+INFO: Loading patches...
+INFO: Initializing patcher...
+INFO: Filtering patches for com.alphainventor.filemanager v3.8.2...
+INFO: Skipping disabled: Disable PairIP license check (default)
+INFO: Skipping disabled: Provide Original app certificate (default)
+INFO: Skipping disabled: Spoof Widevine / DRM level (default)
+INFO: Skipping disabled: Fix Firebase after re-signing (default)
+INFO: Skipping disabled: GmsCore support (MicroG) (default)
+INFO: Skipping disabled: Spoof install source (default)
+INFO: Skipping disabled: Spoof app signature (default)
+INFO: Applying 1 patches...
+INFO: Deleting existing temporary files directory
+INFO: Decoding all resources
+INFO: Sanitizing unpatched strings
+INFO: Escaping strings
+INFO: Executing patches
+Spoof install source: binder proxy injected into Application.onCreate().
+Spoof install source: 6 DEX call site(s) patched → "com.android.vending".
+Spoof signature: package=com.alphainventor.filemanager, cert=MIIC6TCCAdGgAwIBAgIE...
+INFO: Applied: Unlock Premium
+INFO: Compiling patched dex files (mode: STRIP_FAST)
+INFO: Writing 1144 new classes to new DEX files
+INFO: Processing 1144 classes (single threaded mode)
+INFO: Wrote 1 dex files to /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/morphe-data/tmp/patching-1788297778330/patched/dex
+INFO: Stripping 8 modified classes from original DEX files
+INFO: Compiling modified resources
+INFO: Unescaping strings
+INFO: Processing aapt macros
+INFO: Generating new resource IDs
+INFO: Writing resource APK
+INFO: Aligning APK
+INFO: Signing APK
+INFO: Saved to /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/file-manager-arm64-v8a-patch-v3.8.2.apk
+INFO: Purged this session's temp files: patching-1788297778330
+2026-09-01 21:23:15 Validated patched APK: 14119949 bytes (ABIs: none)
+2026-09-01 21:23:15 [SIZE] patched: 14119949 bytes (file-manager-arm64-v8a-patch-v3.8.2.apk)
+Signed
+2026-09-01 21:23:16 [SIZE] signed: 14115853 bytes (file-manager-arm64-v8a-rushiranpise-v3.8.2.apk)
+✅ APK built: file-manager-arm64-v8a-rushiranpise-v3.8.2.apk
+✅ Built arm64-v8a: file-manager-arm64-v8a-rushiranpise-v3.8.2.apk
+
+🎯 1 APK(s) built for 'file-manager':
+   📱 file-manager-arm64-v8a-rushiranpise-v3.8.2.apk
+EOF
