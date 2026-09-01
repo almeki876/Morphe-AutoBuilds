@@ -1,0 +1,143 @@
+{
+  "app_name": "youtube-music",
+  "source": "morphe",
+  "patch_source": "morphe",
+  "source_name": "morphe",
+  "version": "9.15.51",
+  "status": "success",
+  "lifecycle_status": "success_full",
+  "requested_patches": [],
+  "requested_options": [],
+  "applying_count": 23,
+  "applied_patches": [
+    "Bypass certificate checks",
+    "Change header",
+    "Change miniplayer color",
+    "Change start page",
+    "Check watch history domain name resolution",
+    "Custom branding",
+    "Disable DRC audio",
+    "Disable QUIC protocol",
+    "Enable debugging",
+    "Enable exclusive audio playback",
+    "Enable forced miniplayer",
+    "Force original audio",
+    "GmsCore support",
+    "Hide ads",
+    "Hide buttons",
+    "Miniplayer previous and next buttons",
+    "Navigation bar",
+    "Override certificate pinning",
+    "Remove background playback restrictions",
+    "Sanitize sharing links",
+    "Spoof video streams",
+    "Theme",
+    "Disable Play Store updates"
+  ],
+  "excluded_patches": [],
+  "disabled_patches": [],
+  "feature_failures": [
+    {
+      "name": "Clone app",
+      "reason": "[runtime-skipped-default] default"
+    },
+    {
+      "name": "Change installer source",
+      "reason": "[runtime-skipped-default] default"
+    },
+    {
+      "name": "Hide flyout menu components",
+      "reason": "[runtime-skipped-default] default"
+    },
+    {
+      "name": "Crossfade",
+      "reason": "[runtime-skipped-default] default"
+    },
+    {
+      "name": "Remove viewer discretion dialog",
+      "reason": "[runtime-skipped-default] default"
+    },
+    {
+      "name": "Disable dislike redirection",
+      "reason": "[runtime-skipped-default] default"
+    },
+    {
+      "name": "Downloads",
+      "reason": "[runtime-skipped-default] default"
+    },
+    {
+      "name": "Remember repeat state",
+      "reason": "[runtime-skipped-default] default"
+    },
+    {
+      "name": "Remember shuffle state",
+      "reason": "[runtime-skipped-default] default"
+    },
+    {
+      "name": "Scrobbling",
+      "reason": "[runtime-skipped-default] default"
+    },
+    {
+      "name": "Hide music action buttons",
+      "reason": "[runtime-skipped-default] default"
+    },
+    {
+      "name": "Hide filter bar",
+      "reason": "[runtime-skipped-default] default"
+    },
+    {
+      "name": "Hide layout components",
+      "reason": "[runtime-skipped-default] default"
+    },
+    {
+      "name": "Settings menu filter",
+      "reason": "[runtime-skipped-default] default"
+    },
+    {
+      "name": "Third-party lyrics",
+      "reason": "[runtime-skipped-default] default"
+    },
+    {
+      "name": "Enable swipe to dismiss miniplayer",
+      "reason": "[runtime-skipped-default] default"
+    },
+    {
+      "name": "Return YouTube Dislike",
+      "reason": "[runtime-skipped-default] default"
+    },
+    {
+      "name": "SponsorBlock",
+      "reason": "[runtime-skipped-default] default"
+    },
+    {
+      "name": "Play albums songs",
+      "reason": "[runtime-skipped-default] default"
+    },
+    {
+      "name": "PoToken provider",
+      "reason": "[runtime-skipped-default] default"
+    },
+    {
+      "name": "Network proxy",
+      "reason": "[runtime-skipped-default] default"
+    },
+    {
+      "name": "App refresh rate",
+      "reason": "[runtime-skipped-default] default"
+    },
+    {
+      "name": "Spoof app version",
+      "reason": "[runtime-skipped-default] default"
+    }
+  ],
+  "failed_patches": [],
+  "required_patches": [],
+  "required_failures": [],
+  "required_patches_satisfied": true,
+  "fully_applied": true,
+  "error_category": null,
+  "error_summary": null,
+  "toolchain_fallback_used": false,
+  "toolchain_primary_cli_tag": "v1.15.0-dev.6",
+  "toolchain_primary_patch_tag": "v1.41.0-dev.12"
+}

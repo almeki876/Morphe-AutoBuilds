@@ -1,0 +1,23 @@
+{
+  "results": [
+    {
+      "file": "accubattery-rushiranpise-universal.apk",
+      "sha256": "5503bf7d19c81ec180d07a5b25c7fa6b6d6694f3838d50ad3e84102c0b93a054",
+      "size": 20510235,
+      "analysis_id": "",
+      "malicious": 0,
+      "suspicious": 0,
+      "harmless": 0,
+      "undetected": 57,
+      "timeout": 5,
+      "failure": 4,
+      "unsupported": 8,
+      "verdict": "clean",
+      "method": "persistent hash cache",
+      "engines": {},
+      "permalink": "https://www.virustotal.com/gui/file/5503bf7d19c81ec180d07a5b25c7fa6b6d6694f3838d50ad3e84102c0b93a054/detection",
+      "last_analysis_date": 1781673026,
+      "reanalyzed": false
+    }
+  ]
+}
