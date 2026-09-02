@@ -1,0 +1,34 @@
+{
+  "app_name": "amazon-music",
+  "source": "rookie",
+  "patch_source": "rookie",
+  "source_name": "rookie",
+  "version": "26.30.1",
+  "status": "success",
+  "lifecycle_status": "success_full",
+  "requested_patches": [],
+  "requested_options": [],
+  "applying_count": 5,
+  "applied_patches": [
+    "Prevent log upload",
+    "Rename shared permissions",
+    "Skip ads",
+    "Unlimited track skipping",
+    "Unlock Unlimited"
+  ],
+  "excluded_patches": [],
+  "disabled_patches": [],
+  "feature_failures": [
+    {
+      "name": "Change package name",
+      "reason": "[runtime-skipped-default] default"
+    }
+  ],
+  "failed_patches": [],
+  "required_patches": [],
+  "required_failures": [],
+  "required_patches_satisfied": true,
+  "fully_applied": true,
+  "error_category": null,
+  "error_summary": null
+}
