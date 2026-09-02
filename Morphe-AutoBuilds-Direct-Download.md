@@ -1,7 +1,7 @@
 # Direct APK Download Links
 
 - Releases: [GitHub Releases](https://github.com/almeki876/Morphe-AutoBuilds/releases)
-- 最終更新日時: 2026-09-03 01:09 JST
+- 最終更新日時: 2026-09-03 06:15 JST
 
 ## [Morphe](https://github.com/MorpheApp/morphe-patches)
 
@@ -177,7 +177,7 @@
 
 ### Proton Mail
 
-[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026-08-31_06-25-JST/proton-mail-arm64-v8a-hxreborn-v7.11.4.apk)
+[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026-09-03_06-15-JST/proton-mail-arm64-v8a-hxreborn-v7.10.4.apk)
 
 ## [nekogryphou](https://github.com/NekoGryphou/gryphous-morphe-patches)
 
@@ -201,7 +201,7 @@
 
 ### Google Photos
 
-[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026-09-03_01-09-JST/google-photos-arm64-v8a-rookie-v7.91.0.973540846.apk)
+[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026-09-03_06-15-JST/google-photos-arm64-v8a-rookie-v7.91.0.973540846.apk)
 
 ### Google Recorder
 
@@ -213,7 +213,7 @@
 
 ### Amazon Music
 
-[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026-09-03_01-09-JST/amazon-music-arm64-v8a-rookie-v26.30.1.apk)
+[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026-09-03_06-15-JST/amazon-music-arm64-v8a-rookie-v26.30.1.apk)
 
 ## [durgesh0505](https://github.com/durgesh0505/chiggi_morphe_patches)
 
