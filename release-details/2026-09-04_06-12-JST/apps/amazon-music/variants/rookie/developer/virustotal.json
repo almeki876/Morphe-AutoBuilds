@@ -1,0 +1,23 @@
+{
+  "results": [
+    {
+      "file": "amazon-music-rookie-universal.apkm",
+      "sha256": "a249e309f5381ceaef249fac5e2fc4485128595bf7f43ee5e3890843e6a46bc9",
+      "size": 203490657,
+      "analysis_id": "NTQzOTcwNWU5Y2ZhNmEzNjE2MzZlNWYxZjI4ZDFkMGQ6MTc4ODI5NzY5MA==",
+      "malicious": 0,
+      "suspicious": 0,
+      "harmless": 0,
+      "undetected": 57,
+      "timeout": 7,
+      "failure": 2,
+      "unsupported": 9,
+      "verdict": "clean",
+      "method": "persistent hash cache",
+      "engines": {},
+      "permalink": "https://www.virustotal.com/gui/file/a249e309f5381ceaef249fac5e2fc4485128595bf7f43ee5e3890843e6a46bc9/detection",
+      "last_analysis_date": 1788297690,
+      "reanalyzed": false
+    }
+  ]
+}
