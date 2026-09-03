@@ -1,0 +1,89 @@
+app=brave-nightly
+source=dh6k
+source_name=dh6k
+phase=Patch
+status=success
+run=https://github.com/almeki876/Morphe-AutoBuilds/actions/runs/33775177053
+
+traceback_or_error_tail<<EOF
+
+Index: 5
+Name: Disable analytics
+Description: Disables analytics and tracking from multiple SDKs, including AppMetrica, MyTracker, Firebase, Sentry, Google Analytics, Amplitude, Mixpanel, Adjust, AppsFlyer, Facebook, MoEngage, and comScore, through manifest opt-outs and exact runtime entry points when present. Custom or server-side telemetry is not covered.
+Enabled: false
+2026-09-03 15:57:09 enable_patches=[]  disable_patches=[]
+2026-09-03 15:57:10 Running: java -Djava.awt.headless=true -Xmx6g -Xms3g -Dfile.encoding=UTF-8 -XX:-UsePerfData -XX:+UseG1GC -XX:MaxGCPauseMillis=150 -XX:G1HeapRegionSize=2m -XX:+UseStringDeduplication -XX:+ParallelRefProcEnabled -XX:ConcGCThreads=2 -XX:ParallelGCThreads=4 -XX:CICompilerCount=3 -XX:+UseCompressedOops -XX:+OptimizeStringConcat -XX:+DisableExplicitGC -XX:+TieredCompilation -XX:ReservedCodeCacheSize=128m -XX:InitialCodeCacheSize=32m -XX:MaxMetaspaceSize=128m -XX:SoftRefLRUPolicyMSPerMB=50 --add-opens=java.base/java.lang=ALL-UNNAMED --add-opens=java.base/java.util=ALL-UNNAMED --add-opens=java.base/java.io=ALL-UNNAMED -jar morphe-desktop-1.15.0-all.jar patch --force --continue-on-error -p patches-1.5.0-dev.4.mpp --out=brave-nightly-arm64-v8a-patch-v1.96.45.apk --bytecode-mode=STRIP_FAST .build-input-arm64-v8a.apk
+⚠️  Ignoring legacy BASE_APK_CACHE_TAG='base-apk-cache-v2'; using 'base-apk-cache-v4-ja-jp-px9a-split'
+INFO: Morphe data root: /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/morphe-data (JAR-adjacent)
+INFO: Loading patches...
+INFO: Initializing patcher...
+INFO: Filtering patches for com.brave.browser_nightly v1.96.45...
+INFO: Skipping disabled: Change app icon (default)
+INFO: Skipping disabled: Change app name (default)
+INFO: Skipping disabled: Disable analytics (default)
+INFO: Applying 1 patches...
+INFO: Deleting existing temporary files directory
+INFO: Decoding all resources
+INFO: Leaving 4 native library files in the input APK
+INFO: Sanitizing unpatched strings
+INFO: Escaping strings
+INFO: Executing patches
+SEVERE: FAILED: Brave Origin
+app.morphe.patcher.patch.PatchException: Failed to match the fingerprint: app.morphe.patcher.Fingerprint@7c0831ae
+	at app.morphe.patcher.Fingerprint.patchException(Fingerprint.kt:666)
+	at app.morphe.patcher.Fingerprint.match(Fingerprint.kt:675)
+	at app.morphe.patcher.Fingerprint.getMethod(Fingerprint.kt:868)
+	at app.morphe.patches.brave.MockBraveOriginPremiumPatchKt.braveOriginPatch$lambda$0$0(MockBraveOriginPremiumPatch.kt:119)
+	at app.morphe.patcher.patch.Patch.execute(Patch.kt:117)
+	at app.morphe.patcher.patch.BytecodePatch.execute$morphe_patcher(Patch.kt:259)
+	at app.morphe.patcher.Patcher$invoke$1.invokeSuspend$execute(Patcher.kt:96)
+	at app.morphe.patcher.Patcher$invoke$1.invokeSuspend(Patcher.kt:120)
+	at app.morphe.patcher.Patcher$invoke$1.invoke(Patcher.kt)
+	at app.morphe.patcher.Patcher$invoke$1.invoke(Patcher.kt)
+	at kotlinx.coroutines.flow.SafeFlow.collectSafely(Builders.kt:57)
+	at kotlinx.coroutines.flow.AbstractFlow.collect(Flow.kt:226)
+	at app.morphe.desktop.command.PatchCommand$call$3$3$1.invokeSuspend(PatchCommand.kt:786)
+	at kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:34)
+	at kotlinx.coroutines.DispatchedTask.run(DispatchedTask.kt:100)
+	at kotlinx.coroutines.EventLoopImplBase.processNextEvent(EventLoop.common.kt:256)
+	at kotlinx.coroutines.BlockingCoroutine.joinBlocking(Builders.kt:54)
+	at kotlinx.coroutines.BuildersKt__BuildersKt.runBlockingImpl(Builders.kt:30)
+	at kotlinx.coroutines.BuildersKt.runBlockingImpl(Unknown Source)
+	at kotlinx.coroutines.BuildersKt__Builders_concurrentKt.runBlockingK(Builders.concurrent.kt:172)
+	at kotlinx.coroutines.BuildersKt.runBlockingK(Unknown Source)
+	at kotlinx.coroutines.BuildersKt__Builders_concurrentKt.runBlockingK$default(Builders.concurrent.kt:157)
+	at kotlinx.coroutines.BuildersKt.runBlockingK$default(Unknown Source)
+	at app.morphe.desktop.command.PatchCommand.call$lambda$13$2(PatchCommand.kt:785)
+	at app.morphe.desktop.command.model.PatchingResultKt.addStepResult(PatchingResult.kt:29)
+	at app.morphe.desktop.command.PatchCommand.call(PatchCommand.kt:784)
+	at app.morphe.desktop.command.PatchCommand.call(PatchCommand.kt:54)
+	at picocli.CommandLine.executeUserObject(CommandLine.java:2031)
+	at picocli.CommandLine.access$1500(CommandLine.java:148)
+	at picocli.CommandLine$RunLast.executeUserObjectOfLastSubcommandWithSameParent(CommandLine.java:2469)
+	at picocli.CommandLine$RunLast.handle(CommandLine.java:2461)
+	at picocli.CommandLine$RunLast.handle(CommandLine.java:2423)
+	at picocli.CommandLine$AbstractParseResultHandler.execute(CommandLine.java:2277)
+	at picocli.CommandLine$RunLast.execute(CommandLine.java:2425)
+	at picocli.CommandLine.execute(CommandLine.java:2174)
+	at app.morphe.MorpheLauncherKt.main(MorpheLauncher.kt:85)
+
+INFO: Compiling patched dex files (mode: STRIP_FAST)
+INFO: Compiling modified resources
+INFO: Unescaping strings
+INFO: Processing aapt macros
+INFO: Generating new resource IDs
+INFO: Writing resource APK
+INFO: Aligning APK
+INFO: Signing APK
+INFO: Saved to /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/brave-nightly-arm64-v8a-patch-v1.96.45.apk
+INFO: Purged this session's temp files: patching-1788451031989
+2026-09-03 15:57:37 Validated patched APK: 286867776 bytes (ABIs: arm64-v8a)
+2026-09-03 15:57:37 [SIZE] patched: 286867776 bytes (brave-nightly-arm64-v8a-patch-v1.96.45.apk)
+Signed
+2026-09-03 15:57:39 [SIZE] signed: 286863680 bytes (brave-nightly-arm64-v8a-dh6k-v1.96.45.apk)
+✅ APK built: brave-nightly-arm64-v8a-dh6k-v1.96.45.apk
+✅ Built arm64-v8a: brave-nightly-arm64-v8a-dh6k-v1.96.45.apk
+
+🎯 1 APK(s) built for 'brave-nightly':
+   📱 brave-nightly-arm64-v8a-dh6k-v1.96.45.apk
+EOF
