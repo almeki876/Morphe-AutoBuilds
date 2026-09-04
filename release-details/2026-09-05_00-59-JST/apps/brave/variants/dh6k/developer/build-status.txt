@@ -1,0 +1,89 @@
+app=brave
+source=dh6k
+source_name=dh6k
+phase=Patch
+status=success
+run=https://github.com/almeki876/Morphe-AutoBuilds/actions/runs/33891765229
+
+traceback_or_error_tail<<EOF
+2026-09-04 15:56:08 [SIZE] prepared: 168505177 bytes (.build-input-universal.apk)
+2026-09-04 15:56:08 ℹ️  No explicit patch allowlist for patches/brave-dh6k.txt; using patch bundle defaults
+2026-09-04 15:56:08 Checking APK integrity…
+2026-09-04 15:56:08 APK integrity check passed.
+2026-09-04 15:56:08 🔧 Patching with morphe CLI (morphe-desktop-1.15.1-dev.1-all.jar)…
+2026-09-04 15:56:09 Available patches in patches-1.5.0-dev.5.mpp:
+INFO: Index: 0
+Name: Change app icon
+Description: Changes the Android launcher icon using a custom PNG image. Use a square image with transparent adaptive-icon padding.
+Enabled: false
+
+Index: 1
+Name: Change app name
+Description: Changes the app name shown by Android launchers. Set the desired name in the patch options.
+Enabled: false
+
+Index: 2
+Name: Brave Origin
+Description: Unlocks Brave Origin and enables feature toggle controls.
+Enabled: true
+
+Index: 3
+Name: Keep Helium Child Processes Alive
+Description: Experimental version-unpinned structural/data-flow patch: starts one main-process foreground service with persistent low-priority notification and forces child STRONG binding plus IMPORTANT/STRONG priority updates. Tolerates routine signature, register, and helper-name changes; ambiguous targets fail closed. May increase RAM, battery, and process pressure; mitigates LMK kills only.
+Enabled: false
+
+Index: 4
+Name: Block Quetta bundled extension installation
+Description: Blocks bundled extension installation/reinstallation on arm64-v8a APKs (the framework does not enforce ABI restrictions). Does not remove copies already present in existing profiles. Takes effect immediately on clean installs.
+Enabled: true
+
+Index: 5
+Name: Disable analytics
+Description: Disables analytics and tracking from multiple SDKs, including AppMetrica, MyTracker, Firebase, Sentry, Google Analytics, Amplitude, Mixpanel, Adjust, AppsFlyer, Facebook, MoEngage, and comScore, through manifest opt-outs and exact runtime entry points when present. Custom or server-side telemetry is not covered.
+Enabled: false
+2026-09-04 15:56:09 enable_patches=[]  disable_patches=[]
+2026-09-04 15:56:10 Running: java -Djava.awt.headless=true -Xmx6g -Xms3g -Dfile.encoding=UTF-8 -XX:-UsePerfData -XX:+UseG1GC -XX:MaxGCPauseMillis=150 -XX:G1HeapRegionSize=2m -XX:+UseStringDeduplication -XX:+ParallelRefProcEnabled -XX:ConcGCThreads=2 -XX:ParallelGCThreads=4 -XX:CICompilerCount=3 -XX:+UseCompressedOops -XX:+OptimizeStringConcat -XX:+DisableExplicitGC -XX:+TieredCompilation -XX:ReservedCodeCacheSize=128m -XX:InitialCodeCacheSize=32m -XX:MaxMetaspaceSize=128m -XX:SoftRefLRUPolicyMSPerMB=50 --add-opens=java.base/java.lang=ALL-UNNAMED --add-opens=java.base/java.util=ALL-UNNAMED --add-opens=java.base/java.io=ALL-UNNAMED -jar morphe-desktop-1.15.1-dev.1-all.jar patch --force --continue-on-error -p patches-1.5.0-dev.5.mpp --out=brave-universal-patch-v1.94.119.apk --bytecode-mode=STRIP_FAST .build-input-universal.apk
+⚠️  Ignoring legacy BASE_APK_CACHE_TAG='base-apk-cache-v2'; using 'base-apk-cache-v4-ja-jp-px9a-split'
+INFO: Morphe data root: /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/morphe-data (JAR-adjacent)
+INFO: Loading patches...
+INFO: Initializing patcher...
+INFO: Filtering patches for com.brave.browser v1.94.119...
+INFO: Skipping disabled: Change app icon (default)
+INFO: Skipping disabled: Change app name (default)
+INFO: Skipping disabled: Disable analytics (default)
+INFO: Applying 1 patches...
+INFO: Deleting existing temporary files directory
+INFO: Decoding all resources
+INFO: Leaving 4 native library files in the input APK
+INFO: Sanitizing unpatched strings
+INFO: Escaping strings
+INFO: Executing patches
+INFO: Applied: Brave Origin
+INFO: Compiling patched dex files (mode: STRIP_FAST)
+INFO: Writing 8 new classes to new DEX files
+INFO: Processing 8 classes (single threaded mode)
+INFO: Wrote 1 dex files to /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/morphe-data/tmp/patching-1788537372640/patched/dex
+INFO: Stripping 8 modified classes from original DEX files
+INFO: Compiling modified resources
+INFO: Unescaping strings
+INFO: Processing aapt macros
+INFO: Generating new resource IDs
+INFO: Writing resource APK
+INFO: Resource APK inputs: reusing 4952 unchanged archive entries, rebuilding 3 entries
+INFO: Resource APK timings: scan=4.515227283s, write=2.684385417s
+INFO: Using compiled resource APK as output base
+INFO: Aligning APK
+INFO: Signing APK
+INFO: Saved to /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/brave-universal-patch-v1.94.119.apk
+INFO: Purged this session's temp files: patching-1788537372640
+2026-09-04 15:56:33 Validated patched APK: 170192919 bytes (ABIs: armeabi-v7a)
+2026-09-04 15:56:33 [SIZE] patched: 170192919 bytes (brave-universal-patch-v1.94.119.apk)
+Signed
+2026-09-04 15:56:35 [SIZE] signed: 170188823 bytes (brave-universal-dh6k-v1.94.119.apk)
+2026-09-04 15:56:35 ⚠️  arm64-v8a failed, but universal fallback succeeded.
+✅ APK built: brave-universal-dh6k-v1.94.119.apk
+✅ Built universal: brave-universal-dh6k-v1.94.119.apk
+
+🎯 1 APK(s) built for 'brave':
+   📱 brave-universal-dh6k-v1.94.119.apk
+EOF
