@@ -1,0 +1,23 @@
+{
+  "results": [
+    {
+      "file": "youtube-music-morphe-arm64-v8a.apk",
+      "sha256": "a003ac2e673c2979b2268e5acfbfd74f88b93c4b75af5c7d604b3c7fb92768a4",
+      "size": 74431248,
+      "analysis_id": "",
+      "malicious": 0,
+      "suspicious": 0,
+      "harmless": 0,
+      "undetected": 62,
+      "timeout": 4,
+      "failure": 1,
+      "unsupported": 8,
+      "verdict": "clean",
+      "method": "persistent hash cache",
+      "engines": {},
+      "permalink": "https://www.virustotal.com/gui/file/a003ac2e673c2979b2268e5acfbfd74f88b93c4b75af5c7d604b3c7fb92768a4/detection",
+      "last_analysis_date": 1787164347,
+      "reanalyzed": false
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "results": [
+    {
+      "file": "xrecorder-hoo-dles-universal.apkm",
+      "sha256": "f366914e843cd89f2560ed8a5822536cc88686d727117be78b0678ae2f4ae5c8",
+      "size": 29763502,
+      "analysis_id": "",
+      "malicious": 0,
+      "suspicious": 0,
+      "harmless": 0,
+      "undetected": 64,
+      "timeout": 0,
+      "failure": 0,
+      "unsupported": 10,
+      "verdict": "clean",
+      "method": "persistent hash cache",
+      "engines": {},
+      "permalink": "https://www.virustotal.com/gui/file/f366914e843cd89f2560ed8a5822536cc88686d727117be78b0678ae2f4ae5c8/detection",
+      "last_analysis_date": 1785873316,
+      "reanalyzed": false
+    }
+  ]
+}
