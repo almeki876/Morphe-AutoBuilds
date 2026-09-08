@@ -1,0 +1,23 @@
+{
+  "results": [
+    {
+      "file": "speedtest-rushiranpise-universal.apk",
+      "sha256": "4191eb5e8a14143a6e6875b880e173069f5b9b6f21419914c7f718861922588c",
+      "size": 28529120,
+      "analysis_id": "",
+      "malicious": 0,
+      "suspicious": 0,
+      "harmless": 0,
+      "undetected": 50,
+      "timeout": 15,
+      "failure": 2,
+      "unsupported": 8,
+      "verdict": "clean",
+      "method": "persistent hash cache",
+      "engines": {},
+      "permalink": "https://www.virustotal.com/gui/file/4191eb5e8a14143a6e6875b880e173069f5b9b6f21419914c7f718861922588c/detection",
+      "last_analysis_date": 1786518564,
+      "reanalyzed": false
+    }
+  ]
+}

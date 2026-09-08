@@ -1,0 +1,89 @@
+app=twitch-android-tv
+source=ajstrick81
+source_name=ajstrick81
+phase=Patch
+status=success
+run=https://github.com/almeki876/Morphe-AutoBuilds/actions/runs/34279639476
+
+traceback_or_error_tail<<EOF
+Description: Removes mid-roll / pre-roll ads and pause ads.
+Enabled: true
+
+Index: 27
+Name: Suppress Household Prompt
+Description: Hides the Disney+ "Verify Household Network" / out-of-household prompt by forcing the client's out-of-household check to report in-household, so the app routes straight to home. Does NOT change what Disney's servers detect (that's driven by your public IP — use a VPN for that); it only suppresses the on-screen prompt/routing. Opt-in / experimental; only takes visible effect when the device would otherwise be prompted.
+Enabled: false
+
+Index: 28
+Name: Clone ESPN
+Description: Installs the patched ESPN as a separate app alongside the stock one, instead of replacing it. Enable this when ESPN is a preinstalled system app that can't be uninstalled — most commonly on Amazon Fire TV, and on some Android TV boxes and Onn devices. The clone gets its own package (suffix .mod), so it shows up as a second ESPN icon and keeps its own settings. Leave OFF if you were able to uninstall the original ESPN first (a normal in-place install is cleaner). Opt-in.
+Enabled: false
+
+Index: 29
+Name: Disable auto-updates
+Description: Stops the Google Play Store from silently updating ESPN back to the official version and wiping out the patch (which would bring the ads back). Works by setting the patched build's version number far ahead of anything on the Store, so it's treated as already up to date. You can still update deliberately by re-patching a newer APK in Morphe. Recommended to leave ON. Does not apply to mount-installed apps.
+Enabled: true
+
+Index: 30
+Name: ESPN Android TV
+Description: Suppresses ESPN Android TV VOD/scheduled ads by forcing DMP SGAI isAdDisabled = true (that one boolean gates all six ad-scheduling sites). Live passthrough-SSAI commercial breaks can't be removed — to MASK them with a slate + mute, also select the "ESPN live commercial-break slate" patch. No DNS dependency.
+Enabled: true
+
+Index: 31
+Name: ESPN live commercial-break slate
+Description: Masks LIVE ESPN commercial breaks (which are passthrough SSAI and can't be removed) with a full-screen slate + mute: your own video/image clips, or the animated "Be Right Back" overlay with a live countdown. Includes an on-screen D-pad picker to switch styles. Leave OFF if you only want the VOD ad suppression and no on-screen slate during live breaks. Runtime opt-out: a `slate_off` marker file.
+Enabled: true
+
+Index: 32
+Name: HBO Max - Disable Ads
+Description: Suppresses nonlinear overlay ads (Bolt), SSAI linear ad timeline registration (GMSS/AdSparx), and live stream preroll ad timeline entry generation for all content types.
+Enabled: true
+
+Index: 33
+Name: HBO Max - Block SSAI Ad Origins
+Description: Reproduces the AdGuard DNS ad-block inside the app: fails media3 segment requests to HBO's SSAI ad origins (amer-free/emea-free.prd.media.max.com, gmss, FreeWheel) so the player's resiliency layer falls back to the clean, ad-free manifest — removing the stitched ad VIDEO the default Disable Ads patch leaves behind. OPT-IN: works on a fresh start, but a RESUMED session that reaches a mid-roll throws a fatal 'Couldn't Play Content' (39999) error, so it is default-off pending the upstream connection-layer fix.
+Enabled: false
+
+Index: 34
+Name: HBO Max - Prefer Ad-Free Stream
+Description: Loads HBO's own ad-free FALLBACK manifest instead of the ad-stitched PRIMARY one by remapping the stream selection in getStreamInfo (only when a FALLBACK stream exists). Ad-free on fresh start and resume with no markers, no timeline gaps, and no 'Couldn't Play Content' (39999) error — and loads faster since no ads are stitched. On by default; field-verified on 7.9.0.61.
+Enabled: true
+
+Index: 35
+Name: MLB At Bat Android TV
+Description: Removes VOD ads and shows a commercial-break overlay over live gambling ads while preserving live game playback.
+Enabled: true
+
+Index: 36
+Name: Paramount+ Android TV
+Description: Removes VOD pre-roll/mid-roll ads and pause ads, and replaces live sports commercial breaks with the "Commercial in Progress" slate, while preserving playback.
+Enabled: true
+2026-09-08 21:29:00 enable_patches=[]  disable_patches=[]
+2026-09-08 21:29:01 Running: java -Djava.awt.headless=true -Xmx6g -Xms3g -Dfile.encoding=UTF-8 -XX:-UsePerfData -XX:+UseG1GC -XX:MaxGCPauseMillis=150 -XX:G1HeapRegionSize=2m -XX:+UseStringDeduplication -XX:+ParallelRefProcEnabled -XX:ConcGCThreads=2 -XX:ParallelGCThreads=4 -XX:CICompilerCount=3 -XX:+UseCompressedOops -XX:+OptimizeStringConcat -XX:+DisableExplicitGC -XX:+TieredCompilation -XX:ReservedCodeCacheSize=128m -XX:InitialCodeCacheSize=32m -XX:MaxMetaspaceSize=128m -XX:SoftRefLRUPolicyMSPerMB=50 --add-opens=java.base/java.lang=ALL-UNNAMED --add-opens=java.base/java.util=ALL-UNNAMED --add-opens=java.base/java.io=ALL-UNNAMED -jar morphe-desktop-1.15.1-dev.4-all.jar patch --force --continue-on-error -p patches-1.35.0.mpp --out=twitch-android-tv-arm64-v8a-patch-v13.0.0.2.apk --bytecode-mode=STRIP_FAST .build-input-arm64-v8a.apk
+⚠️  Ignoring legacy BASE_APK_CACHE_TAG='base-apk-cache-v2'; using 'base-apk-cache-v4-ja-jp-px9a-split'
+INFO: Morphe data root: /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/morphe-data (JAR-adjacent)
+INFO: Loading patches...
+INFO: Initializing patcher...
+INFO: Filtering patches for tv.twitch.android.app v13.0.0.2...
+INFO: Applying 1 patches...
+INFO: Executing patches
+INFO: Applied: Block TV ads
+INFO: Compiling patched dex files (mode: STRIP_FAST)
+INFO: Writing 128 new classes to new DEX files
+INFO: Processing 128 classes (single threaded mode)
+INFO: Wrote 1 dex files to /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/morphe-data/tmp/patching-1788902943350/patched/dex
+INFO: Stripping 1 modified classes from original DEX files
+INFO: Aligning APK
+INFO: Signing APK
+INFO: Saved to /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/twitch-android-tv-arm64-v8a-patch-v13.0.0.2.apk
+INFO: Purged this session's temp files: patching-1788902943350
+2026-09-08 21:29:08 Validated patched APK: 56973667 bytes (ABIs: arm64-v8a)
+2026-09-08 21:29:08 [SIZE] patched: 56973667 bytes (twitch-android-tv-arm64-v8a-patch-v13.0.0.2.apk)
+Signed
+2026-09-08 21:29:11 [SIZE] signed: 56969571 bytes (twitch-android-tv-arm64-v8a-ajstrick81-v13.0.0.2.apk)
+✅ APK built: twitch-android-tv-arm64-v8a-ajstrick81-v13.0.0.2.apk
+✅ Built arm64-v8a: twitch-android-tv-arm64-v8a-ajstrick81-v13.0.0.2.apk
+
+🎯 1 APK(s) built for 'twitch-android-tv':
+   📱 twitch-android-tv-arm64-v8a-ajstrick81-v13.0.0.2.apk
+EOF

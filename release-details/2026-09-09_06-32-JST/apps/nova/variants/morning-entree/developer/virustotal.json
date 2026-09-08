@@ -1,0 +1,23 @@
+{
+  "results": [
+    {
+      "file": "nova-morning-entree-universal.apk",
+      "sha256": "ed1695d41796ed6f6464440e449affd8a30e8960b7f7eb4d487ae2962e5f5a10",
+      "size": 36818941,
+      "analysis_id": "",
+      "malicious": 0,
+      "suspicious": 0,
+      "harmless": 0,
+      "undetected": 60,
+      "timeout": 6,
+      "failure": 1,
+      "unsupported": 7,
+      "verdict": "clean",
+      "method": "persistent hash cache",
+      "engines": {},
+      "permalink": "https://www.virustotal.com/gui/file/ed1695d41796ed6f6464440e449affd8a30e8960b7f7eb4d487ae2962e5f5a10/detection",
+      "last_analysis_date": 1785390870,
+      "reanalyzed": false
+    }
+  ]
+}

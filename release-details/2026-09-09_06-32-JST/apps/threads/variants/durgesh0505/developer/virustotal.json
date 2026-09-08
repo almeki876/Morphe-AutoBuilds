@@ -1,0 +1,23 @@
+{
+  "results": [
+    {
+      "file": "threads-durgesh0505-arm64-v8a.xapk",
+      "sha256": "21b5094bc0ce4944ba5a725138c87f62019c57ebad820bed1c5d7093eaf58fd9",
+      "size": 131380490,
+      "analysis_id": "",
+      "malicious": 0,
+      "suspicious": 0,
+      "harmless": 0,
+      "undetected": 56,
+      "timeout": 7,
+      "failure": 3,
+      "unsupported": 9,
+      "verdict": "clean",
+      "method": "persistent hash cache",
+      "engines": {},
+      "permalink": "https://www.virustotal.com/gui/file/21b5094bc0ce4944ba5a725138c87f62019c57ebad820bed1c5d7093eaf58fd9/detection",
+      "last_analysis_date": 1787324231,
+      "reanalyzed": false
+    }
+  ]
+}

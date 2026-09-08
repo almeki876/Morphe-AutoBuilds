@@ -1,0 +1,23 @@
+{
+  "results": [
+    {
+      "file": "mega-rushiranpise-universal.apkm",
+      "sha256": "986ea5967f3940412b5531f26e06ec147fb11293a911add84846a2a7e103c200",
+      "size": 139099400,
+      "analysis_id": "",
+      "malicious": 0,
+      "suspicious": 0,
+      "harmless": 0,
+      "undetected": 59,
+      "timeout": 5,
+      "failure": 1,
+      "unsupported": 10,
+      "verdict": "clean",
+      "method": "persistent hash cache",
+      "engines": {},
+      "permalink": "https://www.virustotal.com/gui/file/986ea5967f3940412b5531f26e06ec147fb11293a911add84846a2a7e103c200/detection",
+      "last_analysis_date": 1787567420,
+      "reanalyzed": false
+    }
+  ]
+}
