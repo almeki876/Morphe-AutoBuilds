@@ -1,7 +1,7 @@
 # Direct APK Download Links
 
 - Releases: [GitHub Releases](https://github.com/almeki876/Morphe-AutoBuilds/releases)
-- 最終更新日時: 2026-09-10 01:06 JST
+- 最終更新日時: 2026-09-10 06:13 JST
 
 ## [Morphe](https://github.com/MorpheApp/morphe-patches)
 
@@ -201,7 +201,7 @@
 
 ### Google Photos
 
-[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026-09-08_06-45-JST/google-photos-arm64-v8a-rookie-v7.91.0.973540846.apk)
+[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026-09-10_06-13-JST/google-photos-arm64-v8a-rookie-v7.91.0.978065458.apk)
 
 ### Google Recorder
 
@@ -213,7 +213,7 @@
 
 ### Amazon Music
 
-[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026-09-10_01-06-JST/amazon-music-arm64-v8a-rookie-v26.30.1.apk)
+[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026-09-10_06-13-JST/amazon-music-arm64-v8a-rookie-v26.30.1.apk)
 
 ## [durgesh0505](https://github.com/durgesh0505/chiggi_morphe_patches)
 
