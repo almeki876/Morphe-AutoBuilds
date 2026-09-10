@@ -1,7 +1,7 @@
 # Direct APK Download Links
 
 - Releases: [GitHub Releases](https://github.com/almeki876/Morphe-AutoBuilds/releases)
-- 最終更新日時: 2026-09-11 01:03 JST
+- 最終更新日時: 2026-09-11 06:05 JST
 
 ## [Morphe](https://github.com/MorpheApp/morphe-patches)
 
@@ -213,7 +213,7 @@
 
 ### Amazon Music
 
-[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026-09-11_01-03-JST/amazon-music-arm64-v8a-rookie-v26.30.1.apk)
+[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026-09-11_06-05-JST/amazon-music-arm64-v8a-rookie-v26.30.1.apk)
 
 ## [durgesh0505](https://github.com/durgesh0505/chiggi_morphe_patches)
 
