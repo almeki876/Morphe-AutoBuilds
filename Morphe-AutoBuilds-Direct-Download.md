@@ -1,17 +1,17 @@
 # Direct APK Download Links
 
 - Releases: [GitHub Releases](https://github.com/almeki876/Morphe-AutoBuilds/releases)
-- 最終更新日時: 2026-09-11 06:05 JST
+- 最終更新日時: 2026-09-12 01:05 JST
 
 ## [Morphe](https://github.com/MorpheApp/morphe-patches)
 
 ### YouTube
 
-[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026-09-11_01-03-JST/youtube-arm64-v8a-morphe-v21.07.247.apk)
+[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026-09-12_01-04-JST/youtube-arm64-v8a-morphe-v21.07.247.apk)
 
 ### YouTube Music
 
-[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026-09-11_01-03-JST/youtube-music-arm64-v8a-morphe-v9.15.51.apk)
+[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026-09-12_01-04-JST/youtube-music-arm64-v8a-morphe-v9.15.51.apk)
 
 ## [Anddea](https://github.com/anddea/revanced-patches)
 
@@ -177,7 +177,7 @@
 
 ### Proton Mail
 
-[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026-09-09_06-32-JST/proton-mail-arm64-v8a-hxreborn-v7.10.4.apk)
+[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026-09-12_01-04-JST/proton-mail-arm64-v8a-hxreborn-v7.10.4.apk)
 
 ## [nekogryphou](https://github.com/NekoGryphou/gryphous-morphe-patches)
 
@@ -189,31 +189,31 @@
 
 ### Photomath
 
-[universal](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026-07-23_20-09-JST/photomath-universal-rookie-v8.47.1.apk) · [arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026-09-07_00-09-JST/photomath-arm64-v8a-rookie-v8.48.0.apk)
+[universal](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026-07-23_20-09-JST/photomath-universal-rookie-v8.47.1.apk) · [arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026-09-12_01-04-JST/photomath-arm64-v8a-rookie-v8.48.0.apk)
 
 ### Pixiv
 
-[universal](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026-08-07_14-35-JST/pixiv-universal-rookie-v6.141.1.apk) · [arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026-09-07_00-09-JST/pixiv-arm64-v8a-rookie-v6.141.1.apk)
+[universal](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026-08-07_14-35-JST/pixiv-universal-rookie-v6.141.1.apk) · [arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026-09-12_01-04-JST/pixiv-arm64-v8a-rookie-v6.141.1.apk)
 
 ### Photoshop Mix
 
-[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026-09-07_00-09-JST/photoshop-mix-arm64-v8a-rookie-v2.6.3.apk)
+[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026-09-12_01-04-JST/photoshop-mix-arm64-v8a-rookie-v2.6.3.apk)
 
 ### Google Photos
 
-[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026-09-11_01-03-JST/google-photos-arm64-v8a-rookie-v7.92.0.977185651.apk)
+[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026-09-12_01-04-JST/google-photos-arm64-v8a-rookie-v7.80.0.929302933.apk)
 
 ### Google Recorder
 
-[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026-09-08_06-45-JST/google-recorder-arm64-v8a-rookie-v4.2.20260709.968193888.apk)
+[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026-09-12_01-04-JST/google-recorder-arm64-v8a-rookie-v4.2.20260709.976121876.apk)
 
 ### Viber
 
-[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026-09-07_00-09-JST/viber-arm64-v8a-rookie-v26.1.2.0.apk)
+[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026-09-12_01-04-JST/viber-arm64-v8a-rookie-v26.1.2.0.apk)
 
 ### Amazon Music
 
-[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026-09-11_06-05-JST/amazon-music-arm64-v8a-rookie-v26.30.1.apk)
+[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026-09-12_01-04-JST/amazon-music-arm64-v8a-rookie-v26.30.1.apk)
 
 ## [durgesh0505](https://github.com/durgesh0505/chiggi_morphe_patches)
 
@@ -225,7 +225,7 @@
 
 ### TikTok
 
-[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026-09-09_06-32-JST/tiktok-arm64-v8a-icysymmetra-v46.2.3.apk)
+[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026-09-12_01-04-JST/tiktok-arm64-v8a-icysymmetra-v46.2.3.apk)
 
 ## [arandomhooman](https://github.com/arandomhooman/hoomans-morphe-patches)
 
