@@ -1,0 +1,50 @@
+{
+  "app_name": "proton-mail",
+  "source": "hxreborn",
+  "patch_source": "hxreborn",
+  "source_name": "hxreborn",
+  "version": "7.10.4",
+  "status": "success",
+  "lifecycle_status": "success_partial",
+  "requested_patches": [],
+  "requested_options": [],
+  "applying_count": 5,
+  "applied_patches": [],
+  "excluded_patches": [],
+  "disabled_patches": [],
+  "feature_failures": [
+    {
+      "name": "AMOLED dark theme",
+      "reason": "[failed] CLI reported patch application failure"
+    },
+    {
+      "name": "Hide upgrade upselling",
+      "reason": "[failed] CLI reported patch application failure"
+    },
+    {
+      "name": "Remove 'Sent from' signature",
+      "reason": "[failed] CLI reported patch application failure"
+    },
+    {
+      "name": "Remove free accounts limit",
+      "reason": "[failed] CLI reported patch application failure"
+    },
+    {
+      "name": "Unlock custom time picker",
+      "reason": "[failed] CLI reported patch application failure"
+    }
+  ],
+  "failed_patches": [
+    "AMOLED dark theme",
+    "Hide upgrade upselling",
+    "Remove 'Sent from' signature",
+    "Remove free accounts limit",
+    "Unlock custom time picker"
+  ],
+  "required_patches": [],
+  "required_failures": [],
+  "required_patches_satisfied": true,
+  "fully_applied": false,
+  "error_category": null,
+  "error_summary": null
+}
