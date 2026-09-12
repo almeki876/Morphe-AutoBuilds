@@ -1,0 +1,89 @@
+app=proton-mail
+source=hxreborn
+source_name=hxreborn
+phase=Patch
+status=success
+run=https://github.com/almeki876/Morphe-AutoBuilds/actions/runs/34701051978
+
+traceback_or_error_tail<<EOF
+	at kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:34)
+	at kotlinx.coroutines.DispatchedTask.run(DispatchedTask.kt:100)
+	at kotlinx.coroutines.EventLoopImplBase.processNextEvent(EventLoop.common.kt:256)
+	at kotlinx.coroutines.BlockingCoroutine.joinBlocking(Builders.kt:54)
+	at kotlinx.coroutines.BuildersKt__BuildersKt.runBlockingImpl(Builders.kt:30)
+	at kotlinx.coroutines.BuildersKt.runBlockingImpl(Unknown Source)
+	at kotlinx.coroutines.BuildersKt__Builders_concurrentKt.runBlockingK(Builders.concurrent.kt:172)
+	at kotlinx.coroutines.BuildersKt.runBlockingK(Unknown Source)
+	at kotlinx.coroutines.BuildersKt__Builders_concurrentKt.runBlockingK$default(Builders.concurrent.kt:157)
+	at kotlinx.coroutines.BuildersKt.runBlockingK$default(Unknown Source)
+	at app.morphe.desktop.command.PatchCommand.call$lambda$13$2(PatchCommand.kt:785)
+	at app.morphe.desktop.command.model.PatchingResultKt.addStepResult(PatchingResult.kt:29)
+	at app.morphe.desktop.command.PatchCommand.call(PatchCommand.kt:784)
+	at app.morphe.desktop.command.PatchCommand.call(PatchCommand.kt:54)
+	at picocli.CommandLine.executeUserObject(CommandLine.java:2031)
+	at picocli.CommandLine.access$1500(CommandLine.java:148)
+	at picocli.CommandLine$RunLast.executeUserObjectOfLastSubcommandWithSameParent(CommandLine.java:2469)
+	at picocli.CommandLine$RunLast.handle(CommandLine.java:2461)
+	at picocli.CommandLine$RunLast.handle(CommandLine.java:2423)
+	at picocli.CommandLine$AbstractParseResultHandler.execute(CommandLine.java:2277)
+	at picocli.CommandLine$RunLast.execute(CommandLine.java:2425)
+	at picocli.CommandLine.execute(CommandLine.java:2174)
+	at app.morphe.MorpheLauncherKt.main(MorpheLauncher.kt:85)
+
+	at app.morphe.patcher.Patcher$invoke$1.invokeSuspend$execute(Patcher.kt:87)
+	at app.morphe.patcher.Patcher$invoke$1.invokeSuspend(Patcher.kt:120)
+	at app.morphe.patcher.Patcher$invoke$1.invoke(Patcher.kt)
+	at app.morphe.patcher.Patcher$invoke$1.invoke(Patcher.kt)
+	at kotlinx.coroutines.flow.SafeFlow.collectSafely(Builders.kt:57)
+	at kotlinx.coroutines.flow.AbstractFlow.collect(Flow.kt:226)
+	at app.morphe.desktop.command.PatchCommand$call$3$3$1.invokeSuspend(PatchCommand.kt:786)
+	at kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:34)
+	at kotlinx.coroutines.DispatchedTask.run(DispatchedTask.kt:100)
+	at kotlinx.coroutines.EventLoopImplBase.processNextEvent(EventLoop.common.kt:256)
+	at kotlinx.coroutines.BlockingCoroutine.joinBlocking(Builders.kt:54)
+	at kotlinx.coroutines.BuildersKt__BuildersKt.runBlockingImpl(Builders.kt:30)
+	at kotlinx.coroutines.BuildersKt.runBlockingImpl(Unknown Source)
+	at kotlinx.coroutines.BuildersKt__Builders_concurrentKt.runBlockingK(Builders.concurrent.kt:172)
+	at kotlinx.coroutines.BuildersKt.runBlockingK(Unknown Source)
+	at kotlinx.coroutines.BuildersKt__Builders_concurrentKt.runBlockingK$default(Builders.concurrent.kt:157)
+	at kotlinx.coroutines.BuildersKt.runBlockingK$default(Unknown Source)
+	at app.morphe.desktop.command.PatchCommand.call$lambda$13$2(PatchCommand.kt:785)
+	at app.morphe.desktop.command.model.PatchingResultKt.addStepResult(PatchingResult.kt:29)
+	at app.morphe.desktop.command.PatchCommand.call(PatchCommand.kt:784)
+	at app.morphe.desktop.command.PatchCommand.call(PatchCommand.kt:54)
+	at picocli.CommandLine.executeUserObject(CommandLine.java:2031)
+	at picocli.CommandLine.access$1500(CommandLine.java:148)
+	at picocli.CommandLine$RunLast.executeUserObjectOfLastSubcommandWithSameParent(CommandLine.java:2469)
+	at picocli.CommandLine$RunLast.handle(CommandLine.java:2461)
+	at picocli.CommandLine$RunLast.handle(CommandLine.java:2423)
+	at picocli.CommandLine$AbstractParseResultHandler.execute(CommandLine.java:2277)
+	at picocli.CommandLine$RunLast.execute(CommandLine.java:2425)
+	at picocli.CommandLine.execute(CommandLine.java:2174)
+	at app.morphe.MorpheLauncherKt.main(MorpheLauncher.kt:85)
+
+INFO: Compiling patched dex files (mode: STRIP_FAST)
+INFO: Writing 1261 new classes to new DEX files
+INFO: Processing 1261 classes (single threaded mode)
+INFO: Wrote 1 dex files to /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/morphe-data/tmp/patching-1789225633619/patched/dex
+INFO: Compiling modified resources
+INFO: Unescaping strings
+INFO: Processing aapt macros
+INFO: Generating new resource IDs
+INFO: Writing resource APK
+INFO: Resource APK inputs: reusing 2399 unchanged archive entries, rebuilding 2 entries
+INFO: Resource APK timings: scan=2.295824014s, write=1.315694735s
+INFO: Using compiled resource APK as output base
+INFO: Aligning APK
+INFO: Signing APK
+INFO: Saved to /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/proton-mail-arm64-v8a-patch-v7.10.4.apk
+INFO: Purged this session's temp files: patching-1789225633619
+2026-09-12 15:07:28 Validated patched APK: 56554057 bytes (ABIs: arm64-v8a, armeabi, mips, mips64)
+2026-09-12 15:07:28 [SIZE] patched: 56554057 bytes (proton-mail-arm64-v8a-patch-v7.10.4.apk)
+Signed
+2026-09-12 15:07:30 [SIZE] signed: 56549961 bytes (proton-mail-arm64-v8a-hxreborn-v7.10.4.apk)
+✅ APK built: proton-mail-arm64-v8a-hxreborn-v7.10.4.apk
+✅ Built arm64-v8a: proton-mail-arm64-v8a-hxreborn-v7.10.4.apk
+
+🎯 1 APK(s) built for 'proton-mail':
+   📱 proton-mail-arm64-v8a-hxreborn-v7.10.4.apk
+EOF
