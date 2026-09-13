@@ -96,6 +96,70 @@ class SignedPatchInputTests(unittest.TestCase):
 
             self.assertEqual(output.read_bytes(), b"merged")
 
+    def test_split_dependent_failure_is_retried_only_when_file_exists(self) -> None:
+        parser = build_main.PatchFailureParser()
+        parser("SEVERE: FAILED: Enable Prime membership\n")
+        parser(
+            "PatchException: /tmp/patching/apk/root/"
+            "lib/arm64-v8a/libibispaint.so (No such file or directory)\n"
+        )
+
+        with tempfile.TemporaryDirectory() as directory:
+            modules = Path(directory)
+            with zipfile.ZipFile(modules / "split_config.arm64_v8a.apk", "w") as archive:
+                archive.writestr("lib/arm64-v8a/libibispaint.so", b"native")
+
+            self.assertEqual(
+                build_main._split_dependent_failures(parser, modules),
+                ["Enable Prime membership"],
+            )
+
+    def test_unrelated_patch_failure_is_not_retried_after_split_merge(self) -> None:
+        parser = build_main.PatchFailureParser()
+        parser("SEVERE: FAILED: Fingerprint mismatch\n")
+        parser("PatchException: Failed to match the fingerprint\n")
+
+        with tempfile.TemporaryDirectory() as directory:
+            modules = Path(directory)
+            with zipfile.ZipFile(modules / "base.apk", "w") as archive:
+                archive.writestr("classes.dex", b"dex")
+
+            self.assertEqual(build_main._split_dependent_failures(parser, modules), [])
+
+    def test_split_retry_matches_abi_placeholder_from_upstream_error(self) -> None:
+        parser = build_main.PatchFailureParser()
+        parser("SEVERE: FAILED: Unlock Pro\n")
+        parser(
+            "PatchException: No lib/<abi>/libisvideoengine.so found in the APK.\n"
+        )
+
+        with tempfile.TemporaryDirectory() as directory:
+            modules = Path(directory)
+            with zipfile.ZipFile(modules / "config.arm64_v8a.apk", "w") as archive:
+                archive.writestr("lib/arm64-v8a/libisvideoengine.so", b"native")
+
+            self.assertEqual(
+                build_main._split_dependent_failures(parser, modules),
+                ["Unlock Pro"],
+            )
+
+    def test_split_retry_matches_explicit_not_found_library(self) -> None:
+        parser = build_main.PatchFailureParser()
+        parser("SEVERE: FAILED: Unlock Premium\n")
+        parser(
+            "PatchException: lib/arm64-v8a/libpowerampcore.so not found in the APK.\n"
+        )
+
+        with tempfile.TemporaryDirectory() as directory:
+            modules = Path(directory)
+            with zipfile.ZipFile(modules / "arm64.apk", "w") as archive:
+                archive.writestr("lib/arm64-v8a/libpowerampcore.so", b"native")
+
+            self.assertEqual(
+                build_main._split_dependent_failures(parser, modules),
+                ["Unlock Premium"],
+            )
+
     def test_architecture_filtering_happens_after_patching(self) -> None:
         source = inspect.getsource(build_main.run_build)
         patch_call = source.index("_patch_morphe(")

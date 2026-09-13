@@ -52,6 +52,7 @@ matching the behaviour of Enhancify's editOptions()/patchApp() flow.
 Options are silently ignored for Morphe CLI (which does not support them).
 """
 
+import fnmatch
 import json
 import logging
 import re
@@ -410,6 +411,16 @@ _APPLIED_PATCH_RE = re.compile(r"\bApplied:\s*(?P<name>.+?)\s*$", re.IGNORECASE)
 _FINGERPRINT_FAILURE_RE = re.compile(
     r"PatchException:\s+Failed to match the fingerprint", re.IGNORECASE
 )
+_MISSING_PATCH_FILE_RE = re.compile(
+    r"(?:^|[\\/])apk[\\/]root[\\/](?P<path>[^\r\n(]+?)\s+"
+    r"\(No such file or directory\)",
+    re.IGNORECASE,
+)
+_MISSING_PATCH_LIB_RE = re.compile(
+    r"\b(?:No\s+)?(?P<path>lib/(?:<abi>|[^/\s]+)/[^\s()]+?\.so)\s+"
+    r"(?:not\s+)?found\b",
+    re.IGNORECASE,
+)
 
 
 class PatchFailureParser:
@@ -420,6 +431,8 @@ class PatchFailureParser:
         self.applied_patches: list[str] = []
         self.applying_count: int | None = None
         self._fingerprint_failure_seen = False
+        self._last_failed_patch: str | None = None
+        self.missing_paths_by_patch: dict[str, set[str]] = {}
 
     def __call__(self, line: str) -> None:
         applying_match = _APPLYING_PATCHES_RE.search(line)
@@ -431,12 +444,23 @@ class PatchFailureParser:
             name = applied_match.group("name").strip()
             if name and name not in self.applied_patches:
                 self.applied_patches.append(name)
+            self._last_failed_patch = None
 
         failed_match = _FAILED_PATCH_RE.search(line)
         if failed_match:
             name = failed_match.group("name").strip()
             if name and name not in self.failed_patches:
                 self.failed_patches.append(name)
+            self._last_failed_patch = name or None
+        missing_match = _MISSING_PATCH_FILE_RE.search(line)
+        if missing_match is None:
+            missing_match = _MISSING_PATCH_LIB_RE.search(line)
+        if missing_match and self._last_failed_patch:
+            path = missing_match.group("path").strip().replace("\\", "/")
+            if path:
+                self.missing_paths_by_patch.setdefault(
+                    self._last_failed_patch, set()
+                ).add(path)
         if _FINGERPRINT_FAILURE_RE.search(line):
             self._fingerprint_failure_seen = True
 
@@ -904,12 +928,44 @@ def _merge_split_modules(
     utils.run_process([
         "java", "-jar", str(apk_editor),
         "m", "-i", str(modules_dir), "-o", str(output_apk),
-        "-f", "-validate-modules",
+        "-f",
     ], silent=True)
     if not output_apk.exists():
         logging.error("❌ FATAL: APKEditor produced no output for '%s'", app_name)
         raise BuildFailure("APK_VALIDATION_FAILED", "APKEditor produced no merged APK")
     logging.info("Merged patched APK: %s", output_apk)
+
+
+def _split_dependent_failures(
+    parser: PatchFailureParser,
+    modules_dir: Path,
+) -> list[str]:
+    """Return failed patches whose missing input exists in a split module."""
+    wanted = {
+        path
+        for paths in parser.missing_paths_by_patch.values()
+        for path in paths
+    }
+    if not wanted:
+        return []
+
+    available: set[str] = set()
+    for module in modules_dir.rglob("*.apk"):
+        try:
+            with zipfile.ZipFile(module) as archive:
+                names = {name.replace("\\", "/") for name in archive.namelist()}
+        except zipfile.BadZipFile:
+            continue
+        for path in wanted:
+            pattern = path.replace("<abi>", "*")
+            if any(fnmatch.fnmatchcase(name, pattern) for name in names):
+                available.add(path)
+
+    return [
+        patch
+        for patch in parser.failed_patches
+        if parser.missing_paths_by_patch.get(patch, set()).intersection(available)
+    ]
 
 
 def _strip_libs(apk: Path, arch: str) -> None:
@@ -1400,6 +1456,7 @@ def run_build(app_name: str, source: str, arch: str = "universal") -> str:
     output_apk = Path(f"{app_name}-{arch}-patch-v{version}.apk")
     logging.info("🔧 Patching with %s CLI (%s)…", cli_ver, cli.name)
     patch_failure_parser = PatchFailureParser()
+    split_retry_parser: PatchFailureParser | None = None
 
     try:
         if is_morphe:
@@ -1439,6 +1496,12 @@ def run_build(app_name: str, source: str, arch: str = "universal") -> str:
             split_bundle.unlink(missing_ok=True)
         raise BuildFailure("PATCH_APPLY_FAILED", "patch CLI did not produce an APK")
 
+    split_retry_patches: list[str] = []
+    if split_modules_dir is not None and is_morphe:
+        split_retry_patches = _split_dependent_failures(
+            patch_failure_parser, split_modules_dir
+        )
+
     if split_modules_dir is not None and split_bundle is not None:
         # Put the patched base back beside the untouched configuration splits,
         # then merge the complete install set into the final standalone APK.
@@ -1446,6 +1509,47 @@ def run_build(app_name: str, source: str, arch: str = "universal") -> str:
         output_apk.unlink(missing_ok=True)
         try:
             _merge_split_modules(split_modules_dir, output_apk, app_name)
+
+            # Some native patches need a library delivered in an ABI split,
+            # while signature patches need the untouched signed base. Preserve
+            # both contracts: patch the signed base first, merge its splits,
+            # then retry only failures whose missing file is now present.
+            if split_retry_patches:
+                logging.info(
+                    "Retrying split-dependent patch(es) after merge: %s",
+                    ", ".join(split_retry_patches),
+                )
+                retry_input = output_apk.with_name(
+                    f".{output_apk.name}.split-retry-input.apk"
+                )
+                retry_input.unlink(missing_ok=True)
+                output_apk.replace(retry_input)
+                retry_enables = [
+                    item
+                    for patch_name in split_retry_patches
+                    for item in ("-e", patch_name)
+                ]
+                retry_options = [
+                    option
+                    for option in selected_options
+                    if option.patch in split_retry_patches
+                ]
+                retry_option_flags = _build_option_flags(retry_options, cli_ver)
+                split_retry_parser = PatchFailureParser()
+                try:
+                    _patch_morphe(
+                        cli,
+                        bundle,
+                        retry_input,
+                        output_apk,
+                        retry_enables,
+                        [],
+                        retry_option_flags,
+                        retry_options,
+                        split_retry_parser,
+                    )
+                finally:
+                    retry_input.unlink(missing_ok=True)
         finally:
             split_bundle.unlink(missing_ok=True)
             shutil.rmtree(split_modules_dir, ignore_errors=True)
@@ -1479,6 +1583,17 @@ def run_build(app_name: str, source: str, arch: str = "universal") -> str:
     logging.info("[SIZE] patched: %d bytes (%s)", output_apk.stat().st_size, output_apk.name)
     failed_patches = patch_failure_parser.result()
     applied_patches = patch_failure_parser.applied_result()
+    if split_retry_parser is not None:
+        retry_applied = set(split_retry_parser.applied_result())
+        failed_patches = [
+            name for name in failed_patches if name not in retry_applied
+        ]
+        for name in split_retry_parser.result():
+            if name not in failed_patches:
+                failed_patches.append(name)
+        for name in split_retry_patches:
+            if name in retry_applied and name not in applied_patches:
+                applied_patches.append(name)
     semantic_failure = _semantic_patch_failure(
         failed_patches,
         patch_config.required,
