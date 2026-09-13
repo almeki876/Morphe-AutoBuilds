@@ -9,6 +9,8 @@ from __future__ import annotations
 
 import os
 
+from src import console_output
+
 
 CACHE_CONTRACT_TAG = "base-apk-cache-v4-ja-jp-px9a-split"
 
@@ -20,7 +22,7 @@ def enforce() -> None:
         if requested:
             # Keep the diagnostic visible; silently accepting v2/v3 is exactly
             # what allowed a previously English payload to recur.
-            print(
+            console_output.safe_print(
                 "⚠️  Ignoring legacy BASE_APK_CACHE_TAG="
                 f"{requested!r}; using {CACHE_CONTRACT_TAG!r}"
             )

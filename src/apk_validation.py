@@ -129,7 +129,12 @@ def _validate_anddea_custom_icon(path: Path) -> None:
         )
 
 
-def validate_apk(path: Path, expected_abi: str | None = None) -> set[str]:
+def validate_apk(
+    path: Path,
+    expected_abi: str | None = None,
+    *,
+    validate_app_requirements: bool = True,
+) -> set[str]:
     """Validate core APK entries and return native ABIs present in the ZIP."""
     try:
         with zipfile.ZipFile(path) as archive:
@@ -163,7 +168,7 @@ def validate_apk(path: Path, expected_abi: str | None = None) -> set[str]:
 
     _validate_anddea_custom_icon(path)
     app_name = os.getenv("APP_NAME", "").strip()
-    if app_name:
+    if app_name and validate_app_requirements:
         from src import providers
 
         validate_required_entries(path, providers.required_apk_entries(app_name))

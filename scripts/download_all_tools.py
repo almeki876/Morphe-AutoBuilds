@@ -24,6 +24,7 @@ logging.basicConfig(
 # URL は必ず、実際に解決・取得した bundle の release tag から組み立てる。
 PATCHES_LIST_FILES: dict[str, str] = {
     "revanced-anddea": "patches-list.json",
+    "rushiranpise-universal": "patches-list.json",
 }
 
 SOURCES_DIR = pathlib.Path("sources")

@@ -32,6 +32,7 @@ class AnddeaBrandingConfigTests(unittest.TestCase):
         self.assertNotIn(("Custom branding for YouTube", "appIcon"), options)
         self.assertFalse(any("Custom branding name for YouTube" == patch for patch, _ in options))
         self.assertFalse(any("Custom header for YouTube" == patch for patch, _ in options))
+        self.assertFalse(any("Force player buttons background" == patch for patch, _ in options))
 
     def test_youtube_music_uses_current_branding_patch_options(self) -> None:
         entry = self._entry("youtube-music")

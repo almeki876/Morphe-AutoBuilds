@@ -38,8 +38,8 @@ EXPLICIT_PATCH_SELECTION_EXCEPTIONS = {
     ("gboard", "jason"),
     ("gboard", "adobo"),
     ("gboard", "morning-entree"),
-    ("yuucho-tsucho", "rushiranpise"),
-    ("yuucho-ninsho", "rushiranpise"),
+    ("yuucho-tsucho", "rushiranpise-universal"),
+    ("yuucho-ninsho", "rushiranpise-universal"),
 }
 PACKAGE_RE = re.compile(r"^[A-Za-z0-9_]+(?:\.[A-Za-z0-9_]+)+$")
 WORKFLOW_SCRIPT_RE = re.compile(

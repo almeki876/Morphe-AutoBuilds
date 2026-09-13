@@ -2,6 +2,7 @@ import re
 import logging
 import os
 import random
+import shutil
 import time
 from datetime import datetime, timezone
 from email.utils import parsedate_to_datetime
@@ -12,6 +13,7 @@ import subprocess
 from pathlib import Path
 from urllib.parse import urlparse, unquote, parse_qs, urlsplit
 from src.versioning import VersionCandidate, parse_candidates
+from src import console_output
 
 
 RETRYABLE_HTTP_STATUSES = frozenset({403, 408, 425, 429, 500, 502, 503, 504})
@@ -300,20 +302,28 @@ def find_latest_patch_bundle(
     return max(candidates, key=version_key)
 
 def find_apksigner() -> str | None:
-    sdk_root = Path("/usr/local/lib/android/sdk")
-    build_tools_dir = sdk_root / "build-tools"
+    executable = shutil.which("apksigner") or shutil.which("apksigner.bat")
+    if executable:
+        return executable
 
-    if not build_tools_dir.exists():
-        logging.error(f"No build-tools found at: {build_tools_dir}")
-        return None
+    sdk_roots = [
+        Path(value)
+        for name in ("ANDROID_HOME", "ANDROID_SDK_ROOT")
+        if (value := os.getenv(name))
+    ]
+    sdk_roots.append(Path("/usr/local/lib/android/sdk"))
+    executable_names = ("apksigner.bat", "apksigner.exe", "apksigner")
+    for sdk_root in sdk_roots:
+        build_tools_dir = sdk_root / "build-tools"
+        if not build_tools_dir.is_dir():
+            continue
+        for version_dir in sorted(build_tools_dir.iterdir(), reverse=True):
+            for name in executable_names:
+                apksigner_path = version_dir / name
+                if apksigner_path.is_file():
+                    return str(apksigner_path)
 
-    versions = sorted(build_tools_dir.iterdir(), reverse=True)
-    for version_dir in versions:
-        apksigner_path = version_dir / "apksigner"
-        if apksigner_path.exists() and apksigner_path.is_file():
-            return str(apksigner_path)
-
-    logging.error("No apksigner found in build-tools")
+    logging.error("No apksigner found on PATH or in Android SDK build-tools")
     return None
 
 def run_process(
@@ -345,7 +355,7 @@ def run_process(
                 if on_output:
                     on_output(line)
                 if not silent:
-                    print(line.rstrip(), flush=True)
+                    console_output.safe_print(line.rstrip(), flush=True)
                 if capture:
                     output_lines.append(line)
         process.stdout.close()
@@ -357,10 +367,10 @@ def run_process(
         return ''.join(output_lines).strip() if capture else None
 
     except FileNotFoundError:
-        print(f"Command not found: {command[0]}", flush=True)
+        console_output.safe_print(f"Command not found: {command[0]}", flush=True)
         exit(1)
     except Exception as e:
-        print(f"Error while running command: {e}", flush=True)
+        console_output.safe_print(f"Error while running command: {e}", flush=True)
         exit(1)
 
 def normalize_version(version: str) -> list[int]:

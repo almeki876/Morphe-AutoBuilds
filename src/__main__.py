@@ -3,9 +3,9 @@ APK build entrypoint.
 
 Workflow:
   1. Download tools (CLI + patch bundle) and input APK.
-  2. Optionally merge split APKs via APKEditor.
-  3. Strip unwanted native libs for the target architecture.
-  4. Apply patches with the appropriate CLI version.
+  2. Apply patches to the untouched signed APK (or signed split base).
+  3. Optionally merge the patched base with its split modules via APKEditor.
+  4. Strip unwanted native libs for the target architecture.
   5. Sign the patched APK with apksigner.
 
 Supported patching systems
@@ -57,13 +57,28 @@ import logging
 import re
 import shutil
 import subprocess
+import zipfile
 from dataclasses import dataclass, field
 from os import getenv
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from sys import exit
 from typing import Any, Callable
 
-from src import apk_cache, apk_validation, cli_compat, downloader, provenance, providers, utils
+from src import (
+    apk_cache,
+    apk_validation,
+    cli_compat,
+    console_output,
+    downloader,
+    provenance,
+    providers,
+    utils,
+)
+
+
+def _console_print(message: str = "") -> None:
+    """Write status text without letting a legacy Windows encoding fail a build."""
+    console_output.safe_print(message, flush=True)
 
 
 # ---------------------------------------------------------------------------
@@ -219,8 +234,6 @@ def _build_patch_flags(
             # Anddea: {"version":..., "patches":[...]}
             patch_list = raw["patches"] if isinstance(raw, dict) else raw
 
-            # options が設定されているパッチ名セット（use=false でも有効化する）
-            config_opts_patches = {o.patch for o in patch_config.options}
             disable_set = {d.lower() for d in patch_config.disable}
             force_enable_set = {f for f in patch_config.force_enable}
 
@@ -236,8 +249,9 @@ def _build_patch_flags(
                     pkg_names = [c.get("packageName", c.get("name", "")) for c in compat]
                 if compat and pkg_name not in pkg_names:
                     continue
-                # use=false でも options または force_enable が config に設定されていれば有効化
-                if not use and name not in config_opts_patches and name not in force_enable_set:
+                # Patch options configure a selected patch; they do not select it.
+                # Only force_enable may opt a non-default patch into the build.
+                if not use and name not in force_enable_set:
                     continue
                 if name.lower() in disable_set:
                     continue
@@ -349,13 +363,50 @@ def _build_option_flags(options: list[PatchOption], cli_ver: str) -> list[str]:
     return flags
 
 
+def _selected_patch_options(
+    options: list[PatchOption], enables: list[str]
+) -> list[PatchOption]:
+    """Return options only for patches selected by the current patch flags.
+
+    Morphe's options-file format contains an ``enabled`` field. Passing an
+    option for a patch that was intentionally excluded from ``enables`` would
+    therefore select that patch again as a side effect. When explicit enable
+    flags are available, keep patch selection and patch configuration separate.
+
+    An empty ``enables`` list means the caller is relying on bundle defaults and
+    no explicit selected-patch set is available, so preserve the configured
+    options in that fallback mode.
+    """
+    if not enables:
+        return list(options)
+
+    selected = {
+        enables[index + 1]
+        for index in range(0, len(enables), 2)
+        if index + 1 < len(enables)
+    }
+    filtered = [option for option in options if option.patch in selected]
+    ignored = sorted({option.patch for option in options if option.patch not in selected})
+    if ignored:
+        logging.info(
+            "Ignoring options for unselected patch(es): %s",
+            ", ".join(ignored),
+        )
+    return filtered
+
+
 # ---------------------------------------------------------------------------
 # Patching
 # ---------------------------------------------------------------------------
 
-_FAILED_PATCH_RE = re.compile(r"SEVERE:\s+FAILED:\s*(?P<name>.+?)\s*$", re.IGNORECASE)
-_APPLYING_PATCHES_RE = re.compile(r"INFO:\s+Applying\s+(?P<count>\d+)\s+patches?\.\.\.", re.IGNORECASE)
-_APPLIED_PATCH_RE = re.compile(r"INFO:\s+Applied:\s*(?P<name>.+?)\s*$", re.IGNORECASE)
+# Match the stable English event text rather than java.util.logging's localized
+# severity label. The prefix is "INFO"/"SEVERE" on Actions, but is translated
+# when a build is reproduced under another system locale.
+_FAILED_PATCH_RE = re.compile(r"\bFAILED:\s*(?P<name>.+?)\s*$", re.IGNORECASE)
+_APPLYING_PATCHES_RE = re.compile(
+    r"\bApplying\s+(?P<count>\d+)\s+patches?\.\.\.", re.IGNORECASE
+)
+_APPLIED_PATCH_RE = re.compile(r"\bApplied:\s*(?P<name>.+?)\s*$", re.IGNORECASE)
 _FINGERPRINT_FAILURE_RE = re.compile(
     r"PatchException:\s+Failed to match the fingerprint", re.IGNORECASE
 )
@@ -396,6 +447,41 @@ class PatchFailureParser:
 
     def applied_result(self) -> list[str]:
         return list(self.applied_patches)
+
+
+def _semantic_patch_failure(
+    failed_patches: list[str],
+    required_patches: list[str],
+    applied_patches: list[str],
+    applying_count: int | None,
+) -> tuple[str, str, list[str]] | None:
+    """Return a hard failure when CLI success does not mean full patch success."""
+
+    required_failures = [
+        name for name in required_patches if name not in applied_patches
+    ]
+    count_mismatch = (
+        applying_count is not None and applying_count != len(applied_patches)
+    )
+    if not failed_patches and not required_failures and not count_mismatch:
+        return None
+
+    details: list[str] = []
+    if failed_patches:
+        details.append("CLI reported failed patches: " + ", ".join(failed_patches))
+    if required_failures:
+        details.append(
+            "required patch was not applied: " + ", ".join(required_failures)
+        )
+    if count_mismatch:
+        details.append(
+            f"CLI announced {applying_count} patch(es) but reported "
+            f"{len(applied_patches)} applied"
+        )
+    category = (
+        "REQUIRED_PATCH_FAILED" if required_failures else "PATCH_APPLY_FAILED"
+    )
+    return category, "; ".join(details), required_failures
 
 def _log_available_patches(cli: Path, bundle: Path) -> None:
     """Run list-patches and log the output for debugging. Never fatal."""
@@ -507,6 +593,14 @@ def _patch_morphe(
     # Rather than guessing a version cutoff — which breaks again the next
     # time upstream renames something — ask the CLI itself via --help.
     purge_flag = ["--purge"] if cli_compat.supports_flag(cli, "patch", "--purge") else []
+    # Current Morphe versions can emit an unsigned APK. The pipeline signs the
+    # normalized final artifact itself, so avoid an earlier redundant signing
+    # pass when the CLI supports this contract. Older CLIs remain compatible.
+    unsigned_flag = (
+        ["--unsigned"]
+        if cli_compat.supports_flag(cli, "patch", "--unsigned")
+        else []
+    )
 
     # --exclusive is only meaningful when patches are explicitly enabled.
     exclusive = ["--exclusive"] if enables else []
@@ -567,6 +661,7 @@ def _patch_morphe(
             "patch",
             "--force",
             "--continue-on-error",
+            *unsigned_flag,
             *purge_flag,
             "-p", str(bundle),
             f"--out={output_apk}",
@@ -620,6 +715,7 @@ def _patch_morphe(
             "-jar", str(cli),
             "patch",
             "--force",
+            *unsigned_flag,
             *purge_flag,
             f"--patches={bundle}",
             f"--out={output_apk}",
@@ -710,63 +806,151 @@ def _patch_legacy(
 # APK helpers
 # ---------------------------------------------------------------------------
 
-def _merge_split_apk(input_apk: Path, app_name: str, version: str) -> Path:
-    """Merge a split / XAPK into a single APK using APKEditor."""
-    logging.warning("Input is not a plain .apk — merging with APKEditor…")
-    apk_editor = downloader.download_apkeditor()
-    merged = input_apk.with_suffix(".apk")
+def _split_base_priority(name: str) -> tuple[int, str]:
+    """Rank APK modules so the signed install base is patched first."""
+    normalized = name.replace("\\", "/").casefold()
+    basename = normalized.rsplit("/", 1)[-1]
+    if basename == "base.apk":
+        return (0, normalized)
+    if "base-master" in basename or basename.startswith("base-"):
+        return (1, normalized)
+    if not any(
+        marker in basename
+        for marker in ("split_config", "split-", "config.", "config_")
+    ):
+        return (2, normalized)
+    return (3, normalized)
 
+
+def _extract_split_patch_input(
+    input_bundle: Path,
+    app_name: str,
+    version: str,
+) -> tuple[Path, Path]:
+    """Extract a split bundle and return its untouched, signed base APK.
+
+    APKEditor necessarily rewrites an APK while merging modules, which removes
+    the stock APK signing block. Some patches need that block to read the
+    original app certificate. Patch the signed base first and merge its
+    configuration modules only after the patcher has finished.
+    """
+    modules_dir = Path(
+        f".build-splits-{_safe_artifact_part(app_name)}-"
+        f"v{_safe_artifact_part(version)}"
+    )
+    shutil.rmtree(modules_dir, ignore_errors=True)
+    modules_dir.mkdir(parents=True)
+
+    try:
+        with zipfile.ZipFile(input_bundle) as archive:
+            members = sorted(
+                (
+                    name
+                    for name in archive.namelist()
+                    if name.casefold().endswith(".apk") and not name.endswith("/")
+                ),
+                key=_split_base_priority,
+            )
+            if not members:
+                raise BuildFailure(
+                    "APK_VALIDATION_FAILED",
+                    f"split container contains no APK modules: {input_bundle}",
+                )
+            extracted: dict[str, Path] = {}
+            for name in members:
+                member_path = PurePosixPath(name.replace("\\", "/"))
+                parts = member_path.parts
+                if (
+                    member_path.is_absolute()
+                    or not parts
+                    or any(part in {"", ".", ".."} for part in parts)
+                ):
+                    raise BuildFailure(
+                        "APK_VALIDATION_FAILED",
+                        f"split container has an unsafe module path: {name}",
+                    )
+                target = modules_dir.joinpath(*parts)
+                target.parent.mkdir(parents=True, exist_ok=True)
+                with archive.open(name) as source_file, target.open("wb") as target_file:
+                    shutil.copyfileobj(source_file, target_file)
+                extracted[name] = target
+    except BuildFailure:
+        shutil.rmtree(modules_dir, ignore_errors=True)
+        raise
+    except zipfile.BadZipFile as error:
+        shutil.rmtree(modules_dir, ignore_errors=True)
+        raise BuildFailure(
+            "APK_VALIDATION_FAILED",
+            f"split container is not a readable ZIP archive: {input_bundle}",
+        ) from error
+
+    base_apk = extracted[members[0]]
+    logging.info(
+        "Extracted %d split modules; patching signed base first: %s",
+        len(members),
+        base_apk,
+    )
+    return base_apk, modules_dir
+
+
+def _merge_split_modules(
+    modules_dir: Path,
+    output_apk: Path,
+    app_name: str,
+) -> None:
+    """Merge an already-patched base APK with its original split modules."""
+    logging.info("Merging patched base APK with original split modules…")
+    apk_editor = downloader.download_apkeditor()
     utils.run_process([
         "java", "-jar", str(apk_editor),
-        "m", "-i", str(input_apk), "-o", str(merged),
+        "m", "-i", str(modules_dir), "-o", str(output_apk),
+        "-f", "-validate-modules",
     ], silent=True)
-
-    input_apk.unlink(missing_ok=True)
-
-    if not merged.exists():
+    if not output_apk.exists():
         logging.error("❌ FATAL: APKEditor produced no output for '%s'", app_name)
-        exit(1)
-
-    clean = re.sub(r"\(\d+\)", "", merged.name)
-    clean = re.sub(r"-\d+_", "_", clean)
-    if clean != merged.name:
-        target = merged.with_name(clean)
-        merged.rename(target)
-        merged = target
-
-    logging.info("Merged APK: %s", merged)
-    return merged
+        raise BuildFailure("APK_VALIDATION_FAILED", "APKEditor produced no merged APK")
+    logging.info("Merged patched APK: %s", output_apk)
 
 
 def _strip_libs(apk: Path, arch: str) -> None:
-    """Remove native libraries that don't belong to *arch*."""
-    remove_patterns: dict[str, list[str]] = {
-        "universal":    ["lib/x86/*", "lib/x86_64/*"],
-        "arm64-v8a":    ["lib/x86/*", "lib/x86_64/*", "lib/armeabi-v7a/*"],
-        "armeabi-v7a":  ["lib/x86/*", "lib/x86_64/*", "lib/arm64-v8a/*"],
+    """Normalize the patched ZIP and remove libraries outside *arch*."""
+    kept_abis: dict[str, set[str]] = {
+        # "universal" artifacts support every ARM generation while omitting
+        # desktop/emulator and obsolete MIPS libraries.
+        "universal": {"arm64-v8a", "armeabi-v7a", "armeabi"},
+        "arm64-v8a": {"arm64-v8a"},
+        "armeabi-v7a": {"armeabi-v7a", "armeabi"},
     }
-    patterns = remove_patterns.get(arch)
-    if patterns:
-        utils.run_process(
-            ["zip", "--delete", str(apk)] + patterns,
-            silent=True, check=False,
-        )
+    allowed = kept_abis.get(arch)
+    if allowed is None:
+        return
 
-
-def _repair_apk(apk: Path, app_name: str, version: str) -> None:
-    """Attempt to fix APK corruption in-place with 'zip -FF'."""
+    temporary = apk.with_name(f".{apk.name}.architecture-filter.tmp")
+    temporary.unlink(missing_ok=True)
     try:
-        fixed = Path(f"{app_name}-fixed-v{version}.apk")
-        subprocess.run(
-            ["zip", "-FF", str(apk), "--out", str(fixed)],
-            check=False, capture_output=True,
-        )
-        if fixed.exists() and fixed.stat().st_size > 0:
-            apk.unlink(missing_ok=True)
-            fixed.rename(apk)
-            logging.info("APK integrity check passed.")
-    except Exception as exc:
-        logging.warning("APK repair skipped: %s", exc)
+        with zipfile.ZipFile(apk) as source:
+            entries = source.infolist()
+            removed = [
+                info.filename
+                for info in entries
+                if (
+                    info.filename.startswith("lib/")
+                    and len(info.filename.split("/", 2)) >= 3
+                    and info.filename.split("/", 2)[1] not in allowed
+                )
+            ]
+            with zipfile.ZipFile(temporary, "w", allowZip64=True) as target:
+                for info in entries:
+                    if info.filename in removed:
+                        continue
+                    target.writestr(info, source.read(info.filename))
+        temporary.replace(apk)
+        if removed:
+            logging.info("Removed %d non-target native libraries", len(removed))
+        else:
+            logging.info("Normalized patched APK ZIP headers")
+    finally:
+        temporary.unlink(missing_ok=True)
 
 
 def _sign_apk(unsigned: Path, signed: Path, app_name: str) -> None:
@@ -884,14 +1068,11 @@ def _write_build_report(
         for index in range(0, len(disables), 2)
         if index + 1 < len(disables)
     ]
-    requested_patches = sorted(
-        set(patch_config.force_enable)
-        | {option.patch for option in patch_config.options}
-    )
+    requested_patches = sorted(set(patch_config.force_enable))
     missing_requested = [
         {
             "name": name,
-            "reason": "requested by force_enable/options but CLI did not report it as applied",
+            "reason": "requested by force_enable but CLI did not report it as applied",
         }
         for name in requested_patches
         if name not in applied_patches and name not in {item["name"] for item in excluded_patches}
@@ -1152,19 +1333,36 @@ def run_build(app_name: str, source: str, arch: str = "universal") -> str:
     downloaded_size = input_apk.stat().st_size
     logging.info("[SIZE] downloaded: %d bytes (%s)", downloaded_size, input_apk.name)
 
-    # Preserve the provider payload before split merging, architecture stripping,
-    # repair, patching, or signing changes any byte. VirusTotal scans this
-    # unmodified download in the release job.
+    # Preserve the provider payload before extraction, patching, architecture
+    # filtering, or signing changes any byte. VirusTotal scans this unmodified
+    # download in the release job.
     _stage_unmodified_base_apk(input_apk, app_name, source, arch, version)
 
-    # ── 5. Merge split APKs (if needed) ─────────────────────────────────────
+    # ── 5. Preserve a signed patch input ────────────────────────────────────
+    split_bundle: Path | None = None
+    split_modules_dir: Path | None = None
     if input_apk.suffix != ".apk":
-        input_apk = _merge_split_apk(input_apk, app_name, version)
+        split_bundle = input_apk
+        try:
+            apk_validation.validate_required_entries(
+                split_bundle,
+                providers.required_apk_entries(app_name),
+            )
+        except apk_validation.ApkValidationError as error:
+            raise BuildFailure("APK_VALIDATION_FAILED", str(error)) from error
+        input_apk, split_modules_dir = _extract_split_patch_input(
+            split_bundle, app_name, version
+        )
 
-    # ── 6. Strip native libs ─────────────────────────────────────────────────
-    logging.info("Processing APK for '%s' architecture…", arch)
+    # Patches can inspect the stock signer certificate. Validate the input, but
+    # do not merge, repair, strip, or otherwise rewrite it before patching.
+    logging.info("Validating untouched patch input for '%s' architecture…", arch)
     try:
-        input_abis = apk_validation.validate_apk(input_apk, expected_abi=arch)
+        input_abis = apk_validation.validate_apk(
+            input_apk,
+            expected_abi=arch,
+            validate_app_requirements=split_bundle is None,
+        )
     except apk_validation.ApkValidationError as error:
         raise BuildFailure("APK_VALIDATION_FAILED", str(error)) from error
     logging.info(
@@ -1172,14 +1370,6 @@ def run_build(app_name: str, source: str, arch: str = "universal") -> str:
         input_apk.stat().st_size,
         ", ".join(sorted(input_abis)) or "none",
     )
-    _strip_libs(input_apk, arch)
-    try:
-        apk_validation.validate_apk(input_apk, expected_abi=arch)
-    except apk_validation.ApkValidationError as error:
-        raise BuildFailure(
-            "APK_VALIDATION_FAILED",
-            f"architecture filtering invalidated input APK: {error}",
-        ) from error
     prepared_size = input_apk.stat().st_size
     logging.info("[SIZE] prepared: %d bytes (%s)", prepared_size, input_apk.name)
 
@@ -1193,7 +1383,8 @@ def run_build(app_name: str, source: str, arch: str = "universal") -> str:
     )
 
     # ── 7b. Build option flags ───────────────────────────────────────────────
-    option_flags = _build_option_flags(patch_config.options, cli_ver)
+    selected_options = _selected_patch_options(patch_config.options, enables)
+    option_flags = _build_option_flags(selected_options, cli_ver)
     _write_build_report(
         app_name,
         source,
@@ -1205,11 +1396,7 @@ def run_build(app_name: str, source: str, arch: str = "universal") -> str:
         "patching",
     )
 
-    # ── 8. Repair APK ────────────────────────────────────────────────────────
-    logging.info("Checking APK integrity…")
-    _repair_apk(input_apk, app_name, version)
-
-    # ── 9. Patch ─────────────────────────────────────────────────────────────
+    # ── 8. Patch ─────────────────────────────────────────────────────────────
     output_apk = Path(f"{app_name}-{arch}-patch-v{version}.apk")
     logging.info("🔧 Patching with %s CLI (%s)…", cli_ver, cli.name)
     patch_failure_parser = PatchFailureParser()
@@ -1218,7 +1405,7 @@ def run_build(app_name: str, source: str, arch: str = "universal") -> str:
         if is_morphe:
             _patch_morphe(
                 cli, bundle, input_apk, output_apk, enables, disables,
-                option_flags, patch_config.options, patch_failure_parser,
+                option_flags, selected_options, patch_failure_parser,
             )
         elif cli_ver in ("v4", "v5plus"):
             _patch_revanced(
@@ -1231,12 +1418,14 @@ def run_build(app_name: str, source: str, arch: str = "universal") -> str:
                 option_flags, patch_failure_parser,
             )
     except Exception as error:
+        if split_modules_dir is not None:
+            shutil.rmtree(split_modules_dir, ignore_errors=True)
+        if split_bundle is not None:
+            split_bundle.unlink(missing_ok=True)
         raise BuildFailure(
             "PATCH_APPLY_FAILED",
             f"patch CLI failed: {type(error).__name__}: {error}",
         ) from error
-
-    input_apk.unlink(missing_ok=True)
 
     if not output_apk.exists():
         logging.error(
@@ -1244,7 +1433,24 @@ def run_build(app_name: str, source: str, arch: str = "universal") -> str:
             "The patch command likely failed silently.",
             output_apk,
         )
+        if split_modules_dir is not None:
+            shutil.rmtree(split_modules_dir, ignore_errors=True)
+        if split_bundle is not None:
+            split_bundle.unlink(missing_ok=True)
         raise BuildFailure("PATCH_APPLY_FAILED", "patch CLI did not produce an APK")
+
+    if split_modules_dir is not None and split_bundle is not None:
+        # Put the patched base back beside the untouched configuration splits,
+        # then merge the complete install set into the final standalone APK.
+        shutil.copy2(output_apk, input_apk)
+        output_apk.unlink(missing_ok=True)
+        try:
+            _merge_split_modules(split_modules_dir, output_apk, app_name)
+        finally:
+            split_bundle.unlink(missing_ok=True)
+            shutil.rmtree(split_modules_dir, ignore_errors=True)
+    else:
+        input_apk.unlink(missing_ok=True)
 
     try:
         output_abis = apk_validation.validate_apk(output_apk, expected_abi=arch)
@@ -1255,18 +1461,32 @@ def run_build(app_name: str, source: str, arch: str = "universal") -> str:
         output_apk.stat().st_size,
         ", ".join(sorted(output_abis)) or "none",
     )
+    # Architecture filtering rewrites the ZIP and therefore invalidates its
+    # current signature. Do it only after all patches have read stock metadata;
+    # the normal final signing step immediately below signs these exact bytes.
+    _strip_libs(output_apk, arch)
+    try:
+        output_abis = apk_validation.validate_apk(output_apk, expected_abi=arch)
+    except apk_validation.ApkValidationError as error:
+        raise BuildFailure(
+            "APK_VALIDATION_FAILED",
+            f"architecture filtering invalidated patched APK: {error}",
+        ) from error
+    logging.info(
+        "Validated architecture-filtered APK (ABIs: %s)",
+        ", ".join(sorted(output_abis)) or "none",
+    )
     logging.info("[SIZE] patched: %d bytes (%s)", output_apk.stat().st_size, output_apk.name)
     failed_patches = patch_failure_parser.result()
     applied_patches = patch_failure_parser.applied_result()
-    required_failures = [
-        name for name in patch_config.required
-        if name not in applied_patches
-    ]
-    if required_failures:
-        summary = (
-            "Required patch failed or was not selected: "
-            + ", ".join(required_failures)
-        )
+    semantic_failure = _semantic_patch_failure(
+        failed_patches,
+        patch_config.required,
+        applied_patches,
+        patch_failure_parser.applying_count,
+    )
+    if semantic_failure is not None:
+        category, summary, required_failures = semantic_failure
         _write_build_report(
             app_name,
             source,
@@ -1276,25 +1496,25 @@ def run_build(app_name: str, source: str, arch: str = "universal") -> str:
             disables,
             patch_config,
             "failure",
-            error_category="REQUIRED_PATCH_FAILED",
+            error_category=category,
             error_summary=summary,
             failed_patches=failed_patches,
             required_patches=patch_config.required,
             applied_patches=applied_patches,
             applying_count=patch_failure_parser.applying_count,
         )
-        raise BuildFailure("REQUIRED_PATCH_FAILED", summary)
+        raise BuildFailure(category, summary)
     output_size = output_apk.stat().st_size
     if prepared_size and output_size / prepared_size < 0.25:
         logging.warning(
-            "Patched APK is only %.1f%% of the filtered input size (%d -> %d bytes); "
+            "Patched APK is only %.1f%% of the untouched patch input size (%d -> %d bytes); "
             "review the patch output carefully",
             output_size / prepared_size * 100,
             prepared_size,
             output_size,
         )
 
-    # ── 10. Sign ─────────────────────────────────────────────────────────────
+    # ── 9. Sign ──────────────────────────────────────────────────────────────
     signed_apk = Path(f"{app_name}-{arch}-{source_name}-v{version}.apk")
     _sign_apk(output_apk, signed_apk, app_name)
     output_apk.unlink(missing_ok=True)
@@ -1324,7 +1544,7 @@ def run_build(app_name: str, source: str, arch: str = "universal") -> str:
         applying_count=patch_failure_parser.applying_count,
     )
 
-    print(f"✅ APK built: {signed_apk.name}")
+    _console_print(f"✅ APK built: {signed_apk.name}")
     return str(signed_apk)
 
 
@@ -1379,7 +1599,7 @@ def main() -> None:
         try:
             apk_path = run_build(app_name, source, arch)
             built.append(apk_path)
-            print(f"✅ Built {arch}: {Path(apk_path).name}")
+            _console_print(f"✅ Built {arch}: {Path(apk_path).name}")
             if arch == "universal" and "arm64-v8a" in failed:
                 failed.remove("arm64-v8a")
                 logging.warning(
@@ -1404,9 +1624,9 @@ def main() -> None:
                 )
                 build_queue.append("universal")
 
-    print(f"\n🎯 {len(built)} APK(s) built for '{app_name}':")
+    _console_print(f"\n🎯 {len(built)} APK(s) built for '{app_name}':")
     for apk in built:
-        print(f"   📱 {Path(apk).name}")
+        _console_print(f"   📱 {Path(apk).name}")
 
     if failed:
         logging.error("❌ Failed architectures: %s", ", ".join(failed))

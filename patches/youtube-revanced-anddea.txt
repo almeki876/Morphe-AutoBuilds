@@ -28,7 +28,6 @@
 + Disable splash animation
 + Enable debug logging
 + Enable gradient loading screen
-+ Force player buttons background
 + Fullscreen components
 + GmsCore support
 + Hide Shorts dimming

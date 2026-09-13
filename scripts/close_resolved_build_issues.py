@@ -24,6 +24,11 @@ AUTO_PREFIXES = (
 )
 GITHUB_ACTIONS_BOT_LOGINS = {"app/github-actions", "github-actions", "github-actions[bot]"}
 FEATURE_NAME_RE = re.compile(r"^- \*\*Failed patch feature:\*\* `(.+?)`$", re.MULTILINE)
+SOURCE_ALIASES = {
+    # Universal patches moved to a dedicated upstream bundle. A successful
+    # migrated build should resolve tracking issues opened under the old source.
+    "rushiranpise-universal": {"rushiranpise"},
+}
 
 
 def _load_reports(root: Path) -> list[dict]:
@@ -77,19 +82,29 @@ def _matches(issue: dict, report: dict) -> bool:
     app = str(report.get("app_name") or "")
     source = str(report.get("source") or "")
     source_name = str(report.get("source_name") or report.get("patch_source") or source)
+    source_names = {source, source_name, *SOURCE_ALIASES.get(source, set())}
 
     if title.startswith("[Build Failure]"):
-        return title.startswith(f"[Build Failure] {app} - {source} -")
+        return any(
+            title.startswith(f"[Build Failure] {app} - {name} -")
+            for name in source_names
+        )
     if title.startswith("[Feature Failure]"):
-        return title.startswith(f"[Feature Failure] {app} - {source_name} -")
+        return any(
+            title.startswith(f"[Feature Failure] {app} - {name} -")
+            for name in source_names
+        )
     if title.startswith("[Partial Patch Failure]"):
-        return title.startswith(f"[Partial Patch Failure] {app} ({source_name}) -")
+        return any(
+            title.startswith(f"[Partial Patch Failure] {app} ({name}) -")
+            for name in source_names
+        )
 
     # Defensive fallback for older auto-generated title formats.
     return (
         f"`{app}`" in body
         and (
-            f"`{source_name}`" in body
+            any(f"`{name}`" in body for name in source_names)
             or f"{app} (" in body
         )
     )

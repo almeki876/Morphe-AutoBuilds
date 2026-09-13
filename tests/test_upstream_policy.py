@@ -17,7 +17,7 @@ class UpstreamPolicyTests(unittest.TestCase):
                 "patch_list": [
                     {
                         "app_name": "yuucho-tsucho",
-                        "source": "rushiranpise",
+                        "source": "rushiranpise-universal",
                         "options": [],
                         "disable": [],
                         "force_enable": ["Hide ADB status"],
@@ -47,7 +47,7 @@ class UpstreamPolicyTests(unittest.TestCase):
             try:
                 os.chdir(root)
                 os.environ["APP_NAME"] = "yuucho-tsucho"
-                os.environ["SOURCE"] = "rushiranpise"
+                os.environ["SOURCE"] = "rushiranpise-universal"
                 with (
                     patch.object(upstream_policy, "_package_for_app", return_value="jp.japanpost.jp-bankbook"),
                     patch.object(upstream_policy, "_patch_has_version_restriction", return_value=True),

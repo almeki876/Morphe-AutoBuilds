@@ -148,10 +148,12 @@ class UptodownDirectTests(unittest.TestCase):
         "src.uptodown_direct.legacy.get_download_link_for_candidate",
         return_value="https://legacy.example/exact",
     )
+    @mock.patch("src.uptodown_direct._direct_link_from_history", return_value=None)
     @mock.patch("src.uptodown_direct._direct_link_from_variants", return_value=None)
     def test_candidate_uses_legacy_after_direct_failure(
         self,
         variants_resolver: mock.Mock,
+        history_resolver: mock.Mock,
         legacy_resolver: mock.Mock,
     ) -> None:
         candidate = VersionCandidate(name="32.13.2.100")
@@ -168,6 +170,11 @@ class UptodownDirectTests(unittest.TestCase):
 
         self.assertEqual(link, "https://legacy.example/exact")
         variants_resolver.assert_called_once_with(
+            candidate,
+            "amazon-shopping",
+            config,
+        )
+        history_resolver.assert_called_once_with(
             candidate,
             "amazon-shopping",
             config,

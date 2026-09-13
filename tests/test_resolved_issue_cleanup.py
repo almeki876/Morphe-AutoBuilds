@@ -1,7 +1,26 @@
 import json
 import subprocess
+import unittest
 
 from scripts import close_resolved_build_issues as cleanup
+
+
+class SourceMigrationIssueCleanupTests(unittest.TestCase):
+    def test_migrated_universal_source_matches_existing_yuucho_issue(self):
+        report = {
+            "app_name": "yuucho-tsucho",
+            "source": "rushiranpise-universal",
+            "source_name": "rushiranpise-universal",
+        }
+        issue = {
+            "title": (
+                "[Feature Failure] yuucho-tsucho - rushiranpise - "
+                "v21.0.0 - Hide ADB status"
+            ),
+            "body": "",
+        }
+
+        self.assertTrue(cleanup._matches(issue, report))
 
 
 def test_open_auto_issues_accepts_actions_bot_login_variants(monkeypatch):

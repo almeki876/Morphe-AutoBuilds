@@ -1,0 +1,15 @@
+[
+    {
+        "name": "rushiranpise-universal"
+    },
+    {
+        "user": "MorpheApp",
+        "repo": "morphe-cli",
+        "tag": "latest"
+    },
+    {
+        "user": "rushiranpise",
+        "repo": "Ri-Vanced-Universal-Morphe-Patches",
+        "tag": "latest"
+    }
+]

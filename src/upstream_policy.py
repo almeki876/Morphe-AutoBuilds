@@ -1,8 +1,10 @@
 """Runtime policy for upstream APK version compatibility.
 
 This module must not mutate patch selection from ``my-patch-config.json``.
-Explicit ``options``, ``disable``, ``force_enable`` and ``required`` entries are
+Explicit ``disable``, ``force_enable`` and ``required`` entries are
 repository-owned build intent and are consumed unchanged by the patch builder.
+``options`` configure patches after selection; their presence must not select a
+patch by itself.
 
 The only runtime adjustment kept here concerns provider version pins: when the
 current upstream patch bundle explicitly reports that an app supports ``any``
