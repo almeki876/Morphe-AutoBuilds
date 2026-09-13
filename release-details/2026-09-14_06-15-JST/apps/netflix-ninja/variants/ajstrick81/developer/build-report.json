@@ -1,0 +1,37 @@
+{
+  "app_name": "netflix-ninja",
+  "source": "ajstrick81",
+  "patch_source": "ajstrick81",
+  "source_name": "ajstrick81",
+  "version": "13.0.1 build 25028",
+  "status": "success",
+  "lifecycle_status": "success_full",
+  "requested_patches": [],
+  "requested_options": [],
+  "applying_count": 4,
+  "applied_patches": [
+    "Disable Netflix CertCheck",
+    "Remove Netflix ads (bundle engine)",
+    "Remove Netflix ads (loader)",
+    "Clone Netflix"
+  ],
+  "excluded_patches": [],
+  "disabled_patches": [],
+  "feature_failures": [
+    {
+      "name": "Suppress Household Prompt",
+      "reason": "[runtime-skipped-default] default"
+    },
+    {
+      "name": "Minimize Network Fingerprint",
+      "reason": "[runtime-skipped-default] default"
+    }
+  ],
+  "failed_patches": [],
+  "required_patches": [],
+  "required_failures": [],
+  "required_patches_satisfied": true,
+  "fully_applied": true,
+  "error_category": null,
+  "error_summary": null
+}

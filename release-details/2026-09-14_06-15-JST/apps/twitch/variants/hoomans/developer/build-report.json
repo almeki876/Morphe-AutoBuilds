@@ -1,0 +1,30 @@
+{
+  "app_name": "twitch",
+  "source": "hoomans",
+  "patch_source": "hoomans",
+  "source_name": "hoomans",
+  "version": "30.7.2",
+  "status": "success",
+  "lifecycle_status": "success_full",
+  "requested_patches": [],
+  "requested_options": [],
+  "applying_count": 6,
+  "applied_patches": [
+    "7TV and BTTV emotes",
+    "Auto claim channel points",
+    "Block live ads",
+    "Fix login",
+    "Hide display ads",
+    "Show deleted messages"
+  ],
+  "excluded_patches": [],
+  "disabled_patches": [],
+  "feature_failures": [],
+  "failed_patches": [],
+  "required_patches": [],
+  "required_failures": [],
+  "required_patches_satisfied": true,
+  "fully_applied": true,
+  "error_category": null,
+  "error_summary": null
+}
