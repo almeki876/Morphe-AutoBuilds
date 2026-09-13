@@ -1,0 +1,30 @@
+{
+  "app_name": "photoshop-mix",
+  "source": "rookie",
+  "patch_source": "rookie",
+  "source_name": "rookie",
+  "version": "2.6.3",
+  "status": "success",
+  "lifecycle_status": "success_full",
+  "requested_patches": [],
+  "requested_options": [],
+  "applying_count": 1,
+  "applied_patches": [
+    "Bypass login"
+  ],
+  "excluded_patches": [],
+  "disabled_patches": [],
+  "feature_failures": [
+    {
+      "name": "Change package name",
+      "reason": "[runtime-skipped-default] default"
+    }
+  ],
+  "failed_patches": [],
+  "required_patches": [],
+  "required_failures": [],
+  "required_patches_satisfied": true,
+  "fully_applied": true,
+  "error_category": null,
+  "error_summary": null
+}
