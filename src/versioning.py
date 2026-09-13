@@ -23,10 +23,28 @@ _NAME_AND_CODE_RE = re.compile(
 )
 _BUILD_VERSION_RE = re.compile(r"^(?:v\d+-)?build-\d+(?:[-\w.]*)$", re.IGNORECASE)
 _COMPOSITE_NAME_CODE_RE = re.compile(r"^(?P<name>.+)\.(?P<code>\d+)$")
+_NUMERIC_DOTTED_VERSION_RE = re.compile(r"^\d+(?:\.\d+)+$")
 _DISCOVERED_VERSION_CODES: dict[tuple[str, str], str] = {}
 _UNRESTRICTED_POLICIES = frozenset({"any", "null"})
 _LIST_VERSIONS_HEADINGS = frozenset({"most common compatible versions:"})
 _LOG_PREFIXES = ("info:", "warning:", "error:", "usage:")
+
+
+def _numeric_versions_equivalent(left: str, right: str) -> bool:
+    """Match dotted numeric versions that differ only by trailing zero fields."""
+    if not (
+        _NUMERIC_DOTTED_VERSION_RE.fullmatch(left)
+        and _NUMERIC_DOTTED_VERSION_RE.fullmatch(right)
+    ):
+        return False
+
+    def components(value: str) -> tuple[int, ...]:
+        parts = [int(part) for part in value.split(".")]
+        while len(parts) > 1 and parts[-1] == 0:
+            parts.pop()
+        return tuple(parts)
+
+    return components(left) == components(right)
 
 
 @dataclass(frozen=True)
@@ -90,6 +108,15 @@ class VersionCandidate:
             if self.raw is not None:
                 return True
             return normalized_code == self.code
+
+        # GitHub release tags can omit a semantically empty trailing component
+        # that the APK manifest includes (AdGuard v4.14 vs versionName 4.14.0).
+        # Keep this limited to dotted numeric names with no expected versionCode;
+        # every non-zero component and every explicitly known code remains exact.
+        if self.code is None and _numeric_versions_equivalent(
+            self.name, normalized_name
+        ):
+            return True
 
         # Some APK manifests duplicate the patch CLI display form in
         # versionName, e.g. Nova reports versionName ``88600 (8.8.6)`` and

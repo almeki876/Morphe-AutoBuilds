@@ -8,6 +8,15 @@ from src.versioning import VersionCandidate, parse_candidate
 
 
 class OpenIssueRegressionTests(unittest.TestCase):
+    def test_github_tag_can_omit_manifest_trailing_zero_component(self) -> None:
+        candidate = VersionCandidate(name="4.14")
+        self.assertTrue(candidate.matches("4.14.0", "42218017"))
+        self.assertFalse(candidate.matches("4.14.1", "42218017"))
+
+    def test_trailing_zero_equivalence_does_not_weaken_known_version_code(self) -> None:
+        candidate = VersionCandidate(name="4.14", code="42218017")
+        self.assertFalse(candidate.matches("4.14.0", "42218018"))
+
     def test_numeric_cli_version_is_treated_as_version_code(self) -> None:
         candidate = parse_candidate("88600 (1 patch)")
         self.assertIsNotNone(candidate)
