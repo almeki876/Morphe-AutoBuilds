@@ -433,6 +433,7 @@ class PatchFailureParser:
         self._fingerprint_failure_seen = False
         self._last_failed_patch: str | None = None
         self.missing_paths_by_patch: dict[str, set[str]] = {}
+        self.fingerprint_failures: set[str] = set()
 
     def __call__(self, line: str) -> None:
         applying_match = _APPLYING_PATCHES_RE.search(line)
@@ -463,6 +464,8 @@ class PatchFailureParser:
                 ).add(path)
         if _FINGERPRINT_FAILURE_RE.search(line):
             self._fingerprint_failure_seen = True
+            if self._last_failed_patch:
+                self.fingerprint_failures.add(self._last_failed_patch)
 
     def result(self) -> list[str]:
         if self._fingerprint_failure_seen and not self.failed_patches:
@@ -940,22 +943,37 @@ def _split_dependent_failures(
     parser: PatchFailureParser,
     modules_dir: Path,
 ) -> list[str]:
-    """Return failed patches whose missing input exists in a split module."""
+    """Return failed patches whose missing input exists in a non-base split.
+
+    A patch can report either the concrete file it could not find or only a
+    bytecode fingerprint mismatch.  The latter is also split-dependent when a
+    feature split contains dex files: Brave, for example, keeps its Origin
+    implementation in ``split_chrome.apk`` rather than the signed base APK.
+    """
     wanted = {
         path
         for paths in parser.missing_paths_by_patch.values()
         for path in paths
     }
-    if not wanted:
-        return []
-
     available: set[str] = set()
-    for module in modules_dir.rglob("*.apk"):
+    has_feature_dex = False
+    modules = sorted(
+        modules_dir.rglob("*.apk"),
+        key=lambda path: _split_base_priority(
+            path.relative_to(modules_dir).as_posix()
+        ),
+    )
+    for index, module in enumerate(modules):
         try:
             with zipfile.ZipFile(module) as archive:
                 names = {name.replace("\\", "/") for name in archive.namelist()}
         except zipfile.BadZipFile:
             continue
+        if index > 0 and any(
+            re.fullmatch(r"(?:.*/)?classes(?:\d+)?\.dex", name)
+            for name in names
+        ):
+            has_feature_dex = True
         for path in wanted:
             pattern = path.replace("<abi>", "*")
             if any(fnmatch.fnmatchcase(name, pattern) for name in names):
@@ -964,7 +982,10 @@ def _split_dependent_failures(
     return [
         patch
         for patch in parser.failed_patches
-        if parser.missing_paths_by_patch.get(patch, set()).intersection(available)
+        if (
+            parser.missing_paths_by_patch.get(patch, set()).intersection(available)
+            or (has_feature_dex and patch in parser.fingerprint_failures)
+        )
     ]
 
 
@@ -1501,40 +1522,61 @@ def run_build(app_name: str, source: str, arch: str = "universal") -> str:
         split_retry_patches = _split_dependent_failures(
             patch_failure_parser, split_modules_dir
         )
+    full_split_retry = any(
+        patch in patch_failure_parser.fingerprint_failures
+        for patch in split_retry_patches
+    )
 
     if split_modules_dir is not None and split_bundle is not None:
-        # Put the patched base back beside the untouched configuration splits,
-        # then merge the complete install set into the final standalone APK.
-        shutil.copy2(output_apk, input_apk)
-        output_apk.unlink(missing_ok=True)
         try:
+            if full_split_retry:
+                # A feature split owns bytecode needed by at least one patch.
+                # Merge the untouched modules and rerun the complete selection:
+                # combining a Morphe-rewritten base with untouched resource
+                # splits can produce an internally inconsistent resource table.
+                output_apk.unlink(missing_ok=True)
+            else:
+                # The signed-base result is authoritative. Put it back beside
+                # the untouched configuration splits before the final merge.
+                shutil.copy2(output_apk, input_apk)
+                output_apk.unlink(missing_ok=True)
             _merge_split_modules(split_modules_dir, output_apk, app_name)
 
-            # Some native patches need a library delivered in an ABI split,
-            # while signature patches need the untouched signed base. Preserve
-            # both contracts: patch the signed base first, merge its splits,
-            # then retry only failures whose missing file is now present.
             if split_retry_patches:
-                logging.info(
-                    "Retrying split-dependent patch(es) after merge: %s",
-                    ", ".join(split_retry_patches),
-                )
+                if full_split_retry:
+                    logging.info(
+                        "Retrying complete patch selection against untouched "
+                        "merged modules; feature-split bytecode is required by: %s",
+                        ", ".join(split_retry_patches),
+                    )
+                    retry_enables = enables
+                    retry_disables = disables
+                    retry_options = selected_options
+                    retry_option_flags = option_flags
+                else:
+                    # Native resources can be added to the already-patched base
+                    # without discarding patches that inspected its stock signer.
+                    logging.info(
+                        "Retrying split-dependent patch(es) after merge: %s",
+                        ", ".join(split_retry_patches),
+                    )
+                    retry_enables = [
+                        item
+                        for patch_name in split_retry_patches
+                        for item in ("-e", patch_name)
+                    ]
+                    retry_options = [
+                        option
+                        for option in selected_options
+                        if option.patch in split_retry_patches
+                    ]
+                    retry_option_flags = _build_option_flags(retry_options, cli_ver)
+                    retry_disables = []
                 retry_input = output_apk.with_name(
                     f".{output_apk.name}.split-retry-input.apk"
                 )
                 retry_input.unlink(missing_ok=True)
                 output_apk.replace(retry_input)
-                retry_enables = [
-                    item
-                    for patch_name in split_retry_patches
-                    for item in ("-e", patch_name)
-                ]
-                retry_options = [
-                    option
-                    for option in selected_options
-                    if option.patch in split_retry_patches
-                ]
-                retry_option_flags = _build_option_flags(retry_options, cli_ver)
                 split_retry_parser = PatchFailureParser()
                 try:
                     _patch_morphe(
@@ -1543,7 +1585,7 @@ def run_build(app_name: str, source: str, arch: str = "universal") -> str:
                         retry_input,
                         output_apk,
                         retry_enables,
-                        [],
+                        retry_disables,
                         retry_option_flags,
                         retry_options,
                         split_retry_parser,
@@ -1583,22 +1625,30 @@ def run_build(app_name: str, source: str, arch: str = "universal") -> str:
     logging.info("[SIZE] patched: %d bytes (%s)", output_apk.stat().st_size, output_apk.name)
     failed_patches = patch_failure_parser.result()
     applied_patches = patch_failure_parser.applied_result()
+    applying_count = patch_failure_parser.applying_count
     if split_retry_parser is not None:
-        retry_applied = set(split_retry_parser.applied_result())
-        failed_patches = [
-            name for name in failed_patches if name not in retry_applied
-        ]
-        for name in split_retry_parser.result():
-            if name not in failed_patches:
-                failed_patches.append(name)
-        for name in split_retry_patches:
-            if name in retry_applied and name not in applied_patches:
-                applied_patches.append(name)
+        if full_split_retry:
+            # The untouched merged rerun replaced the first output completely,
+            # so only its outcomes describe the final APK.
+            failed_patches = split_retry_parser.result()
+            applied_patches = split_retry_parser.applied_result()
+            applying_count = split_retry_parser.applying_count
+        else:
+            retry_applied = set(split_retry_parser.applied_result())
+            failed_patches = [
+                name for name in failed_patches if name not in retry_applied
+            ]
+            for name in split_retry_parser.result():
+                if name not in failed_patches:
+                    failed_patches.append(name)
+            for name in split_retry_patches:
+                if name in retry_applied and name not in applied_patches:
+                    applied_patches.append(name)
     semantic_failure = _semantic_patch_failure(
         failed_patches,
         patch_config.required,
         applied_patches,
-        patch_failure_parser.applying_count,
+        applying_count,
     )
     if semantic_failure is not None:
         category, summary, required_failures = semantic_failure
@@ -1616,7 +1666,7 @@ def run_build(app_name: str, source: str, arch: str = "universal") -> str:
             failed_patches=failed_patches,
             required_patches=patch_config.required,
             applied_patches=applied_patches,
-            applying_count=patch_failure_parser.applying_count,
+            applying_count=applying_count,
         )
         raise BuildFailure(category, summary)
     output_size = output_apk.stat().st_size
@@ -1656,7 +1706,7 @@ def run_build(app_name: str, source: str, arch: str = "universal") -> str:
         failed_patches=failed_patches,
         required_patches=patch_config.required,
         applied_patches=applied_patches,
-        applying_count=patch_failure_parser.applying_count,
+        applying_count=applying_count,
     )
 
     _console_print(f"✅ APK built: {signed_apk.name}")

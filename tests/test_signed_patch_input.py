@@ -126,6 +126,23 @@ class SignedPatchInputTests(unittest.TestCase):
 
             self.assertEqual(build_main._split_dependent_failures(parser, modules), [])
 
+    def test_fingerprint_failure_is_retried_when_feature_split_contains_dex(self) -> None:
+        parser = build_main.PatchFailureParser()
+        parser("SEVERE: FAILED: Brave Origin\n")
+        parser("PatchException: Failed to match the fingerprint\n")
+
+        with tempfile.TemporaryDirectory() as directory:
+            modules = Path(directory)
+            with zipfile.ZipFile(modules / "base.apk", "w") as archive:
+                archive.writestr("classes.dex", b"base dex without target")
+            with zipfile.ZipFile(modules / "split_chrome.apk", "w") as archive:
+                archive.writestr("classes.dex", b"feature dex with target")
+
+            self.assertEqual(
+                build_main._split_dependent_failures(parser, modules),
+                ["Brave Origin"],
+            )
+
     def test_split_retry_matches_abi_placeholder_from_upstream_error(self) -> None:
         parser = build_main.PatchFailureParser()
         parser("SEVERE: FAILED: Unlock Pro\n")
