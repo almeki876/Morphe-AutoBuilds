@@ -1,7 +1,7 @@
 # Direct APK Download Links
 
 - Releases: [GitHub Releases](https://github.com/almeki876/Morphe-AutoBuilds/releases)
-- 最終更新日時: 2026-09-14 06:30 JST
+- 最終更新日時: 2026-09-14 14:27 JST
 
 ## [Morphe](https://github.com/MorpheApp/morphe-patches)
 
@@ -319,12 +319,12 @@
 
 ### Brave
 
-[universal](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026-09-05_06-02-JST/brave-universal-dh6k-v1.94.119.apk) · [arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026-09-08_02-27-JST/brave-arm64-v8a-dh6k-v1.94.121.apk)
+[universal](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026-09-05_06-02-JST/brave-universal-dh6k-v1.94.119.apk) · [arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026-09-14_14-27-JST/brave-arm64-v8a-dh6k-v1.94.121.apk)
 
 ### Brave Beta
 
-[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026-09-11_01-03-JST/brave-beta-arm64-v8a-dh6k-v1.96.50.apk)
+[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026-09-14_14-27-JST/brave-beta-arm64-v8a-dh6k-v1.96.50.apk)
 
 ### Brave Nightly
 
-[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026-09-11_01-03-JST/brave-nightly-arm64-v8a-dh6k-v1.97.11.apk)
+[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026-09-14_14-27-JST/brave-nightly-arm64-v8a-dh6k-v1.97.23.apk)
