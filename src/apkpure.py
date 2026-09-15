@@ -1,6 +1,6 @@
 import logging
 import re
-from urllib.parse import urlencode
+from urllib.parse import urlencode, urlparse
 
 from src import utils
 from src.versioning import (
@@ -13,6 +13,7 @@ from bs4 import BeautifulSoup
 SITE_BASE_URL = "https://apkpure.com"
 DOWNLOAD_BASE_URL = "https://d.apkpure.net/b"
 HISTORY_API_URL = "https://tapi.pureapk.com/v3/get_app_his_version"
+_ASSET_HOST_SUFFIXES = ("apkpure.com", "apkpure.net", "winudf.com")
 
 # curl-cffi supplies a User-Agent matching its TLS browser impersonation.
 # Overriding it with an old Chrome version creates a detectable mismatch and
@@ -144,6 +145,94 @@ def _history_identity(row: dict, package: str) -> VersionCandidate | None:
         return None
 
 
+def _latest_history_identity(package: str) -> VersionCandidate | None:
+    """Return the newest exact Android identity exposed by APKPure's API."""
+    identities = [
+        identity
+        for row in _history_entries(package)
+        if (identity := _history_identity(row, package)) is not None
+    ]
+    if not identities:
+        return None
+
+    # Android requires monotonically increasing versionCode values for app
+    # updates.  Selecting the largest code avoids depending on API row order,
+    # which can contain duplicate assets for one release.
+    latest = max(identities, key=lambda identity: int(identity.code or "-1"))
+    remember_version_code(package, latest.name, latest.code or "")
+    return latest
+
+
+def _safe_history_asset_url(value: object) -> str | None:
+    """Accept only HTTPS download URLs owned by APKPure's asset network."""
+    if not isinstance(value, str) or not value.strip():
+        return None
+    url = value.strip()
+    try:
+        parsed = urlparse(url)
+        port = parsed.port
+    except ValueError:
+        return None
+    hostname = (parsed.hostname or "").casefold().rstrip(".")
+    trusted = any(
+        hostname == suffix or hostname.endswith(f".{suffix}")
+        for suffix in _ASSET_HOST_SUFFIXES
+    )
+    if (
+        parsed.scheme != "https"
+        or not trusted
+        or parsed.username is not None
+        or parsed.password is not None
+        or port not in (None, 443)
+        or parsed.fragment
+    ):
+        return None
+    return url
+
+
+def _history_download_for_candidate(
+    candidate: VersionCandidate,
+    app_name: str,
+    config: dict,
+) -> str | None:
+    """Resolve one exact release through APKPure's package-addressed API."""
+    package = config["package"]
+    try:
+        rows = _history_entries(package)
+    except Exception as error:
+        logging.info(
+            "APKPure history download lookup failed for %s %s: %s",
+            app_name,
+            candidate.describe(),
+            error,
+        )
+        return None
+
+    for row in rows:
+        identity = _history_identity(row, package)
+        if identity is None or not candidate.matches(identity.name, identity.code):
+            continue
+        asset = row.get("asset")
+        if not isinstance(asset, dict):
+            continue
+        values = [asset.get("url"), asset.get("url_seed")]
+        urls = asset.get("urls")
+        if isinstance(urls, list):
+            values.extend(urls)
+        for value in values:
+            url = _safe_history_asset_url(value)
+            if not url:
+                continue
+            remember_version_code(package, identity.name, identity.code or "")
+            logging.info(
+                "APKPure history API matched %s for %s",
+                identity.describe(),
+                app_name,
+            )
+            return url
+    return None
+
+
 def resolve_candidate_identities(
     package: str,
     candidates: list[VersionCandidate],
@@ -264,6 +353,23 @@ def _latest_direct_version(package: str) -> str | None:
 
 
 def get_latest_version(app_name: str, config: dict) -> str | None:
+    try:
+        history_identity = _latest_history_identity(config["package"])
+    except Exception as error:
+        logging.info(
+            "APKPure history latest-version lookup failed for %s: %s",
+            app_name,
+            error,
+        )
+        history_identity = None
+    if history_identity:
+        logging.info(
+            "APKPure history API reports %s for %s",
+            history_identity.describe(),
+            app_name,
+        )
+        return history_identity.name
+
     direct_version = _latest_direct_version(config["package"])
     if direct_version:
         logging.info(
@@ -371,6 +477,9 @@ def get_download_link_for_candidate(
                 "APKPure reused versionCode %s discovered by an earlier provider",
                 code,
             )
+    history = _history_download_for_candidate(candidate, app_name, config)
+    if history:
+        return history
     direct = _direct_download_for_candidate(candidate, app_name, config)
     if direct:
         return direct
