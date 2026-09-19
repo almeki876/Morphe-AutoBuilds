@@ -1,0 +1,23 @@
+{
+  "results": [
+    {
+      "file": "windy-hoo-dles-universal.apkm",
+      "sha256": "556a4d7adeb226cee2601cddc803268144c257813b925216c23168489f6780df",
+      "size": 46282795,
+      "analysis_id": "",
+      "malicious": 0,
+      "suspicious": 0,
+      "harmless": 0,
+      "undetected": 56,
+      "timeout": 8,
+      "failure": 1,
+      "unsupported": 10,
+      "verdict": "clean",
+      "method": "persistent hash cache",
+      "engines": {},
+      "permalink": "https://www.virustotal.com/gui/file/556a4d7adeb226cee2601cddc803268144c257813b925216c23168489f6780df/detection",
+      "last_analysis_date": 1787028176,
+      "reanalyzed": false
+    }
+  ]
+}
