@@ -1,0 +1,23 @@
+{
+  "results": [
+    {
+      "file": "wps-office-hoo-dles-universal.apk",
+      "sha256": "a280c5c34dd5558d9551809fc9595efe2a71c6e7700ddd14e1a75227b12b9f5d",
+      "size": 277623280,
+      "analysis_id": "",
+      "malicious": 0,
+      "suspicious": 0,
+      "harmless": 0,
+      "undetected": 48,
+      "timeout": 19,
+      "failure": 0,
+      "unsupported": 7,
+      "verdict": "clean",
+      "method": "persistent hash cache",
+      "engines": {},
+      "permalink": "https://www.virustotal.com/gui/file/a280c5c34dd5558d9551809fc9595efe2a71c6e7700ddd14e1a75227b12b9f5d/detection",
+      "last_analysis_date": 1783386870,
+      "reanalyzed": false
+    }
+  ]
+}
