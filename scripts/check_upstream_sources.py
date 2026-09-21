@@ -19,6 +19,33 @@ SOURCES_DIR = ROOT / "sources"
 STATE_FILE = ROOT / "last-tags.json"
 
 
+def _is_patch_asset_name(name: object) -> bool:
+    """Match the same patch bundle formats accepted by download_all_tools.py."""
+    normalized = str(name or "").casefold()
+    return normalized.endswith((".mpp", ".rvp")) or (
+        normalized.endswith(".jar") and "patch" in normalized
+    )
+
+
+def _github_release_has_patch_bundle(release: dict) -> bool:
+    return any(
+        _is_patch_asset_name(asset.get("name"))
+        for asset in release.get("assets", [])
+        if isinstance(asset, dict)
+    )
+
+
+def _gitlab_release_has_patch_bundle(release: dict) -> bool:
+    assets = release.get("assets", {})
+    if not isinstance(assets, dict):
+        return False
+    return any(
+        _is_patch_asset_name(link.get("name"))
+        for link in assets.get("links", [])
+        if isinstance(link, dict)
+    )
+
+
 def latest_tag(owner: str, repo: str) -> str:
     request = Request(
         f"https://api.github.com/repos/{owner}/{repo}/releases?per_page=100",
@@ -30,7 +57,11 @@ def latest_tag(owner: str, repo: str) -> str:
     )
     with urlopen(request, timeout=30) as response:
         releases = json.load(response)
-    releases = [release for release in releases if release.get("published_at")]
+    releases = [
+        release
+        for release in releases
+        if release.get("published_at") and _github_release_has_patch_bundle(release)
+    ]
     releases.sort(key=lambda release: release["published_at"], reverse=True)
     return releases[0]["tag_name"] if releases else ""
 
@@ -43,7 +74,11 @@ def latest_gitlab_tag(owner: str, repo: str) -> str:
     )
     with urlopen(request, timeout=30) as response:
         releases = json.load(response)
-    releases = [release for release in releases if release.get("released_at")]
+    releases = [
+        release
+        for release in releases
+        if release.get("released_at") and _gitlab_release_has_patch_bundle(release)
+    ]
     releases.sort(key=lambda release: release["released_at"], reverse=True)
     return releases[0]["tag_name"] if releases else ""
 
