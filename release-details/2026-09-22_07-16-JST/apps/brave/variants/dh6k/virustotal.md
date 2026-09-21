@@ -1,0 +1,16 @@
+# Brave — VirusTotal
+
+**対象:** パッチ適用前に取得したBase APK（配布元から取得/キャッシュ復元した原本）
+
+- **結果:** ✅ Clean
+- **スキャン対象:** 1 file(s)
+
+| File | SHA-256 | Malicious | Suspicious | Method | VirusTotal |
+| --- | --- | ---: | ---: | --- | --- |
+| `brave-dh6k-universal.apkm` | `b70225feb32ff503c4999038f5e308e4a80f6d9bb5dd0895c2558c6f96084010` | 0 | 0 | `persistent hash cache` | [Open](https://www.virustotal.com/gui/file/b70225feb32ff503c4999038f5e308e4a80f6d9bb5dd0895c2558c6f96084010/detection) |
+
+## Scanner telemetry
+
+- Persistent cache hits: `14`
+- New hashes: `-`
+- Analyses started: `-`
