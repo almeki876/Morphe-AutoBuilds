@@ -1,0 +1,89 @@
+app=brave
+source=dh6k
+source_name=dh6k
+phase=Patch
+status=success
+run=https://github.com/almeki876/Morphe-AutoBuilds/actions/runs/35886903905
+
+traceback_or_error_tail<<EOF
+Index: 2
+Name: Custom NTP wallpaper
+Description: Alpha experimental version-unpinned patch (issue #13): forces the Brave new-tab background to a custom PNG chosen at patch time. Rewrites the Java ambient wallpaper catalog (BackgroundImage drawable resource id) and makes wallpaper callbacks use it instead of native branded/URL images. Brave's New tab page settings only toggle "Show background images". Default off.
+Enabled: false
+
+Index: 3
+Name: Brave Origin
+Description: Unlocks Brave Origin and enables feature toggle controls.
+Enabled: true
+
+Index: 4
+Name: Force highest refresh rate
+Description: Experimental version-unpinned patch: forces Chromium to pick the highest-refresh display mode by requesting Float.MAX_VALUE through WindowAndroid. Works on any panel (60/90/120/144/165Hz+) without knowing the max at patch time. May increase battery usage; ambiguous targets fail closed.
+Enabled: false
+
+Index: 5
+Name: Keep Titanium Extensions Child Processes Alive
+Description: Experimental version-unpinned structural/data-flow patch: starts one main-process foreground service with persistent low-priority notification and forces child STRONG binding plus IMPORTANT/STRONG priority updates. Tolerates routine signature, register, and helper-name changes; ambiguous targets fail closed. May increase RAM, battery, and process pressure; mitigates LMK kills only. To hide the notification, use Android Settings > Apps > Titanium > Notifications (the keep-alive service stays active either way).
+Enabled: false
+
+Index: 6
+Name: Force highest refresh rate
+Description: Quetta-adapted experimental version-unpinned patch: forces Chromium WindowAndroid to pick the highest-refresh Display mode by writing Float.MAX_VALUE into setPreferredRefreshRate(F) and the structural nearest-mode worker (getRefreshRate + getModeId + Window.setAttributes). Validated statically on Quetta 2.0.5 base APK; may increase battery usage; ambiguous targets fail closed.
+Enabled: false
+
+Index: 7
+Name: Block Quetta bundled extension installation
+Description: Blocks bundled extension installation/reinstallation on arm64-v8a APKs (the framework does not enforce ABI restrictions). Does not remove copies already present in existing profiles. Takes effect immediately on clean installs.
+Enabled: true
+
+Index: 8
+Name: Disable analytics
+Description: Disables analytics and tracking from multiple SDKs, including AppMetrica, MyTracker, Firebase, Sentry, Google Analytics, Amplitude, Mixpanel, Adjust, AppsFlyer, Facebook, MoEngage, and comScore, through manifest opt-outs and exact runtime entry points when present. Custom or server-side telemetry is not covered.
+Enabled: false
+2026-09-23 16:18:44 enable_patches=[]  disable_patches=[]
+2026-09-23 16:18:44 Running: java -Djava.awt.headless=true -Xmx6g -Xms3g -Dfile.encoding=UTF-8 -XX:-UsePerfData -XX:+UseG1GC -XX:MaxGCPauseMillis=150 -XX:G1HeapRegionSize=2m -XX:+UseStringDeduplication -XX:+ParallelRefProcEnabled -XX:ConcGCThreads=2 -XX:ParallelGCThreads=4 -XX:CICompilerCount=3 -XX:+UseCompressedOops -XX:+OptimizeStringConcat -XX:+DisableExplicitGC -XX:+TieredCompilation -XX:ReservedCodeCacheSize=128m -XX:InitialCodeCacheSize=32m -XX:MaxMetaspaceSize=128m -XX:SoftRefLRUPolicyMSPerMB=50 --add-opens=java.base/java.lang=ALL-UNNAMED --add-opens=java.base/java.util=ALL-UNNAMED --add-opens=java.base/java.io=ALL-UNNAMED -jar morphe-desktop-1.17.0-dev.8-all.jar patch --force --continue-on-error --unsigned -p patches-1.7.0-dev.5.mpp --out=brave-arm64-v8a-patch-v1.95.104.apk --bytecode-mode=STRIP_FAST .brave-arm64-v8a-patch-v1.95.104.apk.split-retry-input.apk
+INFO: Morphe data root: /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/morphe-data (JAR-adjacent)
+INFO: Loading patches...
+INFO: Initializing patcher...
+INFO: Filtering patches for com.brave.browser v1.95.104...
+INFO: Skipping disabled: Change app icon (default)
+INFO: Skipping disabled: Change app name (default)
+INFO: Skipping disabled: Custom NTP wallpaper (default)
+INFO: Skipping disabled: Disable analytics (default)
+INFO: Applying 1 patches...
+INFO: Deleting existing temporary files directory
+INFO: Decoding all resources
+INFO: Leaving 8 native library files in the input APK
+INFO: Sanitizing unpatched strings
+INFO: Escaping strings
+INFO: Executing patches
+INFO: Applied: Brave Origin
+INFO: Compiling patched dex files (mode: STRIP_FAST)
+INFO: Writing 8 new classes to new DEX files
+INFO: Processing 8 classes (single threaded mode)
+INFO: Wrote 1 dex files to /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/morphe-data/tmp/patching-1790180325417/patched/dex
+INFO: Stripping 8 modified classes from original DEX files
+INFO: Compiling modified resources
+INFO: Unescaping strings
+INFO: Processing aapt macros
+INFO: Generating new resource IDs
+INFO: Writing resource APK
+INFO: Encoded 0 of 0 values in 0 files, 1 resource files and 0 configurations of patches for com.brave.browser
+INFO: Resource APK inputs: reusing 4982 unchanged archive entries, rebuilding 3 entries, dropping 0 entries
+INFO: Resource APK timings: scan=700ms, write=3.9s
+INFO: Using compiled resource APK as output base
+INFO: Aligning APK
+INFO: Saved to /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/brave-arm64-v8a-patch-v1.95.104.apk
+INFO: Purged this session's temp files: patching-1790180325417
+2026-09-23 16:18:58 Validated patched APK: 282813419 bytes (ABIs: arm64-v8a)
+2026-09-23 16:19:01 Normalized patched APK ZIP headers
+2026-09-23 16:19:01 Validated architecture-filtered APK (ABIs: arm64-v8a)
+2026-09-23 16:19:01 [SIZE] patched: 282805784 bytes (brave-arm64-v8a-patch-v1.95.104.apk)
+Signed
+2026-09-23 16:19:05 [SIZE] signed: 283252792 bytes (brave-arm64-v8a-dh6k-v1.95.104.apk)
+✅ APK built: brave-arm64-v8a-dh6k-v1.95.104.apk
+✅ Built arm64-v8a: brave-arm64-v8a-dh6k-v1.95.104.apk
+
+🎯 1 APK(s) built for 'brave':
+   📱 brave-arm64-v8a-dh6k-v1.95.104.apk
+EOF
