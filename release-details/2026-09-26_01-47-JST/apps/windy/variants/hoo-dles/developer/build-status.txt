@@ -1,0 +1,89 @@
+app=windy
+source=hoo-dles
+source_name=hoo-dles
+phase=Patch
+status=success
+run=https://github.com/almeki876/Morphe-AutoBuilds/actions/runs/36161955161
+
+traceback_or_error_tail<<EOF
+Enabled: true
+
+Index: 70
+Name: Enable Premium
+Description: Enables app features locked behind the subscription paywall.
+Enabled: true
+
+Index: 71
+Name: Enable Premium
+Description: Enables app features locked behind the subscription paywall.
+Enabled: true
+
+Index: 72
+Name: Enable Premium
+Description: Enables app features locked behind the subscription paywall.
+Enabled: true
+
+Index: 73
+Name: Enable Premium
+Description: Enables some app features locked behind the subscription paywall. Not all premium functionality is available.
+Enabled: true
+
+Index: 74
+Name: Disable anti-tamper
+Description: Disables various anti-tamper checks that causes the app to force-close.
+Enabled: true
+
+Index: 75
+Name: Enable Pro
+Description: Enables app features locked behind the subscription paywall. Login is required and AI functionality is unavailable.
+Enabled: true
+
+Index: 76
+Name: Enable Pro
+Description: Enables app features locked behind the subscription paywall.
+Enabled: true
+
+Index: 77
+Name: Enable Pro
+Description: null
+Enabled: true
+2026-09-25 16:45:30 enable_patches=[]  disable_patches=[]
+2026-09-25 16:45:31 Running: java -Djava.awt.headless=true -Xmx6g -Xms3g -Dfile.encoding=UTF-8 -XX:-UsePerfData -XX:+UseG1GC -XX:MaxGCPauseMillis=150 -XX:G1HeapRegionSize=2m -XX:+UseStringDeduplication -XX:+ParallelRefProcEnabled -XX:ConcGCThreads=2 -XX:ParallelGCThreads=4 -XX:CICompilerCount=3 -XX:+UseCompressedOops -XX:+OptimizeStringConcat -XX:+DisableExplicitGC -XX:+TieredCompilation -XX:ReservedCodeCacheSize=128m -XX:InitialCodeCacheSize=32m -XX:MaxMetaspaceSize=128m -XX:SoftRefLRUPolicyMSPerMB=50 --add-opens=java.base/java.lang=ALL-UNNAMED --add-opens=java.base/java.util=ALL-UNNAMED --add-opens=java.base/java.io=ALL-UNNAMED -jar morphe-desktop-1.17.1-dev.1-all.jar patch --force --continue-on-error --unsigned -p patches-1.45.0-dev.2.mpp --out=windy-arm64-v8a-patch-v51.0.1.apk --bytecode-mode=STRIP_FAST .build-splits-windy-v51.0.1/base.apk
+⚠️  Ignoring legacy BASE_APK_CACHE_TAG='base-apk-cache-v2'; using 'base-apk-cache-v4-ja-jp-px9a-split'
+INFO: Morphe data root: /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/morphe-data (JAR-adjacent)
+INFO: Loading patches...
+INFO: Initializing patcher...
+INFO: Filtering patches for com.windyty.android v51.0.1...
+INFO: Skipping disabled: Hide app icon (default)
+INFO: Skipping disabled: Enable debug (default)
+INFO: Skipping disabled: Change package name (default)
+INFO: Skipping disabled: MicroG integration (default)
+INFO: Skipping disabled: Disable Pairip license check (default)
+INFO: Skipping disabled: Spoof signature (default)
+INFO: Applying 1 patches...
+INFO: Executing patches
+INFO: Applied: Enable Premium
+INFO: Compiling patched dex files (mode: STRIP_FAST)
+INFO: Writing 144 new classes to new DEX files
+INFO: Processing 144 classes (single threaded mode)
+INFO: Wrote 1 dex files to /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/morphe-data/tmp/patching-1790354733425/patched/dex
+INFO: Stripping 3 modified classes from original DEX files
+INFO: Aligning APK
+INFO: Saved to /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/windy-arm64-v8a-patch-v51.0.1.apk
+INFO: Purged this session's temp files: patching-1790354733425
+2026-09-25 16:45:36 Merging patched base APK with original split modules…
+2026-09-25 16:45:38 Fetched latest release: V1.4.9
+2026-09-25 16:45:39 URL: https://release-assets.githubusercontent.com/github-production-release-asset/576398953/c64f423b-578f-44d0-9c3c-d016189acc1e [7733037/7733037] -> "APKEditor-1.4.9.jar" [1]
+2026-09-25 16:45:41 Merged patched APK: windy-arm64-v8a-patch-v51.0.1.apk
+2026-09-25 16:45:41 Validated patched APK: 49717481 bytes (ABIs: arm64-v8a, armeabi-v7a, x86, x86_64)
+2026-09-25 16:45:43 Removed 6 non-target native libraries
+2026-09-25 16:45:44 Validated architecture-filtered APK (ABIs: arm64-v8a)
+2026-09-25 16:45:44 [SIZE] patched: 49630707 bytes (windy-arm64-v8a-patch-v51.0.1.apk)
+Signed
+2026-09-25 16:45:46 [SIZE] signed: 50470757 bytes (windy-arm64-v8a-hoo-dles-v51.0.1.apk)
+✅ APK built: windy-arm64-v8a-hoo-dles-v51.0.1.apk
+✅ Built arm64-v8a: windy-arm64-v8a-hoo-dles-v51.0.1.apk
+
+🎯 1 APK(s) built for 'windy':
+   📱 windy-arm64-v8a-hoo-dles-v51.0.1.apk
+EOF
