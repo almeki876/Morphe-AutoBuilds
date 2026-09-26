@@ -1,0 +1,89 @@
+app=twitch-android-tv
+source=ajstrick81
+source_name=ajstrick81
+phase=Patch
+status=success
+run=https://github.com/almeki876/Morphe-AutoBuilds/actions/runs/36253119241
+
+traceback_or_error_tail<<EOF
+Description: Integrates the Prime Video ATV extension for ad group skipping.
+Enabled: true
+
+Index: 29
+Name: Override certificate pinning
+Description: Adds a network_security_config trusting user CAs (no pin sets) so AdGuard Premium can inspect the app's platform-stack HTTPS. Optional adjunct: Prime Video's ad plane is largely native libcurl, so DNS blocking is the primary tool.
+Enabled: true
+
+Index: 30
+Name: Disable auto-updates
+Description: Prevents Google Play Store from automatically replacing the patched APK with the official unpatched version.
+Enabled: true
+
+Index: 31
+Name: Bundle native ad-strip hook
+Description: Packages libpvhook.so into the APK's native lib dir for the in-process ad strip (libignite memcpy/memmove GOT/PLT import hook).
+Enabled: true
+
+Index: 32
+Name: Load native ad-strip hook
+Description: Loads libpvhook.so at startup to strip ads in-process: blanks Remote (ad) items in the PRS intraTitlePlaylist and empties getVideoAds ad responses (libignite memcpy/memmove GOT/PLT import hook).
+Enabled: true
+
+Index: 33
+Name: Skip ads
+Description: Suppresses client-side (VOD) Google IMA ads in the RTÉ Player Android TV app by neutering the IMA AdsManager start and ad-event handler. Live DAI (server-stitched SSAI) is not affected — that can't be removed client-side without breaking live content.
+Enabled: true
+
+Index: 34
+Name: Skip ads
+Description: Suppresses all ad delivery systems in Tubi Android TV.
+Enabled: true
+
+Index: 35
+Name: Block TV ads
+Description: Blocks live ads on the Twitch ANDROID TV app (tv.twitch.android.app v13.0.0.2, the "Starshot" living-room build — NOT the phone app). That app runs the Twitch web player (laserarray/hls.js) in a WebView, and live ads are server-stitched into the video-weaver HLS playlist. This wraps the app's WebViewClient so a native shouldInterceptRequest override re-fetches the weaver playlist and strips the twitch-stitched-ad segments before hls.js sees them — timing-independent, no proxy, Twitch's own servers only.
+Enabled: true
+
+Index: 36
+Name: Skip ads
+Description: Suppresses ViX ad delivery by stopping the LuraPlayer linear ad-break scheduler (client-side VAST) and preventing the Innovid SSAI ad overlay from mounting.
+Enabled: true
+
+Index: 37
+Name: Override certificate pinning
+Description: Allows HTTPS traffic inspection tools like AdGuard Premium to intercept app connections. Enables ViX live (Lura SSAI) ad suppression when used alongside AdGuard Premium.
+Enabled: true
+2026-09-26 15:54:22 enable_patches=[]  disable_patches=[]
+2026-09-26 15:54:22 Running: java -Djava.awt.headless=true -Xmx6g -Xms3g -Dfile.encoding=UTF-8 -XX:-UsePerfData -XX:+UseG1GC -XX:MaxGCPauseMillis=150 -XX:G1HeapRegionSize=2m -XX:+UseStringDeduplication -XX:+ParallelRefProcEnabled -XX:ConcGCThreads=2 -XX:ParallelGCThreads=4 -XX:CICompilerCount=3 -XX:+UseCompressedOops -XX:+OptimizeStringConcat -XX:+DisableExplicitGC -XX:+TieredCompilation -XX:ReservedCodeCacheSize=128m -XX:InitialCodeCacheSize=32m -XX:MaxMetaspaceSize=128m -XX:SoftRefLRUPolicyMSPerMB=50 --add-opens=java.base/java.lang=ALL-UNNAMED --add-opens=java.base/java.util=ALL-UNNAMED --add-opens=java.base/java.io=ALL-UNNAMED -jar morphe-desktop-1.17.1-dev.2-all.jar patch --force --continue-on-error --unsigned -p test-212.mpp --out=twitch-android-tv-arm64-v8a-patch-v13.0.0.2.apk --bytecode-mode=STRIP_FAST .build-splits-twitch-android-tv-v13.0.0.2/base.apk
+⚠️  Ignoring legacy BASE_APK_CACHE_TAG='base-apk-cache-v2'; using 'base-apk-cache-v4-ja-jp-px9a-split'
+INFO: Morphe data root: /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/morphe-data (JAR-adjacent)
+INFO: Loading patches...
+INFO: Initializing patcher...
+INFO: Filtering patches for tv.twitch.android.app v13.0.0.2...
+INFO: Applying 1 patches...
+INFO: Executing patches
+INFO: Applied: Block TV ads
+INFO: Compiling patched dex files (mode: STRIP_FAST)
+INFO: Writing 132 new classes to new DEX files
+INFO: Processing 132 classes (single threaded mode)
+INFO: Wrote 1 dex files to /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/morphe-data/tmp/patching-1790438064457/patched/dex
+INFO: Stripping 1 modified classes from original DEX files
+INFO: Aligning APK
+INFO: Saved to /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/twitch-android-tv-arm64-v8a-patch-v13.0.0.2.apk
+INFO: Purged this session's temp files: patching-1790438064457
+2026-09-26 15:54:25 Merging patched base APK with original split modules…
+2026-09-26 15:54:27 Fetched latest release: V1.4.9
+2026-09-26 15:54:27 URL: https://release-assets.githubusercontent.com/github-production-release-asset/576398953/c64f423b-578f-44d0-9c3c-d016189acc1e [7733037/7733037] -> "APKEditor-1.4.9.jar" [1]
+2026-09-26 15:54:28 Merged patched APK: twitch-android-tv-arm64-v8a-patch-v13.0.0.2.apk
+2026-09-26 15:54:29 Validated patched APK: 57420354 bytes (ABIs: arm64-v8a, armeabi-v7a)
+2026-09-26 15:54:37 Removed 2 non-target native libraries
+2026-09-26 15:54:37 Validated architecture-filtered APK (ABIs: arm64-v8a)
+2026-09-26 15:54:37 [SIZE] patched: 56949995 bytes (twitch-android-tv-arm64-v8a-patch-v13.0.0.2.apk)
+Signed
+2026-09-26 15:54:40 [SIZE] signed: 56977763 bytes (twitch-android-tv-arm64-v8a-ajstrick81-v13.0.0.2.apk)
+✅ APK built: twitch-android-tv-arm64-v8a-ajstrick81-v13.0.0.2.apk
+✅ Built arm64-v8a: twitch-android-tv-arm64-v8a-ajstrick81-v13.0.0.2.apk
+
+🎯 1 APK(s) built for 'twitch-android-tv':
+   📱 twitch-android-tv-arm64-v8a-ajstrick81-v13.0.0.2.apk
+EOF
