@@ -1,0 +1,23 @@
+{
+  "results": [
+    {
+      "file": "prime-video-hoo-dles-universal.apk",
+      "sha256": "d6d7eb4ebffd70dba63cf89ff15bedeed5275544f3256592d6df320c493347b7",
+      "size": 194339463,
+      "analysis_id": "",
+      "malicious": 0,
+      "suspicious": 0,
+      "harmless": 0,
+      "undetected": 57,
+      "timeout": 9,
+      "failure": 1,
+      "unsupported": 8,
+      "verdict": "clean",
+      "method": "persistent hash cache",
+      "engines": {},
+      "permalink": "https://www.virustotal.com/gui/file/d6d7eb4ebffd70dba63cf89ff15bedeed5275544f3256592d6df320c493347b7/detection",
+      "last_analysis_date": 1789332782,
+      "reanalyzed": false
+    }
+  ]
+}
