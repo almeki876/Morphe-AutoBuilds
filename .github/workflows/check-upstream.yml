@@ -9,7 +9,6 @@ on:
 
 concurrency:
   group: check-upstream
-  cancel-in-progress: true
 
 jobs:
   check-upstream:
