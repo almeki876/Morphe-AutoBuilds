@@ -1,0 +1,39 @@
+{
+  "app_name": "speedtest",
+  "source": "bholey",
+  "patch_source": "bholey",
+  "source_name": "bholey",
+  "version": "7.0.4",
+  "status": "success",
+  "lifecycle_status": "success_full",
+  "requested_patches": [],
+  "requested_options": [],
+  "applying_count": 2,
+  "applied_patches": [
+    "AdFree Account",
+    "Disable Logging(analytics)"
+  ],
+  "excluded_patches": [],
+  "disabled_patches": [],
+  "feature_failures": [
+    {
+      "name": "Bypass ADB/Developer Options Detection",
+      "reason": "[runtime-skipped-default] default"
+    },
+    {
+      "name": "Disable Firebase",
+      "reason": "[runtime-skipped] Google"
+    },
+    {
+      "name": "Disable Facebook SDK Tracking",
+      "reason": "[runtime-skipped-default] default"
+    }
+  ],
+  "failed_patches": [],
+  "required_patches": [],
+  "required_failures": [],
+  "required_patches_satisfied": true,
+  "fully_applied": true,
+  "error_category": null,
+  "error_summary": null
+}

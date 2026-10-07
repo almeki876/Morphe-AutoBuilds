@@ -1,0 +1,54 @@
+{
+  "app_name": "kahoot",
+  "source": "rushiranpise",
+  "patch_source": "rushiranpise",
+  "source_name": "rushiranpise",
+  "version": "6.6.7",
+  "status": "success",
+  "lifecycle_status": "success_full",
+  "requested_patches": [],
+  "requested_options": [],
+  "applying_count": 1,
+  "applied_patches": [
+    "Unlock Gold"
+  ],
+  "excluded_patches": [],
+  "disabled_patches": [],
+  "feature_failures": [
+    {
+      "name": "Disable PairIP license check",
+      "reason": "[runtime-skipped-default] default"
+    },
+    {
+      "name": "Provide Original app certificate",
+      "reason": "[runtime-skipped-default] default"
+    },
+    {
+      "name": "Spoof Widevine / DRM level",
+      "reason": "[runtime-skipped-default] default"
+    },
+    {
+      "name": "Fix Firebase after re-signing",
+      "reason": "[runtime-skipped-default] default"
+    },
+    {
+      "name": "GmsCore support",
+      "reason": "[runtime-skipped] MicroG"
+    },
+    {
+      "name": "Spoof install source",
+      "reason": "[runtime-skipped-default] default"
+    },
+    {
+      "name": "Spoof app signature",
+      "reason": "[runtime-skipped-default] default"
+    }
+  ],
+  "failed_patches": [],
+  "required_patches": [],
+  "required_failures": [],
+  "required_patches_satisfied": true,
+  "fully_applied": true,
+  "error_category": null,
+  "error_summary": null
+}

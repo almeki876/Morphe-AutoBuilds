@@ -1,0 +1,23 @@
+{
+  "results": [
+    {
+      "file": "google-recorder-rookie-universal.apk",
+      "sha256": "a82c41a8f729d8f5cabd993437caebf89e0af1ca4210792376cd6e8de6d970a0",
+      "size": 63097423,
+      "analysis_id": "",
+      "malicious": 0,
+      "suspicious": 0,
+      "harmless": 0,
+      "undetected": 68,
+      "timeout": 0,
+      "failure": 0,
+      "unsupported": 7,
+      "verdict": "clean",
+      "method": "persistent hash cache",
+      "engines": {},
+      "permalink": "https://www.virustotal.com/gui/file/a82c41a8f729d8f5cabd993437caebf89e0af1ca4210792376cd6e8de6d970a0/detection",
+      "last_analysis_date": 1788776483,
+      "reanalyzed": false
+    }
+  ]
+}

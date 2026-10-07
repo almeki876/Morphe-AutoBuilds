@@ -1,0 +1,23 @@
+{
+  "results": [
+    {
+      "file": "foldersync-hoomans-universal.apkm",
+      "sha256": "7bdf8f2217cd2becfb6ddf0a1d25491615ac2a4de42f541852af63ad319998bb",
+      "size": 68371486,
+      "analysis_id": "",
+      "malicious": 0,
+      "suspicious": 0,
+      "harmless": 0,
+      "undetected": 65,
+      "timeout": 0,
+      "failure": 1,
+      "unsupported": 9,
+      "verdict": "clean",
+      "method": "persistent hash cache",
+      "engines": {},
+      "permalink": "https://www.virustotal.com/gui/file/7bdf8f2217cd2becfb6ddf0a1d25491615ac2a4de42f541852af63ad319998bb/detection",
+      "last_analysis_date": 1787326621,
+      "reanalyzed": false
+    }
+  ]
+}

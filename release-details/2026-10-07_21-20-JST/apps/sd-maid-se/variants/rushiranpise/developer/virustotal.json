@@ -1,0 +1,23 @@
+{
+  "results": [
+    {
+      "file": "sd-maid-se-rushiranpise-universal.apkm",
+      "sha256": "016cff766722aec9764474313efc9b54c573e6b0a8ad1b1dcd15d5d50cc65397",
+      "size": 8371199,
+      "analysis_id": "NjYwZGYwOTgxZTAxMWVjYjg5Yzg5NDZiMmExMzFkMGY6MTc4NzYyMzU0Nw==",
+      "malicious": 0,
+      "suspicious": 0,
+      "harmless": 0,
+      "undetected": 63,
+      "timeout": 2,
+      "failure": 1,
+      "unsupported": 9,
+      "verdict": "clean",
+      "method": "persistent hash cache",
+      "engines": {},
+      "permalink": "https://www.virustotal.com/gui/file/016cff766722aec9764474313efc9b54c573e6b0a8ad1b1dcd15d5d50cc65397/detection",
+      "last_analysis_date": 1787623547,
+      "reanalyzed": false
+    }
+  ]
+}
