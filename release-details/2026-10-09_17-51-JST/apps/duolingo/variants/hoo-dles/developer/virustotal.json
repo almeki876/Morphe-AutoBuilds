@@ -1,0 +1,23 @@
+{
+  "results": [
+    {
+      "file": "duolingo-hoo-dles-universal.xapk",
+      "sha256": "de3bc77eabd1413289094b0952f0099cd4cb93125ca72aa15df4046f1ebbe56e",
+      "size": 186664824,
+      "analysis_id": "",
+      "malicious": 0,
+      "suspicious": 0,
+      "harmless": 0,
+      "undetected": 47,
+      "timeout": 16,
+      "failure": 2,
+      "unsupported": 10,
+      "verdict": "clean",
+      "method": "persistent hash cache",
+      "engines": {},
+      "permalink": "https://www.virustotal.com/gui/file/de3bc77eabd1413289094b0952f0099cd4cb93125ca72aa15df4046f1ebbe56e/detection",
+      "last_analysis_date": 1790558267,
+      "reanalyzed": false
+    }
+  ]
+}
