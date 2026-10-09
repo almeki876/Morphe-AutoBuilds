@@ -1,0 +1,23 @@
+{
+  "results": [
+    {
+      "file": "google-recorder-rookie-universal.xapk",
+      "sha256": "0a6f245701edabc624d606beaa5f0a69c2a2d63e5dcaae74261a28c76b8092c8",
+      "size": 63767385,
+      "analysis_id": "MmU0N2ZhMjY4NWQ0MjhkZjg3YjZjY2UzMTMxYThjNDQ6MTc5MTUzNTUyMA==",
+      "malicious": 0,
+      "suspicious": 0,
+      "harmless": 0,
+      "undetected": 49,
+      "timeout": 14,
+      "failure": 2,
+      "unsupported": 10,
+      "verdict": "clean",
+      "method": "persistent hash cache",
+      "engines": {},
+      "permalink": "https://www.virustotal.com/gui/file/0a6f245701edabc624d606beaa5f0a69c2a2d63e5dcaae74261a28c76b8092c8/detection",
+      "last_analysis_date": 1791535520,
+      "reanalyzed": false
+    }
+  ]
+}
