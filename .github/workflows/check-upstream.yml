@@ -15,7 +15,7 @@ jobs:
   check-upstream:
     name: Check All Upstream Patch Sources
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
     permissions:
       contents: read
       actions: write
@@ -42,6 +42,7 @@ jobs:
       - name: Download tools for version detection
         id: dl-cli
         continue-on-error: true
+        timeout-minutes: 10
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PAT: ${{ secrets.PAT }}
@@ -53,10 +54,25 @@ jobs:
       - name: Detect version-pinned apps
         id: pinned
         continue-on-error: true
+        timeout-minutes: 10
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SOURCE_TAGS_JSON: ${{ steps.all_sources.outputs.source_tags }}
         run: python3 scripts/detect_version_pinned.py
+
+      - name: Prepare local Google Play dispenser
+        # clone / go build / docker pull は低速になりやすい（初回は約6分かかっていた）。
+        # exit node を通す前に、専用ステップ（専用タイムアウト・専用ログ）で済ませる。
+        # 失敗しても後続の ensure_running() が自力で準備を再試行する。
+        id: prepare-dispenser
+        if: ${{ steps.pinned.outputs.free_version_apps != '[]' }}
+        continue-on-error: true
+        timeout-minutes: 12
+        env:
+          GPLAY_EMAIL: ${{ secrets.GPLAY_EMAIL }}
+          GPLAY_AAS_TOKEN: ${{ secrets.GPLAY_AAS_TOKEN }}
+          GPLAYDL_DISPENSER_WORKDIR: ${{ runner.temp }}/gplaydl-dispenser
+        run: python3 -m src.local_gplaydl_dispenser prepare
 
       - name: Connect version discovery to Tailscale
         id: version-tailscale
@@ -76,7 +92,9 @@ jobs:
         run: |
           exit_node_ip="$(python3 scripts/resolve_tailscale_exit_node.py "$TS_EXIT_NODE")"
           # --accept-dns=false を付与してランナーの正常なDNSを維持する
-          sudo tailscale set --exit-node="$exit_node_ip" --accept-dns=false
+          # --exit-node-allow-lan-access=true: 無いと Docker ブリッジ(172.17.0.0/16)宛の
+          # 通信まで exit node へ送られ、ローカル dispenser が Postgres に届かず無言で固まる
+          sudo tailscale set --exit-node="$exit_node_ip" --exit-node-allow-lan-access=true --accept-dns=false
           tailscale ping -c 3 "$exit_node_ip"
 
       - name: Verify Japanese egress for version discovery
@@ -95,7 +113,13 @@ jobs:
       - name: Check APK versions
         id: apkver
         continue-on-error: true
+        # スクリプト側の締め切り(900s)で正常終了させ、出力とレポートを残す。
+        # こちらは dispenser 等がハングした場合の最終防衛線。
+        timeout-minutes: 18
         env:
+          GPLAYDL_DISPENSER_WORKDIR: ${{ runner.temp }}/gplaydl-dispenser
+          APK_CHECK_DEADLINE_SECONDS: '900'
+          APK_PLAY_MAX_CONSECUTIVE_FAILURES: '3'
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           VERSION_PINNED_APPS: ${{ steps.pinned.outputs.version_pinned_apps }}
           GPLAYDL_API_KEY: ${{ secrets.GPLAYDL_API_KEY }}
@@ -115,11 +139,13 @@ jobs:
           UPDATED_SOURCES: ${{ steps.all_sources.outputs.updated_sources }}
           UPDATED_APPS: ${{ steps.apkver.outputs.updated_apps }}
           APK_UPDATED_APPS: ${{ steps.apkver.outputs.apk_updated_apps }}
+          SOURCE_TAGS: ${{ steps.all_sources.outputs.source_tags }}
+          REPO: ${{ github.repository }}
         run: |
           gh workflow run build.yml \
-            --repo "${{ github.repository }}" \
+            --repo "$REPO" \
             --ref main \
-            -f source_tags='${{ steps.all_sources.outputs.source_tags }}' \
+            -f source_tags="$SOURCE_TAGS" \
             -f updated_sources="$UPDATED_SOURCES" \
             -f updated_apps="$UPDATED_APPS" \
             -f apk_updated_apps="${APK_UPDATED_APPS:-[]}"
