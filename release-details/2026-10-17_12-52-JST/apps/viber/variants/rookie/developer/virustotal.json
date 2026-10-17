@@ -1,0 +1,23 @@
+{
+  "results": [
+    {
+      "file": "viber-rookie-universal.apk",
+      "sha256": "e3a386007302c3977f3f06dfb296684266f90840a8a1e6b20f094e8a3a662f33",
+      "size": 208103561,
+      "analysis_id": "",
+      "malicious": 0,
+      "suspicious": 0,
+      "harmless": 0,
+      "undetected": 63,
+      "timeout": 3,
+      "failure": 0,
+      "unsupported": 9,
+      "verdict": "clean",
+      "method": "persistent hash cache",
+      "engines": {},
+      "permalink": "https://www.virustotal.com/gui/file/e3a386007302c3977f3f06dfb296684266f90840a8a1e6b20f094e8a3a662f33/detection",
+      "last_analysis_date": 1758903887,
+      "reanalyzed": false
+    }
+  ]
+}
