@@ -1,0 +1,89 @@
+app=youtube
+source=revanced-anddea
+source_name=Anddea
+phase=Patch
+status=success
+run=https://github.com/almeki876/Morphe-AutoBuilds/actions/runs/39163723210
+
+traceback_or_error_tail<<EOF
+WARNING: "Disable PiP notification" is not supported in this version. Use YouTube versions up to 20.51.
+INFO: Applied: Hide layout components
+INFO: Applied: Hide player buttons
+INFO: Applied: Hide player flyout menu
+INFO: Applied: Hook download actions
+INFO: Applied: Miniplayer
+INFO: Applied: Navigation bar components
+INFO: Applied: Open channel of live avatar
+INFO: Applied: Open links externally
+INFO: Applied: Overlay buttons
+INFO: Applied: Override YouTube Music buttons
+INFO: Applied: Picture-in-picture button
+INFO: Applied: Playback buffer
+INFO: Applied: Playback in feeds
+INFO: Applied: Player components
+INFO: Applied: PoToken provider
+INFO: Applied: Preferred caption language
+INFO: Applied: Remember livestream playback position
+INFO: Applied: Remove background playback restrictions
+INFO: Applied: Remove viewer discretion dialog
+INFO: Applied: Restore original titles
+INFO: Applied: Return YouTube Dislike
+INFO: Applied: Return YouTube Username
+INFO: Applied: Sanitize sharing links
+INFO: Applied: Save to Watch later
+INFO: Applied: Seekbar components
+INFO: Applied: Set transcript cookies
+INFO: Applied: Settings menu filter
+INFO: Applied: Shorts components
+INFO: Applied: Skip silence
+INFO: Applied: Snack bar components
+INFO: Applied: SponsorBlock
+INFO: Applied: Spoof app version
+INFO: Applied: Spoof video streams
+INFO: Applied: Spoof watch history
+INFO: Applied: Swipe controls
+INFO: Applied: Theme
+INFO: Applied: Toolbar components
+INFO: Applied: Translations for YouTube
+INFO: Applied: Video playback
+INFO: Applied: Voice Over Translation
+INFO: Applied: Wide search bar
+INFO: Applied: Visual preferences icons for YouTube
+INFO: Applied: Reload video
+INFO: Applied: Custom branding for YouTube
+INFO: Applied: Settings for YouTube
+INFO: Rebuilding APK...
+INFO: Compiling patched dex files (mode: STRIP_FAST)
+INFO: Copied 7776 unchanged extension classes to 2 DEX files
+INFO: Changed 906 of 58025 classes to mutable
+INFO: Writing 906 new classes to new DEX files
+INFO: Processing 906 classes in parallel (4 threads)
+INFO: Wrote 3 dex files to /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/morphe-data/tmp/patching-1792355981892/patcher/patched/newDex
+INFO: Stripped 859 modified classes from 6 original DEX files
+INFO: Compiling modified resources
+INFO: Stripping libs (keeping architectures arm64-v8a, armeabi-v7a, x86, x86_64)
+INFO: Stripped 0 lib files
+INFO: Unescaping strings
+INFO: Post-processing package name change
+INFO: Processing aapt macros
+INFO: Generating new resource IDs
+INFO: Writing resource APK
+INFO: Encoded 63386 of 279487 values in 115 files, 1714 resource files and 0 configurations of patches
+INFO: Reusing 16198 unchanged archive entries, rebuilding 1716 entries, dropping 0 entries, leaving out 6 replaced entries
+INFO: Resource APK scan: 3.8s write: 2.1s
+INFO: Using compiled resource APK as output base
+INFO: Aligning APK
+INFO: Saved to /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/youtube-arm64-v8a-patch-v21.13.164.apk
+INFO: Patching took 42.6 seconds
+2026-10-18 20:40:26 Validated patched APK: 202228704 bytes (ABIs: arm64-v8a, armeabi-v7a, x86, x86_64)
+2026-10-18 20:40:34 Removed 87 non-target native libraries
+2026-10-18 20:40:36 Validated architecture-filtered APK (ABIs: arm64-v8a)
+2026-10-18 20:40:36 [SIZE] patched: 106734971 bytes (youtube-arm64-v8a-patch-v21.13.164.apk)
+Signed
+2026-10-18 20:40:39 [SIZE] signed: 108200670 bytes (youtube-arm64-v8a-revanced-anddea-v21.13.164.apk)
+✅ APK built: youtube-arm64-v8a-revanced-anddea-v21.13.164.apk
+✅ Built arm64-v8a: youtube-arm64-v8a-revanced-anddea-v21.13.164.apk
+
+🎯 1 APK(s) built for 'youtube':
+   📱 youtube-arm64-v8a-revanced-anddea-v21.13.164.apk
+EOF
