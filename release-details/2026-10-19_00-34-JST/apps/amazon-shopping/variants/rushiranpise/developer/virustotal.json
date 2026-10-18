@@ -1,0 +1,23 @@
+{
+  "results": [
+    {
+      "file": "amazon-shopping-rushiranpise-universal.xapk",
+      "sha256": "93bbbbf0954dd1686bc2fca01db0d746072b9d07ec7ff18ede35a096f09eede0",
+      "size": 175181402,
+      "analysis_id": "",
+      "malicious": 0,
+      "suspicious": 0,
+      "harmless": 0,
+      "undetected": 60,
+      "timeout": 4,
+      "failure": 1,
+      "unsupported": 10,
+      "verdict": "clean",
+      "method": "persistent hash cache",
+      "engines": {},
+      "permalink": "https://www.virustotal.com/gui/file/93bbbbf0954dd1686bc2fca01db0d746072b9d07ec7ff18ede35a096f09eede0/detection",
+      "last_analysis_date": 1791348438,
+      "reanalyzed": false
+    }
+  ]
+}

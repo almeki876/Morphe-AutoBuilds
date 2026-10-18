@@ -1,0 +1,23 @@
+{
+  "results": [
+    {
+      "file": "adguard-rushiranpise-universal.apk",
+      "sha256": "bc42be7eb481a5410904b54f08fc6269f837ccb1cefee67db53ecc9345e2683e",
+      "size": 79756740,
+      "analysis_id": "",
+      "malicious": 0,
+      "suspicious": 0,
+      "harmless": 0,
+      "undetected": 65,
+      "timeout": 1,
+      "failure": 1,
+      "unsupported": 8,
+      "verdict": "clean",
+      "method": "persistent hash cache",
+      "engines": {},
+      "permalink": "https://www.virustotal.com/gui/file/bc42be7eb481a5410904b54f08fc6269f837ccb1cefee67db53ecc9345e2683e/detection",
+      "last_analysis_date": 1791195451,
+      "reanalyzed": false
+    }
+  ]
+}

@@ -1,0 +1,89 @@
+app=threads
+source=durgesh0505
+source_name=durgesh0505
+phase=Patch
+status=success
+run=https://github.com/almeki876/Morphe-AutoBuilds/actions/runs/39139849777
+
+traceback_or_error_tail<<EOF
+
+Index: 71
+Name: Remove ads
+Description: Disables AppLovin MAX initialization, banners, and real ad playback. Interstitial requests complete immediately. Rewarded requests call the game's native successful completion callback so reward-gated actions can still grant their reward. Runtime confirmation is required because the final reward logic is native C++.
+Enabled: true
+
+Index: 72
+Name: Unlimited coins and plutonium
+Description: Makes the game always read 1,342,177,279 coins and plutonium. Both are 32-bit values, so this is near the maximum while leaving room for rewards to be added without overflowing. Spending never lowers the balance. Use a throwaway account.
+Enabled: true
+
+Index: 73
+Name: Free in-app purchases
+Description: Skips Google Play Billing and exposes the app's product list at zero price. Buying an item sends a synthetic purchase receipt through Zombie Catchers' own native purchaseResult success callback, and the native server receipt check is forced off so the grant never depends on the developer's verification endpoint. No payment reaches Google. The developer's own event log still records each purchase; use a throwaway account.
+Enabled: true
+
+Index: 74
+Name: Bypass license check
+Description: Bypasses PairIP signature and Google Play license checks. It also bypasses PairIP's encrypted-key import bootstrap, neutralizes its protected native logger, restores the game library's PairIP-encrypted native data, disables broken AndroidX startup and Firebase anonymous auth, and reconstructs the critical application, activity, and notification-service lifecycle methods so a re-signed build can start without encrypted VM bytecode. Third-party SDK VM stubs remain a runtime risk.
+Enabled: true
+
+Index: 75
+Name: Change package name
+Description: Changes the manifest package and package-derived authorities/permissions so Zombie Catchers Morphe can install beside the original. Play Games, Firebase auth, store updates, and server checks can still reject the renamed and re-signed build.
+Enabled: false
+2026-10-18 15:29:20 enable_patches=[]  disable_patches=[]
+2026-10-18 15:29:21 Running: java -Djava.awt.headless=true -Xmx6g -Xms3g -Dfile.encoding=UTF-8 -XX:-UsePerfData -XX:+UseG1GC -XX:MaxGCPauseMillis=150 -XX:G1HeapRegionSize=2m -XX:+UseStringDeduplication -XX:+ParallelRefProcEnabled -XX:ConcGCThreads=2 -XX:ParallelGCThreads=4 -XX:CICompilerCount=3 -XX:+UseCompressedOops -XX:+OptimizeStringConcat -XX:+DisableExplicitGC -XX:+TieredCompilation -XX:ReservedCodeCacheSize=128m -XX:InitialCodeCacheSize=32m -XX:MaxMetaspaceSize=128m -XX:SoftRefLRUPolicyMSPerMB=50 --add-opens=java.base/java.lang=ALL-UNNAMED --add-opens=java.base/java.util=ALL-UNNAMED --add-opens=java.base/java.io=ALL-UNNAMED -jar morphe-desktop-1.19.0-dev.5-all.jar patch --force --continue-on-error --unsigned -p patches-1.25.0.mpp --out=threads-arm64-v8a-patch-v434.0.0.41.74.apk --bytecode-mode=STRIP_FAST .build-splits-threads-v434.0.0.41.74/com.instagram.barcelona.apk
+⚠️  Ignoring legacy BASE_APK_CACHE_TAG='base-apk-cache-v2'; using 'base-apk-cache-v4-ja-jp-px9a-split'
+INFO: Morphe data root: /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/morphe-data (JAR-adjacent)
+INFO: Initializing patcher...
+INFO: Loading patches from 1 bundle(s)...
+INFO: Filtering patches for com.instagram.barcelona v434.0.0.41.74...
+INFO: Applying 4 patches...
+INFO: Deleting existing temporary files directory
+INFO: Decoding all resources
+INFO: Leaving 12 native library files in the input APK
+INFO: Sanitizing unpatched strings
+INFO: Escaping strings
+INFO: Executing patches
+INFO: Applied: Change app name
+INFO: Applied: Hide ads
+INFO: Applied: Remove AD_ID permission
+INFO: Applied: Change package name
+INFO: Rebuilding APK...
+INFO: Compiling patched dex files (mode: STRIP_FAST)
+INFO: Changed 2 of 104936 classes to mutable
+INFO: Writing 2 new classes to new DEX files
+INFO: Processing 2 classes (single threaded mode)
+INFO: Wrote 1 dex files to /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/morphe-data/tmp/patching-1792337364107/patcher/patched/newDex
+INFO: Stripped 2 modified classes from 2 original DEX files
+INFO: Compiling modified resources
+INFO: Stripping libs (keeping architectures arm64-v8a, armeabi-v7a, x86, x86_64)
+INFO: Stripped 0 lib files
+INFO: Unescaping strings
+INFO: Post-processing package name change
+INFO: Processing aapt macros
+INFO: Generating new resource IDs
+INFO: Writing resource APK
+INFO: Encoded 0 of 0 values in 0 files, 0 resource files and 0 configurations of patches
+INFO: Reusing 7231 unchanged archive entries, rebuilding 2 entries, dropping 0 entries, leaving out 2 replaced entries
+INFO: Resource APK scan: 200ms write: 600ms
+INFO: Using compiled resource APK as output base
+INFO: Aligning APK
+INFO: Saved to /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/threads-arm64-v8a-patch-v434.0.0.41.74.apk
+INFO: Patching took 6.3 seconds
+2026-10-18 15:29:30 Merging patched base APK with original split modules…
+2026-10-18 15:29:31 Fetched latest release: V1.4.9
+2026-10-18 15:29:32 URL: https://release-assets.githubusercontent.com/github-production-release-asset/576398953/c64f423b-578f-44d0-9c3c-d016189acc1e [7733037/7733037] -> "APKEditor-1.4.9.jar" [1]
+2026-10-18 15:29:36 Merged patched APK: threads-arm64-v8a-patch-v434.0.0.41.74.apk
+2026-10-18 15:29:37 Validated patched APK: 131351756 bytes (ABIs: arm64-v8a)
+2026-10-18 15:29:43 Normalized patched APK ZIP headers
+2026-10-18 15:29:44 Validated architecture-filtered APK (ABIs: arm64-v8a)
+2026-10-18 15:29:44 [SIZE] patched: 132945046 bytes (threads-arm64-v8a-patch-v434.0.0.41.74.apk)
+Signed
+2026-10-18 15:29:47 [SIZE] signed: 134222985 bytes (threads-arm64-v8a-durgesh0505-v434.0.0.41.74.apk)
+✅ APK built: threads-arm64-v8a-durgesh0505-v434.0.0.41.74.apk
+✅ Built arm64-v8a: threads-arm64-v8a-durgesh0505-v434.0.0.41.74.apk
+
+🎯 1 APK(s) built for 'threads':
+   📱 threads-arm64-v8a-durgesh0505-v434.0.0.41.74.apk
+EOF
