@@ -1,0 +1,89 @@
+app=youtube-music
+source=morphe
+source_name=Morphe
+phase=Patch
+status=success
+run=https://github.com/almeki876/Morphe-AutoBuilds/actions/runs/39334099142
+
+traceback_or_error_tail<<EOF
+INFO: Skipping disabled: Settings menu filter (default)
+INFO: Skipping disabled: Third-party lyrics (default)
+INFO: Skipping disabled: Enable swipe to dismiss miniplayer (default)
+INFO: Skipping disabled: Force portrait orientation (default)
+INFO: Skipping disabled: Return YouTube Dislike (default)
+INFO: Skipping disabled: SponsorBlock (default)
+INFO: Skipping disabled: Play albums songs (default)
+INFO: Skipping disabled: Android Auto (default)
+INFO: Skipping disabled: Enable audio/video switch (default)
+INFO: Skipping disabled: Media notification controls (default)
+INFO: Skipping disabled: PoToken provider (default)
+INFO: Skipping disabled: Network proxy (default)
+INFO: Skipping disabled: App refresh rate (default)
+INFO: Skipping disabled: Spoof app version (default)
+INFO: Skipping disabled: Skip silence (default)
+INFO: Skipping disabled: Playback speed (default)
+INFO: Applying 22 patches...
+INFO: Deleting existing temporary files directory
+INFO: Decoding all resources
+INFO: Leaving 27 native library files in the input APK
+INFO: Sanitizing unpatched strings
+INFO: Escaping strings
+INFO: Executing patches
+INFO: Applied: Change header
+INFO: Applied: Change miniplayer color
+INFO: Applied: Change start page
+INFO: Applied: Check watch history domain name resolution
+INFO: Applied: Custom branding
+INFO: Applied: Disable DRC audio
+INFO: Applied: Disable QUIC protocol
+INFO: Applied: Enable debugging
+INFO: Applied: Enable exclusive audio playback
+INFO: Applied: Enable forced miniplayer
+INFO: Applied: Force original audio
+INFO: Applied: GmsCore support
+INFO: Applied: Hide ads
+INFO: Applied: Hide buttons
+INFO: Applied: Miniplayer previous and next buttons
+INFO: Applied: Navigation bar
+INFO: Applied: Override certificate pinning
+INFO: Applied: Remove background playback restrictions
+INFO: Applied: Sanitize sharing links
+INFO: Applied: Spoof video streams
+INFO: Applied: Theme
+INFO: Applied: Disable Play Store updates
+INFO: Rebuilding APK...
+INFO: Compiling patched dex files (mode: STRIP_FAST)
+INFO: Copied 5833 unchanged extension classes to 4 DEX files
+INFO: Changed 272 of 70546 classes to mutable
+INFO: Writing 272 new classes to new DEX files
+INFO: Processing 272 classes (single threaded mode)
+INFO: Wrote 1 dex files to /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/morphe-data/tmp/patching-1792448831034/patcher/patched/newDex
+INFO: Stripped 226 modified classes from 5 original DEX files
+INFO: Compiling modified resources
+INFO: Stripping libs (keeping architectures arm64-v8a, armeabi-v7a, x86, x86_64)
+INFO: Stripped 0 lib files
+INFO: Unescaping strings
+INFO: Post-processing package name change
+INFO: Processing aapt macros
+INFO: Generating new resource IDs
+INFO: Writing resource APK
+INFO: Encoded 45713 of 147625 values in 99 files, 111 resource files and 271 configurations of patches
+INFO: Reusing 5100 unchanged archive entries, rebuilding 113 entries, dropping 0 entries, leaving out 5 replaced entries
+INFO: Resource APK scan: 1.9s write: 500ms
+INFO: Moving 3 resource files
+INFO: Using compiled resource APK as output base
+INFO: Aligning APK
+INFO: Saved to /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/youtube-music-arm64-v8a-patch-v9.15.51.apk
+INFO: Patching took 15.9 seconds
+2026-10-19 22:27:27 Validated patched APK: 82708334 bytes (ABIs: arm64-v8a)
+2026-10-19 22:27:30 Normalized patched APK ZIP headers
+2026-10-19 22:27:30 Validated architecture-filtered APK (ABIs: arm64-v8a)
+2026-10-19 22:27:30 [SIZE] patched: 80978414 bytes (youtube-music-arm64-v8a-patch-v9.15.51.apk)
+Signed
+2026-10-19 22:27:32 [SIZE] signed: 81642553 bytes (youtube-music-arm64-v8a-morphe-v9.15.51.apk)
+✅ APK built: youtube-music-arm64-v8a-morphe-v9.15.51.apk
+✅ Built arm64-v8a: youtube-music-arm64-v8a-morphe-v9.15.51.apk
+
+🎯 1 APK(s) built for 'youtube-music':
+   📱 youtube-music-arm64-v8a-morphe-v9.15.51.apk
+EOF
