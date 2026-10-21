@@ -1,0 +1,23 @@
+{
+  "results": [
+    {
+      "file": "ilovepdf-lain-universal.apkm",
+      "sha256": "9d7e3424c0a161112f00450c32c8ba6ba38e636adef6dd279c15e1d377699590",
+      "size": 284113041,
+      "analysis_id": "",
+      "malicious": 0,
+      "suspicious": 0,
+      "harmless": 0,
+      "undetected": 63,
+      "timeout": 1,
+      "failure": 0,
+      "unsupported": 9,
+      "verdict": "clean",
+      "method": "persistent hash cache",
+      "engines": {},
+      "permalink": "https://www.virustotal.com/gui/file/9d7e3424c0a161112f00450c32c8ba6ba38e636adef6dd279c15e1d377699590/detection",
+      "last_analysis_date": 1784377074,
+      "reanalyzed": false
+    }
+  ]
+}

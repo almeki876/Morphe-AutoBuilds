@@ -1,0 +1,41 @@
+{
+  "app_name": "aliexpress",
+  "source": "quantro",
+  "patch_source": "quantro",
+  "source_name": "quantro",
+  "version": "8.162.8",
+  "status": "success",
+  "lifecycle_status": "success_full",
+  "requested_patches": [],
+  "requested_options": [],
+  "applying_count": 8,
+  "applied_patches": [
+    "Bypass signature check",
+    "Disable analytics",
+    "Disable forced updates",
+    "Disable promotions notifications",
+    "Remove ads",
+    "Remove affiliate tracking",
+    "Remove coupons popup",
+    "Remove sponsored items from search"
+  ],
+  "excluded_patches": [],
+  "disabled_patches": [],
+  "feature_failures": [
+    {
+      "name": "Enable image saving",
+      "reason": "[runtime-skipped-default] default"
+    },
+    {
+      "name": "Disable splash screen",
+      "reason": "[runtime-skipped-default] default"
+    }
+  ],
+  "failed_patches": [],
+  "required_patches": [],
+  "required_failures": [],
+  "required_patches_satisfied": true,
+  "fully_applied": true,
+  "error_category": null,
+  "error_summary": null
+}

@@ -1,0 +1,23 @@
+{
+  "results": [
+    {
+      "file": "kinestop-shaun-the-sheep-patches-arm64-v8a.apk",
+      "sha256": "67b613f1e30691badcb0e44867d2b6fbd50117c282c4ebdac5d8297b7610bdb9",
+      "size": 8122410,
+      "analysis_id": "",
+      "malicious": 0,
+      "suspicious": 0,
+      "harmless": 0,
+      "undetected": 35,
+      "timeout": 31,
+      "failure": 2,
+      "unsupported": 7,
+      "verdict": "clean",
+      "method": "persistent hash cache",
+      "engines": {},
+      "permalink": "https://www.virustotal.com/gui/file/67b613f1e30691badcb0e44867d2b6fbd50117c282c4ebdac5d8297b7610bdb9/detection",
+      "last_analysis_date": 1786646188,
+      "reanalyzed": false
+    }
+  ]
+}
