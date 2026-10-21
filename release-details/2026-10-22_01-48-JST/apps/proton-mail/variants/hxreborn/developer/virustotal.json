@@ -1,0 +1,23 @@
+{
+  "results": [
+    {
+      "file": "proton-mail-hxreborn-universal.apk",
+      "sha256": "84c4308a657eeb6b99e149b1d6a1a7bddc50a218551137c84d6cd116189a601a",
+      "size": 140830697,
+      "analysis_id": "",
+      "malicious": 0,
+      "suspicious": 0,
+      "harmless": 0,
+      "undetected": 66,
+      "timeout": 0,
+      "failure": 1,
+      "unsupported": 8,
+      "verdict": "clean",
+      "method": "persistent hash cache",
+      "engines": {},
+      "permalink": "https://www.virustotal.com/gui/file/84c4308a657eeb6b99e149b1d6a1a7bddc50a218551137c84d6cd116189a601a/detection",
+      "last_analysis_date": 1786555357,
+      "reanalyzed": false
+    }
+  ]
+}
