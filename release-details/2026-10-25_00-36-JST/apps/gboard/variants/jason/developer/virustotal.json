@@ -1,0 +1,23 @@
+{
+  "results": [
+    {
+      "file": "gboard-jason-universal.apk",
+      "sha256": "3e2fbf2d363cfaa1962603b9be75843c189488c9bfe173469896fa8700d862f6",
+      "size": 80701877,
+      "analysis_id": "",
+      "malicious": 0,
+      "suspicious": 0,
+      "harmless": 0,
+      "undetected": 58,
+      "timeout": 6,
+      "failure": 3,
+      "unsupported": 8,
+      "verdict": "clean",
+      "method": "persistent hash cache",
+      "engines": {},
+      "permalink": "https://www.virustotal.com/gui/file/3e2fbf2d363cfaa1962603b9be75843c189488c9bfe173469896fa8700d862f6/detection",
+      "last_analysis_date": 1792613853,
+      "reanalyzed": false
+    }
+  ]
+}
