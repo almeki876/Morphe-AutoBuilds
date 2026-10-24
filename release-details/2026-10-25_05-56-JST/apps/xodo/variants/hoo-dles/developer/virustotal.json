@@ -1,0 +1,23 @@
+{
+  "results": [
+    {
+      "file": "xodo-hoo-dles-universal.apk",
+      "sha256": "5844407083aa7e13088f433e9da31bfdbd5bfbfa624f315b9ab09fb0aaa47d4d",
+      "size": 113227129,
+      "analysis_id": "",
+      "malicious": 0,
+      "suspicious": 0,
+      "harmless": 0,
+      "undetected": 66,
+      "timeout": 0,
+      "failure": 1,
+      "unsupported": 8,
+      "verdict": "clean",
+      "method": "persistent hash cache",
+      "engines": {},
+      "permalink": "https://www.virustotal.com/gui/file/5844407083aa7e13088f433e9da31bfdbd5bfbfa624f315b9ab09fb0aaa47d4d/detection",
+      "last_analysis_date": 1789031478,
+      "reanalyzed": false
+    }
+  ]
+}
