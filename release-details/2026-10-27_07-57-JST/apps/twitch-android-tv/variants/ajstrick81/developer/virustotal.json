@@ -1,0 +1,23 @@
+{
+  "results": [
+    {
+      "file": "twitch-android-tv-ajstrick81-arm64-v8a.apkm",
+      "sha256": "1f90da1794756ef09bd7f68b3a623bcaea3df09a0cbbbd6543f33c34dd9b17e6",
+      "size": 56286526,
+      "analysis_id": "",
+      "malicious": 0,
+      "suspicious": 0,
+      "harmless": 0,
+      "undetected": 43,
+      "timeout": 22,
+      "failure": 1,
+      "unsupported": 9,
+      "verdict": "clean",
+      "method": "persistent hash cache",
+      "engines": {},
+      "permalink": "https://www.virustotal.com/gui/file/1f90da1794756ef09bd7f68b3a623bcaea3df09a0cbbbd6543f33c34dd9b17e6/detection",
+      "last_analysis_date": 1779907886,
+      "reanalyzed": false
+    }
+  ]
+}
