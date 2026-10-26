@@ -1,0 +1,89 @@
+app=line
+source=andrewliang25
+source_name=andrewliang25
+phase=Patch
+status=success
+run=https://github.com/almeki876/Morphe-AutoBuilds/actions/runs/40375169455
+
+traceback_or_error_tail<<EOF
+INFO: Initializing patcher...
+INFO: Loading patches from 1 bundle(s)...
+INFO: Filtering patches for jp.naver.line.android v26.14.0...
+INFO: Skipping disabled: [General] Trust user-installed CAs (default)
+INFO: Skipping disabled: [Fix] Restore biometric login (default)
+INFO: Applying 30 patches...
+INFO: Deleting existing temporary files directory
+INFO: Decoding all resources
+INFO: Leaving 13 native library files in the input APK
+INFO: Sanitizing unpatched strings
+INFO: Escaping strings
+INFO: Executing patches
+INFO: Building instruction indexes for 203077 classes...
+INFO: Applied: [Ad] Hide ad views
+INFO: Applied: [Ad] Remove banner ads
+INFO: Applied: [Chat] Hide AI Friends button
+INFO: Applied: [Chat] Hide Events button
+INFO: Applied: [Chat] Hide LINE GIFT button
+INFO: Applied: [Chat] Hide Transfer button
+INFO: Applied: [Chat] Hide attach menu extra tools
+INFO: Applied: [Chat] Hide calendar buttons
+INFO: Applied: [Chat] Hide community button
+INFO: Applied: [Chat] Hide tips under messages
+INFO: Applied: [Chat] Keep chats unread
+INFO: Applied: [Chat] Keep unsent messages
+INFO: Applied: [Fix] Restore chat backup sign-in via MicroG-RE
+INFO: Applied: [Fix] Restore location maps via MicroG-RE
+INFO: Applied: [Fix] Restore push notifications
+INFO: Applied: [General] Andrew's Patch Setting
+INFO: Applied: [General] Custom font
+INFO: Applied: [General] Disable VOOM
+INFO: Applied: [General] Hide Agent i buttons
+INFO: Applied: [General] Hide new item badges
+INFO: Applied: [General] Open links in external browser
+INFO: Applied: [General] Redirect LINE Pay
+INFO: Applied: [Home] Hide Home content feed
+INFO: Applied: [Home] Hide Home modules
+INFO: Applied: [Premium] Disable LINE Premium
+INFO: Applied: [Premium] Hide premium unsend upsells
+INFO: Applied: [Tab] Hide LINE TODAY tab
+INFO: Applied: [Tab] Hide Shopping tab
+INFO: Applied: [Tab] Hide VOOM tab
+INFO: Applied: [Tab] Hide Wallet tab
+INFO: Rebuilding APK...
+INFO: Compiling patched dex files (mode: STRIP_FAST)
+INFO: Copied 1028 unchanged extension classes to 1 DEX files
+INFO: Changed 115 of 204107 classes to mutable
+INFO: Writing 115 new classes to new DEX files
+INFO: Processing 115 classes (single threaded mode)
+INFO: Wrote 1 dex files to /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/morphe-data/tmp/patching-1793039028399/patcher/patched/newDex
+INFO: Stripped 113 modified classes from 12 original DEX files
+INFO: Compiling modified resources
+INFO: Stripping libs (keeping architectures arm64-v8a, armeabi-v7a, x86, x86_64)
+INFO: Stripped 0 lib files
+INFO: Unescaping strings
+INFO: Processing aapt macros
+INFO: Generating new resource IDs
+INFO: Writing resource APK
+INFO: Encoded 156 of 18185 values in 1 files, 2 resource files and 0 configurations of patches for jp.naver.line.android
+INFO: Reusing 15616 unchanged archive entries, rebuilding 4 entries, dropping 0 entries, leaving out 12 replaced entries
+INFO: Resource APK scan: 700ms write: 700ms
+INFO: Using compiled resource APK as output base
+INFO: Aligning APK
+INFO: Saved to /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/line-arm64-v8a-patch-v26.14.0.apk
+INFO: Patching took 16.4 seconds
+2026-10-26 18:24:05 Merging patched base APK with original split modules…
+2026-10-26 18:24:06 Fetched latest release: V1.4.9
+2026-10-26 18:24:07 URL: https://release-assets.githubusercontent.com/github-production-release-asset/576398953/c64f423b-578f-44d0-9c3c-d016189acc1e [7733037/7733037] -> "APKEditor-1.4.9.jar" [1]
+2026-10-26 18:24:22 Merged patched APK: line-arm64-v8a-patch-v26.14.0.apk
+2026-10-26 18:24:23 Validated patched APK: 273497564 bytes (ABIs: arm64-v8a, armeabi-v7a)
+2026-10-26 18:24:29 Removed 71 non-target native libraries
+2026-10-26 18:24:29 Validated architecture-filtered APK (ABIs: arm64-v8a)
+2026-10-26 18:24:29 [SIZE] patched: 204276042 bytes (line-arm64-v8a-patch-v26.14.0.apk)
+Signed
+2026-10-26 18:24:33 [SIZE] signed: 206673899 bytes (line-arm64-v8a-andrewliang25-v26.14.0.apk)
+✅ APK built: line-arm64-v8a-andrewliang25-v26.14.0.apk
+✅ Built arm64-v8a: line-arm64-v8a-andrewliang25-v26.14.0.apk
+
+🎯 1 APK(s) built for 'line':
+   📱 line-arm64-v8a-andrewliang25-v26.14.0.apk
+EOF

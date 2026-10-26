@@ -1,0 +1,23 @@
+{
+  "results": [
+    {
+      "file": "adobe-scan-rushiranpise-universal.apk",
+      "sha256": "8fb7cab1857066994c54ea954da37f212b06ef0fc67530d7b9044a9f8a5080a3",
+      "size": 42739457,
+      "analysis_id": "",
+      "malicious": 0,
+      "suspicious": 0,
+      "harmless": 0,
+      "undetected": 64,
+      "timeout": 1,
+      "failure": 1,
+      "unsupported": 8,
+      "verdict": "clean",
+      "method": "persistent hash cache",
+      "engines": {},
+      "permalink": "https://www.virustotal.com/gui/file/8fb7cab1857066994c54ea954da37f212b06ef0fc67530d7b9044a9f8a5080a3/detection",
+      "last_analysis_date": 1785366463,
+      "reanalyzed": false
+    }
+  ]
+}
