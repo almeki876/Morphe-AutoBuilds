@@ -1,0 +1,23 @@
+{
+  "results": [
+    {
+      "file": "file-manager-rushiranpise-universal.apk",
+      "sha256": "a5fec2ef61c107243108efa4f4c42eebf18dfd434992ebad7811f4fa78e6d829",
+      "size": 23790614,
+      "analysis_id": "",
+      "malicious": 0,
+      "suspicious": 0,
+      "harmless": 0,
+      "undetected": 67,
+      "timeout": 0,
+      "failure": 0,
+      "unsupported": 8,
+      "verdict": "clean",
+      "method": "persistent hash cache",
+      "engines": {},
+      "permalink": "https://www.virustotal.com/gui/file/a5fec2ef61c107243108efa4f4c42eebf18dfd434992ebad7811f4fa78e6d829/detection",
+      "last_analysis_date": 1787106397,
+      "reanalyzed": false
+    }
+  ]
+}
