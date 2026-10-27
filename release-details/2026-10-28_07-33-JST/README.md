@@ -1,0 +1,43 @@
+# Release details — 2026-10-28_07-33-JST
+
+- **収録アプリ数:** 34
+- **ビルド構成数:** 36
+- **Generated:** 2026-10-27T22:33:16+00:00
+- **Build:** [GitHub Actions run](https://github.com/almeki876/Morphe-AutoBuilds/actions/runs/40592569504)
+
+| App | Variants | Versions | Patch sources |
+| --- | ---: | --- | --- |
+| [1.1.1.1](apps/1-1-1-1/README.md) | 1 | `6.38.9` | rushiranpise |
+| [AccuBattery](apps/accubattery/README.md) | 1 | `2.1.8` | rushiranpise |
+| [AdGuard](apps/adguard/README.md) | 1 | `4.15.1` | rushiranpise |
+| [Adobe Photoshop Mix](apps/photoshop-mix/README.md) | 1 | `2.6.3` | RookieEnough |
+| [Adobe Scan](apps/adobe-scan/README.md) | 1 | `26.08.01` | rushiranpise |
+| [Amazon Music](apps/amazon-music/README.md) | 1 | `26.36.1` | RookieEnough |
+| [Amazon Shopping](apps/amazon-shopping/README.md) | 1 | `32.18.0.100` | rushiranpise |
+| [Call Recorder](apps/call-recorder/README.md) | 1 | `2.4.281` | rushiranpise |
+| [CamScanner](apps/camscanner/README.md) | 1 | `7.24.5.2608200000` | rushiranpise |
+| [Countdown Widget](apps/countdown-widget/README.md) | 1 | `3.2.0` | rushiranpise |
+| [Crunchyroll](apps/crunchyroll/README.md) | 1 | `3.112.2` | NekoGryphou |
+| [Disney+](apps/disney-plus/README.md) | 1 | `26.8.0+rc6-2026.05.20` | ajstrick81 |
+| [Excel](apps/excel/README.md) | 1 | `16.0.20228.20090` | rushiranpise |
+| [File Manager](apps/file-manager/README.md) | 1 | `3.8.2` | rushiranpise |
+| [Gboard](apps/gboard/README.md) | 1 | `18.5.4.993608717-release-arm64-v8a` | Jason + Adobo + Morning-Entree (3-source integrated) |
+| [Google Photos](apps/google-photos/README.md) | 1 | `7.92.0.977185651` | RookieEnough |
+| [Google Recorder](apps/google-recorder/README.md) | 1 | `4.2.20260823.992025916` | RookieEnough |
+| [Kahoot!](apps/kahoot/README.md) | 1 | `6.6.7` | rushiranpise |
+| [KineMaster](apps/kinemaster/README.md) | 1 | `8.1.13.36552.GP` | rushiranpise |
+| [LINE](apps/line/README.md) | 1 | `26.14.0` | andrewliang25 |
+| [MEGA](apps/mega/README.md) | 1 | `16.12(262370820)(dcdf0a7f27)` | rushiranpise |
+| [Ninja VPN](apps/ninja-vpn/README.md) | 1 | `1.4.7` | rushiranpise |
+| [Photomath](apps/photomath/README.md) | 1 | `8.48.0` | RookieEnough |
+| [Pixiv](apps/pixiv/README.md) | 1 | `6.141.1` | RookieEnough |
+| [Proton Mail](apps/proton-mail/README.md) | 1 | `7.11.11` | hxreborn |
+| [Proton VPN](apps/proton-vpn/README.md) | 1 | `5.19.78.0` | rushiranpise |
+| [SD Maid SE](apps/sd-maid-se/README.md) | 1 | `2.0.3-rc0` | rushiranpise |
+| [Speedtest](apps/speedtest/README.md) | 1 | `7.1.2` | rushiranpise |
+| [Threads](apps/threads/README.md) | 1 | `434.0.0.41.74` | durgesh0505 |
+| [Twitch (Android TV)](apps/twitch-android-tv/README.md) | 1 | `13.0.0.2` | ajstrick81 |
+| [Viber](apps/viber/README.md) | 1 | `26.1.2.0` | RookieEnough |
+| [Word](apps/word/README.md) | 1 | `16.0.20228.20090` | rushiranpise |
+| [YouTube](apps/youtube/README.md) | 2 | `21.16.256`, `21.13.164` | Morphe, Anddea |
+| [YouTube Music](apps/youtube-music/README.md) | 2 | `9.15.51`, `9.15.51` | Morphe, Anddea |
