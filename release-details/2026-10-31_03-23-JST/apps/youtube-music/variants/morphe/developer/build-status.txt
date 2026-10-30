@@ -1,0 +1,89 @@
+app=youtube-music
+source=morphe
+source_name=Morphe
+phase=Patch
+status=success
+run=https://github.com/almeki876/Morphe-AutoBuilds/actions/runs/41100957220
+
+traceback_or_error_tail<<EOF
+INFO: Skipping disabled: Settings menu filter (default)
+INFO: Skipping disabled: Third-party lyrics (default)
+INFO: Skipping disabled: Enable swipe to dismiss miniplayer (default)
+INFO: Skipping disabled: Force portrait orientation (default)
+INFO: Skipping disabled: Return YouTube Dislike (default)
+INFO: Skipping disabled: SponsorBlock (default)
+INFO: Skipping disabled: Play albums songs (default)
+INFO: Skipping disabled: Android Auto (default)
+INFO: Skipping disabled: Enable audio/video switch (default)
+INFO: Skipping disabled: Media notification controls (default)
+INFO: Skipping disabled: PoToken provider (default)
+INFO: Skipping disabled: Network proxy (default)
+INFO: Skipping disabled: App refresh rate (default)
+INFO: Skipping disabled: Spoof app version (default)
+INFO: Skipping disabled: Skip silence (default)
+INFO: Skipping disabled: Playback speed (default)
+INFO: Applying 22 patches...
+INFO: Deleting existing temporary files directory
+INFO: Decoding the manifest
+INFO: Decoding resources on request, 5420 files can be decoded
+INFO: Executing patches
+INFO: Building instruction indexes for 64667 classes...
+INFO: Applied: Change header
+INFO: Applied: Change miniplayer color
+INFO: Applied: Change start page
+INFO: Applied: Check watch history domain name resolution
+INFO: Applied: Custom branding
+INFO: Applied: Disable DRC audio
+INFO: Applied: Disable QUIC protocol
+INFO: Applied: Enable debugging
+INFO: Applied: Enable exclusive audio playback
+INFO: Applied: Enable forced miniplayer
+INFO: Applied: Force original audio
+INFO: Applied: GmsCore support
+INFO: Applied: Hide ads
+INFO: Applied: Hide buttons
+INFO: Applied: Miniplayer previous and next buttons
+INFO: Applied: Navigation bar
+INFO: Applied: Override certificate pinning
+INFO: Applied: Remove background playback restrictions
+INFO: Applied: Sanitize sharing links
+INFO: Applied: Spoof video streams
+INFO: Applied: Theme
+INFO: Applied: Disable Play Store updates
+INFO: Rebuilding APK...
+INFO: Compiling patched dex files (mode: STRIP_FAST)
+INFO: Copied 6187 unchanged extension classes to 4 DEX files
+INFO: Changed 273 of 70899 classes to mutable
+INFO: Writing 273 new classes to new DEX files
+INFO: Processing 273 classes (single threaded mode)
+INFO: Wrote 1 dex files to /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/morphe-data/tmp/patching-1793383962388/patcher/patched/newDex
+INFO: Stripped 228 modified classes from 5 original DEX files
+INFO: Compiling modified resources
+INFO: Stripping libs (keeping architectures arm64-v8a, armeabi-v7a, x86, x86_64)
+INFO: Stripped 0 lib files
+INFO: Decoded 24 of 5420 files on request
+INFO: Unescaping strings
+INFO: Post-processing package name change
+INFO: Processing aapt macros
+INFO: Generating new resource IDs
+INFO: Writing resource APK
+INFO: Encoded 66942 of 66942 values in 70 files, 111 resource files and 271 configurations of patches for com.google.android.apps.youtube.music
+INFO: Reusing 5100 unchanged archive entries, rebuilding 113 entries, dropping 0 entries, leaving out 5 replaced entries
+INFO: Resource APK scan: 1.2s write: 600ms
+INFO: Moving 3 resource files
+INFO: Using compiled resource APK as output base
+INFO: Aligning APK
+INFO: Saved to /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/youtube-music-arm64-v8a-patch-v9.15.51.apk
+INFO: Patching took 8.1 seconds
+2026-10-30 18:12:50 Validated patched APK: 85013595 bytes (ABIs: arm64-v8a)
+2026-10-30 18:12:52 Normalized patched APK ZIP headers
+2026-10-30 18:12:53 Validated architecture-filtered APK (ABIs: arm64-v8a)
+2026-10-30 18:12:53 [SIZE] patched: 83267298 bytes (youtube-music-arm64-v8a-patch-v9.15.51.apk)
+Signed
+2026-10-30 18:12:54 [SIZE] signed: 83940409 bytes (youtube-music-arm64-v8a-morphe-v9.15.51.apk)
+✅ APK built: youtube-music-arm64-v8a-morphe-v9.15.51.apk
+✅ Built arm64-v8a: youtube-music-arm64-v8a-morphe-v9.15.51.apk
+
+🎯 1 APK(s) built for 'youtube-music':
+   📱 youtube-music-arm64-v8a-morphe-v9.15.51.apk
+EOF
