@@ -1,6 +1,6 @@
 PyGithub==2.10.0
 beautifulsoup4==4.15.0
-curl-cffi==0.16.3
+curl-cffi==0.17.0
 justapk==0.1.1
-selenium==4.50.0
+selenium==4.52.0
 gplaydl==4.2.1
