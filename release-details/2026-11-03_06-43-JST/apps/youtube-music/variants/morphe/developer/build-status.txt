@@ -1,0 +1,89 @@
+app=youtube-music
+source=morphe
+source_name=Morphe
+phase=Patch
+status=success
+run=https://github.com/almeki876/Morphe-AutoBuilds/actions/runs/41527751295
+
+traceback_or_error_tail<<EOF
+INFO: Skipping disabled: Settings menu filter (default)
+INFO: Skipping disabled: Third-party lyrics (default)
+INFO: Skipping disabled: Enable swipe to dismiss miniplayer (default)
+INFO: Skipping disabled: Force portrait orientation (default)
+INFO: Skipping disabled: Return YouTube Dislike (default)
+INFO: Skipping disabled: SponsorBlock (default)
+INFO: Skipping disabled: Play albums songs (default)
+INFO: Skipping disabled: Android Auto (default)
+INFO: Skipping disabled: Enable audio/video switch (default)
+INFO: Skipping disabled: Media notification controls (default)
+INFO: Skipping disabled: PoToken provider (default)
+INFO: Skipping disabled: Network proxy (default)
+INFO: Skipping disabled: App refresh rate (default)
+INFO: Skipping disabled: Spoof app version (default)
+INFO: Skipping disabled: Skip silence (default)
+INFO: Skipping disabled: Playback speed (default)
+INFO: Applying 22 patches...
+INFO: Deleting existing temporary files directory
+INFO: Decoding the manifest
+INFO: Decoding resources on request, 5420 files can be decoded
+INFO: Timings catalog: table=467ms validateNames=52ms resFiles=86ms stored=2085 deflated=2347 aliases=19ms valuesIndex=29ms rootEntries=2ms packageJson=22ms uncompressedJson=7ms manifest=30ms mkdirs=9ms
+INFO: Executing patches
+INFO: Building instruction indexes for 64667 classes...
+INFO: Applied: Change header
+INFO: Applied: Change miniplayer color
+INFO: Applied: Change start page
+INFO: Applied: Check watch history domain name resolution
+INFO: Applied: Custom branding
+INFO: Applied: Disable DRC audio
+INFO: Applied: Disable QUIC protocol
+INFO: Applied: Enable debugging
+INFO: Applied: Enable exclusive audio playback
+INFO: Applied: Enable forced miniplayer
+INFO: Applied: Force original audio
+INFO: Applied: GmsCore support
+INFO: Applied: Hide ads
+INFO: Applied: Hide buttons
+INFO: Applied: Miniplayer previous and next buttons
+INFO: Applied: Navigation bar
+INFO: Applied: Override certificate pinning
+INFO: Applied: Remove background playback restrictions
+INFO: Applied: Sanitize sharing links
+INFO: Applied: Spoof video streams
+INFO: Applied: Theme
+INFO: Applied: Disable Play Store updates
+INFO: Rebuilding APK...
+INFO: Compiling patched dex files (mode: STRIP_FAST)
+INFO: Copied 6250 unchanged extension classes to 4 DEX files
+INFO: Changed 279 of 70963 classes to mutable
+INFO: Writing 279 new classes to new DEX files
+INFO: Processing 279 classes (single threaded mode)
+INFO: Wrote 1 dex files to /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/morphe-data/tmp/patching-1793655336699/patcher/patched/newDex
+INFO: Stripped 233 modified classes from 5 original DEX files
+INFO: Compiling modified resources
+INFO: Stripping libs (keeping architectures arm64-v8a, armeabi-v7a, x86, x86_64)
+INFO: Stripped 0 lib files
+INFO: Decoded 23 of 5420 files on request
+INFO: Unescaping strings
+INFO: Post-processing package name change
+INFO: Processing aapt macros
+INFO: Generating new resource IDs
+INFO: Writing resource APK
+INFO: Encoded 71399 of 71399 values in 72 files, 111 resource files and 271 configurations of patches for com.google.android.apps.youtube.music
+INFO: Reusing 5100 unchanged archive entries, rebuilding 113 entries, dropping 0 entries, leaving out 5 replaced entries
+INFO: Resource APK scan: 1.4s write: 800ms
+INFO: Timings compile: stripLibs=3ms detectChanges=34ms nativeLibs=8ms relocateRoot=0ms bookkeeping=1ms packageName=8ms tableIds=19ms publicXmlRead=0ms unescape=273ms renameDecl=56ms rename=2ms aaptMacro=48ms resourceIds=350ms definedIds=3ms publicXmlWrite=0ms encode=1378ms declareIds=92ms values=985ms deletedValues=0ms overlayable=4ms configurations=41ms resFiles=12ms deletedEntries=0ms compactSparse=0ms manifest=0ms stringPool=37ms refresh=171ms dropOmit=31ms write=844ms
+INFO: Timings writeApk: dexCompress=841ms omit=1ms collect=0ms deletes=0ms otherFiles=13ms otherFileCount=3 dexWait=0ms addDex=0ms sort=8ms write=820ms
+INFO: Saved to /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/youtube-music-arm64-v8a-patch-v9.15.51.apk
+INFO: Patching took 10.3 seconds
+2026-11-02 21:35:47 Validated patched APK: 85472976 bytes (ABIs: arm64-v8a)
+2026-11-02 21:35:50 Normalized patched APK ZIP headers
+2026-11-02 21:35:51 Validated architecture-filtered APK (ABIs: arm64-v8a)
+2026-11-02 21:35:51 [SIZE] patched: 83742181 bytes (youtube-music-arm64-v8a-patch-v9.15.51.apk)
+Signed
+2026-11-02 21:35:53 [SIZE] signed: 84407353 bytes (youtube-music-arm64-v8a-morphe-v9.15.51.apk)
+✅ APK built: youtube-music-arm64-v8a-morphe-v9.15.51.apk
+✅ Built arm64-v8a: youtube-music-arm64-v8a-morphe-v9.15.51.apk
+
+🎯 1 APK(s) built for 'youtube-music':
+   📱 youtube-music-arm64-v8a-morphe-v9.15.51.apk
+EOF

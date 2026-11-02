@@ -1,0 +1,89 @@
+app=amazon-music
+source=rookie
+source_name=RookieEnough
+phase=Patch
+status=success
+run=https://github.com/almeki876/Morphe-AutoBuilds/actions/runs/41527751295
+
+traceback_or_error_tail<<EOF
+Description: Prevents the Quick Edit prompt from popping up.
+Enabled: true
+
+Index: 67
+Name: Add route export
+Description: Allows exporting and downloading Strava routes as GPX or TCX files directly from the app.
+Enabled: true
+
+Index: 68
+Name: Unlock subscription features
+Description: Unlocks "Routes", "Matched Runs" and "Segment Efforts".
+Enabled: true
+
+Index: 69
+Name: Hide Ads
+Description: Hides ad banners between chats.
+Enabled: true
+
+Index: 70
+Name: Hide navigation buttons
+Description: Permanently hides navigation bar buttons, such as Explore and Marketplace.
+Enabled: false
+2026-11-02 21:39:51 enable_patches=[]  disable_patches=[]
+2026-11-02 21:39:51 Running: java -Djava.awt.headless=true -Xmx6g -Xms3g -Dfile.encoding=UTF-8 -XX:-UsePerfData -XX:+UseG1GC -XX:MaxGCPauseMillis=150 -XX:G1HeapRegionSize=2m -XX:+UseStringDeduplication -XX:+ParallelRefProcEnabled -XX:ConcGCThreads=2 -XX:ParallelGCThreads=4 -XX:CICompilerCount=3 -XX:+UseCompressedOops -XX:+OptimizeStringConcat -XX:+DisableExplicitGC -XX:+TieredCompilation -XX:ReservedCodeCacheSize=128m -XX:InitialCodeCacheSize=32m -XX:MaxMetaspaceSize=128m -XX:SoftRefLRUPolicyMSPerMB=50 --add-opens=java.base/java.lang=ALL-UNNAMED --add-opens=java.base/java.util=ALL-UNNAMED --add-opens=java.base/java.io=ALL-UNNAMED -jar morphe-desktop-2.0.0-dev.5-all.jar patch --force --continue-on-error --unsigned -p patches-1.6.3.mpp --out=amazon-music-arm64-v8a-patch-v26.36.1.apk --bytecode-mode=STRIP_FAST .build-splits-amazon-music-v26.36.1/base.apk
+⚠️  Ignoring legacy BASE_APK_CACHE_TAG='base-apk-cache-v2'; using 'base-apk-cache-v4-ja-jp-px9a-split'
+INFO: Morphe data root: /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/morphe-data (JAR-adjacent)
+INFO: Initializing patcher...
+INFO: Timings startup: loadApk=105ms manifest=77ms
+INFO: Loading patches from 1 bundle(s)...
+INFO: Filtering patches for com.amazon.mp3 v26.36.1...
+INFO: Skipping disabled: Clone app (default)
+INFO: Applying 5 patches...
+INFO: Deleting existing temporary files directory
+INFO: Decoding all resources
+INFO: Leaving 17 native library files in the input APK
+INFO: Sanitizing unpatched strings
+INFO: Escaping strings
+INFO: Timings catalog: decodeAll=5675ms
+INFO: Executing patches
+INFO: Applied: Prevent log upload
+INFO: Applied: Rename shared permissions
+INFO: Applied: Skip ads
+INFO: Applied: Unlimited track skipping
+INFO: Applied: Unlock Unlimited
+INFO: Rebuilding APK...
+INFO: Compiling patched dex files (mode: STRIP_FAST)
+INFO: Copied 103 unchanged extension classes to 2 DEX files
+INFO: Changed 8 of 152918 classes to mutable
+INFO: Writing 8 new classes to new DEX files
+INFO: Processing 8 classes (single threaded mode)
+INFO: Wrote 1 dex files to /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/morphe-data/tmp/patching-1793655593473/patcher/patched/newDex
+INFO: Stripped 7 modified classes from 5 original DEX files
+INFO: Compiling modified resources
+INFO: Stripping libs (keeping architectures arm64-v8a, armeabi-v7a, x86, x86_64)
+INFO: Stripped 0 lib files
+INFO: Unescaping strings
+INFO: Processing aapt macros
+INFO: Generating new resource IDs
+INFO: Writing resource APK
+INFO: Reusing 4628 unchanged archive entries, rebuilding 2 entries, dropping 0 entries, leaving out 5 replaced entries
+INFO: Resource APK scan: 400ms write: 1.7s
+INFO: Timings compile: stripLibs=184ms detectChanges=93ms nativeLibs=17ms relocateRoot=0ms bookkeeping=0ms packageName=10ms publicXmlRead=55ms unescape=0ms renameDecl=0ms rename=0ms aaptMacro=1ms resourceIds=56ms definedIds=12ms publicXmlWrite=24ms encode=364ms declareIds=41ms values=0ms deletedValues=0ms overlayable=0ms configurations=0ms resFiles=5ms deletedEntries=0ms compactSparse=0ms manifest=0ms stringPool=39ms refresh=61ms dropOmit=26ms write=1660ms
+INFO: Timings writeApk: dexCompress=193ms omit=2ms collect=0ms deletes=0ms otherFiles=1ms otherFileCount=0 dexWait=0ms addDex=0ms sort=9ms write=1646ms
+INFO: Saved to /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/amazon-music-arm64-v8a-patch-v26.36.1.apk
+INFO: Patching took 10.5 seconds
+2026-11-02 21:40:05 Merging patched base APK with original split modules…
+2026-11-02 21:40:07 Fetched latest release: V1.4.9
+2026-11-02 21:40:07 URL: https://release-assets.githubusercontent.com/github-production-release-asset/576398953/c64f423b-578f-44d0-9c3c-d016189acc1e [7733037/7733037] -> "APKEditor-1.4.9.jar" [1]
+2026-11-02 21:40:25 Merged patched APK: amazon-music-arm64-v8a-patch-v26.36.1.apk
+2026-11-02 21:40:26 Validated patched APK: 345625680 bytes (ABIs: arm64-v8a, armeabi-v7a, x86, x86_64)
+2026-11-02 21:40:36 Removed 145 non-target native libraries
+2026-11-02 21:40:37 Validated architecture-filtered APK (ABIs: arm64-v8a)
+2026-11-02 21:40:37 [SIZE] patched: 177855530 bytes (amazon-music-arm64-v8a-patch-v26.36.1.apk)
+Signed
+2026-11-02 21:40:41 [SIZE] signed: 178878303 bytes (amazon-music-arm64-v8a-rookie-v26.36.1.apk)
+✅ APK built: amazon-music-arm64-v8a-rookie-v26.36.1.apk
+✅ Built arm64-v8a: amazon-music-arm64-v8a-rookie-v26.36.1.apk
+
+🎯 1 APK(s) built for 'amazon-music':
+   📱 amazon-music-arm64-v8a-rookie-v26.36.1.apk
+EOF
