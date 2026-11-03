@@ -1,0 +1,89 @@
+app=tumblr
+source=hoomans
+source_name=arandomhooman
+phase=Patch
+status=success
+run=https://github.com/almeki876/Morphe-AutoBuilds/actions/runs/41627828290
+
+traceback_or_error_tail<<EOF
+INFO: Added [base] classes3.dex -> classes3.dex
+INFO: Added [base] classes4.dex -> classes4.dex
+INFO: Added [base] classes5.dex -> classes5.dex
+INFO: Added [base] classes6.dex -> classes6.dex
+INFO: Added [base] classes7.dex -> classes7.dex
+INFO: Added [base] classes8.dex -> classes8.dex
+INFO: Merging: split_config.ko
+INFO: Merging: split_config.arm64_v8a
+INFO: Merging: split_config.in
+INFO: Merging: split_config.ja
+INFO: Merging: split_config.xxhdpi
+INFO: Merging: split_config.xxxhdpi
+INFO: Merging: split_config.it
+INFO: Merging: split_config.mdpi
+INFO: Merging: split_config.zh
+INFO: Merging: split_config.es
+INFO: Merging: split_config.x86
+INFO: Merging: split_config.ru
+INFO: Merging: split_config.pt
+INFO: Merging: split_config.de
+INFO: Merging: split_config.x86_64
+INFO: Merging: split_config.hi
+INFO: Merging: split_config.pl
+INFO: Merging: split_config.tr
+INFO: Merging: split_config.nl
+INFO: Merging: split_config.ldpi
+INFO: Merging: split_config.tvdpi
+INFO: Merging: split_config.xhdpi
+INFO: Merging: split_config.fr
+INFO: Merging: split_config.hdpi
+INFO: Merging: split_config.armeabi_v7a
+INFO: Validating resources dir ...
+INFO: Sanitizing manifest ...
+INFO: Setting extractNativeLibs=false
+INFO: Writing apk ...
+INFO: Buffering compress changed files ...
+INFO: Writing files: 5721
+INFO: Writing signature block ...
+INFO: Saved to: /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/.morphe-tmp-tumblr-arm64-v8a/patching-1793706190200/.build-input-arm64-v8a-merged.apk
+INFO: Initializing patcher...
+INFO: Loading patches from 1 bundle(s)...
+INFO: Filtering patches for com.tumblr v45.8.0.110...
+INFO: Applying 8 patches...
+INFO: Executing patches
+INFO: Building instruction indexes for 65002 classes...
+INFO: Applied: Disable Tumblr TV
+INFO: Applied: Disable ad-free banner
+INFO: Applied: Disable blog notification reminder
+INFO: Applied: Disable gift message popup
+INFO: Applied: Disable in-app update
+INFO: Applied: Disable screenshot sharing
+INFO: Applied: Enable premium UI
+INFO: Applied: Remove ads
+INFO: Rebuilding APK...
+INFO: Compiling patched dex files (mode: STRIP_FAST)
+INFO: Changed 12 of 65002 classes to mutable
+INFO: Writing 12 new classes to new DEX files
+INFO: Processing 12 classes (single threaded mode)
+INFO: Wrote 1 dex files to /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/.morphe-tmp-tumblr-arm64-v8a/patching-1793706190200/patcher/patched/newDex
+INFO: Stripped 12 modified classes from 2 original DEX files
+INFO: Stripping libs (keeping architectures arm64-v8a, armeabi-v7a, x86, x86_64)
+INFO: Stripped 0 lib files
+INFO: Aligning APK
+INFO: Saved to /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/tumblr-arm64-v8a-patch-v45.8.0.110.apk
+INFO: Patching took 4.6 seconds
+INFO: Patching result saved to /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/.patch-result-tumblr-arm64-v8a.json
+2026-11-03 11:43:15 Validated patched APK: 76652744 bytes (ABIs: arm64-v8a, armeabi-v7a, x86, x86_64)
+2026-11-03 11:43:16 Removed 39 non-target native libraries
+2026-11-03 11:43:16 Validated architecture-filtered APK (ABIs: arm64-v8a)
+2026-11-03 11:43:16 [SIZE] patched: 64082245 bytes (tumblr-arm64-v8a-patch-v45.8.0.110.apk)
+2026-11-03 11:43:18 Fetched latest release: V1.4.9
+2026-11-03 11:43:18 URL: https://release-assets.githubusercontent.com/github-production-release-asset/576398953/c64f423b-578f-44d0-9c3c-d016189acc1e [7733037/7733037] -> "APKEditor-1.4.9.jar" [1]
+2026-11-03 11:43:28 Set APK versionName to release tag 2026-11-03_20-28-JST
+Signed
+2026-11-03 11:43:30 [SIZE] signed: 64664147 bytes (tumblr-arm64-v8a-hoomans-v45.8.0.110.apk)
+✅ APK built: tumblr-arm64-v8a-hoomans-v45.8.0.110.apk
+✅ Built arm64-v8a: tumblr-arm64-v8a-hoomans-v45.8.0.110.apk
+
+🎯 1 APK(s) built for 'tumblr':
+   📱 tumblr-arm64-v8a-hoomans-v45.8.0.110.apk
+EOF
