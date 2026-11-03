@@ -8,6 +8,15 @@ from src import providers
 
 
 class AppMetadataTests(unittest.TestCase):
+    def test_ibs_paint_requires_arm64_patch_library(self) -> None:
+        metadata = providers.load_app_metadata("ibs_paint")
+
+        self.assertEqual(metadata["source_policy"], "google-play-first")
+        self.assertEqual(
+            providers.required_apk_entries("ibs_paint"),
+            ("lib/arm64-v8a/libibispaint.so",),
+        )
+
     def test_metadata_supplies_package_and_play_only_policy(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             metadata_dir = Path(directory)
