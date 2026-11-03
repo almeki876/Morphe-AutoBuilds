@@ -3,7 +3,7 @@
 [English](Morphe-AutoBuilds-Direct-Download.md) | 日本語
 
 - Releases: [GitHub Releases](https://github.com/almeki876/Morphe-AutoBuilds/releases)
-- 最終更新日時: 2026-11-04 04:12 JST
+- 最終更新日時: 2026-11-04 07:52 JST
 
 ## [Morphe](https://github.com/MorpheApp/morphe-patches)
 
@@ -171,7 +171,7 @@
 
 ### Proton Mail
 
-[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.04.0405/proton-mail-arm64-v8a-hxreborn-v7.11.12.apk)
+[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.04.0744/proton-mail-arm64-v8a-hxreborn-v7.11.12.apk)
 
 ## [rushiranpise universal](https://github.com/rushiranpise/Ri-Vanced-Universal-Morphe-Patches)
 
@@ -201,7 +201,7 @@
 
 ### Photoshop Mix
 
-[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.04.0405/photoshop-mix-arm64-v8a-rookie-v2.6.3.apk)
+[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.04.0744/photoshop-mix-arm64-v8a-rookie-v2.6.3.apk)
 
 ### Google Photos
 
@@ -329,4 +329,4 @@
 
 ### Brave Nightly
 
-[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2305/brave-nightly-arm64-v8a-dh6k-v1.101.4.apk)
+[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.04.0744/brave-nightly-arm64-v8a-dh6k-v1.101.21.apk)
