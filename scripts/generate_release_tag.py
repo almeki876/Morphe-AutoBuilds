@@ -9,7 +9,7 @@ from zoneinfo import ZoneInfo
 
 
 def main() -> int:
-    tag = datetime.now(ZoneInfo("Asia/Tokyo")).strftime("%Y-%m-%d_%H-%M-JST")
+    tag = datetime.now(ZoneInfo("Asia/Tokyo")).strftime("%Y.%m.%d.%H%M")
     output = os.getenv("GITHUB_OUTPUT")
     if not output:
         raise RuntimeError("GITHUB_OUTPUT is required")
