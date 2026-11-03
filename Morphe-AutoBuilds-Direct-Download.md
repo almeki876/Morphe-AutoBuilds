@@ -3,330 +3,330 @@
 English | [日本語](Morphe-AutoBuilds-Direct-Download.ja.md)
 
 - Releases: [GitHub Releases](https://github.com/almeki876/Morphe-AutoBuilds/releases)
-- Last updated: 2026-11-03 21:26 JST
+- Last updated: 2026-11-03 21:56 JST
 
 ## [Morphe](https://github.com/MorpheApp/morphe-patches)
 
 ### YouTube
 
-[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2105/youtube-arm64-v8a-morphe-v20.51.39.apk)
+[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2135/youtube-arm64-v8a-morphe-v20.51.39.apk)
 
 ### YouTube Music
 
-[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2105/youtube-music-arm64-v8a-morphe-v9.15.51.apk)
+[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2135/youtube-music-arm64-v8a-morphe-v9.15.51.apk)
 
 ## [Anddea](https://github.com/anddea/revanced-patches)
 
 ### YouTube
 
-[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2105/youtube-arm64-v8a-revanced-anddea-v21.13.164.apk)
+[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2135/youtube-arm64-v8a-revanced-anddea-v21.13.164.apk)
 
 ### YouTube Music
 
-[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2105/youtube-music-arm64-v8a-revanced-anddea-v9.15.51.apk)
+[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2135/youtube-music-arm64-v8a-revanced-anddea-v9.15.51.apk)
 
 ## [rushiranpise](https://github.com/rushiranpise/morphe-patches)
 
 ### Adguard
 
-[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2105/adguard-arm64-v8a-rushiranpise-v4.15.1.apk)
+[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2135/adguard-arm64-v8a-rushiranpise-v4.15.1.apk)
 
 ### Proton Vpn
 
-[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2105/proton-vpn-arm64-v8a-rushiranpise-v5.19.78.0.apk)
+[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2135/proton-vpn-arm64-v8a-rushiranpise-v5.19.78.0.apk)
 
 ### Mega
 
-[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2105/mega-arm64-v8a-rushiranpise-v16.12.262370820.dcdf0a7f27.apk)
+[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2135/mega-arm64-v8a-rushiranpise-v16.12.262370820.dcdf0a7f27.apk)
 
 ### Amazon Shopping
 
-[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2105/amazon-shopping-arm64-v8a-rushiranpise-v32.19.0.100.apk)
+[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2135/amazon-shopping-arm64-v8a-rushiranpise-v32.19.0.100.apk)
 
 ### 1 1 1 1
 
-[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2105/1-1-1-1-arm64-v8a-rushiranpise-v6.38.11.apk)
+[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2135/1-1-1-1-arm64-v8a-rushiranpise-v6.38.11.apk)
 
 ### Word
 
-[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2105/word-arm64-v8a-rushiranpise-v16.0.20228.20090.apk)
+[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2135/word-arm64-v8a-rushiranpise-v16.0.20228.20090.apk)
 
 ### Windscribe Vpn
 
-[universal](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2105/windscribe-vpn-universal-rushiranpise-v4.3.2360.apk) · [arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026-10-07_21-20-JST/windscribe-vpn-arm64-v8a-rushiranpise-v4.2.2328.apk)
+[universal](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2135/windscribe-vpn-universal-rushiranpise-v4.3.2360.apk) · [arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026-10-07_21-20-JST/windscribe-vpn-arm64-v8a-rushiranpise-v4.2.2328.apk)
 
 ### Adobe Scan
 
-[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2105/adobe-scan-arm64-v8a-rushiranpise-v26.08.01.apk)
+[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2135/adobe-scan-arm64-v8a-rushiranpise-v26.08.01.apk)
 
 ### Accubattery
 
-[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2105/accubattery-arm64-v8a-rushiranpise-v2.1.8.apk)
+[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2135/accubattery-arm64-v8a-rushiranpise-v2.1.8.apk)
 
 ### Kinemaster
 
-[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2105/kinemaster-arm64-v8a-rushiranpise-v8.1.13.36552.GP.apk)
+[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2135/kinemaster-arm64-v8a-rushiranpise-v8.1.13.36552.GP.apk)
 
 ### Kahoot
 
-[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2105/kahoot-arm64-v8a-rushiranpise-v6.6.7.apk)
+[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2135/kahoot-arm64-v8a-rushiranpise-v6.6.7.apk)
 
 ### Ninja Vpn
 
-[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2105/ninja-vpn-arm64-v8a-rushiranpise-v1.4.7.apk)
+[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2135/ninja-vpn-arm64-v8a-rushiranpise-v1.4.7.apk)
 
 ### Speedtest
 
-[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2105/speedtest-arm64-v8a-rushiranpise-v7.1.2.apk)
+[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2135/speedtest-arm64-v8a-rushiranpise-v7.1.2.apk)
 
 ### SD Maid SE
 
-[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2105/sd-maid-se-arm64-v8a-rushiranpise-v2.0.3-rc0.apk)
+[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2135/sd-maid-se-arm64-v8a-rushiranpise-v2.0.3-rc0.apk)
 
 ### File Manager
 
-[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2105/file-manager-arm64-v8a-rushiranpise-v3.8.2.apk)
+[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2135/file-manager-arm64-v8a-rushiranpise-v3.8.2.apk)
 
 ### Excel
 
-[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2105/excel-arm64-v8a-rushiranpise-v16.0.20228.20090.apk)
+[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2135/excel-arm64-v8a-rushiranpise-v16.0.20228.20090.apk)
 
 ### Call Recorder
 
-[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2105/call-recorder-arm64-v8a-rushiranpise-v2.4.281.apk)
+[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2135/call-recorder-arm64-v8a-rushiranpise-v2.4.281.apk)
 
 ### Camscanner
 
-[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2105/camscanner-arm64-v8a-rushiranpise-v7.24.5.2608200000.apk)
+[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2135/camscanner-arm64-v8a-rushiranpise-v7.24.5.2608200000.apk)
 
 ### Countdown Widget
 
-[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2105/countdown-widget-arm64-v8a-rushiranpise-v3.2.0.apk)
+[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2135/countdown-widget-arm64-v8a-rushiranpise-v3.2.0.apk)
 
 ## [hoo-dles](https://github.com/hoo-dles/morphe-patches)
 
 ### Prime Video
 
-[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2105/prime-video-arm64-v8a-hoo-dles-v3.0.470.1047.apk)
+[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2135/prime-video-arm64-v8a-hoo-dles-v3.0.470.1047.apk)
 
 ### Duolingo
 
-[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2105/duolingo-arm64-v8a-hoo-dles-v6.98.4.apk)
+[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2135/duolingo-arm64-v8a-hoo-dles-v6.98.4.apk)
 
 ### Ibs_paint
 
-[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2105/ibs_paint-arm64-v8a-hoo-dles-v14.1.0.apk)
+[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2135/ibs_paint-arm64-v8a-hoo-dles-v14.1.0.apk)
 
 ### Icon Packer
 
-[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2105/icon-packer-arm64-v8a-hoo-dles-v1.21.0-release.apk)
+[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2135/icon-packer-arm64-v8a-hoo-dles-v1.21.0-release.apk)
 
 ### Smart_launcher
 
-[universal](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2105/smart_launcher-universal-hoo-dles-v6.6.build.020.apk) · [arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026-09-28_06-39-JST/smart_launcher-arm64-v8a-hoo-dles-v6.6.build.016.apk)
+[universal](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2135/smart_launcher-universal-hoo-dles-v6.6.build.020.apk) · [arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026-09-28_06-39-JST/smart_launcher-arm64-v8a-hoo-dles-v6.6.build.016.apk)
 
 ### Soundcloud
 
-[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2105/soundcloud-arm64-v8a-hoo-dles-v2026.08.26-release.apk)
+[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2135/soundcloud-arm64-v8a-hoo-dles-v2026.08.26-release.apk)
 
 ### Wps Office
 
-[universal](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026-08-25_11-50-JST/wps-office-universal-hoo-dles-v18.24.apk) · [arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2105/wps-office-arm64-v8a-hoo-dles-v18.24.apk)
+[universal](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026-08-25_11-50-JST/wps-office-universal-hoo-dles-v18.24.apk) · [arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2135/wps-office-arm64-v8a-hoo-dles-v18.24.apk)
 
 ### Google News
 
-[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2105/google-news-arm64-v8a-hoo-dles-v5.161.0.931240252.apk)
+[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2135/google-news-arm64-v8a-hoo-dles-v5.161.0.931240252.apk)
 
 ### Github
 
-[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2105/github-arm64-v8a-hoo-dles-v1.271.1.apk)
+[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2135/github-arm64-v8a-hoo-dles-v1.271.1.apk)
 
 ### Lightroom
 
-[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2105/lightroom-arm64-v8a-hoo-dles-v11.5.31.apk)
+[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2135/lightroom-arm64-v8a-hoo-dles-v11.5.31.apk)
 
 ### Windy
 
-[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2105/windy-arm64-v8a-hoo-dles-v51.0.1.apk)
+[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2135/windy-arm64-v8a-hoo-dles-v51.0.1.apk)
 
 ### Xodo
 
-[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2105/xodo-arm64-v8a-hoo-dles-v11.2.0.apk)
+[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2135/xodo-arm64-v8a-hoo-dles-v11.2.0.apk)
 
 ### Xrecorder
 
-[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2105/xrecorder-arm64-v8a-hoo-dles-v2.5.1.1.apk)
+[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2135/xrecorder-arm64-v8a-hoo-dles-v2.5.1.1.apk)
 
 ## [Entree3k](https://github.com/Entree3k/Morning-Entree-Patches)
 
 ### Nova
 
-[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2105/nova-arm64-v8a-morning-entree-v88600.8.8.6.apk)
+[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2135/nova-arm64-v8a-morning-entree-v88600.8.8.6.apk)
 
 ### Sleep AS Android
 
-[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2105/sleep-as-android-arm64-v8a-morning-entree-v20260616.apk)
+[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2135/sleep-as-android-arm64-v8a-morning-entree-v20260616.apk)
 
 ## [hxreborn](https://github.com/hxreborn/morphe-patches)
 
 ### Proton Mail
 
-[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2105/proton-mail-arm64-v8a-hxreborn-v7.11.12.apk)
+[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2135/proton-mail-arm64-v8a-hxreborn-v7.11.12.apk)
 
 ## [rushiranpise universal](https://github.com/rushiranpise/Ri-Vanced-Universal-Morphe-Patches)
 
 ### Yuucho Tsucho
 
-[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2105/yuucho-tsucho-arm64-v8a-rushiranpise-universal-v24.0.0.apk)
+[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2135/yuucho-tsucho-arm64-v8a-rushiranpise-universal-v24.0.0.apk)
 
 ### Yuucho Ninsho
 
-[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2105/yuucho-ninsho-arm64-v8a-rushiranpise-universal-v18.0.0.apk)
+[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2135/yuucho-ninsho-arm64-v8a-rushiranpise-universal-v18.0.0.apk)
 
 ## [nekogryphou](https://github.com/NekoGryphou/gryphous-morphe-patches)
 
 ### Crunchyroll
 
-[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2105/crunchyroll-arm64-v8a-nekogryphou-v3.112.2.apk)
+[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2135/crunchyroll-arm64-v8a-nekogryphou-v3.112.2.apk)
 
 ## [RookieEnough](https://github.com/RookieEnough/De-Vanced)
 
 ### Photomath
 
-[universal](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026-07-23_20-09-JST/photomath-universal-rookie-v8.47.1.apk) · [arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2105/photomath-arm64-v8a-rookie-v8.48.0.apk)
+[universal](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026-07-23_20-09-JST/photomath-universal-rookie-v8.47.1.apk) · [arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2135/photomath-arm64-v8a-rookie-v8.48.0.apk)
 
 ### Pixiv
 
-[universal](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026-08-07_14-35-JST/pixiv-universal-rookie-v6.141.1.apk) · [arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2105/pixiv-arm64-v8a-rookie-v6.141.1.apk)
+[universal](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026-08-07_14-35-JST/pixiv-universal-rookie-v6.141.1.apk) · [arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2135/pixiv-arm64-v8a-rookie-v6.141.1.apk)
 
 ### Photoshop Mix
 
-[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2105/photoshop-mix-arm64-v8a-rookie-v2.6.3.apk)
+[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2135/photoshop-mix-arm64-v8a-rookie-v2.6.3.apk)
 
 ### Google Photos
 
-[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2105/google-photos-arm64-v8a-rookie-v7.92.0.977185651.apk)
+[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2135/google-photos-arm64-v8a-rookie-v7.92.0.977185651.apk)
 
 ### Google Recorder
 
-[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2105/google-recorder-arm64-v8a-rookie-v4.2.20260823.992025916.apk)
+[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2135/google-recorder-arm64-v8a-rookie-v4.2.20260823.992025916.apk)
 
 ### Viber
 
-[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2105/viber-arm64-v8a-rookie-v26.1.2.0.apk)
+[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2135/viber-arm64-v8a-rookie-v26.1.2.0.apk)
 
 ### Amazon Music
 
-[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2105/amazon-music-arm64-v8a-rookie-v26.36.1.apk)
+[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2135/amazon-music-arm64-v8a-rookie-v26.36.1.apk)
 
 ## [durgesh0505](https://github.com/durgesh0505/chiggi_morphe_patches)
 
 ### Threads
 
-[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2105/threads-arm64-v8a-durgesh0505-v434.0.0.41.74.apk)
+[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2135/threads-arm64-v8a-durgesh0505-v434.0.0.41.74.apk)
 
 ## [icysymmetra](https://github.com/icysymmetra/tiktok-patches-for-morphe)
 
 ### TikTok
 
-[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2105/tiktok-arm64-v8a-icysymmetra-v47.4.3.apk)
+[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2135/tiktok-arm64-v8a-icysymmetra-v47.4.3.apk)
 
 ## [arandomhooman](https://github.com/arandomhooman/hoomans-morphe-patches)
 
 ### Tumblr
 
-[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2105/tumblr-arm64-v8a-hoomans-v45.8.0.110.apk)
+[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2135/tumblr-arm64-v8a-hoomans-v45.8.0.110.apk)
 
 ### Twitch
 
-[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2105/twitch-arm64-v8a-hoomans-v30.7.2.apk)
+[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2135/twitch-arm64-v8a-hoomans-v30.7.2.apk)
 
 ### Adobe Acrobat
 
-[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2105/adobe-acrobat-arm64-v8a-hoomans-v26.7.1.47181.apk)
+[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2135/adobe-acrobat-arm64-v8a-hoomans-v26.7.1.47181.apk)
 
 ### Foldersync
 
-[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2105/foldersync-arm64-v8a-hoomans-v4.12.0.apk)
+[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2135/foldersync-arm64-v8a-hoomans-v4.12.0.apk)
 
 ### Inshot
 
-[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2105/inshot-arm64-v8a-hoomans-v2.214.1539.apk)
+[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2135/inshot-arm64-v8a-hoomans-v2.214.1539.apk)
 
 ### Poweramp
 
-[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2105/poweramp-arm64-v8a-hoomans-vbuild-1025-bundle-play.apk)
+[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2135/poweramp-arm64-v8a-hoomans-vbuild-1025-bundle-play.apk)
 
 ## [ajstrick81](https://github.com/ajstrick81/morphe-androidtv-patches)
 
 ### Twitch Android TV
 
-[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2105/twitch-android-tv-arm64-v8a-ajstrick81-v13.0.0.2.apk)
+[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2135/twitch-android-tv-arm64-v8a-ajstrick81-v13.0.0.2.apk)
 
 ### Prime Video Android TV
 
-[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026-08-20_23-55-JST/prime-video-android-tv-arm64-v8a-ajstrick81-v6.23.23%2Bv15.5.0.70-armv7a.apk) · [armeabi-v7a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2105/prime-video-android-tv-armeabi-v7a-ajstrick81-v6.23.23%2Bv15.5.0.70-armv7a.apk)
+[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026-08-20_23-55-JST/prime-video-android-tv-arm64-v8a-ajstrick81-v6.23.23%2Bv15.5.0.70-armv7a.apk) · [armeabi-v7a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2135/prime-video-android-tv-armeabi-v7a-ajstrick81-v6.23.23%2Bv15.5.0.70-armv7a.apk)
 
 ### Netflix Ninja
 
-[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026-08-20_23-55-JST/netflix-ninja-arm64-v8a-ajstrick81-v13.0.1.build.25028.apk) · [armeabi-v7a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2105/netflix-ninja-armeabi-v7a-ajstrick81-v13.0.1.build.25028.apk)
+[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026-08-20_23-55-JST/netflix-ninja-arm64-v8a-ajstrick81-v13.0.1.build.25028.apk) · [armeabi-v7a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2135/netflix-ninja-armeabi-v7a-ajstrick81-v13.0.1.build.25028.apk)
 
 ### Disney Plus
 
-[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2105/disney-plus-arm64-v8a-ajstrick81-v26.8.0%2Brc6-2026.05.20.apk)
+[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2135/disney-plus-arm64-v8a-ajstrick81-v26.8.0%2Brc6-2026.05.20.apk)
 
 ## [rabilrbl](https://github.com/rabilrbl/fluffy-patches)
 
 ### Alarmy
 
-[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2105/alarmy-arm64-v8a-fluffy-v26.32.1.apk)
+[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2135/alarmy-arm64-v8a-fluffy-v26.32.1.apk)
 
 ## [Quantro100](https://github.com/Quantro100/Morphe-patches)
 
 ### Aliexpress
 
-[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2105/aliexpress-arm64-v8a-quantro-v8.162.8.apk)
+[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2135/aliexpress-arm64-v8a-quantro-v8.162.8.apk)
 
 ## [shaun-the-sheep-patches](https://github.com/shaun-the-sheep-patches/morphe-patches)
 
 ### Kinestop
 
-[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2105/kinestop-arm64-v8a-shaun-the-sheep-patches-v5.1.apk)
+[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2135/kinestop-arm64-v8a-shaun-the-sheep-patches-v5.1.apk)
 
 ## [kiraio-moe](https://github.com/kiraio-moe/Lain-Patches)
 
 ### Ilovepdf
 
-[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2105/ilovepdf-arm64-v8a-lain-v4.0.1.apk)
+[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2135/ilovepdf-arm64-v8a-lain-v4.0.1.apk)
 
 ## [andrewliang25](https://github.com/andrewliang25/morphe-patches)
 
 ### Line
 
-[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2105/line-arm64-v8a-andrewliang25-v26.14.0.apk)
+[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2135/line-arm64-v8a-andrewliang25-v26.14.0.apk)
 
 ## [BholeyKaBhakt](https://github.com/BholeyKaBhakt/android-patches-xtra)
 
 ### Speedtest
 
-[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2105/speedtest-arm64-v8a-bholey-v7.0.4.apk)
+[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2135/speedtest-arm64-v8a-bholey-v7.0.4.apk)
 
 ## [Paresh-Maheshwari](https://gitlab.com/Paresh-Maheshwari/paresh-patches)
 
 ### Fing
 
-[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2105/fing-arm64-v8a-paresh-v12.12.0.apk)
+[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2135/fing-arm64-v8a-paresh-v12.12.0.apk)
 
 ## [dh6k](https://github.com/dh6k/morphe-patches)
 
 ### Brave
 
-[universal](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026-09-05_06-02-JST/brave-universal-dh6k-v1.94.119.apk) · [arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2105/brave-arm64-v8a-dh6k-v1.98.63.apk)
+[universal](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026-09-05_06-02-JST/brave-universal-dh6k-v1.94.119.apk) · [arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2135/brave-arm64-v8a-dh6k-v1.98.63.apk)
 
 ### Brave Beta
 
-[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2105/brave-beta-arm64-v8a-dh6k-v1.100.44.apk)
+[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2135/brave-beta-arm64-v8a-dh6k-v1.100.44.apk)
 
 ### Brave Nightly
 
-[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2105/brave-nightly-arm64-v8a-dh6k-v1.101.4.apk)
+[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2135/brave-nightly-arm64-v8a-dh6k-v1.101.4.apk)
