@@ -1162,6 +1162,8 @@ def _set_release_version_name(apk: Path, release_tag: str) -> None:
         android_namespace = "http://schemas.android.com/apk/res/android"
         ET.register_namespace("android", android_namespace)
         manifest.set(f"{{{android_namespace}}}versionName", release_tag)
+        for attribute in ("requiredSplitTypes", "splitTypes"):
+            manifest.attrib.pop(f"{{{android_namespace}}}{attribute}", None)
         tree.write(manifest_path, encoding="utf-8", xml_declaration=True)
 
         utils.run_process(
@@ -1563,12 +1565,15 @@ def run_build(app_name: str, source: str, arch: str = "universal") -> str:
             )
         except apk_validation.ApkValidationError as error:
             raise BuildFailure("APK_VALIDATION_FAILED", str(error)) from error
-        if is_morphe:
+        if (
+            is_morphe
+            and not providers.merge_split_bundles_with_apkeditor(app_name)
+        ):
             input_apk = _prepare_bundle_input(split_bundle)
         else:
             input_apk = _merge_bundle_with_apkeditor(split_bundle, app_name, arch)
 
-    if split_bundle is None:
+    if split_bundle is None or input_apk.suffix.casefold() == ".apk":
         logging.info("Validating patch input for '%s' architecture…", arch)
         try:
             input_abis = apk_validation.validate_apk(

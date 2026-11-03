@@ -1,0 +1,4 @@
+{
+  "package": "com.alibaba.aliexpresshd",
+  "merge_split_bundles_with_apkeditor": true
+}

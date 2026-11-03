@@ -101,7 +101,18 @@ def load_app_metadata(app_name: str) -> dict:
         isinstance(value, str) and value.strip() for value in required_entries
     ):
         raise ValueError(f"invalid required_apk_entries in {path}")
+    merge_split_bundles = metadata.get("merge_split_bundles_with_apkeditor", False)
+    if not isinstance(merge_split_bundles, bool):
+        raise ValueError(
+            f"invalid merge_split_bundles_with_apkeditor in {path}; expected a boolean"
+        )
     return metadata
+
+
+def merge_split_bundles_with_apkeditor(app_name: str) -> bool:
+    """Return whether this app's split bundles need an APKEditor merge."""
+    metadata = load_app_metadata(app_name)
+    return bool(metadata.get("merge_split_bundles_with_apkeditor", False))
 
 
 def source_policy(app_name: str) -> str:

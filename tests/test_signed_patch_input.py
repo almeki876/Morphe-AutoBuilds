@@ -59,6 +59,8 @@ class SignedPatchInputTests(unittest.TestCase):
                     output_dir.mkdir()
                     (output_dir / "AndroidManifest.xml").write_text(
                         '<manifest xmlns:android="http://schemas.android.com/apk/res/android" '
+                        'android:requiredSplitTypes="base__abi,base__density" '
+                        'android:splitTypes="" '
                         'android:versionName="1.2.3" />',
                         encoding="utf-8",
                     )
@@ -98,6 +100,8 @@ class SignedPatchInputTests(unittest.TestCase):
                 f'android:versionName="{identity.version_name}"',
                 manifest_versions[0],
             )
+            self.assertNotIn("requiredSplitTypes", manifest_versions[0])
+            self.assertNotIn("splitTypes", manifest_versions[0])
             self.assertEqual(apk.read_bytes(), b"versioned")
 
     def test_morphe_patching_defers_signing_to_the_final_pipeline_step(self) -> None:

@@ -2,9 +2,9 @@
 
 Reference: MorpheApp/morphe-desktop ``docs/documentation.md``.
 
-* Split bundles (``.apkm``/``.xapk``/``.apks``) are passed to ``patch``; the CLI
-  merges the modules before patching.  Merging happens before patching, never
-  after.
+* Split bundles (``.apkm``/``.xapk``/``.apks``) are normally passed to ``patch``;
+  AliExpress is merged with APKEditor first because its module resources do not
+  survive Morphe's inline merge reliably.  Merging happens before patching.
 * ``--result-file`` reports applied/failed patches with the full exception.
 * ``--force`` is an explicit opt-out of the app-version check.
 * A bundle given as a *relative* path fails inside the CLI, so every path is
@@ -230,6 +230,10 @@ class PipelineOrderTests(unittest.TestCase):
         self.assertLess(source.index("_prepare_bundle_input("), source.index("_patch_morphe("))
         self.assertLess(
             source.index("_merge_bundle_with_apkeditor("), source.index("_patch_revanced(")
+        )
+        self.assertLess(
+            source.index("_merge_bundle_with_apkeditor("),
+            source.index("_patch_morphe("),
         )
 
 

@@ -8,6 +8,11 @@ from src import providers
 
 
 class AppMetadataTests(unittest.TestCase):
+    def test_aliexpress_uses_apkeditor_for_split_bundles(self) -> None:
+        self.assertTrue(
+            providers.merge_split_bundles_with_apkeditor("aliexpress")
+        )
+
     def test_ibs_paint_requires_arm64_patch_library(self) -> None:
         metadata = providers.load_app_metadata("ibs_paint")
 
@@ -51,6 +56,24 @@ class AppMetadataTests(unittest.TestCase):
             with mock.patch.object(providers, "APP_METADATA_DIR", metadata_dir):
                 with self.assertRaisesRegex(ValueError, "invalid source_policy"):
                     providers.load_app_metadata("bad-policy-example")
+
+    def test_non_boolean_bundle_merge_setting_is_rejected(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            metadata_dir = Path(directory)
+            (metadata_dir / "bad-merge-setting.json").write_text(
+                json.dumps(
+                    {
+                        "package": "com.example.bad",
+                        "merge_split_bundles_with_apkeditor": "yes",
+                    }
+                ),
+                encoding="utf-8",
+            )
+            with mock.patch.object(providers, "APP_METADATA_DIR", metadata_dir):
+                with self.assertRaisesRegex(
+                    ValueError, "merge_split_bundles_with_apkeditor"
+                ):
+                    providers.load_app_metadata("bad-merge-setting")
 
     def test_google_play_first_is_preferred_but_not_exclusive(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
