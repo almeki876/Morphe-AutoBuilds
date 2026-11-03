@@ -4,7 +4,7 @@
     "- YouTube / YouTube Music may keep explicit options/force_enable overrides.",
     "- Gboard is a multi-source exception; adobo and Morning-Entree keep explicit selections to avoid conflicts.",
     "- Yuucho is an app-specific exception and keeps Hide ADB status explicitly enabled.",
-    "- All other apps follow the current upstream bundle defaults; do not pin patch names with force_enable.",
+    "- All other apps follow the current upstream bundle defaults; GitHub explicitly enables its supported AMOLED dark theme patch.",
     "- disable remains available for explicit conflict/workaround cases."
   ],
   "patch_list": [
@@ -121,7 +121,7 @@
     {"app_name":"word","source":"rushiranpise","disable":[]},
     {"app_name":"windscribe-vpn","source":"rushiranpise","disable":[]},
     {"app_name":"viber","source":"rookie","disable":[]},
-    {"app_name":"github","source":"hoo-dles","disable":[]},
+    {"app_name":"github","source":"hoo-dles","disable":[],"force_enable":["AMOLED dark theme"],"required":["AMOLED dark theme"]},
     {"app_name":"lightroom","source":"hoo-dles","disable":[]},
     {"app_name":"windy","source":"hoo-dles","disable":[]},
     {"app_name":"xodo","source":"hoo-dles","disable":[]},

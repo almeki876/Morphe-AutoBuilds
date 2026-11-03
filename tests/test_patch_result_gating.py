@@ -3,12 +3,12 @@ import os
 import tempfile
 import unittest
 from pathlib import Path
-
 from src.__main__ import (
     PatchConfig,
     PatchFailureParser,
     PatchOption,
     _build_patch_flags,
+    _load_patch_config,
     _semantic_patch_failure,
     _selected_patch_options,
     _write_build_report,
@@ -16,6 +16,12 @@ from src.__main__ import (
 
 
 class PatchResultGatingTests(unittest.TestCase):
+    def test_github_requires_its_supported_amoled_dark_theme_patch(self) -> None:
+        config = _load_patch_config("github", "hoo-dles")
+
+        self.assertEqual(config.force_enable, ["AMOLED dark theme"])
+        self.assertEqual(config.required, ["AMOLED dark theme"])
+
     def test_patch_events_do_not_depend_on_localized_log_level(self) -> None:
         parser = PatchFailureParser()
         parser("情報: Applying 2 patches...\n")

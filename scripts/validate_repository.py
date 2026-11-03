@@ -29,12 +29,15 @@ SOURCE_POLICIES = {"provider-chain", "google-play-first", "google-play-only"}
 # Normal apps must follow the patch bundle's current default/recommended set.
 # These are deliberate exceptions with app-specific patch-selection semantics:
 # YouTube/YouTube Music carry user customizations, Gboard combines overlapping
-# sources, and Yuucho intentionally enables the non-default Hide ADB patch.
+# sources, GitHub explicitly requests its supported AMOLED theme because this
+# source does not publish a machine-readable default-patch list, and Yuucho
+# intentionally enables the non-default Hide ADB patch.
 EXPLICIT_PATCH_SELECTION_EXCEPTIONS = {
     ("youtube", "morphe"),
     ("youtube", "revanced-anddea"),
     ("youtube-music", "morphe"),
     ("youtube-music", "revanced-anddea"),
+    ("github", "hoo-dles"),
     ("gboard", "jason"),
     ("gboard", "adobo"),
     ("gboard", "morning-entree"),

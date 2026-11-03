@@ -511,16 +511,26 @@ def _read_patch_result(path: Path) -> "PatchResult | None":
         return None
     if not isinstance(data, dict):
         return None
-    applied = [str(name) for name in data.get("appliedPatches") or []]
+    applied: list[str] = []
+    for entry in data.get("appliedPatches") or []:
+        if isinstance(entry, str):
+            name = entry
+        elif isinstance(entry, dict):
+            name = str(entry.get("name") or "")
+        else:
+            continue
+        if name:
+            applied.append(name)
     failed: dict[str, str] = {}
     for entry in data.get("failedPatches") or []:
         if isinstance(entry, dict) and entry.get("name"):
             failed[str(entry["name"])] = str(entry.get("error") or "")
         elif isinstance(entry, str):
             failed[entry] = ""
+    step_results = data.get("stepResults") or data.get("patchingSteps") or []
     failed_steps = [
         str(step.get("step"))
-        for step in data.get("stepResults") or []
+        for step in step_results
         if isinstance(step, dict) and step.get("success") is False
     ]
     return PatchResult(

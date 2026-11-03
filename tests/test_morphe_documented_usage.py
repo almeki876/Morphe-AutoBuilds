@@ -156,6 +156,36 @@ class ResultFileTests(unittest.TestCase):
         self.assertTrue(result.success)
         self.assertEqual(result.applied, ["A", "B"])
 
+    def test_success_result_accepts_cli_patch_objects(self) -> None:
+        self.path.write_text(json.dumps({
+            "success": True,
+            "appliedPatches": [{"name": "AMOLED dark theme"}],
+            "failedPatches": [],
+            "patchingSteps": [
+                {"step": "PATCHING", "success": True},
+                {"step": "REBUILDING", "success": True},
+            ],
+        }))
+
+        result = build_main._read_patch_result(self.path)
+
+        self.assertTrue(result.success)
+        self.assertEqual(result.applied, ["AMOLED dark theme"])
+
+    def test_patch_failure_result_accepts_cli_patching_steps(self) -> None:
+        self.path.write_text(json.dumps({
+            "success": False,
+            "appliedPatches": [{"name": "AMOLED dark theme"}],
+            "failedPatches": [],
+            "patchingSteps": [{"step": "REBUILDING", "success": False}],
+        }))
+
+        result = build_main._read_patch_result(self.path)
+
+        self.assertFalse(result.success)
+        self.assertEqual(result.applied, ["AMOLED dark theme"])
+        self.assertEqual(result.failed_steps, ["REBUILDING"])
+
     def test_failed_patch_keeps_the_full_exception(self) -> None:
         self.path.write_text(json.dumps({
             "success": True,  # the CLI reports true even when a patch failed
