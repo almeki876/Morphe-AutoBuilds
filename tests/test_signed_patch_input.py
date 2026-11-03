@@ -41,9 +41,19 @@ class SignedPatchInputTests(unittest.TestCase):
         version_call = source.index("_set_release_version_name(output_apk, release_tag)")
         align_call = source.index("_align_apk(output_apk)")
         sign_call = source.index("_sign_apk(output_apk, signed_apk, app_name)")
+        self.assertIn("_preserve_input_version_name(app_name, source)", source)
         self.assertLess(version_call, align_call)
         self.assertLess(align_call, sign_call)
         self.assertLess(version_call, sign_call)
+
+    def test_youtube_morphe_and_anddea_preserve_input_version_name(self) -> None:
+        for app in ("youtube", "youtube-music"):
+            for source in ("morphe", "revanced-anddea"):
+                with self.subTest(app=app, source=source):
+                    self.assertTrue(build_main._preserve_input_version_name(app, source))
+
+        self.assertFalse(build_main._preserve_input_version_name("youtube", "rookie"))
+        self.assertFalse(build_main._preserve_input_version_name("brave", "morphe"))
 
     def test_zipalign_restores_and_checks_16kb_alignment_before_signing(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

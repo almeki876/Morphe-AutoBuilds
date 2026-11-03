@@ -1233,6 +1233,14 @@ def _set_release_version_name(apk: Path, release_tag: str) -> None:
     logging.info("Set APK versionName to release tag %s", release_tag)
 
 
+def _preserve_input_version_name(app_name: str, source: str) -> bool:
+    """Keep the upstream versionName for YouTube builds patched by Morphe or Anddea."""
+    return app_name in {"youtube", "youtube-music"} and source in {
+        "morphe",
+        "revanced-anddea",
+    }
+
+
 # ---------------------------------------------------------------------------
 # Main build
 # ---------------------------------------------------------------------------
@@ -1799,7 +1807,14 @@ def run_build(app_name: str, source: str, arch: str = "universal") -> str:
     signed_apk = Path(f"{app_name}-{arch}-{source_name}-v{version}.apk")
     release_tag = getenv("RELEASE_TAG", "").strip()
     if release_tag:
-        _set_release_version_name(output_apk, release_tag)
+        if _preserve_input_version_name(app_name, source):
+            logging.info(
+                "Preserving input APK versionName for %s × %s",
+                app_name,
+                source,
+            )
+        else:
+            _set_release_version_name(output_apk, release_tag)
     _align_apk(output_apk)
     _sign_apk(output_apk, signed_apk, app_name)
     output_apk.unlink(missing_ok=True)
