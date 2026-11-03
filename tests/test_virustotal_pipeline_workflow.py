@@ -13,10 +13,13 @@ class VirusTotalPipelineWorkflowTests(unittest.TestCase):
         build_section = workflow.split(build_marker, 1)[1].split(release_marker, 1)[0]
         release_section = workflow.split(release_marker, 1)[1]
 
-        self.assertIn("needs: [download-tools, prepare-matrix, download-apks]", build_section)
+        self.assertIn(
+            "needs: [download-tools, prepare-matrix, prepare-release-tag, download-apks]",
+            build_section,
+        )
         self.assertNotIn("scan-base-apks", build_section.split("steps:", 1)[0])
         self.assertIn(
-            "needs: [download-tools, prepare-matrix, build-apps, scan-base-apks]",
+            "needs: [download-tools, prepare-matrix, prepare-release-tag, build-apps, scan-base-apks]",
             release_section,
         )
         self.assertIn("needs.scan-base-apks.result == 'success'", release_section)
