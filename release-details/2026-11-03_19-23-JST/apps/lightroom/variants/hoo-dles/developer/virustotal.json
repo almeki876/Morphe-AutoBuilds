@@ -1,0 +1,23 @@
+{
+  "results": [
+    {
+      "file": "lightroom-hoo-dles-arm64-v8a.xapk",
+      "sha256": "74dde0939cb3324d3614d1d27d7068e6929b75b0c8b55c2885f72162d0e9d23c",
+      "size": 270366039,
+      "analysis_id": "NDNjYjM5ZjI5OTdkNjI2ZTdmOTliMTEwY2RmMjcxYTQ6MTc5MzY5Njk4Mw==",
+      "malicious": 0,
+      "suspicious": 0,
+      "harmless": 0,
+      "undetected": 53,
+      "timeout": 10,
+      "failure": 3,
+      "unsupported": 9,
+      "verdict": "clean",
+      "method": "persistent hash cache",
+      "engines": {},
+      "permalink": "https://www.virustotal.com/gui/file/74dde0939cb3324d3614d1d27d7068e6929b75b0c8b55c2885f72162d0e9d23c/detection",
+      "last_analysis_date": 1793696983,
+      "reanalyzed": false
+    }
+  ]
+}
