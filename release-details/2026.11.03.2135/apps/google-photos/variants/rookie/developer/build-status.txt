@@ -1,0 +1,89 @@
+app=google-photos
+source=rookie
+source_name=RookieEnough
+phase=Patch
+status=success
+run=https://github.com/almeki876/Morphe-AutoBuilds/actions/runs/41637015414
+
+traceback_or_error_tail<<EOF
+INFO: Morphe data root: /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/morphe-data (JAR-adjacent)
+INFO: Merging split APK bundle...
+INFO: Extracting to: /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/tmp_5de0bc76
+INFO: Searching apk files ...
+INFO: Found apk files: 4
+INFO: Found modules: 4
+INFO: Merging: com.google.android.apps.photos
+INFO: Added [com.google.android.apps.photos] classes.dex -> classes.dex
+INFO: Added [com.google.android.apps.photos] classes2.dex -> classes2.dex
+INFO: Added [com.google.android.apps.photos] classes3.dex -> classes3.dex
+INFO: Added [com.google.android.apps.photos] classes4.dex -> classes4.dex
+INFO: Added [com.google.android.apps.photos] classes5.dex -> classes5.dex
+INFO: Added [com.google.android.apps.photos] classes6.dex -> classes6.dex
+INFO: Added [com.google.android.apps.photos] classes7.dex -> classes7.dex
+INFO: Added [com.google.android.apps.photos] classes8.dex -> classes8.dex
+INFO: Added [com.google.android.apps.photos] classes9.dex -> classes9.dex
+INFO: Merging: config.arm64_v8a
+INFO: Merging: config.mdpi
+INFO: Merging: config.en
+INFO: Validating resources dir ...
+INFO: Sanitizing manifest ...
+INFO: Setting extractNativeLibs=true
+INFO: Writing apk ...
+INFO: Buffering compress changed files ...
+INFO: Writing files: 6583
+INFO: Writing signature block ...
+INFO: Saved to: /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/.morphe-tmp-google-photos-arm64-v8a/patching-1793710170723/.build-input-arm64-v8a-merged.apk
+INFO: Initializing patcher...
+INFO: Loading patches from 1 bundle(s)...
+INFO: Filtering patches for com.google.android.apps.photos v7.92.0.977185651...
+INFO: Skipping disabled: Clone app (default)
+INFO: Skipping disabled: Enable DCIM folders backup control (default)
+INFO: Applying 3 patches...
+INFO: Deleting existing temporary files directory
+INFO: Decoding all resources
+INFO: Leaving 18 native library files in the input APK
+INFO: Sanitizing unpatched strings
+INFO: Escaping strings
+INFO: Executing patches
+INFO: Applied: Fix selected account persistence
+INFO: Building instruction indexes for 68772 classes...
+INFO: Applied: GmsCore support
+INFO: Applied: Spoof features
+INFO: Rebuilding APK...
+INFO: Compiling patched dex files (mode: STRIP_FAST)
+INFO: Copied 498 unchanged extension classes to 1 DEX files
+INFO: Changed 274 of 68772 classes to mutable
+INFO: Writing 274 new classes to new DEX files
+INFO: Processing 274 classes (single threaded mode)
+INFO: Wrote 1 dex files to /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/.morphe-tmp-google-photos-arm64-v8a/patching-1793710170723/patcher/patched/newDex
+INFO: Stripped 272 modified classes from 7 original DEX files
+INFO: Compiling modified resources
+INFO: Stripping libs (keeping architectures arm64-v8a, armeabi-v7a, x86, x86_64)
+INFO: Stripped 0 lib files
+INFO: Unescaping strings
+INFO: Post-processing package name change
+INFO: Processing aapt macros
+INFO: Generating new resource IDs
+INFO: Writing resource APK
+INFO: Reusing 6574 unchanged archive entries, rebuilding 2 entries, dropping 0 entries, leaving out 7 replaced entries
+INFO: Resource APK scan: 200ms write: 400ms
+INFO: Using compiled resource APK as output base
+INFO: Aligning APK
+INFO: Saved to /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/google-photos-arm64-v8a-patch-v7.92.0.977185651.apk
+INFO: Patching took 13.5 seconds
+INFO: Patching result saved to /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/.patch-result-google-photos-arm64-v8a.json
+2026-11-03 12:49:45 Validated patched APK: 73219144 bytes (ABIs: arm64-v8a)
+2026-11-03 12:49:52 Normalized patched APK ZIP headers
+2026-11-03 12:49:53 Validated architecture-filtered APK (ABIs: arm64-v8a)
+2026-11-03 12:49:53 [SIZE] patched: 71030539 bytes (google-photos-arm64-v8a-patch-v7.92.0.977185651.apk)
+2026-11-03 12:49:54 Fetched latest release: V1.4.9
+2026-11-03 12:49:55 URL: https://release-assets.githubusercontent.com/github-production-release-asset/576398953/c64f423b-578f-44d0-9c3c-d016189acc1e [7733037/7733037] -> "APKEditor-1.4.9.jar" [1]
+2026-11-03 12:50:16 Set APK versionName to release tag 2026.11.03.2135
+Signed
+2026-11-03 12:50:19 [SIZE] signed: 73660962 bytes (google-photos-arm64-v8a-rookie-v7.92.0.977185651.apk)
+✅ APK built: google-photos-arm64-v8a-rookie-v7.92.0.977185651.apk
+✅ Built arm64-v8a: google-photos-arm64-v8a-rookie-v7.92.0.977185651.apk
+
+🎯 1 APK(s) built for 'google-photos':
+   📱 google-photos-arm64-v8a-rookie-v7.92.0.977185651.apk
+EOF

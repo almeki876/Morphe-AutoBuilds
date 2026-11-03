@@ -1,0 +1,23 @@
+{
+  "results": [
+    {
+      "file": "youtube-revanced-anddea-arm64-v8a.apk",
+      "sha256": "c193daf879d36e04886c34dcc44580b1c98c20534165d306c2a04b8025fc3f46",
+      "size": 182186576,
+      "analysis_id": "",
+      "malicious": 0,
+      "suspicious": 0,
+      "harmless": 0,
+      "undetected": 58,
+      "timeout": 9,
+      "failure": 0,
+      "unsupported": 7,
+      "verdict": "clean",
+      "method": "persistent hash cache",
+      "engines": {},
+      "permalink": "https://www.virustotal.com/gui/file/c193daf879d36e04886c34dcc44580b1c98c20534165d306c2a04b8025fc3f46/detection",
+      "last_analysis_date": 1789797056,
+      "reanalyzed": false
+    }
+  ]
+}

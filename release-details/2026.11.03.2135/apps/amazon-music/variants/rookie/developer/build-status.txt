@@ -1,0 +1,89 @@
+app=amazon-music
+source=rookie
+source_name=RookieEnough
+phase=Patch
+status=success
+run=https://github.com/almeki876/Morphe-AutoBuilds/actions/runs/41637015414
+
+traceback_or_error_tail<<EOF
+INFO: Added [base] classes9.dex -> classes9.dex
+INFO: Added [base] classes10.dex -> classes10.dex
+INFO: Added [base] classes11.dex -> classes11.dex
+INFO: Added [base] classes12.dex -> classes12.dex
+INFO: Added [base] classes13.dex -> classes13.dex
+INFO: Added [base] classes14.dex -> classes14.dex
+INFO: Added [base] classes15.dex -> classes15.dex
+INFO: Added [base] classes16.dex -> classes16.dex
+INFO: Added [base] classes17.dex -> classes17.dex
+INFO: Merging: split_config.ldpi
+INFO: Merging: split_config.x86
+INFO: Merging: split_config.tvdpi
+INFO: Merging: split_config.xhdpi
+INFO: Merging: split_config.x86_64
+INFO: Merging: split_config.xxhdpi
+INFO: Merging: split_config.arm64_v8a
+INFO: Merging: split_config.xxxhdpi
+INFO: Merging: split_config.hdpi
+INFO: Merging: split_config.armeabi_v7a
+INFO: Merging: split_config.mdpi
+INFO: Validating resources dir ...
+INFO: Sanitizing manifest ...
+INFO: Setting extractNativeLibs=false
+INFO: Writing apk ...
+INFO: Buffering compress changed files ...
+INFO: Writing files: 7436
+INFO: Writing signature block ...
+INFO: Saved to: /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/.morphe-tmp-amazon-music-arm64-v8a/patching-1793710436607/.build-input-arm64-v8a-merged.apk
+INFO: Initializing patcher...
+INFO: Loading patches from 1 bundle(s)...
+INFO: Filtering patches for com.amazon.mp3 v26.36.1...
+INFO: Skipping disabled: Clone app (default)
+INFO: Applying 5 patches...
+INFO: Deleting existing temporary files directory
+INFO: Decoding all resources
+INFO: Leaving 214 native library files in the input APK
+INFO: Sanitizing unpatched strings
+INFO: Escaping strings
+INFO: Executing patches
+INFO: Applied: Prevent log upload
+INFO: Applied: Rename shared permissions
+INFO: Applied: Skip ads
+INFO: Applied: Unlimited track skipping
+INFO: Applied: Unlock Unlimited
+INFO: Rebuilding APK...
+INFO: Compiling patched dex files (mode: STRIP_FAST)
+INFO: Copied 103 unchanged extension classes to 2 DEX files
+INFO: Changed 8 of 152918 classes to mutable
+INFO: Writing 8 new classes to new DEX files
+INFO: Processing 8 classes (single threaded mode)
+INFO: Wrote 1 dex files to /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/.morphe-tmp-amazon-music-arm64-v8a/patching-1793710436607/patcher/patched/newDex
+INFO: Stripped 7 modified classes from 5 original DEX files
+INFO: Compiling modified resources
+INFO: Stripping libs (keeping architectures arm64-v8a, armeabi-v7a, x86, x86_64)
+INFO: Stripped 0 lib files
+INFO: Unescaping strings
+INFO: Processing aapt macros
+INFO: Generating new resource IDs
+INFO: Writing resource APK
+INFO: Reusing 7426 unchanged archive entries, rebuilding 2 entries, dropping 0 entries, leaving out 8 replaced entries
+INFO: Resource APK scan: 300ms write: 2.4s
+INFO: Using compiled resource APK as output base
+INFO: Aligning APK
+INFO: Saved to /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/amazon-music-arm64-v8a-patch-v26.36.1.apk
+INFO: Patching took 18.6 seconds
+INFO: Patching result saved to /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/.patch-result-amazon-music-arm64-v8a.json
+2026-11-03 12:54:16 Validated patched APK: 439954985 bytes (ABIs: arm64-v8a, armeabi-v7a, x86, x86_64)
+2026-11-03 12:54:21 Removed 145 non-target native libraries
+2026-11-03 12:54:22 Validated architecture-filtered APK (ABIs: arm64-v8a)
+2026-11-03 12:54:22 [SIZE] patched: 268966717 bytes (amazon-music-arm64-v8a-patch-v26.36.1.apk)
+2026-11-03 12:54:23 Fetched latest release: V1.4.9
+2026-11-03 12:54:24 URL: https://release-assets.githubusercontent.com/github-production-release-asset/576398953/c64f423b-578f-44d0-9c3c-d016189acc1e [7733037/7733037] -> "APKEditor-1.4.9.jar" [1]
+2026-11-03 12:54:46 Set APK versionName to release tag 2026.11.03.2135
+Signed
+2026-11-03 12:54:50 [SIZE] signed: 270029409 bytes (amazon-music-arm64-v8a-rookie-v26.36.1.apk)
+✅ APK built: amazon-music-arm64-v8a-rookie-v26.36.1.apk
+✅ Built arm64-v8a: amazon-music-arm64-v8a-rookie-v26.36.1.apk
+
+🎯 1 APK(s) built for 'amazon-music':
+   📱 amazon-music-arm64-v8a-rookie-v26.36.1.apk
+EOF
