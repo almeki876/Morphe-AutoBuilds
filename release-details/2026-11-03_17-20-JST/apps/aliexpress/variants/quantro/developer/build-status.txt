@@ -1,0 +1,89 @@
+app=aliexpress
+source=quantro
+source_name=Quantro100
+phase=Patch
+status=success
+run=https://github.com/almeki876/Morphe-AutoBuilds/actions/runs/41599845870
+
+traceback_or_error_tail<<EOF
+INFO: Added as fused module <aeocr>
+INFO: Merging: split_config.xxxhdpi
+INFO: Merging: split_remoteAIQa
+INFO: Added [split_remoteAIQa] classes.dex -> classes9.dex
+INFO: Added as fused module <remoteAIQa>
+INFO: Merging: split_aiFoundation.config.arm64_v8a
+INFO: Merging: split_config.mdpi
+INFO: Merging: split_aeocr.config.xxhdpi
+INFO: Merging: split_widget
+INFO: Added [split_widget] classes.dex -> classes10.dex
+INFO: Added as fused module <widget>
+INFO: Merging: split_push
+INFO: Added [split_push] classes.dex -> classes11.dex
+INFO: Added as fused module <push>
+INFO: Merging: split_remoteFeedback.config.xxhdpi
+INFO: Merging: split_ucSo.config.arm64_v8a
+INFO: Merging: split_aiFoundation
+INFO: Added [split_aiFoundation] classes.dex -> classes12.dex
+INFO: Added as fused module <aiFoundation>
+INFO: Merging: split_ucSo
+INFO: Added as fused module <ucSo>
+INFO: Merging: split_config.ldpi
+INFO: Merging: split_config.tvdpi
+INFO: Merging: split_config.xhdpi
+INFO: Merging: split_wallet.config.arm64_v8a
+INFO: Merging: split_ugc
+INFO: Added [split_ugc] classes.dex -> classes13.dex
+INFO: Added as fused module <ugc>
+INFO: Merging: split_wallet.config.xxhdpi
+INFO: Merging: split_config.hdpi
+INFO: Merging: split_ugc.config.xxhdpi
+INFO: Merging: split_config.armeabi_v7a
+INFO: Validating resources dir ...
+INFO: Sanitizing manifest ...
+INFO: Setting extractNativeLibs=true
+INFO: Writing apk ...
+INFO: Buffering compress changed files ...
+INFO: Writing files: 8580
+INFO: Writing signature block ...
+INFO: Saved to: /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/.morphe-tmp-aliexpress-arm64-v8a/patching-1793693737131/.build-input-arm64-v8a-merged.apk
+INFO: Initializing patcher...
+INFO: Loading patches from 1 bundle(s)...
+INFO: Filtering patches for com.alibaba.aliexpresshd v8.162.8...
+INFO: Skipping disabled: Enable image saving (default)
+INFO: Skipping disabled: Disable splash screen (default)
+INFO: Applying 8 patches...
+INFO: Executing patches
+INFO: Building instruction indexes for 62755 classes...
+INFO: Applied: Bypass signature check
+INFO: Applied: Disable analytics
+INFO: Applied: Disable forced updates
+INFO: Applied: Disable promotions notifications
+INFO: Applied: Remove ads
+INFO: Applied: Remove affiliate tracking
+INFO: Applied: Remove coupons popup
+INFO: Applied: Remove sponsored items from search
+INFO: Rebuilding APK...
+INFO: Compiling patched dex files (mode: STRIP_FAST)
+INFO: Changed 7 of 62755 classes to mutable
+INFO: Writing 7 new classes to new DEX files
+INFO: Processing 7 classes (single threaded mode)
+INFO: Wrote 1 dex files to /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/.morphe-tmp-aliexpress-arm64-v8a/patching-1793693737131/patcher/patched/newDex
+INFO: Stripped 7 modified classes from 3 original DEX files
+INFO: Stripping libs (keeping architectures arm64-v8a, armeabi-v7a, x86, x86_64)
+INFO: Stripped 0 lib files
+INFO: Aligning APK
+INFO: Saved to /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/aliexpress-arm64-v8a-patch-v8.162.8.apk
+INFO: Patching took 7.5 seconds
+INFO: Patching result saved to /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/.patch-result-aliexpress-arm64-v8a.json
+2026-11-03 08:15:45 Validated patched APK: 101964103 bytes (ABIs: arm64-v8a, armeabi-v7a)
+2026-11-03 08:15:49 Removed 26 non-target native libraries
+2026-11-03 08:15:50 Validated architecture-filtered APK (ABIs: arm64-v8a)
+2026-11-03 08:15:50 [SIZE] patched: 95001289 bytes (aliexpress-arm64-v8a-patch-v8.162.8.apk)
+Signed
+2026-11-03 08:15:53 [SIZE] signed: 95694596 bytes (aliexpress-arm64-v8a-quantro-v8.162.8.apk)
+✅ APK built: aliexpress-arm64-v8a-quantro-v8.162.8.apk
+✅ Built arm64-v8a: aliexpress-arm64-v8a-quantro-v8.162.8.apk
+
+🎯 1 APK(s) built for 'aliexpress':
+   📱 aliexpress-arm64-v8a-quantro-v8.162.8.apk
+EOF
