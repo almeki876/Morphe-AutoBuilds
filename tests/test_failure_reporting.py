@@ -1,9 +1,95 @@
+import io
+import json
+import subprocess
 import unittest
+from contextlib import redirect_stderr
+from unittest.mock import patch
 
-from scripts.report_build_failure import _feature_failures, _hypothesis
+from scripts.report_build_failure import (
+    _close_related,
+    _feature_failures,
+    _hypothesis,
+    _issue_number,
+    _open_issues,
+)
 
 
 class FailureReportingTests(unittest.TestCase):
+    def setUp(self) -> None:
+        cache = patch("scripts.report_build_failure._OPEN_ISSUES_CACHE", None)
+        cache.start()
+        self.addCleanup(cache.stop)
+
+    @patch("scripts.report_build_failure.subprocess.run")
+    def test_issue_lookup_reuses_a_single_open_issue_snapshot(self, run) -> None:
+        run.return_value.stdout = json.dumps(
+            [{"number": 123, "title": "[Build Failure] app", "body": "details"}]
+        )
+        self.assertEqual(len(_open_issues()), 1)
+        self.assertEqual(_issue_number("[Build Failure] app"), "123")
+        run.assert_called_once()
+        self.assertEqual(
+            run.call_args.args[0],
+            [
+                "gh", "issue", "list", "--state", "open", "--limit", "1000",
+                "--json", "number,title,body",
+            ],
+        )
+
+    @patch("scripts.report_build_failure.subprocess.run")
+    def test_issue_list_failure_does_not_fail_build_reporting(self, run) -> None:
+        run.side_effect = subprocess.CalledProcessError(
+            1,
+            ["gh", "issue", "list"],
+            stderr="GitHub API temporarily unavailable",
+        )
+        output = io.StringIO()
+
+        with redirect_stderr(output):
+            _close_related(
+                "[Feature Failure]",
+                "youtube",
+                "morphe",
+                "Resolved by a successful build.",
+            )
+
+        self.assertIn("could not list open issues", output.getvalue())
+        self.assertIn("skipping automatic issue closure", output.getvalue())
+        self.assertIn("GitHub API temporarily unavailable", output.getvalue())
+        run.assert_called_once()
+
+    @patch("scripts.report_build_failure.subprocess.run")
+    def test_related_issue_closure_uses_cached_body_without_extra_view(self, run) -> None:
+        issues = [
+            {
+                "number": number,
+                "title": f"[Feature Failure] youtube - source - v1 - Patch {number}",
+                "body": "- **App:** `youtube`\n- **Patch source:** `source`\n",
+            }
+            for number in (123, 124)
+        ]
+        run.side_effect = [
+            subprocess.CompletedProcess(
+                ["gh", "issue", "list"], 0, stdout=json.dumps(issues), stderr=""
+            ),
+            subprocess.CompletedProcess(
+                ["gh", "issue", "close"], 0, stdout="", stderr=""
+            ),
+            subprocess.CompletedProcess(
+                ["gh", "issue", "close"], 0, stdout="", stderr=""
+            ),
+        ]
+
+        _close_related(
+            "[Feature Failure]", "youtube", "source", "Resolved by a successful build."
+        )
+
+        self.assertEqual(run.call_count, 3)
+        self.assertEqual(
+            [call.args[0][3] for call in run.call_args_list[1:]],
+            ["123", "124"],
+        )
+
     def test_fingerprint_failure_lists_preparation_alternatives(self) -> None:
         message = _hypothesis(
             "SEVERE: FAILED: Proton VPN Premium\n"

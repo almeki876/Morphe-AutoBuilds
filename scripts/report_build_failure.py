@@ -53,6 +53,8 @@ _REPORT_ONLY_FEATURE_PREFIXES = (
     "[runtime-skipped-default]",
 )
 
+_OPEN_ISSUES_CACHE: list[dict] | None = None
+
 
 def _report_only_feature_outcome(item: dict) -> bool:
     reason = str(item.get("reason") or "").strip().casefold()
@@ -223,17 +225,27 @@ def _hypothesis(log: str, phase: str) -> str:
     return "The failure needs inspection of the attached raw log excerpt."
 
 
+def _open_issues() -> list[dict]:
+    global _OPEN_ISSUES_CACHE
+    if _OPEN_ISSUES_CACHE is None:
+        result = subprocess.run(
+            [
+                "gh", "issue", "list", "--state", "open", "--limit", "1000",
+                "--json", "number,title,body",
+            ],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        value = json.loads(result.stdout or "[]")
+        if not isinstance(value, list):
+            raise ValueError("gh issue list returned an unexpected JSON value")
+        _OPEN_ISSUES_CACHE = [item for item in value if isinstance(item, dict)]
+    return _OPEN_ISSUES_CACHE
+
+
 def _issue_number(title: str) -> str | None:
-    result = subprocess.run(
-        [
-            "gh", "issue", "list", "--state", "open", "--search",
-            f"{title} in:title", "--json", "number,title",
-        ],
-        check=True,
-        capture_output=True,
-        text=True,
-    )
-    for item in json.loads(result.stdout or "[]"):
+    for item in _open_issues():
         if item.get("title") == title:
             return str(item["number"])
     return None
@@ -251,28 +263,6 @@ def _failure_summary(log: str) -> str:
             if summary:
                 return summary[:100]
     return "unspecified error"
-
-
-def _open_issues(search: str) -> list[dict]:
-    result = subprocess.run(
-        ["gh", "issue", "list", "--state", "open", "--search", search,
-         "--json", "number,title"],
-        check=True,
-        capture_output=True,
-        text=True,
-    )
-    value = json.loads(result.stdout or "[]")
-    return value if isinstance(value, list) else []
-
-
-def _issue_body(number: str) -> str:
-    result = subprocess.run(
-        ["gh", "issue", "view", number, "--json", "body", "--jq", ".body"],
-        check=True,
-        capture_output=True,
-        text=True,
-    )
-    return result.stdout
 
 
 def _same_target(body: str, app: str, source_name: str) -> bool:
@@ -296,10 +286,20 @@ def _publish(title: str, body: str) -> None:
         )
         print(f"Updated existing issue #{existing}: {title}")
         return
-    subprocess.run(
+    result = subprocess.run(
         ["gh", "issue", "create", "--title", title, "--body-file", str(body_path)],
         check=True,
+        capture_output=True,
+        text=True,
     )
+    match = re.search(r"/issues/(\d+)\s*$", result.stdout.strip())
+    if match:
+        _open_issues().append(
+            {"number": int(match.group(1)), "title": title, "body": body}
+        )
+    else:
+        global _OPEN_ISSUES_CACHE
+        _OPEN_ISSUES_CACHE = None
     print(f"Created issue: {title}")
 
 
@@ -352,17 +352,28 @@ This patch was temporarily disabled or could not be selected so the build could 
 def _close_related(prefix: str, app: str, source_name: str, message: str) -> None:
     if DRY_RUN:
         return
-    for issue in _open_issues(f"{prefix} {app} in:title"):
+    try:
+        issues = _open_issues()
+    except subprocess.CalledProcessError as error:
+        details = (error.stderr or error.stdout or str(error)).strip()
+        print(
+            f"Warning: could not list open issues for {prefix} {app}; "
+            f"skipping automatic issue closure: {details}",
+            file=sys.stderr,
+        )
+        return
+    for issue in list(issues):
         number = str(issue.get("number"))
         title = str(issue.get("title") or "")
         if not title.startswith(prefix) or not _same_target(
-            _issue_body(number), app, source_name
+            str(issue.get("body") or ""), app, source_name
         ):
             continue
         subprocess.run(
             ["gh", "issue", "close", number, "--comment", message],
             check=True,
         )
+        issues.remove(issue)
         print(f"Closed issue #{number}: {title}")
 
 
