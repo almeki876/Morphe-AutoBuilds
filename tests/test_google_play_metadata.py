@@ -1,6 +1,7 @@
 import os
+import sys
 import unittest
-from types import SimpleNamespace
+from types import ModuleType, SimpleNamespace
 from unittest import mock
 
 from src import google_play_metadata
@@ -9,6 +10,7 @@ from src.versioning import VersionCandidate
 
 class GooglePlayMetadataTests(unittest.TestCase):
     def setUp(self) -> None:
+        google_play_metadata.reset_health()
         self.api_key = mock.patch.dict(
             os.environ,
             {
@@ -23,51 +25,79 @@ class GooglePlayMetadataTests(unittest.TestCase):
         self.api_key.start()
         self.addCleanup(self.api_key.stop)
 
-    @mock.patch("src.google_play_metadata._current_details")
-    @mock.patch("src.google_play_metadata._profile_details")
-    @mock.patch("src.google_play_metadata.local_gplaydl_dispenser.ensure_running")
+    @mock.patch("src.google_play_metadata._lookup_identity")
     def test_current_release_identity_returns_name_and_code_without_download(
         self,
-        ensure_running: mock.Mock,
-        profile_details: mock.Mock,
-        current_details: mock.Mock,
+        lookup_identity: mock.Mock,
     ) -> None:
-        current_details.return_value = SimpleNamespace(
-            package="com.example.app",
-            version_string="9.8.7",
-            version_code=98742,
+        lookup_identity.return_value = VersionCandidate(
+            name="9.8.7",
+            code="98742",
         )
 
         current = google_play_metadata.current_release_identity("com.example.app")
 
         self.assertEqual(current, VersionCandidate(name="9.8.7", code="98742"))
-        ensure_running.assert_called_once_with()
-        current_details.assert_called_once_with("com.example.app", "arm64", None, None)
-        profile_details.assert_not_called()
+        lookup_identity.assert_called_once_with("com.example.app")
 
-    @mock.patch("src.google_play_metadata._current_details")
-    @mock.patch("src.google_play_metadata._profile_details")
-    @mock.patch("src.google_play_metadata.local_gplaydl_dispenser.ensure_running")
-    def test_current_release_identity_uses_profile_if_primary_is_incomplete(
+    @mock.patch("src.google_play_metadata._lookup_identity")
+    def test_current_release_identity_returns_none_when_lookup_has_no_match(
         self,
-        ensure_running: mock.Mock,
-        profile_details: mock.Mock,
-        current_details: mock.Mock,
+        lookup_identity: mock.Mock,
     ) -> None:
-        current_details.return_value = None
-        profile_details.return_value = [
-            SimpleNamespace(
-                package="com.example.app",
-                version_string="9.8.7",
-                version_code=98742,
-            )
-        ]
+        lookup_identity.return_value = None
 
-        self.assertEqual(
-            google_play_metadata.current_release_identity("com.example.app"),
-            VersionCandidate(name="9.8.7", code="98742"),
+        self.assertIsNone(
+            google_play_metadata.current_release_identity("com.example.app")
         )
-        profile_details.assert_called_once_with("com.example.app", "arm64", None, None)
+        lookup_identity.assert_called_once_with("com.example.app")
+
+    @mock.patch("src.google_play_metadata._remember")
+    @mock.patch("src.google_play_metadata._profile_details")
+    @mock.patch("src.google_play_metadata._authenticate", return_value=object())
+    @mock.patch("src.google_play_metadata._context", return_value=("arm64", None, None))
+    def test_lookup_identity_uses_profile_if_primary_is_incomplete(
+        self,
+        context: mock.Mock,
+        authenticate: mock.Mock,
+        profile_details: mock.Mock,
+        remember: mock.Mock,
+    ) -> None:
+        primary_details = SimpleNamespace(
+            package="com.example.app",
+            version_string="",
+            version_code=None,
+        )
+        profile_identity = SimpleNamespace(
+            package="com.example.app",
+            version_string="9.8.7",
+            version_code=98742,
+        )
+        api = ModuleType("gplaydl.api")
+        api.get_details = mock.Mock(return_value=primary_details)
+        package = ModuleType("gplaydl")
+        package.__path__ = []
+
+        def profile_results(
+            package_name: str,
+            arch: str,
+            dispenser: str | None,
+            email: str | None,
+            *,
+            stats: dict[str, int],
+        ):
+            stats["auth_ok"] = 1
+            yield profile_identity
+
+        profile_details.side_effect = profile_results
+        with mock.patch.dict(
+            sys.modules,
+            {"gplaydl": package, "gplaydl.api": api},
+        ):
+            identity = google_play_metadata._lookup_identity("com.example.app")
+
+        self.assertEqual(identity, VersionCandidate(name="9.8.7", code="98742"))
+        profile_details.assert_called_once()
 
     @mock.patch("src.google_play_metadata.local_gplaydl_dispenser.ensure_running")
     def test_aas_credentials_can_bootstrap_metadata_context(

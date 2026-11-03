@@ -18,7 +18,7 @@ class RepositoryOrganizationTests(unittest.TestCase):
         "japan-egress-check.yml": "保守: 日本Tailscale経路を確認",
         "publish-release-details.yml": "保守: Release詳細を再生成",
         "register-google-play.yml": "セットアップ: Google Playアカウントを登録",
-        "update-direct-download-links.yml": "保守: APK直リンク一覧を再生成",
+        "update-direct-download-links.yml": "保守: APK直リンク一覧を自動更新",
     }
 
     def _workflow_name(self, path: Path) -> str:
@@ -42,7 +42,6 @@ class RepositoryOrganizationTests(unittest.TestCase):
     def test_recovery_workflows_are_manual_only(self):
         for filename in (
             "publish-release-details.yml",
-            "update-direct-download-links.yml",
             "diagnose-google-play-purchase.yml",
             "japan-egress-check.yml",
             "register-google-play.yml",
@@ -51,10 +50,13 @@ class RepositoryOrganizationTests(unittest.TestCase):
             self.assertIn("workflow_dispatch:", text)
             self.assertNotIn("workflow_run:", text)
 
-    def test_direct_download_workflow_is_manual_recovery_only(self):
+    def test_direct_download_workflow_automatically_updates_only_the_catalog(self):
         text = (WORKFLOWS / "update-direct-download-links.yml").read_text(
             encoding="utf-8"
         )
+        self.assertIn("schedule:", text)
+        self.assertIn("workflow_run:", text)
+        self.assertIn("workflow_dispatch:", text)
         self.assertNotIn("push:", text)
         self.assertNotIn("README.md", text)
         self.assertIn("Morphe-AutoBuilds-Direct-Download.md", text)
