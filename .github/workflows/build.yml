@@ -645,10 +645,12 @@ jobs:
   persist-successful-state:
     name: Persist Successful Upstream State
     needs: [download-tools, build-apps, create-release]
+    # Per-source/per-app partial persistence: failed builds stay pending (see
+    # scripts/save_successful_state.py) while healthy sources still advance.
     if: >-
       ${{
         !cancelled() &&
-        needs.build-apps.result == 'success' &&
+        needs.build-apps.result != 'skipped' &&
         needs.create-release.result == 'success'
       }}
     runs-on: ubuntu-latest
@@ -666,22 +668,21 @@ jobs:
           python-version: '3.11'
           cache: pip
 
-      - name: Verify Every Matrix Build Succeeded
+      - name: Download Per-App Build Results
         uses: actions/download-artifact@v8
         with:
           path: ./build-results
           pattern: build-status-*
           merge-multiple: true
 
-      - name: Refuse Partial State Persistence
+      - name: Require Build Results (partial persistence allowed)
         run: |
           if [ ! -d ./build-results ] || ! find ./build-results -name '*.txt' -print -quit | grep -q .; then
             echo "::error::Per-app build results are missing; refusing to advance successful state."
             exit 1
           fi
           if grep -R -E '^status=(failure|cancelled|skipped)$' ./build-results; then
-            echo "::error::At least one matrix build failed; refusing to advance successful state."
-            exit 1
+            echo "::warning::At least one matrix build failed; only the healthy sources/apps will advance."
           fi
 
       - name: Close resolved auto-generated build issues

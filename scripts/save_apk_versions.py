@@ -25,8 +25,16 @@ for item in patch_list:
 from src import google_play_metadata, providers, utils
 from src.versioning import canonical_version
 
+try:
+    skip_apps = set(json.loads(os.environ.get("APK_VERSION_SKIP_APPS", "") or "[]"))
+except (json.JSONDecodeError, TypeError):
+    skip_apps = set()
+
 for app in apps:
     key = f"apk_{app}"
+    if app in skip_apps:
+        logging.warning("%s: build failed in this run; keeping previous version %r", app, current.get(key))
+        continue
     provider_errors = []
     resolved = False
     package = providers.configured_package(app)

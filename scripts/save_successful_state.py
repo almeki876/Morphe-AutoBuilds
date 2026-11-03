@@ -101,6 +101,51 @@ def _write_state(state: dict, path: Path = STATE_FILE) -> None:
     )
 
 
+# Gboard is one chained build identified by its "jason" matrix entry; a failure
+# there must keep all three patch sources pending (see prepare_matrix.py).
+GBOARD_SOURCES = ("jason", "adobo", "morning-entree")
+_FAILED_STATUSES = {"failure", "cancelled", "skipped"}
+
+
+def _read_status_fields(path: Path) -> dict[str, str]:
+    fields: dict[str, str] = {}
+    try:
+        text = path.read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        return fields
+    for line in text.splitlines():
+        if not line.strip():
+            break  # key=value header ends at the first blank line
+        key, separator, value = line.partition("=")
+        if separator:
+            fields[key.strip()] = value.strip()
+    return fields
+
+
+def build_outcomes(root: Path = BUILD_RESULTS_DIR) -> tuple[set[str], set[str]]:
+    """Return ``(failed_sources, failed_apps)`` from per-matrix status files.
+
+    State is advanced per source/app instead of all-or-nothing: one broken app
+    must not freeze ``last-tags.json`` for every healthy source, because a frozen
+    state makes every scheduled check re-detect all sources as "updated" and
+    rebuild the whole matrix again.
+    """
+    failed_sources: set[str] = set()
+    failed_apps: set[str] = set()
+    if root.is_dir():
+        for path in root.rglob("*-build.txt"):
+            fields = _read_status_fields(path)
+            if fields.get("status", "").casefold() not in _FAILED_STATUSES:
+                continue
+            if fields.get("source"):
+                failed_sources.add(fields["source"])
+            if fields.get("app"):
+                failed_apps.add(fields["app"])
+    if failed_sources & set(GBOARD_SOURCES):
+        failed_sources |= set(GBOARD_SOURCES)
+    return failed_sources, failed_apps
+
+
 def _morphe_reports(root: Path = BUILD_RESULTS_DIR) -> list[dict]:
     reports: list[dict] = []
     if not root.is_dir():
@@ -251,7 +296,13 @@ def _publish_success_outputs_to_main(
 def main() -> None:
     baseline = _read_state()
     state = dict(baseline)
-    morphe_fallback_used = _morphe_fallback_used()
+    failed_sources, failed_apps = build_outcomes()
+    if failed_sources or failed_apps:
+        print(
+            "Partial persistence: keeping pending state for failed sources "
+            f"{sorted(failed_sources)} and apps {sorted(failed_apps)}."
+        )
+    morphe_fallback_used = _morphe_fallback_used() or "morphe" in failed_sources
     morphe_proven_tags = (
         None if morphe_fallback_used else _morphe_proven_primary_tags()
     )
@@ -281,7 +332,7 @@ def main() -> None:
     for key, raw_value in resolved_source_tags.items():
         # Morphe safety state is managed only from exact build-report evidence
         # above, never from the requested/resolved tag or a later API lookup.
-        if key == "morphe":
+        if key == "morphe" or key in failed_sources:
             continue
         value = str(raw_value).strip()
         if value and value not in {"latest", "unknown"} and not value.startswith("{"):
@@ -293,7 +344,7 @@ def main() -> None:
         if not isinstance(repositories, list) or len(repositories) < 3:
             continue
         source_name = str(repositories[0].get("name") or source_path.stem)
-        if source_name == "morphe":
+        if source_name == "morphe" or source_name in failed_sources:
             continue
 
         repository = repositories[2]
@@ -308,7 +359,9 @@ def main() -> None:
 
     _write_state(state)
     # Resolve every current APK version while preserving prior values for
-    # providers that are temporarily unavailable.
+    # providers that are temporarily unavailable.  Apps whose build failed keep
+    # their previous version so the next check retries them.
+    os.environ["APK_VERSION_SKIP_APPS"] = json.dumps(sorted(failed_apps))
     runpy.run_path("scripts/save_apk_versions.py", run_name="__main__")
     desired = _read_state()
 

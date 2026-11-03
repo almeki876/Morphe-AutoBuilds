@@ -99,8 +99,10 @@ class DownloadAllToolsTests(unittest.TestCase):
         self.assertEqual(
             detect_release.call_args_list,
             [
-                mock.call("MorpheApp", "morphe-cli", "latest"),
-                mock.call("anddea", "revanced-patches", pinned_tag),
+                # CLI: GitHub "releases/latest" (stable only).
+                mock.call("MorpheApp", "morphe-cli", "latest", include_prereleases=False),
+                # Patch bundles follow the newest release, pre-releases included.
+                mock.call("anddea", "revanced-patches", pinned_tag, include_prereleases=True),
             ],
         )
         downloaded_urls = [call.args[0] for call in download.call_args_list]

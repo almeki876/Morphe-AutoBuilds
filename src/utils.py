@@ -13,7 +13,7 @@ import subprocess
 from pathlib import Path
 from urllib.parse import urlparse, unquote, parse_qs, urlsplit
 from src.versioning import VersionCandidate, parse_candidates
-from src import console_output
+from src import cli_launch, console_output
 
 
 RETRYABLE_HTTP_STATUSES = frozenset({403, 408, 425, 429, 500, 502, 503, 504})
@@ -336,6 +336,10 @@ def run_process(
     shell: bool = False,
     on_output: Optional[Callable[[str], None]] = None,
 ) -> Optional[str]:
+    if not shell:
+        # Single seam for every CLI launch: bundles that embed slf4j classes
+        # missing from the CLI need a supplemental class-path entry (cli_launch).
+        command = cli_launch.prepare_command(command)
     process = subprocess.Popen(
         command,
         cwd=str(cwd) if cwd else None,
@@ -404,6 +408,31 @@ def get_highest_version(versions: list[str]) -> str | None:
             highest_version = v
     return highest_version
 
+_LOG_LEVEL_PREFIXES = ("info:", "warning:", "warn:", "debug:", "trace:")
+_NO_COMPATIBLE_VERSIONS = "no compatible versions found"
+
+
+def _package_has_patches(
+    package_name: str, cli: str, patches: str, *, is_morphe_cli: bool
+) -> Optional[bool]:
+    """Return whether the bundle has at least one patch for ``package_name``.
+
+    ``None`` means the question cannot be answered (non-Morphe CLI syntax or the
+    command failed), which callers must treat as "not proven".
+    """
+    if not is_morphe_cli:
+        return None
+    output = run_process(
+        ['java', '-jar', cli, 'list-patches', '--patches', patches, '-f', package_name],
+        capture=True,
+        silent=True,
+        check=False,
+    )
+    if not output:
+        return None
+    return any(line.strip().startswith("Name:") for line in output.splitlines())
+
+
 def get_supported_version_candidates(
     package_name: str, cli: str, patches: str
 ) -> list[VersionCandidate]:
@@ -467,13 +496,28 @@ def get_supported_version_candidates(
 
     candidates = parse_candidates(output)
     if not candidates:
+        meaningful = [line.strip() for line in lines if line.strip()]
+        # CLIs prefix diagnostics with a log level (INFO:, WARN:, WARNING:, ...).
+        # Those lines are never version policy, whatever the level spelling is.
         policy_lines = {
-            line.strip().casefold()
-            for line in lines
-            if line.strip()
-            and not line.strip().casefold().startswith(("info:", "warning:"))
+            line.casefold()
+            for line in meaningful
+            if not line.casefold().startswith(_LOG_LEVEL_PREFIXES)
         }
-        if not policy_lines or policy_lines <= {"any", "null"}:
+        if policy_lines <= {"any", "null"}:
+            if any(_NO_COMPATIBLE_VERSIONS in line.casefold() for line in meaningful):
+                # "No compatible versions found" means either "the patches accept
+                # every version" (universal patches such as Hide ADB status) or
+                # "no patch targets this package".  Only the former may fall
+                # through to the latest release, so ask the CLI which patches
+                # apply to the package.
+                if _package_has_patches(
+                    package_name, cli, patches, is_morphe_cli=is_morphe_cli
+                ) is not True:
+                    raise SupportedVersionLookupError(
+                        f"no patch in the bundle supports {package_name}; "
+                        "list-versions reported no compatible versions"
+                    )
             logging.info(
                 "Patch compatibility is unrestricted (%s); using the latest release",
                 ", ".join(sorted(policy_lines)) or "no version constraint",
