@@ -1,0 +1,23 @@
+{
+  "results": [
+    {
+      "file": "prime-video-android-tv-ajstrick81-armeabi-v7a.apkm",
+      "sha256": "1cd5be2e9cd29080a0dc5060995006b3170a4f82b9c7e67d25eb8c79ae67d7a8",
+      "size": 17845803,
+      "analysis_id": "",
+      "malicious": 0,
+      "suspicious": 0,
+      "harmless": 0,
+      "undetected": 64,
+      "timeout": 1,
+      "failure": 0,
+      "unsupported": 10,
+      "verdict": "clean",
+      "method": "persistent hash cache",
+      "engines": {},
+      "permalink": "https://www.virustotal.com/gui/file/1cd5be2e9cd29080a0dc5060995006b3170a4f82b9c7e67d25eb8c79ae67d7a8/detection",
+      "last_analysis_date": 1779118721,
+      "reanalyzed": false
+    }
+  ]
+}

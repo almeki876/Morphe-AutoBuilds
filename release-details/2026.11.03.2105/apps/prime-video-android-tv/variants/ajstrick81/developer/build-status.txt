@@ -1,0 +1,89 @@
+app=prime-video-android-tv
+source=ajstrick81
+source_name=ajstrick81
+phase=Patch
+status=success
+run=https://github.com/almeki876/Morphe-AutoBuilds/actions/runs/41632749723
+
+traceback_or_error_tail<<EOF
+INFO: Merging: split_config.en
+INFO: Merging: split_config.et
+INFO: Merging: split_config.zh
+INFO: Merging: split_config.es
+INFO: Merging: split_config.ru
+INFO: Merging: split_config.fi
+INFO: Merging: split_config.pt
+INFO: Merging: split_config.de
+INFO: Merging: split_config.hi
+INFO: Merging: split_config.pl
+INFO: Merging: split_config.tr
+INFO: Merging: split_config.nl
+INFO: Merging: split_config.xhdpi
+INFO: Merging: split_config.uk
+INFO: Merging: split_config.fr
+INFO: Merging: split_config.armeabi_v7a
+INFO: Merging: split_config.hu
+INFO: Validating resources dir ...
+INFO: Sanitizing manifest ...
+INFO: Setting extractNativeLibs=false
+INFO: Writing apk ...
+INFO: Buffering compress changed files ...
+INFO: Writing files: 350
+INFO: Writing signature block ...
+INFO: Saved to: /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/.morphe-tmp-prime-video-android-tv-armeabi-v7a/patching-1793708543479/.build-input-armeabi-v7a-merged.apk
+INFO: Initializing patcher...
+INFO: Loading patches from 1 bundle(s)...
+INFO: Filtering patches for com.amazon.amazonvideo.livingroom v6.23.23+v15.5.0.70-armv7a...
+INFO: Skipping disabled: Clone Prime Video (default)
+INFO: Skipping disabled: Override certificate pinning (default)
+INFO: Applying 5 patches...
+INFO: Deleting existing temporary files directory
+INFO: Decoding all resources
+INFO: Leaving 10 native library files in the input APK
+INFO: Sanitizing unpatched strings
+INFO: Escaping strings
+INFO: Executing patches
+INFO: Applied: Bundle native ad-strip hook
+INFO: Applied: Disable auto-updates
+INFO: Applied: Load native ad-strip hook
+INFO: Applied: Prime Video extension
+INFO: Applied: Skip ads
+INFO: Rebuilding APK...
+INFO: Compiling patched dex files (mode: STRIP_FAST)
+INFO: Copied 132 unchanged extension classes to 1 DEX files
+INFO: Changed 10 of 20091 classes to mutable
+INFO: Writing 10 new classes to new DEX files
+INFO: Processing 10 classes (single threaded mode)
+INFO: Wrote 1 dex files to /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/.morphe-tmp-prime-video-android-tv-armeabi-v7a/patching-1793708543479/patcher/patched/newDex
+INFO: Stripped 10 modified classes from 2 original DEX files
+INFO: Compiling modified resources
+INFO: Stripping libs (keeping architectures arm64-v8a, armeabi-v7a, x86, x86_64)
+INFO: Stripped 0 lib files
+INFO: extractNativeLibs changed to true, restaging native libraries
+INFO: Unescaping strings
+INFO: Processing aapt macros
+INFO: Generating new resource IDs
+INFO: Writing resource APK
+INFO: Reusing 337 unchanged archive entries, rebuilding 2 entries, dropping 6 entries, leaving out 5 replaced entries
+INFO: Resource APK scan: 100ms write: 100ms
+INFO: Moving 7 resource files
+INFO: Using compiled resource APK as output base
+INFO: Aligning APK
+INFO: Saved to /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/prime-video-android-tv-armeabi-v7a-patch-v6.23.23+v15.5.0.70-armv7a.apk
+INFO: Patching took 3.0 seconds
+INFO: Patching result saved to /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/.patch-result-prime-video-android-tv-armeabi-v7a.json
+2026-11-03 12:22:26 Validated patched APK: 28257513 bytes (ABIs: armeabi-v7a)
+2026-11-03 12:22:27 Normalized patched APK ZIP headers
+2026-11-03 12:22:27 Validated architecture-filtered APK (ABIs: armeabi-v7a)
+2026-11-03 12:22:27 [SIZE] patched: 27499491 bytes (prime-video-android-tv-armeabi-v7a-patch-v6.23.23+v15.5.0.70-armv7a.apk)
+2026-11-03 12:22:29 Fetched latest release: V1.4.9
+2026-11-03 12:22:30 URL: https://release-assets.githubusercontent.com/github-production-release-asset/576398953/c64f423b-578f-44d0-9c3c-d016189acc1e [7733037/7733037] -> "APKEditor-1.4.9.jar" [1]
+2026-11-03 12:22:34 Set APK versionName to release tag 2026.11.03.2105
+Signed
+2026-11-03 12:22:35 [SIZE] signed: 19307833 bytes (prime-video-android-tv-armeabi-v7a-ajstrick81-v6.23.23+v15.5.0.70-armv7a.apk)
+✅ APK built: prime-video-android-tv-armeabi-v7a-ajstrick81-v6.23.23+v15.5.0.70-armv7a.apk
+✅ Built armeabi-v7a: prime-video-android-tv-armeabi-v7a-ajstrick81-v6.23.23+v15.5.0.70-armv7a.apk
+
+🎯 1 APK(s) built for 'prime-video-android-tv':
+   📱 prime-video-android-tv-armeabi-v7a-ajstrick81-v6.23.23+v15.5.0.70-armv7a.apk
+EOF

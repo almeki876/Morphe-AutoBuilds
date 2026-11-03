@@ -1,0 +1,89 @@
+app=disney-plus
+source=ajstrick81
+source_name=ajstrick81
+phase=Patch
+status=success
+run=https://github.com/almeki876/Morphe-AutoBuilds/actions/runs/41632749723
+
+traceback_or_error_tail<<EOF
+INFO: Extracting to: /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/tmp_5dd67fa3
+INFO: Searching apk files ...
+INFO: Found apk files: 28
+INFO: Found modules: 28
+INFO: Merging: base
+INFO: Added [base] classes.dex -> classes.dex
+INFO: Added [base] classes2.dex -> classes2.dex
+INFO: Added [base] classes3.dex -> classes3.dex
+INFO: Added [base] classes4.dex -> classes4.dex
+INFO: Added [base] classes5.dex -> classes5.dex
+INFO: Merging: split_config.sv
+INFO: Merging: split_config.ko
+INFO: Merging: split_config.arm64_v8a
+INFO: Merging: split_config.in
+INFO: Merging: split_config.ms
+INFO: Merging: split_config.vi
+INFO: Merging: split_config.th
+INFO: Merging: split_config.ar
+INFO: Merging: split_config.ja
+INFO: Merging: split_config.it
+INFO: Merging: split_config.en
+INFO: Merging: split_config.et
+INFO: Merging: split_config.zh
+INFO: Merging: split_config.es
+INFO: Merging: split_config.ru
+INFO: Merging: split_config.fi
+INFO: Merging: split_config.pt
+INFO: Merging: split_config.de
+INFO: Merging: split_config.hi
+INFO: Merging: split_config.pl
+INFO: Merging: split_config.tr
+INFO: Merging: split_config.nl
+INFO: Merging: split_config.xhdpi
+INFO: Merging: split_config.uk
+INFO: Merging: split_config.fr
+INFO: Merging: split_config.armeabi_v7a
+INFO: Merging: split_config.hu
+INFO: Validating resources dir ...
+INFO: Sanitizing manifest ...
+INFO: Setting extractNativeLibs=false
+INFO: Writing apk ...
+INFO: Buffering compress changed files ...
+INFO: Writing files: 3971
+INFO: Writing signature block ...
+INFO: Saved to: /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/.morphe-tmp-disney-plus-arm64-v8a/patching-1793708657199/.build-input-arm64-v8a-merged.apk
+INFO: Initializing patcher...
+INFO: Loading patches from 1 bundle(s)...
+INFO: Filtering patches for com.disney.disneyplus v26.8.0+rc6-2026.05.20...
+INFO: Skipping disabled: Suppress Household Prompt (default)
+INFO: Applying 1 patches...
+INFO: Executing patches
+INFO: Building instruction indexes for 34923 classes...
+INFO: Applied: Disney+ Android TV
+INFO: Rebuilding APK...
+INFO: Compiling patched dex files (mode: STRIP_FAST)
+INFO: Changed 3 of 34923 classes to mutable
+INFO: Writing 3 new classes to new DEX files
+INFO: Processing 3 classes (single threaded mode)
+INFO: Wrote 1 dex files to /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/.morphe-tmp-disney-plus-arm64-v8a/patching-1793708657199/patcher/patched/newDex
+INFO: Stripped 3 modified classes from 2 original DEX files
+INFO: Stripping libs (keeping architectures arm64-v8a, armeabi-v7a, x86, x86_64)
+INFO: Stripped 0 lib files
+INFO: Aligning APK
+INFO: Saved to /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/disney-plus-arm64-v8a-patch-v26.8.0+rc6-2026.05.20.apk
+INFO: Patching took 4.7 seconds
+INFO: Patching result saved to /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/.patch-result-disney-plus-arm64-v8a.json
+2026-11-03 12:24:22 Validated patched APK: 75480849 bytes (ABIs: arm64-v8a, armeabi-v7a)
+2026-11-03 12:24:23 Removed 6 non-target native libraries
+2026-11-03 12:24:23 Validated architecture-filtered APK (ABIs: arm64-v8a)
+2026-11-03 12:24:23 [SIZE] patched: 59518555 bytes (disney-plus-arm64-v8a-patch-v26.8.0+rc6-2026.05.20.apk)
+2026-11-03 12:24:25 Fetched latest release: V1.4.9
+2026-11-03 12:24:25 URL: https://release-assets.githubusercontent.com/github-production-release-asset/576398953/c64f423b-578f-44d0-9c3c-d016189acc1e [7733037/7733037] -> "APKEditor-1.4.9.jar" [1]
+2026-11-03 12:24:39 Set APK versionName to release tag 2026.11.03.2105
+Signed
+2026-11-03 12:24:40 [SIZE] signed: 59896675 bytes (disney-plus-arm64-v8a-ajstrick81-v26.8.0+rc6-2026.05.20.apk)
+✅ APK built: disney-plus-arm64-v8a-ajstrick81-v26.8.0+rc6-2026.05.20.apk
+✅ Built arm64-v8a: disney-plus-arm64-v8a-ajstrick81-v26.8.0+rc6-2026.05.20.apk
+
+🎯 1 APK(s) built for 'disney-plus':
+   📱 disney-plus-arm64-v8a-ajstrick81-v26.8.0+rc6-2026.05.20.apk
+EOF

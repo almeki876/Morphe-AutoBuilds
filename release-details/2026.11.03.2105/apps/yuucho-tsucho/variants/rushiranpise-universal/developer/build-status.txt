@@ -1,0 +1,89 @@
+app=yuucho-tsucho
+source=rushiranpise-universal
+source_name=rushiranpise universal
+phase=Patch
+status=success
+run=https://github.com/almeki876/Morphe-AutoBuilds/actions/runs/41632749723
+
+traceback_or_error_tail<<EOF
+INFO: Merging split APK bundle...
+INFO: Extracting to: /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/tmp_5dd67fa9
+INFO: Searching apk files ...
+INFO: Found apk files: 5
+INFO: Found modules: 5
+INFO: Merging: jp.japanpost.jp_bank.bankbookapp-41
+INFO: Added [jp.japanpost.jp_bank.bankbookapp-41] classes.dex -> classes.dex
+INFO: Added [jp.japanpost.jp_bank.bankbookapp-41] classes2.dex -> classes2.dex
+INFO: Merging: jp.japanpost.jp_bank.bankbookapp-41-config.xxhdpi
+INFO: Merging: jp.japanpost.jp_bank.bankbookapp-41-config.en
+INFO: Merging: jp.japanpost.jp_bank.bankbookapp-41-config.ja
+INFO: Merging: jp.japanpost.jp_bank.bankbookapp-41-config.arm64_v8a
+INFO: Validating resources dir ...
+INFO: Sanitizing manifest ...
+INFO: Setting extractNativeLibs=false
+INFO: Writing apk ...
+INFO: Buffering compress changed files ...
+INFO: Writing files: 2308
+INFO: Writing signature block ...
+INFO: Saved to: /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/.morphe-tmp-yuucho-tsucho-arm64-v8a/patching-1793708297713/.build-input-arm64-v8a-merged.apk
+INFO: Initializing patcher...
+INFO: Loading patches from 1 bundle(s)...
+INFO: Filtering patches for jp.japanpost.jp_bank.bankbookapp v24.0.0...
+INFO: Skipping disabled: Export all activities (default)
+INFO: Skipping disabled: Hide app icon (default)
+INFO: Skipping disabled: Spoof build info (default)
+INFO: Skipping disabled: Hide mock location (default)
+INFO: Skipping disabled: Spoof SIM provider (default)
+INFO: Skipping disabled: Spoof Wi-Fi connection (default)
+INFO: Skipping disabled: Custom network security (default)
+INFO: Skipping disabled: Enable Android debugging (default)
+INFO: Skipping disabled: Export internal data documents provider (default)
+INFO: Skipping disabled: Hex (default)
+INFO: Skipping disabled: Predictive back gesture (default)
+INFO: Skipping disabled: Override certificate pinning (default)
+INFO: Skipping disabled: Change package name (default)
+INFO: Skipping disabled: Disable Play Integrity (default)
+INFO: Skipping disabled: Spoof Play Age Signals (default)
+INFO: Skipping disabled: Remove screen capture restriction (default)
+INFO: Skipping disabled: Prevent screenshot detection (default)
+INFO: Skipping disabled: Remove screenshot restriction (default)
+INFO: Skipping disabled: Remove share targets (default)
+INFO: Skipping disabled: Enable ROM signature spoofing (default)
+INFO: Skipping disabled: Spoof keystore security level (default)
+INFO: Skipping disabled: Spoof root of trust (default)
+INFO: Skipping disabled: Set target SDK version 34 (default)
+INFO: Skipping disabled: Change version code (default)
+INFO: Skipping disabled: Disable PairIP license check (default)
+INFO: Skipping disabled: Disable Sentry telemetry (default)
+INFO: Applying 1 patches...
+INFO: Executing patches
+INFO: Applied: Hide ADB status
+INFO: Rebuilding APK...
+INFO: Compiling patched dex files (mode: STRIP_FAST)
+INFO: Copied 2 unchanged extension classes to 1 DEX files
+INFO: Changed 3 of 22971 classes to mutable
+INFO: Writing 3 new classes to new DEX files
+INFO: Processing 3 classes (single threaded mode)
+INFO: Wrote 1 dex files to /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/.morphe-tmp-yuucho-tsucho-arm64-v8a/patching-1793708297713/patcher/patched/newDex
+INFO: Stripped 3 modified classes from 2 original DEX files
+INFO: Stripping libs (keeping architectures arm64-v8a, armeabi-v7a, x86, x86_64)
+INFO: Stripped 0 lib files
+INFO: Aligning APK
+INFO: Saved to /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/yuucho-tsucho-arm64-v8a-patch-v24.0.0.apk
+INFO: Patching took 4.5 seconds
+INFO: Patching result saved to /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/.patch-result-yuucho-tsucho-arm64-v8a.json
+2026-11-03 12:18:22 Validated patched APK: 144308706 bytes (ABIs: arm64-v8a)
+2026-11-03 12:18:25 Normalized patched APK ZIP headers
+2026-11-03 12:18:26 Validated architecture-filtered APK (ABIs: arm64-v8a)
+2026-11-03 12:18:26 [SIZE] patched: 143484392 bytes (yuucho-tsucho-arm64-v8a-patch-v24.0.0.apk)
+2026-11-03 12:18:27 Fetched latest release: V1.4.9
+2026-11-03 12:18:28 URL: https://release-assets.githubusercontent.com/github-production-release-asset/576398953/c64f423b-578f-44d0-9c3c-d016189acc1e [7733037/7733037] -> "APKEditor-1.4.9.jar" [1]
+2026-11-03 12:18:39 Set APK versionName to release tag 2026.11.03.2105
+Signed
+2026-11-03 12:18:42 [SIZE] signed: 143813962 bytes (yuucho-tsucho-arm64-v8a-rushiranpise-universal-v24.0.0.apk)
+✅ APK built: yuucho-tsucho-arm64-v8a-rushiranpise-universal-v24.0.0.apk
+✅ Built arm64-v8a: yuucho-tsucho-arm64-v8a-rushiranpise-universal-v24.0.0.apk
+
+🎯 1 APK(s) built for 'yuucho-tsucho':
+   📱 yuucho-tsucho-arm64-v8a-rushiranpise-universal-v24.0.0.apk
+EOF

@@ -1,0 +1,89 @@
+app=fing
+source=paresh
+source_name=Paresh-Maheshwari
+phase=Patch
+status=success
+run=https://github.com/almeki876/Morphe-AutoBuilds/actions/runs/41632749723
+
+traceback_or_error_tail<<EOF
+INFO: Added [base] classes.dex -> classes.dex
+INFO: Added [base] classes2.dex -> classes2.dex
+INFO: Added [base] classes3.dex -> classes3.dex
+INFO: Merging: split_config.sv
+INFO: Merging: split_config.ko
+INFO: Merging: split_config.arm64_v8a
+INFO: Merging: split_config.in
+INFO: Merging: split_config.ms
+INFO: Merging: split_config.vi
+INFO: Merging: split_config.th
+INFO: Merging: split_config.ar
+INFO: Merging: split_config.ja
+INFO: Merging: split_config.xxhdpi
+INFO: Merging: split_config.xxxhdpi
+INFO: Merging: split_config.it
+INFO: Merging: split_config.en
+INFO: Merging: split_config.et
+INFO: Merging: split_config.mdpi
+INFO: Merging: split_config.zh
+INFO: Merging: split_config.es
+INFO: Merging: split_config.x86
+INFO: Merging: split_config.ru
+INFO: Merging: split_config.fi
+INFO: Merging: split_config.pt
+INFO: Merging: split_config.de
+INFO: Merging: split_config.x86_64
+INFO: Merging: split_config.hi
+INFO: Merging: split_config.pl
+INFO: Merging: split_config.tr
+INFO: Merging: split_config.nl
+INFO: Merging: split_config.ldpi
+INFO: Merging: split_config.tvdpi
+INFO: Merging: split_config.xhdpi
+INFO: Merging: split_config.uk
+INFO: Merging: split_config.fr
+INFO: Merging: split_config.hdpi
+INFO: Merging: split_config.armeabi_v7a
+INFO: Merging: split_config.hu
+INFO: Validating resources dir ...
+INFO: Sanitizing manifest ...
+INFO: Setting extractNativeLibs=false
+INFO: Writing apk ...
+INFO: Buffering compress changed files ...
+INFO: Writing files: 3681
+INFO: Writing signature block ...
+INFO: Saved to: /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/.morphe-tmp-fing-arm64-v8a/patching-1793708588500/.build-input-arm64-v8a-merged.apk
+INFO: Initializing patcher...
+INFO: Loading patches from 1 bundle(s)...
+INFO: Filtering patches for com.overlook.android.fing v12.12.0...
+INFO: Applying 1 patches...
+INFO: Executing patches
+INFO: Building instruction indexes for 12636 classes...
+INFO: Applied: Fing Premium
+INFO: Rebuilding APK...
+INFO: Compiling patched dex files (mode: STRIP_FAST)
+INFO: Changed 2 of 12636 classes to mutable
+INFO: Writing 2 new classes to new DEX files
+INFO: Processing 2 classes (single threaded mode)
+INFO: Wrote 1 dex files to /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/.morphe-tmp-fing-arm64-v8a/patching-1793708588500/patcher/patched/newDex
+INFO: Stripped 2 modified classes from 1 original DEX files
+INFO: Stripping libs (keeping architectures arm64-v8a, armeabi-v7a, x86, x86_64)
+INFO: Stripped 0 lib files
+INFO: Aligning APK
+INFO: Saved to /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/fing-arm64-v8a-patch-v12.12.0.apk
+INFO: Patching took 4.7 seconds
+INFO: Patching result saved to /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/.patch-result-fing-arm64-v8a.json
+2026-11-03 12:23:13 Validated patched APK: 38675854 bytes (ABIs: arm64-v8a, armeabi-v7a, x86, x86_64)
+2026-11-03 12:23:15 Removed 6 non-target native libraries
+2026-11-03 12:23:15 Validated architecture-filtered APK (ABIs: arm64-v8a)
+2026-11-03 12:23:15 [SIZE] patched: 38156691 bytes (fing-arm64-v8a-patch-v12.12.0.apk)
+2026-11-03 12:23:16 Fetched latest release: V1.4.9
+2026-11-03 12:23:17 URL: https://release-assets.githubusercontent.com/github-production-release-asset/576398953/c64f423b-578f-44d0-9c3c-d016189acc1e [7733037/7733037] -> "APKEditor-1.4.9.jar" [1]
+2026-11-03 12:23:26 Set APK versionName to release tag 2026.11.03.2105
+Signed
+2026-11-03 12:23:28 [SIZE] signed: 38499127 bytes (fing-arm64-v8a-paresh-v12.12.0.apk)
+✅ APK built: fing-arm64-v8a-paresh-v12.12.0.apk
+✅ Built arm64-v8a: fing-arm64-v8a-paresh-v12.12.0.apk
+
+🎯 1 APK(s) built for 'fing':
+   📱 fing-arm64-v8a-paresh-v12.12.0.apk
+EOF
