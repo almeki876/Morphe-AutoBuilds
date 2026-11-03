@@ -59,7 +59,9 @@ import os
 import re
 import shutil
 import subprocess
+import tempfile
 import zipfile
+import xml.etree.ElementTree as ET
 from dataclasses import dataclass, field
 from os import getenv
 from pathlib import Path
@@ -69,6 +71,7 @@ from typing import Any, Callable
 from src.versioning import canonical_version
 from src import (
     apk_cache,
+    apk_identity,
     apk_validation,
     cli_compat,
     console_output,
@@ -1117,6 +1120,80 @@ def _sign_apk(unsigned: Path, signed: Path, app_name: str) -> None:
         exit(1)
 
 
+def _set_release_version_name(apk: Path, release_tag: str) -> None:
+    """Set the packaged app version to the GitHub release tag before signing."""
+    apk_editor = downloader.download_apkeditor()
+    with tempfile.TemporaryDirectory(
+        prefix=".release-version-",
+        dir=apk.parent,
+    ) as temporary_directory:
+        work_dir = Path(temporary_directory)
+        decoded = work_dir / "decoded"
+        rebuilt = work_dir / "versioned.apk"
+        editor = str(apk_editor.resolve())
+        utils.run_process(
+            [
+                "java", "-jar", editor, "d", "-t", "xml", "-dex",
+                "-i", str(apk.resolve()), "-o", str(decoded), "-f",
+            ],
+            silent=True,
+        )
+
+        manifest_path = decoded / "AndroidManifest.xml"
+        if not manifest_path.is_file():
+            raise BuildFailure(
+                "APK_VALIDATION_FAILED",
+                f"APKEditor did not decode AndroidManifest.xml from {apk}",
+            )
+        try:
+            tree = ET.parse(manifest_path)
+        except ET.ParseError as error:
+            raise BuildFailure(
+                "APK_VALIDATION_FAILED",
+                f"APKEditor produced an unreadable AndroidManifest.xml for {apk}",
+            ) from error
+
+        manifest = tree.getroot()
+        if manifest.tag != "manifest":
+            raise BuildFailure(
+                "APK_VALIDATION_FAILED",
+                f"APKEditor produced an invalid Android manifest for {apk}",
+            )
+        android_namespace = "http://schemas.android.com/apk/res/android"
+        ET.register_namespace("android", android_namespace)
+        manifest.set(f"{{{android_namespace}}}versionName", release_tag)
+        tree.write(manifest_path, encoding="utf-8", xml_declaration=True)
+
+        utils.run_process(
+            [
+                "java", "-jar", editor, "b", "-t", "xml",
+                "-i", str(decoded), "-o", str(rebuilt), "-f",
+            ],
+            silent=True,
+        )
+        if not rebuilt.is_file() or rebuilt.stat().st_size == 0:
+            raise BuildFailure(
+                "APK_VALIDATION_FAILED",
+                f"APKEditor did not rebuild the versioned APK: {apk}",
+            )
+
+        try:
+            identity = apk_identity.read_identity(rebuilt)
+        except apk_identity.ApkIdentityError as error:
+            raise BuildFailure(
+                "APK_VALIDATION_FAILED",
+                f"Could not verify release versionName in {apk}: {error}",
+            ) from error
+        if identity.version_name != release_tag:
+            raise BuildFailure(
+                "APK_VALIDATION_FAILED",
+                "Release versionName mismatch: "
+                f"expected {release_tag}, actual {identity.version_name}",
+            )
+        rebuilt.replace(apk)
+    logging.info("Set APK versionName to release tag %s", release_tag)
+
+
 # ---------------------------------------------------------------------------
 # Main build
 # ---------------------------------------------------------------------------
@@ -1678,6 +1755,9 @@ def run_build(app_name: str, source: str, arch: str = "universal") -> str:
 
     # ── 9. Sign ──────────────────────────────────────────────────────────────
     signed_apk = Path(f"{app_name}-{arch}-{source_name}-v{version}.apk")
+    release_tag = getenv("RELEASE_TAG", "").strip()
+    if release_tag:
+        _set_release_version_name(output_apk, release_tag)
     _sign_apk(output_apk, signed_apk, app_name)
     output_apk.unlink(missing_ok=True)
 

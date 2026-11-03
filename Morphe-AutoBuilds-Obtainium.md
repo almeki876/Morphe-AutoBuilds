@@ -4,6 +4,8 @@ English | [日本語ガイド](Morphe-AutoBuilds-Obtainium.ja.md)
 
 Open the button for the app and patch source you want on your Android device, then import it into Obtainium or ObtainX. Each button tracks only APKs for that app/source combination. Different patch sources for the same app are listed separately.
 
+For Obtainium update detection, the APK's Android `versionName` matches the GitHub Release tag (a JST timestamp). The original app version remains available in the APK filename and release notes.
+
 Check the [latest release](https://github.com/almeki876/Morphe-AutoBuilds/releases/latest) for the APK source, version, SHA-256 hash, and scan results for the original, unpatched APK.
 ## [Morphe](https://github.com/MorpheApp/morphe-patches)
 

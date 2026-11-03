@@ -113,6 +113,25 @@ jobs:
         run: |
           python3 scripts/prepare_matrix.py
 
+  prepare-release-tag:
+    name: Generate Release Tag
+    runs-on: ubuntu-latest
+    outputs:
+      release_tag: ${{ steps.tag.outputs.release_tag }}
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v7
+
+      - name: Setup Python project
+        uses: ./.github/actions/setup-python-project
+        with:
+          install-dependencies: 'false'
+
+      - name: Generate Release Tag (JST)
+        id: tag
+        run: python3 scripts/generate_release_tag.py
+
   download-apks:
     name: Download ${{ matrix.app_name }} base APK
     needs: [download-tools, prepare-matrix]
@@ -353,7 +372,7 @@ jobs:
 
   build-apps:
     name: Build ${{ matrix.app_name }} with ${{ matrix.source_label }}
-    needs: [download-tools, prepare-matrix, download-apks]
+    needs: [download-tools, prepare-matrix, prepare-release-tag, download-apks]
     runs-on: ubuntu-latest
     timeout-minutes: 45
     permissions:
@@ -404,6 +423,7 @@ jobs:
         env:
           APP_NAME: ${{ matrix.app_name }}
           SOURCE: ${{ matrix.source }}
+          RELEASE_TAG: ${{ needs.prepare-release-tag.outputs.release_tag }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           HTTP_RETRIES: '4'
           HTTP_RETRY_BASE_SECONDS: '5'
@@ -555,7 +575,7 @@ jobs:
 
   create-release:
     name: Create Integrated Release
-    needs: [download-tools, prepare-matrix, build-apps, scan-base-apks]
+    needs: [download-tools, prepare-matrix, prepare-release-tag, build-apps, scan-base-apks]
     runs-on: ubuntu-latest
     timeout-minutes: 300
     if: >-
@@ -612,10 +632,12 @@ jobs:
         if: always() && hashFiles('virustotal_base_results.md') != ''
         run: cat virustotal_base_results.md >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Generate Release Tag (JST)
+      - name: Set Release Tag
         if: steps.check-apks.outputs.skip_release == 'false'
         id: tag
-        run: python3 scripts/generate_release_tag.py
+        env:
+          RELEASE_TAG: ${{ needs.prepare-release-tag.outputs.release_tag }}
+        run: echo "release_tag=$RELEASE_TAG" >> "$GITHUB_OUTPUT"
 
       - name: Generate Release Notes
         if: steps.check-apks.outputs.skip_release == 'false'
