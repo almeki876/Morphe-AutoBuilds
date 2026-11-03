@@ -3,7 +3,7 @@
 [English](Morphe-AutoBuilds-Direct-Download.md) | 日本語
 
 - Releases: [GitHub Releases](https://github.com/almeki876/Morphe-AutoBuilds/releases)
-- 最終更新日時: 2026-11-03 23:28 JST
+- 最終更新日時: 2026-11-04 04:12 JST
 
 ## [Morphe](https://github.com/MorpheApp/morphe-patches)
 
@@ -19,11 +19,11 @@
 
 ### YouTube
 
-[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2305/youtube-arm64-v8a-revanced-anddea-v21.13.164.apk)
+[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.04.0405/youtube-arm64-v8a-revanced-anddea-v21.13.164.apk)
 
 ### YouTube Music
 
-[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2305/youtube-music-arm64-v8a-revanced-anddea-v9.15.51.apk)
+[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.04.0405/youtube-music-arm64-v8a-revanced-anddea-v9.15.51.apk)
 
 ## [rushiranpise](https://github.com/rushiranpise/morphe-patches)
 
@@ -171,7 +171,7 @@
 
 ### Proton Mail
 
-[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2305/proton-mail-arm64-v8a-hxreborn-v7.11.12.apk)
+[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.04.0405/proton-mail-arm64-v8a-hxreborn-v7.11.12.apk)
 
 ## [rushiranpise universal](https://github.com/rushiranpise/Ri-Vanced-Universal-Morphe-Patches)
 
@@ -201,7 +201,7 @@
 
 ### Photoshop Mix
 
-[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2305/photoshop-mix-arm64-v8a-rookie-v2.6.3.apk)
+[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.04.0405/photoshop-mix-arm64-v8a-rookie-v2.6.3.apk)
 
 ### Google Photos
 
