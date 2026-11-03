@@ -1,68 +1,66 @@
 # Morphe AutoBuilds
 
-[日本語] | [English](README.en.md)
+[English] | [Japanese](README.ja.md)
 
 [![Build Status](https://img.shields.io/github/actions/workflow/status/almeki876/Morphe-AutoBuilds/build.yml?label=build)](https://github.com/almeki876/Morphe-AutoBuilds/actions/workflows/build.yml)
 [![Latest Release](https://img.shields.io/github/v/release/almeki876/Morphe-AutoBuilds?label=latest%20release)](https://github.com/almeki876/Morphe-AutoBuilds/releases/latest)
 
-Morphe AutoBuilds は、Android アプリへコミュニティ製パッチを適用した APK を自動作成して公開するリポジトリです。
+Morphe AutoBuilds automatically builds Android APKs with community-made patches and publishes the results through GitHub Releases.
 
 > [!IMPORTANT]
-> このリポジトリと配布 APK は、各アプリの開発元、Google、ReVanced、Morphe、各パッチ作者の公式配布物ではありません。利用は自己責任で行ってください。
+> This repository and its APKs are not official releases from the original app developers, Google, ReVanced, Morphe, or individual patch authors. Use them at your own discretion.
 
-## APKをダウンロードする
+## Download APKs
 
-用途に合わせて次の方法を利用できます。
+Choose the option that best fits how you update apps:
 
-- **[最新リリース](https://github.com/almeki876/Morphe-AutoBuilds/releases/latest)** — その回に作成された APK をまとめて確認
-- **[APK直リンク一覧](./Morphe-AutoBuilds-Direct-Download.md)** — アプリ・パッチソース・アーキテクチャごとの最新版へ直接アクセス
-- **[Obtainium / ObtainX 用リンク一覧](./Morphe-AutoBuilds-Obtainium.md)** — 対応アプリを更新管理アプリへ登録
+- **[Latest Release](https://github.com/almeki876/Morphe-AutoBuilds/releases/latest)** — APKs produced by the latest release run
+- **[Direct APK links](./Morphe-AutoBuilds-Direct-Download.md)** — current APKs grouped by patch source, app, and architecture
+- **[Obtainium / ObtainX links](./Morphe-AutoBuilds-Obtainium.md)** — links for registering supported app/source combinations in an update manager
 
-直リンク一覧が、現在配布できるアプリとパッチソースの組み合わせを確認する一番簡単な方法です。
+The direct-download list is the simplest place to see what is currently available.
 
-## どのAPKを選べばいい？
+## Which architecture should I use?
 
-同じアプリに複数のアーキテクチャがある場合は、端末に合うものを選んでください。
+- `arm64-v8a` — most modern Android phones and tablets
+- `armeabi-v7a` — some older 32-bit ARM devices
+- `x86_64` / `x86` — compatible emulators or devices
+- `universal` — includes support for multiple architectures
 
-- `arm64-v8a` — 現在の一般的な Android 端末向け
-- `armeabi-v7a` — 一部の古い 32bit ARM 端末向け
-- `x86_64` / `x86` — 対応するエミュレーターや端末向け
-- `universal` — 複数アーキテクチャを含む汎用版
+If you are unsure, use `arm64-v8a` when available, otherwise use `universal`.
 
-分からない場合は、通常は `arm64-v8a`、用意されていなければ `universal` を選んでください。
+## Patch sources
 
-## パッチソースについて
+The same app may be available from more than one patch source, such as Morphe, Anddea, or rushiranpise. Features and behavior can differ between sources.
 
-同じアプリでも、Morphe、Anddea、rushiranpise など異なるパッチ提供元の APK が存在する場合があります。適用される機能や挙動はパッチソースごとに異なります。
+See the [Direct APK links](./Morphe-AutoBuilds-Direct-Download.md) for the combinations that are currently distributed.
 
-実際に配布中の組み合わせは [APK直リンク一覧](./Morphe-AutoBuilds-Direct-Download.md) を確認してください。
+## Safety
 
-## 安全性について
+Before release, the project checks the **unmodified base APK** with VirusTotal. A build is not treated as a valid release if the required scan cannot be completed.
 
-公開前に、取得した**未加工の元 APK**を VirusTotal で確認します。検査を完了できない場合は、そのビルドを正常なリリースとして公開しません。
+VirusTotal and automated validation cannot guarantee absolute safety. Review release information and perform your own verification when appropriate.
 
-ただし、VirusTotal の結果や自動検査だけで完全な安全性を保証することはできません。インストール前にリリース内容を確認し、必要に応じて自身でも検査してください。
+Patched APKs are signed differently from official releases. As a result, an APK from this repository may not install directly over an existing copy signed by the original developer or another distributor.
 
-パッチ適用済み APK は元アプリとは異なる署名になります。そのため、公式版や別の署名でインストール済みの同一パッケージとは、そのまま上書きできない場合があります。
+## Updates
 
-## 更新について
+Patch sources and target apps are checked regularly. Only affected combinations are rebuilt when possible.
 
-パッチソースや対象アプリの更新を定期的に確認し、必要な組み合わせだけを自動で再ビルドします。
+If some apps fail while others complete successfully, the successfully built and verified APKs may still be published. Per-app failures are reported through GitHub Actions and Issues.
 
-一部のアプリだけ失敗した場合でも、正常に完成し安全確認を通過した APK は公開されることがあります。個別の失敗は GitHub Issues / Actions で確認できます。
+## Report a problem
 
-## 問題を報告する
+Open **Issues → New issue** and choose the form that matches the problem: build/download, installation/runtime, Actions/Release, another problem, or a feature/app request.
 
-GitHub の **Issues → New issue** から、問題の種類に合うフォームを選んでください。
+Include the affected app, patch source, release, and what happened when you know them.
 
-ビルド・ダウンロード、インストール・アプリ動作、Actions・Release、その他の問題を分けて報告できます。分かる範囲だけで構いませんが、対象アプリ、パッチソース、発生した内容、利用したリリースがあると確認しやすくなります。
+## Development and self-hosting
 
-## 開発・運用する方へ
+Repository setup, Secrets, Google Play, Tailscale, VirusTotal, provider configuration, workflow operation, and maintainer guidance are documented in **[SETUP.md](./SETUP.md)**.
 
-このリポジトリをフォークして運用する方法、Secrets、Google Play、Tailscale、VirusTotal、設定ファイル、GitHub Actions の構成などは **[SETUP.md](./SETUP.md)** にまとめています。
+README files are intentionally user-facing; implementation and operations documentation belongs in SETUP.
 
-README は APK 利用者向け、SETUP は開発者・メンテナ向けとして分離しています。
+## License
 
-## ライセンス
-
-リポジトリ内のコードについては [LICENSE](./LICENSE) を確認してください。元アプリ、パッチ、アイコンなどの権利はそれぞれの権利者に帰属します。
+See [LICENSE](./LICENSE) for repository code licensing. Rights to original apps, patches, icons, and other third-party assets remain with their respective owners.
