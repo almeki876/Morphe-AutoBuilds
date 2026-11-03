@@ -15,6 +15,8 @@ from src.versioning import (
     pinned_candidate,
 )
 
+APK_ARCHIVE_SUFFIXES = {".apk", ".apkm", ".apks", ".xapk"}
+
 
 def remove_apk_origin(app_name: str, arch: str) -> None:
     """Compatibility entry point for callers removing failed provenance."""
@@ -60,6 +62,8 @@ def download_resource(
                 res, fallback_url=final_url
             )
             filepath = Path(resolved_name)
+            if filepath.name.casefold() in APK_ARCHIVE_SUFFIXES:
+                filepath = filepath.with_name(f"download{filepath.name}")
             filepath.parent.mkdir(parents=True, exist_ok=True)
             total_size = int(res.headers.get("content-length", 0))
             downloaded_size = 0

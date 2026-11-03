@@ -1,11 +1,96 @@
+import io
+import os
 import tempfile
 import unittest
+import zipfile
 from pathlib import Path
+from types import SimpleNamespace
 from unittest import mock
 
-from scripts import download_apks
+from scripts import download_apks, resolve_pre_downloaded_apk
 from src.apk_identity import ApkIdentity, ApkIdentityError
+from src import downloader
 from src.versioning import VersionCandidate
+
+
+class DownloadResourceTests(unittest.TestCase):
+    def _xapk_payload(self) -> bytes:
+        payload = io.BytesIO()
+        with zipfile.ZipFile(payload, "w") as archive:
+            archive.writestr("base.apk", b"APK module")
+        return payload.getvalue()
+
+    def test_dotfile_archive_survives_download_and_artifact_resolution(self) -> None:
+        url = "https://downloads.example.invalid/file"
+        payload = self._xapk_payload()
+        response = SimpleNamespace(
+            headers={},
+            url=url,
+            raise_for_status=lambda: None,
+            iter_content=lambda chunk_size: [payload],
+            close=lambda: None,
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            env_file = root / "github-env"
+            with (
+                mock.patch(
+                    "src.downloader.utils.cf_aware_get",
+                    return_value=response,
+                ),
+                mock.patch(
+                    "src.downloader.utils.extract_filename",
+                    return_value=str(root / ".xapk"),
+                ),
+            ):
+                downloaded = downloader.download_resource(
+                    url,
+                    validate_apk=True,
+                    require_japanese=False,
+                )
+
+            self.assertEqual(downloaded.name, "download.xapk")
+            self.assertEqual(downloaded.read_bytes(), payload)
+
+            previous_cwd = Path.cwd()
+            try:
+                os.chdir(root)
+                with (
+                    mock.patch.dict(
+                        os.environ,
+                        {
+                            "APP_NAME": "example",
+                            "SOURCE": "test-provider",
+                            "GITHUB_ENV": str(env_file),
+                        },
+                    ),
+                    mock.patch(
+                        "scripts.download_apks._configured_arch",
+                        return_value="universal",
+                    ),
+                    mock.patch(
+                        "scripts.download_apks._download",
+                        return_value=(downloaded, "1.2.3"),
+                    ),
+                ):
+                    download_apks.main()
+                    self.assertEqual(resolve_pre_downloaded_apk.main(), 0)
+            finally:
+                os.chdir(previous_cwd)
+
+            artifact_apk = (
+                root
+                / "base-apk-input"
+                / "example-test-provider-universal.xapk"
+            )
+            self.assertTrue(artifact_apk.is_file())
+            self.assertEqual(
+                env_file.read_text(encoding="utf-8").splitlines(),
+                [
+                    f"PRE_DOWNLOADED_APK={Path('base-apk-input') / artifact_apk.name}",
+                    "PRE_DOWNLOADED_VERSION=1.2.3",
+                ],
+            )
 
 
 class DownloadApksTests(unittest.TestCase):
