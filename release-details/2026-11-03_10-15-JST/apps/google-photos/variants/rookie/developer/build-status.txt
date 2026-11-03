@@ -1,0 +1,89 @@
+app=google-photos
+source=rookie
+source_name=RookieEnough
+phase=Patch
+status=success
+run=https://github.com/almeki876/Morphe-AutoBuilds/actions/runs/41556458499
+
+traceback_or_error_tail<<EOF
+Enabled: true
+
+Index: 67
+Name: Add route export
+Description: Allows exporting and downloading Strava routes as GPX or TCX files directly from the app.
+Enabled: true
+
+Index: 68
+Name: Unlock subscription features
+Description: Unlocks "Routes", "Matched Runs" and "Segment Efforts".
+Enabled: true
+
+Index: 69
+Name: Hide Ads
+Description: Hides ad banners between chats.
+Enabled: true
+
+Index: 70
+Name: Hide navigation buttons
+Description: Permanently hides navigation bar buttons, such as Explore and Marketplace.
+Enabled: false
+2026-11-03 01:10:22 enable_patches=[]  disable_patches=[]
+2026-11-03 01:10:23 Running: java -Djava.awt.headless=true -Xmx6g -Xms3g -Dfile.encoding=UTF-8 -XX:-UsePerfData -XX:+UseG1GC -XX:MaxGCPauseMillis=150 -XX:G1HeapRegionSize=2m -XX:+UseStringDeduplication -XX:+ParallelRefProcEnabled -XX:ConcGCThreads=2 -XX:ParallelGCThreads=4 -XX:CICompilerCount=3 -XX:+UseCompressedOops -XX:+OptimizeStringConcat -XX:+DisableExplicitGC -XX:+TieredCompilation -XX:ReservedCodeCacheSize=128m -XX:InitialCodeCacheSize=32m -XX:MaxMetaspaceSize=128m -XX:SoftRefLRUPolicyMSPerMB=50 --add-opens=java.base/java.lang=ALL-UNNAMED --add-opens=java.base/java.util=ALL-UNNAMED --add-opens=java.base/java.io=ALL-UNNAMED -jar morphe-desktop-2.0.0-dev.5-all.jar patch --force --continue-on-error --unsigned -p patches-1.6.3.mpp --out=google-photos-arm64-v8a-patch-v7.92.0.977185651.apk --bytecode-mode=STRIP_FAST .build-splits-google-photos-v7.92.0.977185651/com.google.android.apps.photos.apk
+⚠️  Ignoring legacy BASE_APK_CACHE_TAG='base-apk-cache-v2'; using 'base-apk-cache-v4-ja-jp-px9a-split'
+INFO: Morphe data root: /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/morphe-data (JAR-adjacent)
+INFO: Initializing patcher...
+INFO: Timings startup: loadApk=119ms manifest=91ms
+INFO: Loading patches from 1 bundle(s)...
+INFO: Filtering patches for com.google.android.apps.photos v7.92.0.977185651...
+INFO: Skipping disabled: Clone app (default)
+INFO: Skipping disabled: Enable DCIM folders backup control (default)
+INFO: Applying 3 patches...
+INFO: Deleting existing temporary files directory
+INFO: Decoding all resources
+INFO: Leaving 9 native library files in the input APK
+INFO: Sanitizing unpatched strings
+INFO: Escaping strings
+INFO: Timings catalog: decodeAll=3097ms
+INFO: Executing patches
+INFO: Applied: Fix selected account persistence
+INFO: Building instruction indexes for 68772 classes...
+INFO: Applied: GmsCore support
+INFO: Applied: Spoof features
+INFO: Rebuilding APK...
+INFO: Compiling patched dex files (mode: STRIP_FAST)
+INFO: Copied 498 unchanged extension classes to 1 DEX files
+INFO: Changed 274 of 68772 classes to mutable
+INFO: Writing 274 new classes to new DEX files
+INFO: Processing 274 classes (single threaded mode)
+INFO: Wrote 1 dex files to /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/morphe-data/tmp/patching-1793668224875/patcher/patched/newDex
+INFO: Stripped 272 modified classes from 7 original DEX files
+INFO: Compiling modified resources
+INFO: Stripping libs (keeping architectures arm64-v8a, armeabi-v7a, x86, x86_64)
+INFO: Stripped 0 lib files
+INFO: Unescaping strings
+INFO: Post-processing package name change
+INFO: Processing aapt macros
+INFO: Generating new resource IDs
+INFO: Writing resource APK
+INFO: Reusing 6107 unchanged archive entries, rebuilding 2 entries, dropping 0 entries, leaving out 7 replaced entries
+INFO: Resource APK scan: 100ms write: 500ms
+INFO: Timings compile: stripLibs=168ms detectChanges=101ms nativeLibs=11ms relocateRoot=0ms bookkeeping=0ms packageName=11ms publicXmlRead=72ms unescape=0ms renameDecl=8ms rename=0ms aaptMacro=1ms resourceIds=54ms definedIds=12ms publicXmlWrite=26ms encode=127ms declareIds=21ms values=0ms deletedValues=0ms overlayable=0ms configurations=0ms resFiles=1ms deletedEntries=0ms compactSparse=0ms manifest=0ms stringPool=4ms refresh=23ms dropOmit=22ms write=533ms
+INFO: Timings writeApk: dexCompress=260ms omit=1ms collect=0ms deletes=0ms otherFiles=1ms otherFileCount=0 dexWait=0ms addDex=0ms sort=9ms write=520ms
+INFO: Saved to /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/google-photos-arm64-v8a-patch-v7.92.0.977185651.apk
+INFO: Patching took 10.1 seconds
+2026-11-03 01:10:35 Merging patched base APK with original split modules…
+2026-11-03 01:10:36 Fetched latest release: V1.4.9
+2026-11-03 01:10:37 URL: https://release-assets.githubusercontent.com/github-production-release-asset/576398953/c64f423b-578f-44d0-9c3c-d016189acc1e [7733037/7733037] -> "APKEditor-1.4.9.jar" [1]
+2026-11-03 01:10:43 Merged patched APK: google-photos-arm64-v8a-patch-v7.92.0.977185651.apk
+2026-11-03 01:10:43 Validated patched APK: 70221693 bytes (ABIs: arm64-v8a)
+2026-11-03 01:10:50 Normalized patched APK ZIP headers
+2026-11-03 01:10:51 Validated architecture-filtered APK (ABIs: arm64-v8a)
+2026-11-03 01:10:51 [SIZE] patched: 70152148 bytes (google-photos-arm64-v8a-patch-v7.92.0.977185651.apk)
+Signed
+2026-11-03 01:10:54 [SIZE] signed: 70676481 bytes (google-photos-arm64-v8a-rookie-v7.92.0.977185651.apk)
+✅ APK built: google-photos-arm64-v8a-rookie-v7.92.0.977185651.apk
+✅ Built arm64-v8a: google-photos-arm64-v8a-rookie-v7.92.0.977185651.apk
+
+🎯 1 APK(s) built for 'google-photos':
+   📱 google-photos-arm64-v8a-rookie-v7.92.0.977185651.apk
+EOF

@@ -1,0 +1,89 @@
+app=gboard
+source=jason
+source_name=jasonwu1994 + jkennethcarino + Entree3k
+phase=Patch
+status=success
+run=https://github.com/almeki876/Morphe-AutoBuilds/actions/runs/41556458499
+
+traceback_or_error_tail<<EOF
+INFO: Applied: Always incognito mode
+INFO: Applied: Backup & Restore
+INFO: [Found] federatedcompute-pa.googleapis.com blocked.
+INFO: Applied: Block tracking and analytics
+INFO: Applied: Change emoji size
+INFO: Applied: Clipboard Custom Character Limit
+INFO: Applied: Clipboard Enhancements
+INFO: Applied: Close Proactive Suggestions
+INFO: Applied: Custom Symbols
+INFO: Applied: Custom Theme
+INFO: Applied: Developer options
+INFO: Applied: Dictionaries & Predictions
+INFO: Applied: Emojis, stickers & GIFs Tab Order
+INFO: Applied: Enable Inline Autofill Suggestions
+INFO: Applied: Enable OCR / Scan Text
+INFO: Skipping 'Enable Undo feature': already enabled by default since 17.3.3.902587967
+INFO: Applied: Enable Undo feature
+INFO: Applied: Enable accessibility layout
+INFO: Applied: Enable cursor trackpad mode
+INFO: Applied: Enable split keyboard
+INFO: Applied: English QWERTY Up-Flick Uppercase
+INFO: Applied: FTP Server
+INFO: Applied: Floating Web Search
+INFO: Applied: Frosted Glass
+INFO: Applied: G Logo on Spacebar
+INFO: Applied: Grammar Checker
+INFO: Applied: Incognito Mode Toggle
+INFO: Applied: Inline Suggestions
+INFO: Applied: Key Shape Selection
+INFO: Applied: Keypress Vibration Intensity Control
+INFO: Applied: Latin Globe Key Ignore Interval
+INFO: Applied: Long-Press Editing Shortcuts
+INFO: Applied: Quick Insert
+INFO: Applied: Rounded Keyboard Panel
+INFO: Applied: Settings Homepage Override
+INFO: Applied: Simple Calculator
+INFO: Applied: Swipe Down to Dismiss Keyboard
+INFO: Applied: Swipeable Custom Top Row
+INFO: Applied: Toolbar Editing Buttons
+INFO: Applied: Top Toolbar Item Count
+INFO: Applied: Use Bluetooth Microphone
+INFO: Applied: Web Clipboard
+INFO: Applied: Zhuyin Bottom Row Key Sizes
+INFO: Applied: Zhuyin Quick Traditional/Simplified Toggle
+INFO: Applied: Zhuyin Slide Input
+INFO: Applied: Package Rename
+INFO: Rebuilding APK...
+INFO: Compiling patched dex files (mode: STRIP_FAST)
+INFO: Changed 107 of 26159 classes to mutable
+INFO: Writing 3405 new classes to new DEX files
+INFO: Processing 3405 classes in parallel (4 threads)
+INFO: Wrote 4 dex files to /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/morphe-data/tmp/patching-1793668404217/patcher/patched/newDex
+INFO: Stripped 106 modified classes from 3 original DEX files
+INFO: Compiling modified resources
+INFO: Stripping libs (keeping architectures arm64-v8a, armeabi-v7a, x86, x86_64)
+INFO: Stripped 0 lib files
+INFO: Unescaping strings
+INFO: Post-processing package name change
+INFO: Processing aapt macros
+INFO: Generating new resource IDs
+INFO: Writing resource APK
+INFO: Encoded 50 of 5447 values in 1 files, 8 resource files and 0 configurations of patches for com.google.android.inputmethod.latin
+INFO: Reusing 9551 unchanged archive entries, rebuilding 10 entries, dropping 0 entries, leaving out 3 replaced entries
+INFO: Resource APK scan: 1s write: 900ms
+INFO: Timings compile: stripLibs=4ms detectChanges=233ms nativeLibs=4ms relocateRoot=5ms bookkeeping=0ms packageName=2ms publicXmlRead=68ms unescape=10ms renameDecl=30ms rename=0ms aaptMacro=2ms resourceIds=103ms definedIds=14ms publicXmlWrite=41ms encode=952ms declareIds=233ms values=105ms deletedValues=0ms overlayable=0ms configurations=0ms resFiles=2ms deletedEntries=0ms compactSparse=0ms manifest=0ms stringPool=75ms refresh=96ms dropOmit=32ms write=946ms
+INFO: Timings writeApk: dexCompress=416ms omit=3ms collect=0ms deletes=0ms otherFiles=15ms otherFileCount=48 dexWait=0ms addDex=0ms sort=13ms write=914ms
+INFO: Signing APK
+INFO: Saved to /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/gboard-arm64-v8a-patch-v18.5.4.993608717-release-arm64-v8a.apk
+INFO: Patching took 18.5 seconds
+2026-11-03 01:13:43 Validated patched APK: 89899050 bytes (ABIs: arm64-v8a)
+2026-11-03 01:13:45 Normalized patched APK ZIP headers
+2026-11-03 01:13:46 Validated architecture-filtered APK (ABIs: arm64-v8a)
+2026-11-03 01:13:46 [SIZE] patched: 88778162 bytes (gboard-arm64-v8a-patch-v18.5.4.993608717-release-arm64-v8a.apk)
+Signed
+2026-11-03 01:13:48 [SIZE] signed: 89677998 bytes (gboard-arm64-v8a-jason-v18.5.4.993608717-release-arm64-v8a.apk)
+✅ APK built: gboard-arm64-v8a-jason-v18.5.4.993608717-release-arm64-v8a.apk
+✅ Built arm64-v8a: gboard-arm64-v8a-jason-v18.5.4.993608717-release-arm64-v8a.apk
+
+🎯 1 APK(s) built for 'gboard':
+   📱 gboard-arm64-v8a-jason-v18.5.4.993608717-release-arm64-v8a.apk
+EOF
