@@ -39,8 +39,37 @@ class SignedPatchInputTests(unittest.TestCase):
     def test_release_version_name_is_set_before_signing(self) -> None:
         source = inspect.getsource(build_main.run_build)
         version_call = source.index("_set_release_version_name(output_apk, release_tag)")
+        align_call = source.index("_align_apk(output_apk)")
         sign_call = source.index("_sign_apk(output_apk, signed_apk, app_name)")
+        self.assertLess(version_call, align_call)
+        self.assertLess(align_call, sign_call)
         self.assertLess(version_call, sign_call)
+
+    def test_zipalign_restores_and_checks_16kb_alignment_before_signing(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            apk = Path(directory) / "patched.apk"
+            apk.write_bytes(b"rewritten APK")
+            commands: list[list[str]] = []
+
+            def run_zipalign(command: list[str], **_kwargs: object) -> None:
+                commands.append(command)
+                if "-c" not in command:
+                    Path(command[-1]).write_bytes(b"aligned APK")
+
+            with (
+                mock.patch.object(utils, "find_zipalign", return_value="zipalign"),
+                mock.patch.object(utils, "run_process", side_effect=run_zipalign),
+            ):
+                build_main._align_apk(apk)
+
+            self.assertEqual(len(commands), 2)
+            self.assertEqual(
+                commands[0][1:5], ["-f", "-P", "16", "4"]
+            )
+            self.assertEqual(
+                commands[1][1:5], ["-c", "-P", "16", "4"]
+            )
+            self.assertEqual(apk.read_bytes(), b"aligned APK")
 
     def test_release_version_name_rebuilds_and_verifies_manifest(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -221,6 +250,20 @@ class SignedPatchInputTests(unittest.TestCase):
                 mock.patch.object(utils.shutil, "which", return_value=None),
             ):
                 self.assertEqual(utils.find_apksigner(), str(signer))
+
+    def test_zipalign_can_be_found_from_configured_android_sdk(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            zipalign = Path(directory) / "build-tools/36.0.0/zipalign.exe"
+            zipalign.parent.mkdir(parents=True)
+            zipalign.write_text("", encoding="utf-8")
+            with (
+                mock.patch.dict(
+                    os.environ,
+                    {"ANDROID_HOME": directory, "ANDROID_SDK_ROOT": ""},
+                ),
+                mock.patch.object(utils.shutil, "which", return_value=None),
+            ):
+                self.assertEqual(utils.find_zipalign(), str(zipalign))
 
 
 if __name__ == "__main__":

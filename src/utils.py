@@ -326,6 +326,32 @@ def find_apksigner() -> str | None:
     logging.error("No apksigner found on PATH or in Android SDK build-tools")
     return None
 
+
+def find_zipalign() -> str | None:
+    executable = shutil.which("zipalign") or shutil.which("zipalign.exe")
+    if executable:
+        return executable
+
+    sdk_roots = [
+        Path(value)
+        for name in ("ANDROID_HOME", "ANDROID_SDK_ROOT")
+        if (value := os.getenv(name))
+    ]
+    sdk_roots.append(Path("/usr/local/lib/android/sdk"))
+    executable_names = ("zipalign.exe", "zipalign")
+    for sdk_root in sdk_roots:
+        build_tools_dir = sdk_root / "build-tools"
+        if not build_tools_dir.is_dir():
+            continue
+        for version_dir in sorted(build_tools_dir.iterdir(), reverse=True):
+            for name in executable_names:
+                zipalign_path = version_dir / name
+                if zipalign_path.is_file():
+                    return str(zipalign_path)
+
+    logging.error("No zipalign found on PATH or in Android SDK build-tools")
+    return None
+
 def run_process(
     command: List[str],
     cwd: Optional[Path] = None,

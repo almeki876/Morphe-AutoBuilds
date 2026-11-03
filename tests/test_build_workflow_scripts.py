@@ -100,6 +100,8 @@ class WorkflowDelegationTests(unittest.TestCase):
         self.assertEqual(workflow.count("python3 scripts/install_google_play_clients.py"), 2)
         self.assertIn("python3 scripts/resolve_download_result.py", workflow)
         self.assertIn("python3 -m scripts.create_release", workflow)
+        self.assertIn("pattern: base-input-*", workflow)
+        self.assertIn("path: ./base-apk-inputs", workflow)
         self.assertIn("prepare-release-tag:", workflow)
         self.assertIn(
             "RELEASE_TAG: ${{ needs.prepare-release-tag.outputs.release_tag }}",

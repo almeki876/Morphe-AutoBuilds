@@ -1130,6 +1130,33 @@ def _sign_apk(unsigned: Path, signed: Path, app_name: str) -> None:
         exit(1)
 
 
+def _align_apk(apk: Path) -> None:
+    """Restore Android ZIP alignment after APK mutations and verify 16 KB support."""
+    zipalign = utils.find_zipalign()
+    if not zipalign:
+        raise BuildFailure("APK_VALIDATION_FAILED", "Android SDK zipalign was not found")
+
+    aligned = apk.with_name(f".{apk.name}.aligned.tmp")
+    aligned.unlink(missing_ok=True)
+    try:
+        utils.run_process(
+            [zipalign, "-f", "-P", "16", "4", str(apk), str(aligned)],
+            silent=True,
+        )
+        if not aligned.is_file() or aligned.stat().st_size == 0:
+            raise BuildFailure(
+                "APK_VALIDATION_FAILED",
+                f"zipalign did not produce an aligned APK: {apk}",
+            )
+        utils.run_process(
+            [zipalign, "-c", "-P", "16", "4", str(aligned)],
+            silent=True,
+        )
+        aligned.replace(apk)
+    finally:
+        aligned.unlink(missing_ok=True)
+
+
 def _set_release_version_name(apk: Path, release_tag: str) -> None:
     """Set the packaged app version to the GitHub release tag before signing."""
     apk_editor = downloader.download_apkeditor()
@@ -1768,11 +1795,12 @@ def run_build(app_name: str, source: str, arch: str = "universal") -> str:
             output_size,
         )
 
-    # ── 9. Sign ──────────────────────────────────────────────────────────────
+    # ── 9. Align and sign ────────────────────────────────────────────────────
     signed_apk = Path(f"{app_name}-{arch}-{source_name}-v{version}.apk")
     release_tag = getenv("RELEASE_TAG", "").strip()
     if release_tag:
         _set_release_version_name(output_apk, release_tag)
+    _align_apk(output_apk)
     _sign_apk(output_apk, signed_apk, app_name)
     output_apk.unlink(missing_ok=True)
 

@@ -11,11 +11,9 @@ from __future__ import annotations
 import json
 import os
 from pathlib import Path
-import runpy
 import subprocess
 import sys
 import time
-from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
 
@@ -33,18 +31,6 @@ def _github_headers() -> dict[str, str]:
         "Authorization": f"Bearer {os.environ.get('GITHUB_TOKEN', '')}",
         "User-Agent": "Morphe-AutoBuilds",
     }
-
-
-def latest_github_tag(owner: str, repo: str) -> str:
-    request = Request(
-        f"https://api.github.com/repos/{owner}/{repo}/releases?per_page=100",
-        headers=_github_headers(),
-    )
-    with urlopen(request, timeout=30) as response:
-        releases = json.load(response)
-    releases = [release for release in releases if release.get("published_at")]
-    releases.sort(key=lambda release: release["published_at"], reverse=True)
-    return releases[0]["tag_name"] if releases else ""
 
 
 def _release_history(repository: str | None = None) -> list[dict]:
@@ -155,6 +141,88 @@ def build_outcomes(root: Path = BUILD_RESULTS_DIR) -> tuple[set[str], set[str]]:
     if failed_sources & set(GBOARD_SOURCES):
         failed_sources |= set(GBOARD_SOURCES)
     return failed_sources, failed_apps
+
+
+def successful_builds(root: Path = BUILD_RESULTS_DIR) -> tuple[set[str], set[str]]:
+    """Return sources and apps with successful matrix status artifacts."""
+    successful_sources: set[str] = set()
+    successful_apps: set[str] = set()
+    failed_sources, failed_apps = build_outcomes(root)
+    if root.is_dir():
+        for path in root.rglob("*-build.txt"):
+            fields = _read_status_fields(path)
+            if fields.get("status", "").casefold() != "success":
+                continue
+            if fields.get("source"):
+                successful_sources.add(fields["source"])
+            if fields.get("app"):
+                successful_apps.add(fields["app"])
+
+    if "jason" in successful_sources and not failed_sources.intersection(GBOARD_SOURCES):
+        successful_sources.update(GBOARD_SOURCES)
+    successful_sources.difference_update(failed_sources)
+    successful_apps.difference_update(failed_apps)
+    return successful_sources, successful_apps
+
+
+def advance_successful_source_tags(
+    state: dict,
+    resolved_tags: dict,
+    successful_sources: set[str],
+    failed_sources: set[str],
+) -> None:
+    """Persist only exact patch tags used by successful matrix builds."""
+    for source in sorted(successful_sources - failed_sources - {"morphe"}):
+        raw_value = resolved_tags.get(source)
+        value = str(raw_value or "").strip()
+        if value and value not in {"latest", "unknown"} and not value.startswith("{"):
+            state[source] = value
+        else:
+            print(
+                f"::warning::No exact resolved patch tag is available for successful "
+                f"source {source}; preserving its previous state."
+            )
+
+
+def successful_apk_versions(
+    root: Path,
+    successful_apps: set[str],
+    failed_apps: set[str],
+) -> dict[str, str]:
+    """Resolve unambiguous APK versions from successful build input manifests."""
+    from src.versioning import canonical_version
+
+    versions_by_app: dict[str, set[str]] = {}
+    if not root.is_dir():
+        return {}
+    for path in sorted(root.rglob("manifest.json")):
+        try:
+            manifest = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as error:
+            print(f"::warning::Could not read APK input manifest {path}: {error}")
+            continue
+        if not isinstance(manifest, dict):
+            print(f"::warning::Ignoring invalid APK input manifest {path}")
+            continue
+        app = str(manifest.get("app_name") or "")
+        version = str(manifest.get("version") or "").strip()
+        if app not in successful_apps or app in failed_apps:
+            continue
+        if not version:
+            print(f"::warning::APK input manifest has no version: {path}")
+            continue
+        versions_by_app.setdefault(app, set()).add(canonical_version(version))
+
+    resolved: dict[str, str] = {}
+    for app, versions in versions_by_app.items():
+        if len(versions) == 1:
+            resolved[app] = next(iter(versions))
+        else:
+            print(
+                f"::warning::Successful builds used conflicting APK versions for "
+                f"{app}; keeping its previous recorded version: {sorted(versions)}"
+            )
+    return resolved
 
 
 def _morphe_reports(root: Path = BUILD_RESULTS_DIR) -> list[dict]:
@@ -315,6 +383,7 @@ def main() -> None:
     baseline = _read_state()
     state = dict(baseline)
     failed_sources, failed_apps = build_outcomes()
+    successful_sources, successful_apps = successful_builds()
     if failed_sources or failed_apps:
         print(
             "Partial persistence: keeping pending state for failed sources "
@@ -343,44 +412,25 @@ def main() -> None:
 
     try:
         resolved_source_tags = json.loads(os.getenv("SOURCE_TAGS_JSON", "{}"))
-    except json.JSONDecodeError:
-        resolved_source_tags = {}
+    except json.JSONDecodeError as error:
+        raise RuntimeError("SOURCE_TAGS_JSON must be valid JSON") from error
     if not isinstance(resolved_source_tags, dict):
-        resolved_source_tags = {}
-    for key, raw_value in resolved_source_tags.items():
-        # Morphe safety state is managed only from exact build-report evidence
-        # above, never from the requested/resolved tag or a later API lookup.
-        if key == "morphe" or key in failed_sources:
-            continue
-        value = str(raw_value).strip()
-        if value and value not in {"latest", "unknown"} and not value.startswith("{"):
-            state[key] = value
+        raise RuntimeError("SOURCE_TAGS_JSON must be a JSON object")
+    advance_successful_source_tags(
+        state,
+        resolved_source_tags,
+        successful_sources,
+        failed_sources,
+    )
 
-    sources_dir = Path("sources")
-    for source_path in sources_dir.glob("*.json"):
-        repositories = json.loads(source_path.read_text(encoding="utf-8"))
-        if not isinstance(repositories, list) or len(repositories) < 3:
-            continue
-        source_name = str(repositories[0].get("name") or source_path.stem)
-        if source_name == "morphe" or source_name in failed_sources:
-            continue
-
-        repository = repositories[2]
-        if repository.get("gitlab"):
-            continue
-        try:
-            value = latest_github_tag(repository["user"], repository["repo"])
-        except (HTTPError, URLError, TimeoutError, KeyError, IndexError):
-            continue
-        if value:
-            state[source_name] = value
-
+    apk_versions = successful_apk_versions(
+        Path("base-apk-inputs"),
+        successful_apps,
+        failed_apps,
+    )
+    for app, version in apk_versions.items():
+        state[f"apk_{app}"] = version
     _write_state(state)
-    # Resolve every current APK version while preserving prior values for
-    # providers that are temporarily unavailable.  Apps whose build failed keep
-    # their previous version so the next check retries them.
-    os.environ["APK_VERSION_SKIP_APPS"] = json.dumps(sorted(failed_apps))
-    runpy.run_path("scripts/save_apk_versions.py", run_name="__main__")
     desired = _read_state()
 
     # This job runs only after create-release succeeds. Publishing the direct

@@ -694,6 +694,12 @@ jobs:
           pattern: build-status-*
           merge-multiple: true
 
+      - name: Download Base APK Input Manifests
+        uses: actions/download-artifact@v8
+        with:
+          path: ./base-apk-inputs
+          pattern: base-input-*
+
       - name: Require Build Results (partial persistence allowed)
         run: |
           if [ ! -d ./build-results ] || ! find ./build-results -name '*.txt' -print -quit | grep -q .; then
@@ -714,11 +720,6 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SOURCE_TAGS_JSON: ${{ needs.download-tools.outputs.resolved-tags }}
-          GPLAYDL_API_KEY: ${{ secrets.GPLAYDL_API_KEY }}
-          GPLAY_EMAIL: ${{ secrets.GPLAY_EMAIL }}
-          GPLAY_AAS_TOKEN: ${{ secrets.GPLAY_AAS_TOKEN }}
-          GPLAYDL_PREFERRED_PROFILE: ${{ vars.GPLAYDL_PREFERRED_PROFILE }}
-          GPLAY_AUTH_TOKEN: ${{ secrets.GPLAY_AUTH_TOKEN }}
         run: |
           python3 scripts/save_successful_state.py
 
