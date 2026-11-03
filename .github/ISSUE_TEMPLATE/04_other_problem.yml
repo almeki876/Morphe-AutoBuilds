@@ -1,25 +1,34 @@
-name: その他の問題
-description: 上の分類に当てはまらない問題や、どこに分類すべきか分からない場合はこちら。
+name: Other issue / その他の問題
+description: Use this for issues that do not fit another category / 他の分類に当てはまらない問題はこちら
 title: "[Other] "
 labels:
   - bug
 body:
+  - type: markdown
+    attributes:
+      value: |
+        English and Japanese reports are both welcome. / 英語・日本語どちらで報告しても構いません。
+
+        Attach screenshots or short, relevant logs by dragging them into the description, pasting them, or using the attachment button. Do not attach APK files, credentials, access tokens, or personal data. Redact secrets and unrelated account/device information before uploading.
+
+        スクリーンショットや必要なログは、説明欄へのドラッグ＆ドロップ、貼り付け、または添付ボタンから追加できます。APK本体、認証情報、アクセストークン、個人情報は添付しないでください。アップロード前に秘密情報や無関係なアカウント・端末情報を伏せてください。
+
   - type: textarea
     id: problem
     attributes:
-      label: 何が起きましたか？
-      description: 分かる範囲だけで構いません。状況をそのまま書いてください。
+      label: What happened? / 何が起きましたか？
+      description: Describe the situation in your own words. / 分かる範囲で状況を書いてください。
     validations:
       required: true
 
   - type: input
     id: app
     attributes:
-      label: 関係するアプリ
+      label: Related app / 関係するアプリ
       placeholder: 例：YouTube / 分からない場合は空欄
 
   - type: textarea
     id: evidence
     attributes:
-      label: ログ・スクリーンショット・補足
-      description: エラー、画像、再現方法、端末情報などがあればまとめて貼り付けてください。
+      label: Logs, screenshots, or other details / ログ・スクリーンショット・補足
+      description: Add relevant information and redact secrets before attaching. / 関連情報を記載し、添付前に秘密情報を伏せてください。

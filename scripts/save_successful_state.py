@@ -25,6 +25,7 @@ if str(REPOSITORY_ROOT) not in sys.path:
 
 STATE_FILE = Path("last-tags.json")
 DIRECT_DOWNLOAD_FILE = Path("Morphe-AutoBuilds-Direct-Download.md")
+DIRECT_DOWNLOAD_JA_FILE = Path("Morphe-AutoBuilds-Direct-Download.ja.md")
 BUILD_RESULTS_DIR = Path("build-results")
 def _github_headers() -> dict[str, str]:
     return {
@@ -75,15 +76,25 @@ def _release_history(repository: str | None = None) -> list[dict]:
     return releases
 
 
-def _refresh_direct_download_catalog(path: Path = DIRECT_DOWNLOAD_FILE) -> None:
-    """Regenerate the catalog from Releases that already exist on GitHub."""
+def _refresh_direct_download_catalog(
+    path: Path = DIRECT_DOWNLOAD_FILE,
+    japanese_path: Path | None = None,
+) -> None:
+    """Regenerate both language catalogs from Releases that already exist on GitHub."""
     from scripts.generate_direct_download_md import render
 
     releases = _release_history()
-    path.write_text(render(releases), encoding="utf-8")
+    if japanese_path is None:
+        japanese_path = (
+            DIRECT_DOWNLOAD_JA_FILE
+            if path == DIRECT_DOWNLOAD_FILE
+            else path.with_name(f"{path.stem}.ja{path.suffix}")
+        )
+    path.write_text(render(releases, language="en"), encoding="utf-8")
+    japanese_path.write_text(render(releases, language="ja"), encoding="utf-8")
     newest = next((item for item in releases if not item.get("draft")), None)
     newest_tag = str((newest or {}).get("tag_name") or "unknown")
-    print(f"Refreshed direct-download catalog from GitHub Releases (newest={newest_tag}).")
+    print(f"Refreshed English and Japanese direct-download catalogs (newest={newest_tag}).")
 
 
 def _read_state(path: Path = STATE_FILE) -> dict:
@@ -254,7 +265,13 @@ def _publish_success_outputs_to_main(
         merged = _merge_concurrent_state(baseline, desired, fresh)
         _write_state(merged)
         _refresh_direct_download_catalog()
-        _git("add", "--", str(STATE_FILE), str(DIRECT_DOWNLOAD_FILE))
+        _git(
+            "add",
+            "--",
+            str(STATE_FILE),
+            str(DIRECT_DOWNLOAD_FILE),
+            str(DIRECT_DOWNLOAD_JA_FILE),
+        )
 
         staged = _git(
             "diff",
@@ -263,6 +280,7 @@ def _publish_success_outputs_to_main(
             "--",
             str(STATE_FILE),
             str(DIRECT_DOWNLOAD_FILE),
+            str(DIRECT_DOWNLOAD_JA_FILE),
             check=False,
         )
         if staged.returncode == 0:

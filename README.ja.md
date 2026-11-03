@@ -1,6 +1,6 @@
 # Morphe AutoBuilds
 
-[English](README.md) |  [日本語]
+[English](README.md) | 日本語
 
 [![Build Status](https://img.shields.io/github/actions/workflow/status/almeki876/Morphe-AutoBuilds/build.yml?label=build)](https://github.com/almeki876/Morphe-AutoBuilds/actions/workflows/build.yml)
 [![Latest Release](https://img.shields.io/github/v/release/almeki876/Morphe-AutoBuilds?label=latest%20release)](https://github.com/almeki876/Morphe-AutoBuilds/releases/latest)
@@ -15,8 +15,8 @@ Morphe AutoBuilds は、Android アプリへコミュニティ製パッチを適
 用途に合わせて次の方法を利用できます。
 
 - **[最新リリース](https://github.com/almeki876/Morphe-AutoBuilds/releases/latest)** — その回に作成された APK をまとめて確認
-- **[APK直リンク一覧](./Morphe-AutoBuilds-Direct-Download.md)** — アプリ・パッチソース・アーキテクチャごとの最新版へ直接アクセス
-- **[Obtainium / ObtainX 用リンク一覧](./Morphe-AutoBuilds-Obtainium.md)** — 対応アプリを更新管理アプリへ登録
+- **[APK直リンク一覧](./Morphe-AutoBuilds-Direct-Download.ja.md)** ([English](./Morphe-AutoBuilds-Direct-Download.md)) — アプリ・パッチソース・アーキテクチャごとの最新版へ直接アクセス
+- **[Obtainium / ObtainX 用リンク一覧](./Morphe-AutoBuilds-Obtainium.md)** ([日本語ガイド](./Morphe-AutoBuilds-Obtainium.ja.md)) — 対応アプリを更新管理アプリへ登録
 
 直リンク一覧が、現在配布できるアプリとパッチソースの組み合わせを確認する一番簡単な方法です。
 
@@ -35,7 +35,7 @@ Morphe AutoBuilds は、Android アプリへコミュニティ製パッチを適
 
 同じアプリでも、Morphe、Anddea、rushiranpise など異なるパッチ提供元の APK が存在する場合があります。適用される機能や挙動はパッチソースごとに異なります。
 
-実際に配布中の組み合わせは [APK直リンク一覧](./Morphe-AutoBuilds-Direct-Download.md) を確認してください。
+実際に配布中の組み合わせは [APK直リンク一覧](./Morphe-AutoBuilds-Direct-Download.ja.md) を確認してください。
 
 ## 安全性について
 
@@ -59,9 +59,11 @@ GitHub の **Issues → New issue** から、問題の種類に合うフォー�
 
 ## 開発・運用する方へ
 
-このリポジトリをフォークして運用する方法、Secrets、Google Play、Tailscale、VirusTotal、設定ファイル、GitHub Actions の構成などは **[SETUP.md](./SETUP.md)** にまとめています。
+このリポジトリをフォークして運用する方法、Secrets、Google Play、Tailscale、VirusTotal、設定ファイル、GitHub Actions の構成などは **[SETUP.ja.md](./SETUP.ja.md)** にまとめています（[English](./SETUP.md)）。
 
 README は APK 利用者向け、SETUP は開発者・メンテナ向けとして分離しています。
+
+Issue 報告や Pull Request による貢献を歓迎します。環境構築、テスト、変更時の注意点は [コントリビューションガイド](./CONTRIBUTING.ja.md)（[English](./CONTRIBUTING.md)）を参照してください。
 
 ## ライセンス
 

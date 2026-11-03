@@ -60,11 +60,12 @@ class SuccessfulStateDirectDownloadTests(unittest.TestCase):
 
             original_render = generate_direct_download_md.render
 
-            def render_with_test_config(payload):
+            def render_with_test_config(payload, *, language="en"):
                 return original_render(
                     payload,
                     source_root=root / "sources",
                     config_path=config,
+                    language=language,
                 )
 
             with (
@@ -74,8 +75,13 @@ class SuccessfulStateDirectDownloadTests(unittest.TestCase):
                 save_successful_state._refresh_direct_download_catalog(output)
 
             text = output.read_text(encoding="utf-8")
+            japanese_text = (root / "Morphe-AutoBuilds-Direct-Download.ja.md").read_text(
+                encoding="utf-8"
+            )
             self.assertIn("2026-08-24 15:12 JST", text)
+            self.assertIn("最終更新日時: 2026-08-24 15:12 JST", japanese_text)
             self.assertIn("https://example.invalid/new.apk", text)
+            self.assertIn("https://example.invalid/new.apk", japanese_text)
             self.assertNotIn("https://example.invalid/old.apk", text)
             self.assertNotIn("base-apk-cache-v2", text)
 

@@ -1,153 +1,165 @@
-# Morphe AutoBuilds 開発・運用ガイド
+# Morphe AutoBuilds: Setup and Operations
 
-この文書は、Morphe AutoBuilds をフォーク・改修・運用する開発者／メンテナ向けです。APKを利用するだけの場合は [README](./README.md) を参照してください。
+English | [日本語](SETUP.ja.md)
 
-## 全体構成
+This guide is for people who want to fork, change, or maintain this repository. If you only want to install an APK, start with the [user guide](README.md).
 
-このリポジトリは次の責務に分かれています。
+## What this repository does
 
-- `my-patch-config.json` — ビルドするアプリとパッチソース
-- `arch-config.json` — 出力アーキテクチャ
-- `app-metadata/` — provider非依存のpackage ID・取得ポリシー
-- `apps/<provider>/` — APK取得元ごとの設定
-- `sources/` — パッチCLI／bundleの取得設定
-- `src/` — provider、Google Play、version解決、patch/buildなどの共通実装
-- `scripts/` — Actionsから呼ぶ運用処理と手動診断
-- `.github/workflows/` — 実行タイミングとジョブ依存関係
-- `tests/` — 回帰テスト
+The GitHub Actions workflows select apps and patch sources, obtain a compatible original APK, apply community patches, verify the result, and publish successful APKs as GitHub Releases. A run can publish the apps that succeeded even if another app failed.
 
-原則として、複雑な判定やネットワーク処理はYAMLへ直接増やさず `src/` / `scripts/` に実装し、workflowは「いつ・何を呼ぶか」に寄せます。
+The main files and folders are:
 
-## GitHub Actions の見方
-
-Actions画面では、利用目的を先頭で判断できるように表示名を分類しています。ファイル名はworkflow間参照を安定させるため、むやみに変更しません。
-
-| Actionsでの表示名 | ファイル | 用途 |
-| --- | --- | --- |
-| `Build and Release APKs` | `build.yml` | 通常のビルド・検査・Release本体 |
-| `手動: 全アプリをビルド` | `build-all-apps.yml` | 全対象を手動で強制ビルドする入口 |
-| `自動: アップストリーム更新を確認` | `check-upstream.yml` | 定期的にパッチ／APK更新を確認し必要時だけbuildを起動 |
-| `CI: 設定・テスト検証` | `configuration-check.yml` | push / PR時の設定・構文・unit test |
-| `保守: 取得元とビルド環境を点検` | `health-check.yml` | providerやbuild toolの定期ヘルスチェック |
-| `セットアップ: Google Playアカウントを登録` | `register-google-play.yml` | gplaydl用Googleアカウント登録 |
-| `保守: Google Play取得を診断` | `diagnose-google-play-purchase.yml` | Google Play取得の手動診断 |
-| `保守: 日本Tailscale経路を確認` | `japan-egress-check.yml` | Tailscale日本出口の手動診断 |
-| `自動: VirusTotalキャッシュを保存` | `publish-virustotal-cache.yml` | 成功したVT hash結果の永続化 |
-| `自動: APK直リンク一覧を更新` | `update-direct-download-links.yml` | Release後の直リンク一覧更新 |
-
-通常運用で手動実行することが多いのは `手動: 全アプリをビルド`、`セットアップ: Google Playアカウントを登録`、必要時の2つの保守診断workflowです。
-
-## Workflowを変更するときの原則
-
-`build.yml` はパイプラインのオーケストレーターです。ダウンロード、version解決、VirusTotal、state保存などの判断ロジックは可能な限りPython module/script側へ置きます。
-
-workflowを変更するときは次を守ってください。
-
-- 同じ処理を複数workflowへコピーしない
-- 長いPython処理をYAMLのhere-documentへ追加しない
-- 認証情報を受け取るstepは必要最小限にする
-- `continue-on-error` は後続の明示的な結果判定とセットで使う
-- fallbackには終了条件とtimeoutを持たせる
-- workflow名を変更する場合は `workflow_run.workflows` の参照も更新する
-- ファイル名を変更する場合はbadge、`gh workflow run`、テスト、ドキュメントの参照を全検索する
-
-## 必要なSecrets / Variables
-
-Repository Secrets:
-
-| 名前 | 用途 |
+| Path | Purpose |
 | --- | --- |
-| `PAT` | 非公開patch sourceの読み取り、Google Play登録時のsecret更新 |
-| `VIRUSTOTAL_API_KEY` | 未加工base APKのVirusTotal検査 |
-| `GPLAYDL_API_KEY` | gplaydl Google Play取得 |
-| `GPLAY_EMAIL` | 登録済みGoogle Playアカウント |
-| `GPLAY_AAS_TOKEN` | gplaydl Authenticatorで取得したAAS token |
-| `TS_OAUTH_CLIENT_ID` | Tailscale Actions接続 |
-| `TS_OAUTH_SECRET` | Tailscale Actions接続 |
+| `my-patch-config.json` | Apps and patch sources to build |
+| `arch-config.json` | APK architectures to produce |
+| `app-metadata/` | Package IDs and download rules shared by providers |
+| `apps/<provider>/` | Settings for individual APK providers |
+| `sources/` | Patch CLI and patch-bundle sources |
+| `src/` | Shared provider, version, download, patch, and build code |
+| `scripts/` | Workflow commands and tools for manual diagnosis |
+| `.github/workflows/` | When workflows run and how jobs are connected |
+| `tests/` | Regression tests |
 
-Repository Variables:
+Put complex decisions and network operations in `src/` or `scripts/`, not in long YAML blocks. Workflows should mainly describe when to run a task and which script to call.
 
-| 名前 | 用途 |
+Workflows that need Python use the shared `.github/actions/setup-python-project` composite action. It selects Python 3.11 and can install `requirements.txt` when the job needs project dependencies; set `install-dependencies: 'false'` for standard-library-only tasks. This keeps Python versions and dependency setup consistent without installing packages in every job.
+
+## GitHub Actions: which workflow should I run?
+
+The Actions page keeps the main build, a one-click full build, validation, and maintenance tasks separate:
+
+| Workflow | When to use it |
 | --- | --- |
-| `TS_EXIT_NODE` | 日本にあるTailscale exit node |
-| `GPLAYDL_PREFERRED_PROFILE` | 優先device profile（未指定なら自動） |
+| `Build and Release APKs` (`build.yml`) | Builds and releases selected apps, usually started automatically when updates are found. |
+| `Build All Apps` (`build-all-apps.yml`) | One-click manual entry point that starts `build.yml` for every enabled app/source. |
+| `Repository Validation` (`configuration-check.yml`) | Runs automatically for pushes to the main branches and pull requests. |
+| `Repository Operations` (`operations.yml`) | Runs scheduled maintenance or a selected manual maintenance task. |
 
-Secret値はログ・Issue・コミットへ書かないでください。
+Use `Build All Apps` when you want to rebuild everything; it does not share the maintenance task selector.
 
-## Google Play の取得設計
+Select **Repository Operations → Run workflow** and choose one task from the `task` menu:
 
-Google Playからexact versionを取得する前に、パッチCLIが返した互換 `versionName` を基準に、provider metadataからAndroid `versionCode` を解決・検証します。
+| Task | Purpose |
+| --- | --- |
+| `check-upstream` | Checks patch and APK updates; starts a build when changes are found. Runs twice daily automatically. |
+| `provider-health` | Checks APK providers and build tools. Runs daily automatically. |
+| `refresh-download-links` | Regenerates the English and Japanese APK catalogs. Runs daily automatically; successful build-state updates also refresh both catalogs. |
+| `diagnose-google-play` | Diagnoses Google Play downloads for the supplied packages and optional version code. |
+| `verify-japan-egress` | Checks the Tailscale connection and confirms the outbound IP is in Japan. |
+| `rebuild-release-details` | Regenerates details for an existing Release using artifacts from a build run. Requires `release_tag` and `run_id`. |
+| `register-google-play` | Registers the Google account used by gplaydl. Requires `expected_email`. |
 
-`src/providers.py` の identity resolver は、パッチ互換性を変更せず、同じversionNameに対応するversionCodeだけを補完します。versionCodeを安全に特定できない場合は、近い別バージョンを推測して取得しません。
+Keep the full-build entry point separate from maintenance operations. Routine checks run on a schedule; use manual diagnostic or account-registration tasks only when needed.
 
-Google Play取得は `src/aurora_play.py` が担当します。versionCodeがある場合、gplaydlへ `-v <versionCode>` を渡して完全一致版を要求します。
+## Before changing a workflow
 
-通常の優先順は速度と独立実装の安全網を両立するため、概ね次の通りです。
+`build.yml` coordinates the build pipeline. Keep download, version resolution, VirusTotal, and state-saving logic in Python modules or scripts when possible.
 
-1. 軽量な gplaydl
+- Do not duplicate the same operation across multiple workflows.
+- Avoid putting long Python programs directly in workflow YAML.
+- Give credentials only to the steps that need them.
+- Use `continue-on-error` only when a later step explicitly checks the result.
+- Give fallback paths a timeout and a clear stopping condition.
+- If a workflow's displayed name changes, update any `workflow_run.workflows` references.
+- If a workflow filename changes, check references in badges, `gh workflow run` commands, tests, and documentation.
+
+## Required GitHub Secrets and Variables
+
+Add these under the repository's **Settings → Secrets and variables → Actions**. The workflows that use each value will fail or skip their related feature if it is missing.
+
+### Repository secrets
+
+| Secret | Purpose |
+| --- | --- |
+| `PAT` | Reads private patch sources and updates secrets during Google Play account registration |
+| `VIRUSTOTAL_API_KEY` | Scans the original, unpatched APK |
+| `GPLAYDL_API_KEY` | Downloads apps from Google Play with gplaydl |
+| `GPLAY_EMAIL` | Email address of the registered Google Play account |
+| `GPLAY_AAS_TOKEN` | AAS token obtained through the gplaydl Authenticator |
+| `TS_OAUTH_CLIENT_ID` | Connects GitHub Actions to Tailscale |
+| `TS_OAUTH_SECRET` | Connects GitHub Actions to Tailscale |
+
+### Repository variables
+
+| Variable | Purpose |
+| --- | --- |
+| `TS_EXIT_NODE` | Tailscale exit node in Japan |
+| `GPLAYDL_PREFERRED_PROFILE` | Preferred Google Play device profile; auto-selected if unset |
+
+Never put secret values in logs, issues, or commits. If a secret is exposed, replace it immediately.
+
+## Google Play download flow
+
+Before requesting an exact Google Play version, the build resolves and checks the Android `versionCode` that matches the `versionName` accepted by the patch CLI.
+
+`src/providers.py` can fill in a `versionCode` for the same `versionName`; it does not change the version that the patches support. If the matching code cannot be confirmed, the build does not guess a nearby version.
+
+`src/aurora_play.py` handles Google Play downloads. When the version code is known, it passes `-v <versionCode>` to gplaydl to request that exact version. The usual fallback order is:
+
+1. gplaydl
 2. playfetch
 3. apkeep
-4. 必要な場合のみfresh device/profileを使うgplaydl
+4. gplaydl with a fresh device profile, when needed
 
-各外部コマンドには個別timeoutとGoogle Play全体の時間予算があり、失敗した経路へ無期限に待機しません。
+Each command has a timeout, and the whole Google Play attempt has a time budget. A failed download path should not wait indefinitely.
 
-## APKダウンロードのフォールバック
+## APK download fallback
 
-実Actionsジョブでは、可用性を優先して次の順番で救済します。
+The build tries these routes in order:
 
-1. 通常runner IPでGoogle Play
-2. Google Playが失敗したらTailscale日本出口へ接続し、JP egressを確認してGoogle Play再試行
-3. JP Google Playでも取得できなければ、通常IPで設定済みprovider／mirrorを試行
-4. Cloudflare/CDN等で通常runner IPも拒否された場合のみ、最後にTailscale JP経由でprovider chainを1回だけ再試行
+1. Google Play from the normal GitHub Actions runner.
+2. If that fails, connect to the Tailscale exit node in Japan, confirm the Japan egress IP, and try Google Play again.
+3. If Google Play still fails, try the configured APK providers and mirrors from the normal runner.
+4. If the normal runner is blocked by a CDN or similar service, retry the provider chain once through Tailscale in Japan.
 
-最後のprovider再試行ではGoogle Playをskipし、再帰ループやGoogle Playへの無駄な再接続を防ぎます。
+The final provider retry skips Google Play. This prevents a retry loop and avoids reconnecting to Google Play unnecessarily.
 
-HTTP providerは一時 `.part` へstreaming downloadし、Content-Length、APK/ZIP妥当性、package/version identityを確認した後だけ確定ファイルとして採用します。途中切断やHTML誤取得は成功扱いしません。
+HTTP providers download to a temporary `.part` file. The build checks the content length, APK/ZIP format, and package/version identity before accepting the file. An interrupted download or an HTML error page must not be treated as an APK.
 
-## 日本限定アプリ
+## Apps restricted to Japan
 
-ゆうちょ通帳・ゆうちょ認証のようにGoogle Play上で地域条件があるアプリでは、日本のTailscale exit nodeを重要な取得経路として維持します。
+Some apps, such as ゆうちょ通帳 and ゆうちょ認証, have regional availability restrictions in Google Play. Keep the Tailscale exit node in Japan available as a download route.
 
-運用するGoogleアカウント側でも、対象アプリを日本のGoogle Play上で取得可能な状態にしてください。Tailscale接続後は `scripts/verify_japan_egress.py` で外向きIPが日本であることを確認してから認証情報を使います。
+The Google account used for builds must also be able to access the app in the Japanese Google Play store. After connecting to Tailscale, `scripts/verify_japan_egress.py` checks that the public IP is in Japan before the workflow uses account credentials.
 
-## VirusTotal
+## VirusTotal checks
 
-公開前に未加工base APKをSHA-256で確認します。
+Before release, the workflow checks the SHA-256 hash of each original, unpatched base APK:
 
-1. 永続cacheで同一SHAを確認
-2. VirusTotal `GET /files/{sha256}` で既存結果を検索
-3. VTに存在しないSHAだけupload
-4. 新規解析を開始した後、pollをまとめて実行
-5. clean判定をcacheへ即保存
+1. Look for the hash in the persistent cache.
+2. If it is not cached, ask VirusTotal whether the file is already known.
+3. Upload only hashes that VirusTotal does not know.
+4. Poll newly started analyses together.
+5. Save successful results to the cache.
 
-Google Play split APKをまとめる `.apks` は決定論的に生成し、同じAPK群ならrunnerやmtimeが違っても同じSHAになるようにしています。
+Google Play split APKs are combined deterministically into an `.apks` archive, so the same APK set produces the same hash even if runner or file timestamps differ. Successful VirusTotal results are also saved as a Release asset so they can be reused if the Actions cache is lost. If the scan cannot be completed, the workflow blocks the release.
 
-Actions cacheに加え、成功したVT結果はRelease assetにも永続化し、Actions cache消失時にも再利用します。VirusTotalを確認できない場合はfail-closedでReleaseを止めます。
+## Registering a Google Play account
 
-## Google Play アカウント登録
+1. Add `GPLAYDL_API_KEY` as a repository secret.
+2. In `Repository Operations`, select `register-google-play`.
+3. Enter the account email in `expected_email`.
+4. Follow the temporary Authenticator URL shown in the job summary using the official gplaydl Authenticator.
+5. Add the requested account.
+6. Confirm that the workflow saved `GPLAY_EMAIL` and `GPLAY_AAS_TOKEN` as repository secrets.
 
-1. `GPLAYDL_API_KEY` をSecretへ登録
-2. Actionsから `セットアップ: Google Playアカウントを登録` を実行
-3. `expected_email` に利用するGoogleアカウントを指定
-4. Job Summaryに出る一時Authenticator URLを公式gplaydl Authenticatorへ設定
-5. 指定アカウントを追加
-6. workflowが `GPLAY_EMAIL` / `GPLAY_AAS_TOKEN` を保存したことを確認
+Do not continue using the temporary URL after registration.
 
-登録終了後、一時URLは利用し続けないでください。
+## First-time setup
 
-## 初回セットアップ
+1. Enable GitHub Actions for the repository.
+2. Configure the secrets and variables listed above.
+3. Run `python3 scripts/validate_repository.py` and resolve any reported errors.
+4. Check the `Repository Validation` workflow.
+5. In `Repository Operations`, run `verify-japan-egress` to verify the Tailscale Japan route.
+6. Register a Google Play account if the selected apps require it.
+7. Run `Build All Apps` and check the Release and job summaries.
 
-1. GitHub Actionsを有効化
-2. 上記Secrets / Variablesを設定
-3. `python3 scripts/validate_repository.py` が成功する状態にする
-4. `CI: 設定・テスト検証` を確認
-5. `保守: 日本Tailscale経路を確認` でTailscale JP経路を確認
-6. 必要ならGoogle Playアカウントを登録
-7. `手動: 全アプリをビルド` を実行して全体動作を確認
+## Local checks
 
-## ローカル検証
-
-最低限、PR前に次を実行します。
+Before opening a pull request, run:
 
 ```bash
 pip install -r requirements.txt
@@ -156,13 +168,11 @@ python3 -m compileall -q src scripts
 python3 -m unittest discover tests
 ```
 
-GitHub Actionsの `CI: 設定・テスト検証` も同じ系統の検証を行います。
+The `Repository Validation` workflow runs the corresponding configuration, syntax, and unit-test checks on GitHub Actions.
 
-## 手動provider診断
+## Diagnosing an APK provider
 
-`probe_apk_sources.py` はworkflowから常時呼ぶものではなく、provider URL解決やCDN応答を単体で調べるための保守ツールです。
-
-例:
+Use `scripts/probe_apk_sources.py` to inspect provider URL resolution or CDN responses. It is a maintenance tool, not a step in every build.
 
 ```bash
 python3 scripts/probe_apk_sources.py \
@@ -171,60 +181,60 @@ python3 scripts/probe_apk_sources.py \
   --code 88600
 ```
 
-`--download-dir` を付けなければ、取得URLの先頭bytesだけを確認してAPK archiveかどうかを検査します。provider実装を変更したときの切り分けに使用してください。
+Without `--download-dir`, the script checks only the first bytes from the resolved URL and verifies that the response looks like an APK archive. Use it when investigating a provider change.
 
-## 設定変更の原則
+## Rules for configuration changes
 
-- package IDはproviderごとに矛盾させない
-- patch CLIが返した互換versionNameを勝手に別versionへ置換しない
-- `version_code` を設定ファイルへ固定保存しない
-- download失敗を「最新版で代用」して成功扱いしない
-- providerのHTMLや壊れたAPKをcacheへ入れない
-- Google Play / Tailscale / VT secretをログへ出さない
-- workflowへ長い判定ロジックを追加する前にscript/module化を検討する
+- Keep package IDs consistent across providers for the same app.
+- Do not replace the version accepted by the patch CLI with another version.
+- Do not pin `version_code` in a configuration file.
+- Do not report a failed download as successful by substituting a newer version.
+- Do not cache provider HTML pages or invalid APK files.
+- Never print Google Play, Tailscale, or VirusTotal secrets in logs.
+- Move complex workflow decisions into a script or module rather than adding long YAML logic.
 
-## 自動更新と状態保存
+## Scheduled updates and saved state
 
-`自動: アップストリーム更新を確認` が毎日2回（日本時間03:00と21:00）patch sourceとAPK更新を確認し、変更対象だけ `build.yml` をdispatchします。GitHub ActionsのscheduleはUTC指定のため、workflowではそれぞれ`18:00 UTC`（前日）と`12:00 UTC`に設定しています。
+The `check-upstream` task in `Repository Operations` checks patch sources and APK updates twice a day, at 03:00 and 21:00 Japan time. It dispatches `build.yml` only for changed targets. GitHub Actions schedules use UTC, so the workflow uses `18:00 UTC` on the previous day and `12:00 UTC`.
 
-成功したビルド状態は `last-tags.json` に保存します。mainへ別workflowが同時pushしてもnon-fast-forwardで失敗しにくいよう、state保存処理は最新mainへこのrunの変更だけを再適用してpushします。force pushは使用しません。
+Successful build state is saved in `last-tags.json`. If another workflow pushes to `main` at the same time, the state-saving script reapplies only this run's changes to the latest `main` before pushing. It does not force-push.
 
-## Release
+## Releases and partial failures
 
-Releaseは次を満たした場合だけ作成します。
+A release is created only when:
 
-- build対象から少なくとも1 APKが完成
-- VirusTotal base APK scanが成功
-- package/version identity検証を通過
+- At least one APK in the build scope completed.
+- The VirusTotal scan for the original APK succeeded.
+- Package and version identity checks passed.
 
-一部アプリが失敗した場合は、正常に完成したAPKだけが部分Releaseになることがあります。失敗情報はper-app status artifactとIssue reporterへ渡されます。
+If some apps fail, the release may contain only the APKs that completed successfully. Per-app status artifacts and the issue reporter contain failure details.
 
-## メンテナンス用workflow
+## Maintenance tasks
 
-### 保守: Google Play取得を診断
+### `diagnose-google-play`
 
-Google Playで特定package/versionCodeが取得できない場合の調査用です。通常ビルドの代わりには使いません。
+Use this to investigate why Google Play cannot provide a specific package and `versionCode`. It does not replace a normal build.
 
-### 保守: 日本Tailscale経路を確認
+### `verify-japan-egress`
 
-Tailscale接続、exit node選択、日本IP確認だけを独立して確認します。Google Play障害とTailscale障害を切り分けるために使用します。
+Use this to check the Tailscale connection, selected exit node, and Japan IP independently. It helps distinguish a Google Play issue from a Tailscale issue.
 
-### 保守: 取得元とビルド環境を点検
+### `provider-health`
 
-build toolとAPK providerを定期probeします。通常ビルドの一時的な障害とは分けて、provider全体の劣化を検出するためのworkflowです。
+This periodically probes build tools and APK providers. It is intended to identify wider provider problems, not to diagnose a one-off failure in a normal build.
 
-## ファイル整理の判断基準
+## Before removing a file
 
-ファイルを削除するときは、名前だけで「古そう」と判断せず、次を確認します。
+Do not delete a file just because its name looks old. Check whether it is referenced by:
 
-1. workflowから参照されていないか
-2. Python importがないか
-3. testsから参照されていないか
-4. README / SETUP / generated docsから参照されていないか
-5. 手動診断用途ではないか
+1. A workflow.
+2. A Python import.
+3. Tests.
+4. The README, this guide, or generated documentation.
+5. A manual diagnostic procedure.
 
-参照がなくても、migrationやdiagnosticのために意図的に残している場合は用途をこのSETUPへ記録します。
+If a file is intentionally kept for migration or diagnosis despite having no direct references, document its purpose here.
 
-## 利用者向け情報
+## User documentation
 
-APKのダウンロード方法、アーキテクチャ、安全性、問題報告など、利用者が必要な情報は [README.md](./README.md) に限定します。内部実装をREADMEへ増やさず、このSETUPへ追記してください。
+Keep download instructions, architecture choices, safety information, and problem-reporting guidance in the user-facing [README](README.md). Keep implementation and operations details in this guide.

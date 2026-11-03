@@ -1,7 +1,9 @@
 # Direct APK Download Links
 
+English | [日本語](Morphe-AutoBuilds-Direct-Download.ja.md)
+
 - Releases: [GitHub Releases](https://github.com/almeki876/Morphe-AutoBuilds/releases)
-- 最終更新日時: 2026-11-03 17:20 JST
+- Last updated: 2026-11-03 17:20 JST
 
 ## [Morphe](https://github.com/MorpheApp/morphe-patches)
 

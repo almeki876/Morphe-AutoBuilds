@@ -1,0 +1,592 @@
+name: Repository Operations
+
+on:
+  schedule:
+    - cron: '0 18 * * *'
+    - cron: '0 12 * * *'
+    - cron: '17 3 * * *'
+    - cron: '15 18 * * *'
+  workflow_dispatch:
+    inputs:
+      task:
+        description: Operation to run
+        required: true
+        type: choice
+        options:
+          - check-upstream
+          - provider-health
+          - refresh-download-links
+          - diagnose-google-play
+          - verify-japan-egress
+          - rebuild-release-details
+          - register-google-play
+      package:
+        description: Package name(s) for Google Play diagnosis
+        required: false
+        default: 'jp.japanpost.jp_bank.FIDOapp,jp.japanpost.jp_bank.bankbookapp'
+        type: string
+      version_code:
+        description: Optional exact Google Play versionCode
+        required: false
+        default: ''
+        type: string
+      release_tag:
+        description: Release tag to rebuild details for
+        required: false
+        type: string
+      run_id:
+        description: Build workflow run ID used to generate release details
+        required: false
+        type: string
+      expected_email:
+        description: Japanese Google account to register
+        required: false
+        type: string
+      wait_minutes:
+        description: How long to keep the temporary registration server open
+        required: false
+        default: '15'
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  check-upstream:
+    name: Check Upstream Updates
+    if: >-
+      ${{
+        (github.event_name == 'schedule' &&
+         (github.event.schedule == '0 18 * * *' || github.event.schedule == '0 12 * * *')) ||
+        (github.event_name == 'workflow_dispatch' && inputs.task == 'check-upstream')
+      }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      actions: write
+      contents: read
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v7
+
+      - name: Setup Python
+        uses: ./.github/actions/setup-python-project
+        with:
+          install-dependencies: 'false'
+
+      - name: Validate Repository Configuration
+        run: python3 scripts/validate_repository.py
+
+      - name: Check Patch Source Updates
+        id: all_sources
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python3 scripts/check_upstream_sources.py
+
+      - name: Setup Java
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Install Dependencies and Download Tools
+        id: dl-cli
+        continue-on-error: true
+        timeout-minutes: 10
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PAT: ${{ secrets.PAT }}
+          SOURCE_TAGS_JSON: ${{ steps.all_sources.outputs.source_tags }}
+        run: |
+          python3 -m pip install -r requirements.txt --quiet
+          python3 scripts/download_all_tools.py
+
+      - name: Detect Version-Pinned Apps
+        id: pinned
+        continue-on-error: true
+        timeout-minutes: 10
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SOURCE_TAGS_JSON: ${{ steps.all_sources.outputs.source_tags }}
+        run: python3 scripts/detect_version_pinned.py
+
+      - name: Prepare Local Google Play Dispenser
+        if: ${{ steps.pinned.outputs.free_version_apps != '[]' }}
+        continue-on-error: true
+        timeout-minutes: 12
+        env:
+          GPLAY_EMAIL: ${{ secrets.GPLAY_EMAIL }}
+          GPLAY_AAS_TOKEN: ${{ secrets.GPLAY_AAS_TOKEN }}
+          GPLAYDL_DISPENSER_WORKDIR: ${{ runner.temp }}/gplaydl-dispenser
+        run: python3 -m src.local_gplaydl_dispenser prepare
+
+      - name: Connect Version Discovery to Tailscale
+        id: version-tailscale
+        continue-on-error: true
+        uses: tailscale/github-action@v4
+        with:
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+          tags: tag:ci
+
+      - name: Select Japan Exit Node
+        id: version-tailscale-exit
+        if: ${{ steps.version-tailscale.outcome == 'success' }}
+        continue-on-error: true
+        env:
+          TS_EXIT_NODE: ${{ vars.TS_EXIT_NODE }}
+        run: |
+          exit_node_ip="$(python3 scripts/resolve_tailscale_exit_node.py "$TS_EXIT_NODE")"
+          sudo tailscale set --exit-node="$exit_node_ip" --exit-node-allow-lan-access=true --accept-dns=false
+          tailscale ping -c 3 "$exit_node_ip"
+
+      - name: Verify Japan Egress
+        id: verify-egress
+        if: ${{ steps.version-tailscale-exit.outcome == 'success' }}
+        continue-on-error: true
+        run: python3 scripts/verify_japan_egress.py
+
+      - name: Return to Default Route if Egress Check Fails
+        if: ${{ steps.version-tailscale-exit.outcome == 'success' && steps.verify-egress.outcome != 'success' }}
+        run: |
+          echo "::warning::Japan egress verification failed; returning to the default route."
+          sudo tailscale set --exit-node=""
+
+      - name: Check APK Versions
+        id: apkver
+        continue-on-error: true
+        timeout-minutes: 18
+        env:
+          GPLAYDL_DISPENSER_WORKDIR: ${{ runner.temp }}/gplaydl-dispenser
+          APK_CHECK_DEADLINE_SECONDS: '900'
+          APK_PLAY_MAX_CONSECUTIVE_FAILURES: '3'
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION_PINNED_APPS: ${{ steps.pinned.outputs.version_pinned_apps }}
+          GPLAYDL_API_KEY: ${{ secrets.GPLAYDL_API_KEY }}
+          GPLAY_EMAIL: ${{ secrets.GPLAY_EMAIL }}
+          GPLAY_AAS_TOKEN: ${{ secrets.GPLAY_AAS_TOKEN }}
+          GPLAYDL_PREFERRED_PROFILE: ${{ vars.GPLAYDL_PREFERRED_PROFILE }}
+        run: python3 scripts/check_apk_versions.py
+
+      - name: Publish APK Version Summary
+        if: ${{ always() && hashFiles('apk-version-health.md') != '' }}
+        run: cat apk-version-health.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Start Build for Detected Updates
+        if: ${{ steps.all_sources.outputs.any_updated == 'true' || steps.apkver.outputs.any_apk_updated == 'true' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          UPDATED_SOURCES: ${{ steps.all_sources.outputs.updated_sources }}
+          UPDATED_APPS: ${{ steps.apkver.outputs.updated_apps }}
+          APK_UPDATED_APPS: ${{ steps.apkver.outputs.apk_updated_apps }}
+          SOURCE_TAGS: ${{ steps.all_sources.outputs.source_tags }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          gh workflow run build.yml \
+            --repo "$REPOSITORY" \
+            --ref main \
+            -f source_tags="$SOURCE_TAGS" \
+            -f updated_sources="$UPDATED_SOURCES" \
+            -f updated_apps="$UPDATED_APPS" \
+            -f apk_updated_apps="${APK_UPDATED_APPS:-[]}"
+          echo "Build workflow triggered for sources=[$UPDATED_SOURCES] apps=[$UPDATED_APPS]"
+
+      - name: Report No Updates
+        if: ${{ steps.all_sources.outputs.any_updated != 'true' && steps.apkver.outputs.any_apk_updated != 'true' }}
+        run: echo "No patch source or APK updates found."
+
+  provider-health:
+    name: Check Provider and Build Tool Health
+    if: >-
+      ${{
+        (github.event_name == 'schedule' && github.event.schedule == '17 3 * * *') ||
+        (github.event_name == 'workflow_dispatch' && inputs.task == 'provider-health')
+      }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      issues: write
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v7
+
+      - name: Setup Python
+        uses: ./.github/actions/setup-python-project
+        with:
+          install-dependencies: 'true'
+
+      - name: Validate Repository Configuration
+        run: python3 scripts/validate_repository.py
+
+      - name: Check Build Tool Releases
+        id: tools
+        continue-on-error: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PAT: ${{ secrets.PAT }}
+        run: python3 scripts/download_all_tools.py 2>&1 | tee build-tool-health.log
+
+      - name: Check APK Providers
+        id: providers
+        continue-on-error: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          HTTP_RETRIES: '2'
+          HTTP_RETRY_BASE_SECONDS: '3'
+          HTTP_RETRY_MAX_SECONDS: '20'
+          APKMIRROR_REQUEST_INTERVAL_SECONDS: '3.5'
+        run: >-
+          python3 scripts/provider_health.py
+          --target-successes 2
+          --max-providers 6
+
+      - name: Publish Health Summary
+        if: always()
+        run: |
+          if [ ! -f provider-health.md ]; then
+            printf '# APK provider health\n\nProvider probe terminated before writing a report.\n' \
+              > provider-health.md
+          fi
+          cat provider-health.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload Diagnostic Report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: provider-health-${{ github.run_id }}
+          path: |
+            provider-health.json
+            provider-health.md
+            build-tool-health.log
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Open or Update Health Issue
+        if: ${{ steps.tools.outcome == 'failure' || steps.providers.outcome == 'failure' }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          TOOLS_RESULT: ${{ steps.tools.outcome }}
+          PROVIDERS_RESULT: ${{ steps.providers.outcome }}
+        run: |
+          title="Automated APK build health check failed"
+          printf 'Build tools: %s\nAPK providers: %s\n\n' \
+            "$TOOLS_RESULT" "$PROVIDERS_RESULT" \
+            | cat - provider-health.md > health-issue.md
+          issue=$(gh issue list --state open --search "$title in:title" --json number,title \
+            --jq ".[] | select(.title == \"$title\") | .number" | head -n 1)
+          printf '\n\nWorkflow run: %s\n' "$RUN_URL" >> health-issue.md
+          if [ -n "$issue" ]; then
+            gh issue comment "$issue" --body-file health-issue.md
+          else
+            gh issue create --title "$title" --body-file health-issue.md
+          fi
+
+      - name: Close Recovered Health Issue
+        if: ${{ steps.tools.outcome == 'success' && steps.providers.outcome == 'success' }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          title="Automated APK build health check failed"
+          issue=$(gh issue list --state open --search "$title in:title" --json number,title \
+            --jq ".[] | select(.title == \"$title\") | .number" | head -n 1)
+          if [ -n "$issue" ]; then
+            gh issue close "$issue" --comment "Recovered automatically in run ${{ github.run_id }}."
+          fi
+
+      - name: Fail When Health Check Fails
+        if: ${{ steps.tools.outcome == 'failure' || steps.providers.outcome == 'failure' }}
+        run: |
+          echo "::error::Build-tool or APK-provider health check failed."
+          exit 1
+
+  refresh-download-links:
+    name: Refresh APK Download Links
+    if: >-
+      ${{
+        (github.event_name == 'schedule' && github.event.schedule == '15 18 * * *') ||
+        (github.event_name == 'workflow_dispatch' && inputs.task == 'refresh-download-links')
+      }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout Main
+        uses: actions/checkout@v7
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Setup Python
+        uses: ./.github/actions/setup-python-project
+        with:
+          install-dependencies: 'false'
+
+      - name: Fetch Release History
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >-
+          gh api --paginate
+          "repos/${{ github.repository }}/releases?per_page=100"
+          --slurp > release-history.json
+
+      - name: Generate English and Japanese Catalogs
+        run: |
+          python3 scripts/generate_direct_download_md.py release-history.json
+          python3 scripts/generate_direct_download_md.py release-history.json \
+            --language ja \
+            --output Morphe-AutoBuilds-Direct-Download.ja.md
+
+      - name: Commit Catalog When Changed
+        run: |
+          if git diff --quiet -- Morphe-AutoBuilds-Direct-Download.md Morphe-AutoBuilds-Direct-Download.ja.md; then
+            echo "Download catalogs are already current."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add Morphe-AutoBuilds-Direct-Download.md Morphe-AutoBuilds-Direct-Download.ja.md
+          git commit -m "docs: update bilingual direct APK links"
+          git pull --rebase origin main
+          git push origin HEAD:main
+
+  diagnose-google-play:
+    name: Diagnose Google Play Downloads
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.task == 'diagnose-google-play' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v7
+
+      - name: Setup Python
+        uses: ./.github/actions/setup-python-project
+        with:
+          quiet: 'true'
+
+      - name: Setup Go for Current gplaydl Dispenser
+        uses: actions/setup-go@v7
+        with:
+          go-version: '1.26.1'
+          cache: false
+
+      - name: Diagnose Package Versions and Device Profiles
+        env:
+          GPLAY_DIAGNOSTIC_PACKAGE: ${{ inputs.package }}
+          GPLAY_DIAGNOSTIC_VERSION_CODE: ${{ inputs.version_code }}
+          GPLAY_EMAIL: ${{ secrets.GPLAY_EMAIL }}
+          GPLAY_AAS_TOKEN: ${{ secrets.GPLAY_AAS_TOKEN }}
+        run: python3 -m scripts.diagnose_gplay_purchase
+
+  verify-japan-egress:
+    name: Verify Japan Network Route
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.task == 'verify-japan-egress' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v7
+
+      - name: Setup Python
+        uses: ./.github/actions/setup-python-project
+        with:
+          install-dependencies: 'false'
+
+      - name: Connect to Tailscale
+        uses: tailscale/github-action@v4
+        with:
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+          tags: tag:ci
+
+      - name: Select Japan Exit Node
+        env:
+          TS_EXIT_NODE: ${{ vars.TS_EXIT_NODE }}
+        run: |
+          exit_node_ip="$(python3 scripts/resolve_tailscale_exit_node.py "$TS_EXIT_NODE")"
+          sudo tailscale set --exit-node="$exit_node_ip"
+          tailscale ping "$exit_node_ip"
+
+      - name: Verify Outbound Country
+        run: python3 scripts/verify_japan_egress.py
+
+  rebuild-release-details:
+    name: Rebuild Release Details
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.task == 'rebuild-release-details' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      actions: read
+      contents: write
+
+    steps:
+      - name: Checkout Main
+        uses: actions/checkout@v7
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Setup Python
+        uses: ./.github/actions/setup-python-project
+        with:
+          install-dependencies: 'false'
+
+      - name: Validate Requested Release and Run
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ inputs.release_tag }}
+          SOURCE_RUN_ID: ${{ inputs.run_id }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          test -n "$RELEASE_TAG" || { echo "::error::release_tag is required"; exit 1; }
+          [[ "$SOURCE_RUN_ID" =~ ^[0-9]+$ ]] || { echo "::error::run_id must be numeric"; exit 1; }
+          gh release view "$RELEASE_TAG" --repo "$REPOSITORY" >/dev/null
+
+      - name: Download Build Result Artifacts
+        uses: actions/download-artifact@v8
+        with:
+          path: details-input/build
+          pattern: build-status-*
+          merge-multiple: true
+          github-token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          run-id: ${{ inputs.run_id }}
+
+      - name: Download Download Result Artifacts
+        continue-on-error: true
+        uses: actions/download-artifact@v8
+        with:
+          path: details-input/download
+          pattern: download-status-*
+          merge-multiple: true
+          github-token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          run-id: ${{ inputs.run_id }}
+
+      - name: Download Base APK Provenance Artifacts
+        continue-on-error: true
+        uses: actions/download-artifact@v8
+        with:
+          path: details-input/base
+          pattern: base-input-*
+          merge-multiple: false
+          github-token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          run-id: ${{ inputs.run_id }}
+
+      - name: Download VirusTotal Report
+        uses: actions/download-artifact@v8
+        with:
+          path: .
+          name: virustotal-report
+          github-token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          run-id: ${{ inputs.run_id }}
+
+      - name: Download Source Workflow Log
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SOURCE_RUN_ID: ${{ inputs.run_id }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          mkdir -p details-input
+          gh run view "$SOURCE_RUN_ID" --repo "$REPOSITORY" --log > details-input/actions.log
+          test -s details-input/actions.log
+
+      - name: Verify Integrated Gboard Patch Results
+        run: python3 -m scripts.validate_release_details
+
+      - name: Generate Persistent Release Details
+        env:
+          RELEASE_TAG: ${{ inputs.release_tag }}
+          RUN_URL: https://github.com/${{ github.repository }}/actions/runs/${{ inputs.run_id }}
+        run: python3 -m scripts.generate_release_details
+
+      - name: Append Runtime Skipped Patch Evidence
+        env:
+          RELEASE_TAG: ${{ inputs.release_tag }}
+        run: |
+          python3 -m scripts.append_release_skip_details \
+            --actions-log details-input/actions.log \
+            --build-results details-input/build \
+            --release-dir "release-details/$RELEASE_TAG"
+
+      - name: Commit Repaired Detail Pages
+        env:
+          RELEASE_TAG: ${{ inputs.release_tag }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -- "release-details/$RELEASE_TAG"
+          if git diff --cached --quiet; then
+            echo "Release details are already current."
+            exit 0
+          fi
+          git commit -m "docs: repair build details for $RELEASE_TAG [skip ci]"
+          git pull --rebase origin main
+          git push origin HEAD:main
+
+      - name: Update Release Notes
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ inputs.release_tag }}
+        run: gh release edit "$RELEASE_TAG" --notes-file release-notes-details.md
+
+  register-google-play:
+    name: Register Google Play Account
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.task == 'register-google-play' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    permissions:
+      contents: read
+
+    steps:
+      - name: Validate Registration Email
+        env:
+          EXPECTED_GPLAY_EMAIL: ${{ inputs.expected_email }}
+        run: |
+          test -n "$EXPECTED_GPLAY_EMAIL" || {
+            echo "::error::expected_email is required for account registration."
+            exit 1
+          }
+
+      - name: Checkout Repository
+        uses: actions/checkout@v7
+
+      - name: Setup Python
+        uses: ./.github/actions/setup-python-project
+        with:
+          quiet: 'true'
+
+      - name: Setup Go for Current gplaydl Dispenser
+        uses: actions/setup-go@v7
+        with:
+          go-version: '1.26.1'
+          cache: false
+
+      - name: Install Cloudflare Quick Tunnel Client
+        run: |
+          mkdir -p "$HOME/.local/bin"
+          curl -fsSL \
+            https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 \
+            -o "$HOME/.local/bin/cloudflared"
+          chmod +x "$HOME/.local/bin/cloudflared"
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          "$HOME/.local/bin/cloudflared" --version
+
+      - name: Register Account and Save Actions Secrets
+        env:
+          EXPECTED_GPLAY_EMAIL: ${{ inputs.expected_email }}
+          GPLAYDL_REGISTRATION_WAIT_MINUTES: ${{ inputs.wait_minutes }}
+          GPLAY_SECRET_ADMIN_TOKEN: ${{ secrets.PAT }}
+        run: python3 -m scripts.register_google_play_secrets

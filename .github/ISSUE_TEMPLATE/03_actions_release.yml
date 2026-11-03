@@ -1,53 +1,63 @@
-name: GitHub Actions・Releaseの問題
-description: workflow、Release、成果物一覧、更新処理などの問題を報告します。
+name: Actions / release issue / Actions・Releaseの問題
+description: Report workflow, release, artifact catalog, or update problems / workflow・Release・成果物一覧・更新処理の問題を報告
 title: "[CI] "
 labels:
   - bug
 body:
+  - type: markdown
+    attributes:
+      value: |
+        English and Japanese reports are both welcome. / 英語・日本語どちらで報告しても構いません。
+
+        Attach screenshots or short, relevant log excerpts by dragging them into the description, pasting them, or using the attachment button. Do not attach APK files, credentials, access tokens, or personal data. Redact secrets and unrelated account/device information before uploading.
+
+        スクリーンショットや必要なログは、説明欄へのドラッグ＆ドロップ、貼り付け、または添付ボタンから追加できます。APK本体、認証情報、アクセストークン、個人情報は添付しないでください。アップロード前に秘密情報や無関係なアカウント・端末情報を伏せてください。
+
   - type: dropdown
     id: area
     attributes:
-      label: 問題の場所
+      label: Affected area / 問題の場所
       options:
         - Build and Release APKs
-        - Build All Apps
+        - Build All Apps / 全アプリビルド
         - VirusTotal
-        - Release作成・asset
-        - 直リンク一覧
-        - Issue自動報告
-        - その他のGitHub Actions
+        - Release or assets / Release作成・asset
+        - Direct download catalog / 直リンク一覧
+        - Automatic issue reporting / Issue自動報告
+        - Other GitHub Actions / その他のGitHub Actions
     validations:
       required: true
 
   - type: textarea
     id: symptom
     attributes:
-      label: 何が起きましたか？
-      description: 期待した結果と実際の結果が分かるように書いてください。
+      label: What happened? / 何が起きましたか？
+      description: Explain what you expected and what actually happened. / 期待した結果と実際の結果を書いてください。
     validations:
       required: true
 
   - type: input
     id: run
     attributes:
-      label: Actions run番号 / job名
+      label: Actions run URL or number / job name
+      description: Actions run URLまたは番号 / job名
       placeholder: 例：32673762225 / Scan Base APKs with VirusTotal
 
   - type: input
     id: app_source
     attributes:
-      label: 関係するアプリ・ソース
-      description: 特定のアプリやパッチソースに限る場合だけ入力してください。
+      label: Related app or source / 関係するアプリ・ソース
+      description: Optional; fill this in only if the issue affects a specific app or patch source. / 特定のアプリやパッチソースに限る場合だけ入力してください。
       placeholder: 例：YouTube / morphe
 
   - type: textarea
     id: logs
     attributes:
-      label: エラー・ログ・スクリーンショット
-      description: エラー部分や画像をそのまま貼り付けてください。
+      label: Error, logs, or screenshots / エラー・ログ・スクリーンショット
+      description: Add only relevant excerpts and redact secrets before attaching. / 関連する部分だけ記載し、添付前に秘密情報を伏せてください。
 
   - type: textarea
     id: extra
     attributes:
-      label: 補足
-      description: 発生頻度や直前に行った操作などがあれば入力してください。
+      label: Additional details / 補足
+      description: Include how often it happens or what changed beforehand. / 発生頻度や直前の変更を記載してください。

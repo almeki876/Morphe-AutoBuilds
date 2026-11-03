@@ -49,7 +49,7 @@ class IncrementalReleaseSelectionTests(unittest.TestCase):
         self.assertNotIn("(Partial)", workflow)
 
     def test_apk_updates_are_not_expanded_back_to_patch_sources(self):
-        workflow = Path(".github/workflows/check-upstream.yml").read_text(
+        workflow = Path(".github/workflows/operations.yml").read_text(
             encoding="utf-8"
         )
         self.assertNotIn("for forced_source in", workflow)

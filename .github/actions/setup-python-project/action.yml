@@ -1,8 +1,12 @@
 name: Setup Morphe AutoBuilds Python
 
-description: Prepare the repository Python runtime and install pinned project dependencies.
+description: Set up Python 3.11 and optionally install pinned project dependencies.
 
 inputs:
+  install-dependencies:
+    description: Install dependencies from requirements.txt.
+    required: false
+    default: 'true'
   quiet:
     description: Install dependencies with pip quiet output.
     required: false
@@ -18,11 +22,11 @@ runs:
         cache: pip
 
     - name: Install Python dependencies
-      if: inputs.quiet != 'true'
+      if: inputs.install-dependencies == 'true' && inputs.quiet != 'true'
       shell: bash
       run: python3 -m pip install -r requirements.txt
 
     - name: Install Python dependencies (quiet)
-      if: inputs.quiet == 'true'
+      if: inputs.install-dependencies == 'true' && inputs.quiet == 'true'
       shell: bash
       run: python3 -m pip install -r requirements.txt -q

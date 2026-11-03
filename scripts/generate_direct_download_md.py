@@ -134,10 +134,10 @@ def _release_timestamp(release: dict) -> str:
     return str(release.get("published_at") or release.get("created_at") or "")
 
 
-def _format_release_timestamp(release: dict) -> str:
+def _format_release_timestamp(release: dict, *, unknown: str = "Unknown") -> str:
     timestamp = _release_timestamp(release)
     if not timestamp:
-        return "不明"
+        return unknown
     try:
         parsed = datetime.fromisoformat(timestamp.replace("Z", "+00:00"))
     except ValueError:
@@ -217,21 +217,37 @@ def render(
     *,
     source_root: Path = Path("sources"),
     config_path: Path = Path("my-patch-config.json"),
+    language: str = "en",
 ) -> str:
+    if language not in {"en", "ja"}:
+        raise ValueError(f"Unsupported language: {language}")
+
+    japanese = language == "ja"
     target_order = configured_target_order(config_path)
     targets = set(target_order)
     parsed, _unmatched, releases = newest_assets(payload, targets=targets or None)
     metadata = source_metadata(source_root)
 
+    language_links = (
+        "[English](Morphe-AutoBuilds-Direct-Download.md) | 日本語"
+        if japanese
+        else "English | [日本語](Morphe-AutoBuilds-Direct-Download.ja.md)"
+    )
     lines = [
-        "# Direct APK Download Links",
+        "# APK直リンク一覧" if japanese else "# Direct APK Download Links",
+        "",
+        language_links,
         "",
         f"- Releases: [GitHub Releases]({RELEASES_URL})",
     ]
     if releases:
-        lines.append(f"- 最終更新日時: {_format_release_timestamp(releases[0])}")
+        date_label = "最終更新日時" if japanese else "Last updated"
+        unknown = "不明" if japanese else "Unknown"
+        lines.append(
+            f"- {date_label}: {_format_release_timestamp(releases[0], unknown=unknown)}"
+        )
     else:
-        lines.append("- 最終更新日時: 不明")
+        lines.append("- 最終更新日時: 不明" if japanese else "- Last updated: Unknown")
     lines.append("")
 
     grouped: dict[str, dict[str, list[ApkAsset]]] = {}
@@ -269,7 +285,12 @@ def render(
             lines.extend([" · ".join(links), ""])
 
     if not parsed:
-        lines.extend(["現在ダウンロードできるAPKはありません。", ""])
+        message = (
+            "現在ダウンロードできるAPKはありません。"
+            if japanese
+            else "No APKs are currently available for download."
+        )
+        lines.extend([message, ""])
 
     return "\n".join(lines).rstrip() + "\n"
 
@@ -279,10 +300,11 @@ def main() -> None:
     parser.add_argument("release_json", nargs="?", default="release-history.json")
     parser.add_argument("--output", default="Morphe-AutoBuilds-Direct-Download.md")
     parser.add_argument("--config", default="my-patch-config.json")
+    parser.add_argument("--language", choices=("en", "ja"), default="en")
     args = parser.parse_args()
     payload = json.loads(Path(args.release_json).read_text(encoding="utf-8"))
     Path(args.output).write_text(
-        render(payload, config_path=Path(args.config)),
+        render(payload, config_path=Path(args.config), language=args.language),
         encoding="utf-8",
     )
 

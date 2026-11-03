@@ -1,58 +1,67 @@
-name: 機能・アプリ追加を提案する
-description: 対応アプリ、パッチソース、機能、運用改善などを提案します。
+name: Feature or app request / 機能・アプリ追加の提案
+description: Suggest an app, patch source, feature, or operational improvement / アプリ・パッチソース・機能・運用改善を提案
 title: "[Request] "
 labels:
   - enhancement
 body:
+  - type: markdown
+    attributes:
+      value: |
+        English and Japanese proposals are both welcome. / 英語・日本語どちらで提案しても構いません。
+
+        Attach reference screenshots by dragging them into the description, pasting them, or using the attachment button. Do not attach APK files, credentials, access tokens, or personal data. Redact secrets and unrelated account/device information before uploading.
+
+        参考画像は、説明欄へのドラッグ＆ドロップ、貼り付け、または添付ボタンから追加できます。APK本体、認証情報、アクセストークン、個人情報は添付しないでください。アップロード前に秘密情報や無関係なアカウント・端末情報を伏せてください。
+
   - type: dropdown
     id: request_type
     attributes:
-      label: 提案の種類
+      label: Request type / 提案の種類
       options:
-        - 対応アプリを追加してほしい
-        - パッチソースを追加・変更してほしい
-        - ビルド・配布機能を改善してほしい
-        - README・ドキュメントを改善してほしい
-        - GitHub Actions・自動化を改善してほしい
-        - その他の機能提案
+        - Add an app / 対応アプリを追加
+        - Add or change a patch source / パッチソースを追加・変更
+        - Improve build or distribution / ビルド・配布機能を改善
+        - Improve documentation / ドキュメントを改善
+        - Improve GitHub Actions or automation / GitHub Actions・自動化を改善
+        - Other feature request / その他の機能提案
     validations:
       required: true
 
   - type: textarea
     id: proposal
     attributes:
-      label: 何を追加・変更してほしいですか？
-      description: 希望する内容を簡潔に書いてください。
+      label: What would you like to add or change? / 何を追加・変更してほしいですか？
+      description: Briefly describe your proposal. / 希望する内容を簡潔に書いてください。
     validations:
       required: true
 
   - type: input
     id: app
     attributes:
-      label: 対象アプリ
-      description: アプリに関係する提案の場合だけ入力してください。
+      label: App / 対象アプリ
+      description: Optional; fill this in only for an app-specific request. / アプリに関係する提案の場合だけ入力してください。
       placeholder: 例：Example App
 
   - type: input
     id: package
     attributes:
-      label: パッケージID
+      label: Package ID / パッケージID
       placeholder: 例：com.example.app
 
   - type: input
     id: patch_source
     attributes:
-      label: 希望するパッチソース
+      label: Requested patch source / 希望するパッチソース
       placeholder: 例：MorpheApp/morphe-patches
 
   - type: textarea
     id: reason
     attributes:
-      label: 理由・用途
-      description: どう便利になるか、現在どこで困っているかを書いてください。
+      label: Why is this useful? / 理由・用途
+      description: Explain the use case or current problem. / 用途や現在困っていることを書いてください。
 
   - type: textarea
     id: extra
     attributes:
-      label: 補足情報
-      description: 必要なら参考情報、スクリーンショットなどを貼り付けてください。
+      label: Additional details / 補足情報
+      description: Add references or screenshots if useful. / 必要なら参考情報やスクリーンショットを添付してください。

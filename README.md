@@ -1,6 +1,6 @@
 # Morphe AutoBuilds
 
-[English] | [Japanese](README.ja.md)
+English | [日本語](README.ja.md)
 
 [![Build Status](https://img.shields.io/github/actions/workflow/status/almeki876/Morphe-AutoBuilds/build.yml?label=build)](https://github.com/almeki876/Morphe-AutoBuilds/actions/workflows/build.yml)
 [![Latest Release](https://img.shields.io/github/v/release/almeki876/Morphe-AutoBuilds?label=latest%20release)](https://github.com/almeki876/Morphe-AutoBuilds/releases/latest)
@@ -15,8 +15,8 @@ Morphe AutoBuilds automatically builds Android APKs with community-made patches 
 Choose the option that best fits how you update apps:
 
 - **[Latest Release](https://github.com/almeki876/Morphe-AutoBuilds/releases/latest)** — APKs produced by the latest release run
-- **[Direct APK links](./Morphe-AutoBuilds-Direct-Download.md)** — current APKs grouped by patch source, app, and architecture
-- **[Obtainium / ObtainX links](./Morphe-AutoBuilds-Obtainium.md)** — links for registering supported app/source combinations in an update manager
+- **[Direct APK links](./Morphe-AutoBuilds-Direct-Download.md)** ([日本語](./Morphe-AutoBuilds-Direct-Download.ja.md)) — current APKs grouped by patch source, app, and architecture
+- **[Obtainium / ObtainX links](./Morphe-AutoBuilds-Obtainium.md)** ([日本語ガイド](./Morphe-AutoBuilds-Obtainium.ja.md)) — links for registering supported app/source combinations in an update manager
 
 The direct-download list is the simplest place to see what is currently available.
 
@@ -57,9 +57,11 @@ Include the affected app, patch source, release, and what happened when you know
 
 ## Development and self-hosting
 
-Repository setup, Secrets, Google Play, Tailscale, VirusTotal, provider configuration, workflow operation, and maintainer guidance are documented in **[SETUP.md](./SETUP.md)**.
+Repository setup, Secrets, Google Play, Tailscale, VirusTotal, provider configuration, workflow operation, and maintainer guidance are documented in **[SETUP.md](./SETUP.md)** ([日本語](./SETUP.ja.md)).
 
 README files are intentionally user-facing; implementation and operations documentation belongs in SETUP.
+
+Contributions and pull requests are welcome. See the [Contributing guide](./CONTRIBUTING.md) ([日本語](./CONTRIBUTING.ja.md)) for setup, tests, and contribution expectations.
 
 ## License
 

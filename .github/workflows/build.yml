@@ -46,6 +46,11 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v7
 
+      - name: Setup Python project
+        uses: ./.github/actions/setup-python-project
+        with:
+          install-dependencies: 'false'
+
       - name: Validate Repository Configuration
         run: python3 scripts/validate_repository.py
 
@@ -64,20 +69,16 @@ jobs:
           path: tools/
           key: ${{ steps.resolve-tags.outputs.cache-key }}
 
-      - name: Setup Python
+      - name: Install Python dependencies for tool download
         if: steps.cache-restore.outputs.cache-hit != 'true'
-        uses: actions/setup-python@v7
-        with:
-          python-version: 3.11
+        run: python3 -m pip install -r requirements.txt -q
 
       - name: Download All Source Tools
         if: steps.cache-restore.outputs.cache-hit != 'true'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SOURCE_TAGS_JSON:           ${{ steps.resolve-tags.outputs.resolved_tags }}
-        run: |
-          pip install -r requirements.txt -q
-          python3 scripts/download_all_tools.py
+        run: python3 scripts/download_all_tools.py
 
       - name: Save Cached Tools
         if: steps.cache-restore.outputs.cache-hit != 'true'
@@ -96,6 +97,11 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v7
+
+      - name: Setup Python project
+        uses: ./.github/actions/setup-python-project
+        with:
+          install-dependencies: 'false'
 
       - name: Read Patch Config and Filter by Updated Sources
         id: read-matrix
@@ -133,18 +139,15 @@ jobs:
           fail-on-cache-miss: true
 
       - name: Install Python
-        uses: actions/setup-python@v7
+        uses: ./.github/actions/setup-python-project
         with:
-          python-version: 3.11
+          install-dependencies: 'true'
 
       - name: Setup Java
         uses: actions/setup-java@v6
         with:
           distribution: 'temurin'
           java-version: '21'
-
-      - name: Install Dependencies
-        run: pip install -r requirements.txt
 
       - name: Install pinned Google Play clients
         run: python3 scripts/install_google_play_clients.py
@@ -294,9 +297,9 @@ jobs:
         uses: actions/checkout@v7
 
       - name: Setup Python
-        uses: actions/setup-python@v7
+        uses: ./.github/actions/setup-python-project
         with:
-          python-version: 3.11
+          install-dependencies: 'true'
 
       - name: Restore VirusTotal Hash Cache
         id: vt-cache-restore
@@ -324,7 +327,6 @@ jobs:
           VT_MAX_RETRIES: '6'
           VT_MAX_ANALYSIS_AGE_DAYS: '90'
         run: |
-          pip install -r requirements.txt
           python3 -m scripts.scan_virustotal \
             --directory ./base-apks \
             --cache ./.cache/virustotal/hash-results.json \
@@ -375,19 +377,15 @@ jobs:
           fail-on-cache-miss: true
 
       - name: Install Python
-        uses: actions/setup-python@v7
+        uses: ./.github/actions/setup-python-project
         with:
-          python-version: 3.11
+          install-dependencies: 'true'
 
       - name: Setup Java
         uses: actions/setup-java@v6
         with:
           distribution: 'temurin'
           java-version: '21'
-
-      - name: Install Dependencies
-        run: |
-          pip install -r requirements.txt
 
       - name: Install pinned Google Play clients
         run: python3 scripts/install_google_play_clients.py
@@ -458,12 +456,9 @@ jobs:
         uses: actions/checkout@v7
 
       - name: Setup Python
-        uses: actions/setup-python@v7
+        uses: ./.github/actions/setup-python-project
         with:
-          python-version: 3.11
-
-      - name: Install Dependencies
-        run: pip install -r requirements.txt
+          install-dependencies: 'true'
 
       - name: Download Build Failure Results
         continue-on-error: true
@@ -492,6 +487,11 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v7
 
+      - name: Setup Python project
+        uses: ./.github/actions/setup-python-project
+        with:
+          install-dependencies: 'true'
+
       - name: Download Build Results
         uses: actions/download-artifact@v8
         with:
@@ -517,10 +517,10 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v7
 
-      - name: Install Python
-        uses: actions/setup-python@v7
+      - name: Setup Python project
+        uses: ./.github/actions/setup-python-project
         with:
-          python-version: 3.11
+          install-dependencies: 'true'
 
       - name: Download Shared Base APK Inputs
         id: shared-inputs
@@ -543,9 +543,7 @@ jobs:
         if: steps.shared-inputs.outcome == 'success' && steps.build-results.outcome == 'success'
         env:
           BASE_APK_CACHE_DIR: base-apk-cache-in
-        run: |
-          pip install -r requirements.txt
-          python3 -m scripts.stage_shared_base_apk_cache
+        run: python3 -m scripts.stage_shared_base_apk_cache
 
       - name: Update Hidden Durable Cache
         if: hashFiles('base-apk-cache-in/*') != ''
@@ -576,9 +574,9 @@ jobs:
         uses: actions/checkout@v7
 
       - name: Setup Python
-        uses: actions/setup-python@v7
+        uses: ./.github/actions/setup-python-project
         with:
-          python-version: 3.11
+          install-dependencies: 'false'
 
       - name: Download All APK Artifacts
         uses: actions/download-artifact@v8
@@ -663,10 +661,9 @@ jobs:
         uses: actions/checkout@v7
 
       - name: Setup Python
-        uses: actions/setup-python@v7
+        uses: ./.github/actions/setup-python-project
         with:
-          python-version: '3.11'
-          cache: pip
+          install-dependencies: 'true'
 
       - name: Download Per-App Build Results
         uses: actions/download-artifact@v8
@@ -701,7 +698,6 @@ jobs:
           GPLAYDL_PREFERRED_PROFILE: ${{ vars.GPLAYDL_PREFERRED_PROFILE }}
           GPLAY_AUTH_TOKEN: ${{ secrets.GPLAY_AUTH_TOKEN }}
         run: |
-          pip install -r requirements.txt
           python3 scripts/save_successful_state.py
 
       - name: Commit State When Changed

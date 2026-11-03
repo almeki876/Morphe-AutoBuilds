@@ -1,4 +1,4 @@
-name: "CI: 設定・テスト検証"
+name: Repository Validation
 
 on:
   pull_request:

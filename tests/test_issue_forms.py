@@ -5,12 +5,12 @@ from pathlib import Path
 
 
 class IssueFormTests(unittest.TestCase):
-    def test_issue_chooser_has_no_external_links_or_blank_escape_hatch(self) -> None:
+    def test_issue_chooser_links_to_contribution_guide_without_blank_escape_hatch(self) -> None:
         config = Path(".github/ISSUE_TEMPLATE/config.yml").read_text(encoding="utf-8")
         self.assertIn("blank_issues_enabled: false", config)
-        self.assertIn("contact_links: []", config)
-        self.assertNotIn("http://", config)
-        self.assertNotIn("https://", config)
+        self.assertIn("Contributor guide", config)
+        self.assertIn("CONTRIBUTING.md", config)
+        self.assertIn("https://github.com/almeki876/Morphe-AutoBuilds/blob/main/CONTRIBUTING.md", config)
 
     def test_triage_forms_cover_primary_report_categories(self) -> None:
         root = Path(".github/ISSUE_TEMPLATE")

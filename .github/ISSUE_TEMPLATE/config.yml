@@ -1,2 +1,5 @@
 blank_issues_enabled: false
-contact_links: []
+contact_links:
+  - name: Contributor guide / コントリビューターガイド
+    url: https://github.com/almeki876/Morphe-AutoBuilds/blob/main/CONTRIBUTING.md
+    about: Read contribution, testing, and pull request guidance / コントリビューション・テスト・PRの案内

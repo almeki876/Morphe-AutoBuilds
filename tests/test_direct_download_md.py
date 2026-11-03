@@ -61,8 +61,9 @@ class DirectDownloadMarkdownTests(unittest.TestCase):
             "- Releases: [GitHub Releases](https://github.com/almeki876/Morphe-AutoBuilds/releases)",
             output,
         )
-        self.assertIn("- 最終更新日時: 2026-08-24 09:00 JST", output)
+        self.assertIn("- Last updated: 2026-08-24 09:00 JST", output)
         self.assertNotIn("参照Release", output)
+        self.assertIn("# Direct APK Download Links", output)
         self.assertIn("## Morphe", output)
         self.assertIn("### YouTube", output)
         self.assertIn("[universal](https://example.invalid/youtube-universal.apk)", output)
@@ -72,6 +73,30 @@ class DirectDownloadMarkdownTests(unittest.TestCase):
         self.assertNotIn("youtube-universal-morphe-v21.04.223.apk", output)
         self.assertNotIn("youtube-arm64-v8a-morphe-v21.04.223.apk", output)
         self.assertNotIn("ダウンロードしてください", output)
+
+    def test_japanese_render_keeps_the_same_assets_and_uses_japanese_labels(self):
+        release = {
+            "published_at": "2026-08-24T00:00:00Z",
+            "assets": [
+                {
+                    "name": "youtube-arm64-v8a-morphe-v21.04.223.apk",
+                    "browser_download_url": "https://example.invalid/youtube.apk",
+                }
+            ],
+        }
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            output = render(
+                release,
+                source_root=root,
+                config_path=self._config(root, [("youtube", "morphe")]),
+                language="ja",
+            )
+
+        self.assertIn("# APK直リンク一覧", output)
+        self.assertIn("[English](Morphe-AutoBuilds-Direct-Download.md) | 日本語", output)
+        self.assertIn("- 最終更新日時: 2026-08-24 09:00 JST", output)
+        self.assertIn("[arm64-v8a](https://example.invalid/youtube.apk)", output)
 
     def test_render_matches_obtainium_patch_config_order(self):
         release = {
@@ -197,7 +222,7 @@ class DirectDownloadMarkdownTests(unittest.TestCase):
             "- Releases: [GitHub Releases](https://github.com/almeki876/Morphe-AutoBuilds/releases)",
             output,
         )
-        self.assertIn("- 最終更新日時: 2026-08-24 11:00 JST", output)
+        self.assertIn("- Last updated: 2026-08-24 11:00 JST", output)
         self.assertNotIn("参照Release", output)
         self.assertIn(new_youtube_url, output)
         self.assertNotIn(old_youtube_url, output)
@@ -263,7 +288,7 @@ class DirectDownloadMarkdownTests(unittest.TestCase):
         self.assertNotIn("Other APK assets", output)
         self.assertNotIn(current_url, output)
         self.assertNotIn("legacy-name.apk", output)
-        self.assertIn("現在ダウンロードできるAPKはありません。", output)
+        self.assertIn("No APKs are currently available for download.", output)
 
 
 if __name__ == "__main__":

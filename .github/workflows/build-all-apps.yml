@@ -1,4 +1,4 @@
-name: "手動: 全アプリをビルド"
+name: Build All Apps
 
 on:
   workflow_dispatch:
@@ -9,10 +9,10 @@ permissions:
 
 jobs:
   trigger-build-all:
-    name: Trigger full app build
+    name: Start Full App Build
     runs-on: ubuntu-latest
     steps:
-      - name: Dispatch existing build workflow for all apps
+      - name: Dispatch Build Workflow for All Apps
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -21,11 +21,11 @@ jobs:
             --ref main \
             -f build_all_sources=true
 
-      - name: Summary
+      - name: Summarize Dispatched Build
         run: |
           {
-            echo "## Full app build dispatched"
+            echo "## Full App Build Dispatched"
             echo
             echo "Triggered \`build.yml\` on \`main\` with \`build_all_sources=true\`."
-            echo "The existing build workflow will include every enabled app/source entry that is not marked \`skip_build\`."
+            echo "The build includes every enabled app/source entry that is not marked \`skip_build\`."
           } >> "$GITHUB_STEP_SUMMARY"

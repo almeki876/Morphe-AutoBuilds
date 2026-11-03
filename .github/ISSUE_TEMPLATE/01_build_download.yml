@@ -1,5 +1,5 @@
-name: ビルド・ダウンロードの問題
-description: APK取得、ビルド、パッチ適用、署名などの失敗を報告します。
+name: Build / download issue / ビルド・ダウンロードの問題
+description: Report APK download, build, patching, or signing failures / APK取得・ビルド・パッチ適用・署名の問題を報告
 title: "[Build] "
 labels:
   - bug
@@ -7,26 +7,32 @@ body:
   - type: markdown
     attributes:
       value: |
-        ビルドやAPK取得に関する問題はこちらから報告してください。分かる範囲で構いません。
+        Report build or APK download problems here. Fill in what you know. English and Japanese reports are both welcome.
+
+        ビルドやAPK取得に関する問題はこちらから報告してください。分かる範囲で構いません。日本語での報告も歓迎します。
+
+        Attach screenshots or short, relevant log excerpts by dragging them into the description, pasting them, or using the attachment button. Do not attach APK files, credentials, access tokens, or personal data. Redact secrets and unrelated account/device information before uploading.
+
+        スクリーンショットや必要なログは、説明欄へのドラッグ＆ドロップ、貼り付け、または添付ボタンから追加できます。APK本体、認証情報、アクセストークン、個人情報は添付しないでください。アップロード前に秘密情報や無関係なアカウント・端末情報を伏せてください。
 
   - type: dropdown
     id: stage
     attributes:
-      label: どの段階で問題が起きましたか？
+      label: Where did the problem occur? / どの段階で問題が起きましたか？
       options:
-        - APKのダウンロード・取得
-        - 対応バージョンの解決
-        - パッチ適用・ビルド
-        - 署名・成果物生成
-        - VirusTotalスキャン
-        - 分からない
+        - APK download / APKのダウンロード
+        - Compatible version selection / 対応バージョンの解決
+        - Patching or build / パッチ適用・ビルド
+        - Signing or artifact generation / 署名・成果物生成
+        - VirusTotal scan / VirusTotalスキャン
+        - Not sure / 分からない
     validations:
       required: true
 
   - type: input
     id: app
     attributes:
-      label: 対象アプリ
+      label: App / 対象アプリ
       placeholder: 例：YouTube
     validations:
       required: true
@@ -34,31 +40,31 @@ body:
   - type: input
     id: patch_source
     attributes:
-      label: パッチソース
+      label: Patch source / パッチソース
       placeholder: 例：morphe / revanced-anddea / rushiranpise
 
   - type: input
     id: architecture
     attributes:
-      label: アーキテクチャ
+      label: Architecture / アーキテクチャ
       placeholder: 例：arm64-v8a / armeabi-v7a / universal
 
   - type: textarea
     id: symptom
     attributes:
-      label: 何が起きましたか？
-      description: 表示されたエラーや、どこまで進んだかを書いてください。
+      label: What happened? / 何が起きましたか？
+      description: Include the error and the last step that succeeded. / エラーと、最後に正常だった段階を書いてください。
     validations:
       required: true
 
   - type: textarea
     id: logs
     attributes:
-      label: ログ・Actions情報
-      description: Actionsのrun番号、job名、エラー部分などを貼り付けてください。スクリーンショットも貼れます。
+      label: Logs or Actions details / ログ・Actions情報
+      description: Include the run URL or number, job name, and relevant error excerpt. Attach a redacted screenshot if useful. / run URLまたは番号、job名、関連するエラー部分を記載してください。必要なら情報を伏せたスクリーンショットを添付できます。
 
   - type: textarea
     id: extra
     attributes:
-      label: 補足
-      description: 再現条件や気付いたことがあれば入力してください。
+      label: Additional details / 補足
+      description: Add reproduction details or anything else that may help. / 再現条件など、役立ちそうな情報を記載してください。
