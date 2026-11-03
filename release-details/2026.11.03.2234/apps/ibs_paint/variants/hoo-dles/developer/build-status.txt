@@ -1,0 +1,89 @@
+app=ibs_paint
+source=hoo-dles
+source_name=hoo-dles
+phase=Patch
+status=success
+run=https://github.com/almeki876/Morphe-AutoBuilds/actions/runs/41645199734
+
+traceback_or_error_tail<<EOF
+
+Index: 74
+Name: Enable Premium
+Description: Enables app features locked behind the subscription paywall.
+Enabled: true
+
+Index: 75
+Name: Enable Pro
+Description: Enables app features locked behind the subscription paywall. Login is required and AI functionality is unavailable.
+Enabled: true
+
+Index: 76
+Name: Enable Pro
+Description: Enables app features locked behind the subscription paywall.
+Enabled: true
+
+Index: 77
+Name: Enable Pro
+Description: null
+Enabled: true
+2026-11-03 13:49:20 enable_patches=[]  disable_patches=[]
+2026-11-03 13:49:21 Running: java -Djava.awt.headless=true -Xmx6g -Xms3g -Dfile.encoding=UTF-8 -XX:-UsePerfData -XX:+UseG1GC -XX:MaxGCPauseMillis=150 -XX:G1HeapRegionSize=2m -XX:+UseStringDeduplication -XX:+ParallelRefProcEnabled -XX:ConcGCThreads=2 -XX:ParallelGCThreads=4 -XX:CICompilerCount=3 -XX:+UseCompressedOops -XX:+OptimizeStringConcat -XX:+DisableExplicitGC -XX:+TieredCompilation -XX:ReservedCodeCacheSize=128m -XX:InitialCodeCacheSize=32m -XX:SoftRefLRUPolicyMSPerMB=50 --add-opens=java.base/java.lang=ALL-UNNAMED --add-opens=java.base/java.util=ALL-UNNAMED --add-opens=java.base/java.io=ALL-UNNAMED -jar /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/morphe-desktop-1.20.0-all.jar patch --continue-on-error --unsigned --result-file /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/.patch-result-ibs_paint-arm64-v8a.json --temporary-files-path /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/.morphe-tmp-ibs_paint-arm64-v8a -p /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/patches-1.47.1-dev.2.mpp --out=/home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/ibs_paint-arm64-v8a-patch-v14.1.0.apk --bytecode-mode=STRIP_FAST /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/.build-input-arm64-v8a.apks
+⚠️  Ignoring legacy BASE_APK_CACHE_TAG='base-apk-cache-v2'; using 'base-apk-cache-v4-ja-jp-px9a-split'
+INFO: Morphe data root: /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/morphe-data (JAR-adjacent)
+INFO: Merging split APK bundle...
+INFO: Extracting to: /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/tmp_5dd67fa9
+INFO: Searching apk files ...
+INFO: Found apk files: 5
+INFO: Found modules: 5
+INFO: Merging: jp.ne.ibis.ibispaintx.app-1401000058
+INFO: Added [jp.ne.ibis.ibispaintx.app-1401000058] classes.dex -> classes.dex
+INFO: Added [jp.ne.ibis.ibispaintx.app-1401000058] classes2.dex -> classes2.dex
+INFO: Added [jp.ne.ibis.ibispaintx.app-1401000058] classes3.dex -> classes3.dex
+INFO: Added [jp.ne.ibis.ibispaintx.app-1401000058] classes4.dex -> classes4.dex
+INFO: Merging: jp.ne.ibis.ibispaintx.app-1401000058-config.arm64_v8a
+INFO: Merging: jp.ne.ibis.ibispaintx.app-1401000058-config.en
+INFO: Merging: jp.ne.ibis.ibispaintx.app-1401000058-config.xxhdpi
+INFO: Merging: jp.ne.ibis.ibispaintx.app-1401000058-config.ja
+INFO: Validating resources dir ...
+INFO: Sanitizing manifest ...
+INFO: Setting extractNativeLibs=true
+INFO: Writing apk ...
+INFO: Buffering compress changed files ...
+INFO: Writing files: 2356
+INFO: Writing signature block ...
+INFO: Saved to: /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/.morphe-tmp-ibs_paint-arm64-v8a/patching-1793713763652/.build-input-arm64-v8a-merged.apk
+INFO: Initializing patcher...
+INFO: Loading patches from 1 bundle(s)...
+INFO: Filtering patches for jp.ne.ibis.ibispaintx.app v14.1.0...
+INFO: Skipping disabled: Hide app icon (default)
+INFO: Skipping disabled: Enable debug (default)
+INFO: Skipping disabled: Change package name (default)
+INFO: Skipping disabled: MicroG integration (default)
+INFO: Skipping disabled: Disable Pairip license check (default)
+INFO: Applying 1 patches...
+INFO: Deleting existing temporary files directory
+INFO: Decoding resources in raw mode
+INFO: Executing patches
+INFO: Applied: Enable Prime membership
+INFO: Rebuilding APK...
+INFO: Compiling patched dex files (mode: NONE)
+INFO: Moving 2 resource files
+INFO: Aligning APK
+INFO: Saved to /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/ibs_paint-arm64-v8a-patch-v14.1.0.apk
+INFO: Patching took 5.0 seconds
+INFO: Patching result saved to /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/.patch-result-ibs_paint-arm64-v8a.json
+2026-11-03 13:49:29 Validated patched APK: 91936369 bytes (ABIs: arm64-v8a)
+2026-11-03 13:49:32 Normalized patched APK ZIP headers
+2026-11-03 13:49:33 Validated architecture-filtered APK (ABIs: arm64-v8a)
+2026-11-03 13:49:33 [SIZE] patched: 90092136 bytes (ibs_paint-arm64-v8a-patch-v14.1.0.apk)
+2026-11-03 13:49:34 Fetched latest release: V1.4.9
+2026-11-03 13:49:35 URL: https://release-assets.githubusercontent.com/github-production-release-asset/576398953/c64f423b-578f-44d0-9c3c-d016189acc1e [7733037/7733037] -> "APKEditor-1.4.9.jar" [1]
+2026-11-03 13:49:45 Set APK versionName to release tag 2026.11.03.2234
+Signed
+2026-11-03 13:49:47 [SIZE] signed: 90551788 bytes (ibs_paint-arm64-v8a-hoo-dles-v14.1.0.apk)
+✅ APK built: ibs_paint-arm64-v8a-hoo-dles-v14.1.0.apk
+✅ Built arm64-v8a: ibs_paint-arm64-v8a-hoo-dles-v14.1.0.apk
+
+🎯 1 APK(s) built for 'ibs_paint':
+   📱 ibs_paint-arm64-v8a-hoo-dles-v14.1.0.apk
+EOF

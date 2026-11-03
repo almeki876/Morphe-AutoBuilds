@@ -1,0 +1,89 @@
+app=brave
+source=dh6k
+source_name=dh6k
+phase=Patch
+status=success
+run=https://github.com/almeki876/Morphe-AutoBuilds/actions/runs/41645199734
+
+traceback_or_error_tail<<EOF
+INFO: Merging: split_config.fi
+INFO: Merging: split_config.pt
+INFO: Merging: split_config.de
+INFO: Merging: split_config.hi
+INFO: Merging: split_on_demand
+INFO: Added [split_on_demand] classes.dex -> classes4.dex
+INFO: Added as fused module <on_demand>
+INFO: Merging: split_config.pl
+INFO: Merging: split_config.tr
+INFO: Merging: split_config.nl
+INFO: Merging: split_config.uk
+INFO: Merging: split_config.fr
+INFO: Merging: split_config.hu
+INFO: Validating resources dir ...
+INFO: Sanitizing manifest ...
+INFO: Setting extractNativeLibs=false
+INFO: Writing apk ...
+INFO: Buffering compress changed files ...
+INFO: Writing files: 5071
+INFO: Writing signature block ...
+INFO: Saved to: /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/.morphe-tmp-brave-arm64-v8a/patching-1793714182032/.build-input-arm64-v8a-merged.apk
+INFO: Initializing patcher...
+INFO: Loading patches from 1 bundle(s)...
+INFO: Filtering patches for com.brave.browser v1.98.63...
+INFO: Skipping disabled: Change app icon (default)
+INFO: Skipping disabled: Change app name (default)
+INFO: Skipping disabled: Brave AMOLED theme (default)
+INFO: Skipping disabled: Brave NTP four-column tiles (default)
+INFO: Skipping disabled: Custom NTP wallpaper (default)
+INFO: Skipping disabled: Disable analytics (default)
+INFO: Applying 2 patches...
+INFO: Deleting existing temporary files directory
+INFO: Decoding all resources
+INFO: Leaving 9 native library files in the input APK
+INFO: Sanitizing unpatched strings
+INFO: Escaping strings
+INFO: Executing patches
+INFO: Building instruction indexes for 27413 classes...
+INFO: Applied: Brave Origin
+[Startup Performance] Enforced android:extractNativeLibs=true
+[Startup Performance] Neutralized OEM partner customizations via 4 hooks (b; init(c), incognito, homepage, delegate)
+INFO: Applied: Brave Startup Performance Optimization
+INFO: Rebuilding APK...
+INFO: Compiling patched dex files (mode: STRIP_FAST)
+INFO: Changed 9 of 27413 classes to mutable
+INFO: Writing 9 new classes to new DEX files
+INFO: Processing 9 classes (single threaded mode)
+INFO: Wrote 1 dex files to /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/.morphe-tmp-brave-arm64-v8a/patching-1793714182032/patcher/patched/newDex
+INFO: Stripped 9 modified classes from 1 original DEX files
+INFO: Compiling modified resources
+INFO: Stripping libs (keeping architectures arm64-v8a, armeabi-v7a, x86, x86_64)
+INFO: Stripped 0 lib files
+INFO: extractNativeLibs changed to true, restaging native libraries
+INFO: Unescaping strings
+INFO: Processing aapt macros
+INFO: Generating new resource IDs
+INFO: Writing resource APK
+INFO: Encoded 0 of 0 values in 0 files, 1 resource files and 0 configurations of patches for com.brave.browser
+INFO: Reusing 5062 unchanged archive entries, rebuilding 3 entries, dropping 5 entries, leaving out 1 replaced entries
+INFO: Resource APK scan: 600ms write: 300ms
+INFO: Moving 5 resource files
+INFO: Using compiled resource APK as output base
+INFO: Aligning APK
+INFO: Saved to /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/brave-arm64-v8a-patch-v1.98.63.apk
+INFO: Patching took 15.5 seconds
+INFO: Patching result saved to /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/.patch-result-brave-arm64-v8a.json
+2026-11-03 13:56:38 Validated patched APK: 286618006 bytes (ABIs: arm64-v8a)
+2026-11-03 13:56:39 Normalized patched APK ZIP headers
+2026-11-03 13:56:40 Validated architecture-filtered APK (ABIs: arm64-v8a)
+2026-11-03 13:56:40 [SIZE] patched: 286185309 bytes (brave-arm64-v8a-patch-v1.98.63.apk)
+2026-11-03 13:56:41 Fetched latest release: V1.4.9
+2026-11-03 13:56:42 URL: https://release-assets.githubusercontent.com/github-production-release-asset/576398953/c64f423b-578f-44d0-9c3c-d016189acc1e [7733037/7733037] -> "APKEditor-1.4.9.jar" [1]
+2026-11-03 13:57:11 Set APK versionName to release tag 2026.11.03.2234
+Signed
+2026-11-03 13:57:15 [SIZE] signed: 164089005 bytes (brave-arm64-v8a-dh6k-v1.98.63.apk)
+✅ APK built: brave-arm64-v8a-dh6k-v1.98.63.apk
+✅ Built arm64-v8a: brave-arm64-v8a-dh6k-v1.98.63.apk
+
+🎯 1 APK(s) built for 'brave':
+   📱 brave-arm64-v8a-dh6k-v1.98.63.apk
+EOF
