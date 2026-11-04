@@ -3,17 +3,17 @@
 English | [日本語](Morphe-AutoBuilds-Direct-Download.ja.md)
 
 - Releases: [GitHub Releases](https://github.com/almeki876/Morphe-AutoBuilds/releases)
-- Last updated: 2026-11-04 07:52 JST
+- Last updated: 2026-11-05 04:32 JST
 
 ## [Morphe](https://github.com/MorpheApp/morphe-patches)
 
 ### YouTube
 
-[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2305/youtube-arm64-v8a-morphe-v20.51.39.apk)
+[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.05.0424/youtube-arm64-v8a-morphe-v20.51.39.apk)
 
 ### YouTube Music
 
-[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2305/youtube-music-arm64-v8a-morphe-v9.15.51.apk)
+[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.05.0424/youtube-music-arm64-v8a-morphe-v9.15.51.apk)
 
 ## [Anddea](https://github.com/anddea/revanced-patches)
 
@@ -171,7 +171,7 @@ English | [日本語](Morphe-AutoBuilds-Direct-Download.ja.md)
 
 ### Proton Mail
 
-[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.04.0744/proton-mail-arm64-v8a-hxreborn-v7.11.12.apk)
+[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.05.0424/proton-mail-arm64-v8a-hxreborn-v7.11.12.apk)
 
 ## [rushiranpise universal](https://github.com/rushiranpise/Ri-Vanced-Universal-Morphe-Patches)
 
@@ -193,31 +193,31 @@ English | [日本語](Morphe-AutoBuilds-Direct-Download.ja.md)
 
 ### Photomath
 
-[universal](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026-07-23_20-09-JST/photomath-universal-rookie-v8.47.1.apk) · [arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2305/photomath-arm64-v8a-rookie-v8.48.0.apk)
+[universal](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026-07-23_20-09-JST/photomath-universal-rookie-v8.47.1.apk) · [arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.05.0424/photomath-arm64-v8a-rookie-v8.48.0.apk)
 
 ### Pixiv
 
-[universal](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026-08-07_14-35-JST/pixiv-universal-rookie-v6.141.1.apk) · [arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2305/pixiv-arm64-v8a-rookie-v6.141.1.apk)
+[universal](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026-08-07_14-35-JST/pixiv-universal-rookie-v6.141.1.apk) · [arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.05.0424/pixiv-arm64-v8a-rookie-v6.141.1.apk)
 
 ### Photoshop Mix
 
-[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.04.0744/photoshop-mix-arm64-v8a-rookie-v2.6.3.apk)
+[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.05.0424/photoshop-mix-arm64-v8a-rookie-v2.6.3.apk)
 
 ### Google Photos
 
-[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2305/google-photos-arm64-v8a-rookie-v7.92.0.977185651.apk)
+[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.05.0424/google-photos-arm64-v8a-rookie-v7.92.0.977185651.apk)
 
 ### Google Recorder
 
-[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2305/google-recorder-arm64-v8a-rookie-v4.2.20260823.992025916.apk)
+[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.05.0424/google-recorder-arm64-v8a-rookie-v4.2.20260823.992025916.apk)
 
 ### Viber
 
-[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2305/viber-arm64-v8a-rookie-v26.1.2.0.apk)
+[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.05.0424/viber-arm64-v8a-rookie-v26.1.2.0.apk)
 
 ### Amazon Music
 
-[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2305/amazon-music-arm64-v8a-rookie-v26.36.1.apk)
+[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.05.0424/amazon-music-arm64-v8a-rookie-v26.36.1.apk)
 
 ## [durgesh0505](https://github.com/durgesh0505/chiggi_morphe_patches)
 
@@ -303,7 +303,7 @@ English | [日本語](Morphe-AutoBuilds-Direct-Download.ja.md)
 
 ### Line
 
-[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.03.2305/line-arm64-v8a-andrewliang25-v26.14.0.apk)
+[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.05.0424/line-arm64-v8a-andrewliang25-v26.14.0.apk)
 
 ## [BholeyKaBhakt](https://github.com/BholeyKaBhakt/android-patches-xtra)
 
