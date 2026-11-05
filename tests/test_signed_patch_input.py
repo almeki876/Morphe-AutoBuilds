@@ -36,24 +36,10 @@ class SignedPatchInputTests(unittest.TestCase):
         self.assertLess(patch_call, strip_call)
         self.assertNotIn("_strip_libs(input_apk, arch)", source)
 
-    def test_release_version_name_is_set_before_signing(self) -> None:
+    def test_release_tag_does_not_override_apk_version_name(self) -> None:
         source = inspect.getsource(build_main.run_build)
-        version_call = source.index("_set_release_version_name(output_apk, release_tag)")
-        align_call = source.index("_align_apk(output_apk)")
-        sign_call = source.index("_sign_apk(output_apk, signed_apk, app_name)")
-        self.assertIn("_preserve_input_version_name(app_name, source)", source)
-        self.assertLess(version_call, align_call)
-        self.assertLess(align_call, sign_call)
-        self.assertLess(version_call, sign_call)
-
-    def test_youtube_morphe_and_anddea_preserve_input_version_name(self) -> None:
-        for app in ("youtube", "youtube-music"):
-            for source in ("morphe", "revanced-anddea"):
-                with self.subTest(app=app, source=source):
-                    self.assertTrue(build_main._preserve_input_version_name(app, source))
-
-        self.assertFalse(build_main._preserve_input_version_name("youtube", "rookie"))
-        self.assertFalse(build_main._preserve_input_version_name("brave", "morphe"))
+        self.assertNotIn("RELEASE_TAG", source)
+        self.assertFalse(hasattr(build_main, "_set_release_version_name"))
 
     def test_zipalign_restores_and_checks_16kb_alignment_before_signing(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -80,68 +66,6 @@ class SignedPatchInputTests(unittest.TestCase):
                 commands[1][1:5], ["-c", "-P", "16", "4"]
             )
             self.assertEqual(apk.read_bytes(), b"aligned APK")
-
-    def test_release_version_name_rebuilds_and_verifies_manifest(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
-            apk = root / "patched.apk"
-            apk.write_bytes(b"unsigned")
-            editor = root / "APKEditor.jar"
-            editor.write_bytes(b"jar")
-            commands: list[list[str]] = []
-            manifest_versions: list[str] = []
-
-            def run_editor(command: list[str], **_kwargs: object) -> None:
-                commands.append(command)
-                output_dir = Path(command[command.index("-o") + 1])
-                if command[3] == "d":
-                    output_dir.mkdir()
-                    (output_dir / "AndroidManifest.xml").write_text(
-                        '<manifest xmlns:android="http://schemas.android.com/apk/res/android" '
-                        'android:requiredSplitTypes="base__abi,base__density" '
-                        'android:splitTypes="" '
-                        'android:versionName="1.2.3" />',
-                        encoding="utf-8",
-                    )
-                else:
-                    decoded_dir = Path(
-                        commands[0][commands[0].index("-o") + 1]
-                    )
-                    manifest_versions.append(
-                        (decoded_dir / "AndroidManifest.xml").read_text(
-                            encoding="utf-8"
-                        )
-                    )
-                    output_dir.write_bytes(b"versioned")
-
-            identity = build_main.apk_identity.ApkIdentity(
-                package_name="com.example.app",
-                version_name="2026-11-03_19-09-JST",
-                version_code="123",
-            )
-            with (
-                mock.patch.object(
-                    build_main.downloader,
-                    "download_apkeditor",
-                    return_value=editor,
-                ),
-                mock.patch.object(build_main.utils, "run_process", side_effect=run_editor),
-                mock.patch.object(
-                    build_main.apk_identity,
-                    "read_identity",
-                    return_value=identity,
-                ),
-            ):
-                build_main._set_release_version_name(apk, identity.version_name)
-
-            self.assertEqual(len(commands), 2)
-            self.assertIn(
-                f'android:versionName="{identity.version_name}"',
-                manifest_versions[0],
-            )
-            self.assertNotIn("requiredSplitTypes", manifest_versions[0])
-            self.assertNotIn("splitTypes", manifest_versions[0])
-            self.assertEqual(apk.read_bytes(), b"versioned")
 
     def test_morphe_patching_defers_signing_to_the_final_pipeline_step(self) -> None:
         commands: list[list[str]] = []
