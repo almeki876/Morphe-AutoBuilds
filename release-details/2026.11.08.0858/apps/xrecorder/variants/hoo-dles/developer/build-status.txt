@@ -1,0 +1,89 @@
+app=xrecorder
+source=hoo-dles
+source_name=hoo-dles
+phase=Patch
+status=success
+run=https://github.com/almeki876/Morphe-AutoBuilds/actions/runs/42427594293
+
+traceback_or_error_tail<<EOF
+INFO: Merging: split_config.ja
+INFO: Merging: split_config.xxhdpi
+INFO: Merging: split_config.xxxhdpi
+INFO: Merging: split_config.it
+INFO: Merging: split_config.en
+INFO: Merging: split_config.et
+INFO: Merging: split_config.mdpi
+INFO: Merging: split_config.zh
+INFO: Merging: split_config.es
+INFO: Merging: split_config.ru
+INFO: Merging: split_config.fi
+INFO: Merging: split_config.pt
+INFO: Merging: split_config.hi
+INFO: Merging: split_config.de
+INFO: Merging: split_config.pl
+INFO: Merging: split_config.nl
+INFO: Merging: split_config.tr
+INFO: Merging: split_config.ldpi
+INFO: Merging: split_config.xhdpi
+INFO: Merging: split_config.tvdpi
+INFO: Merging: split_config.uk
+INFO: Merging: split_config.fr
+INFO: Merging: split_config.hdpi
+INFO: Merging: split_config.armeabi_v7a
+INFO: Merging: split_config.hu
+INFO: Validating resources dir ...
+INFO: Sanitizing manifest ...
+INFO: Setting extractNativeLibs=true
+INFO: Writing apk ...
+INFO: Buffering compress changed files ...
+INFO: Writing files: 3551
+INFO: Writing signature block ...
+INFO: Saved to: /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/.morphe-tmp-xrecorder-arm64-v8a/patching-1794096845401/.build-input-arm64-v8a-merged.apk
+INFO: Initializing patcher...
+INFO: Loading patches from 1 bundle(s)...
+INFO: Filtering patches for videoeditor.videorecorder.screenrecorder v2.5.1.1...
+INFO: Skipping disabled: Hide app icon (default)
+INFO: Skipping disabled: Enable debug (default)
+INFO: Skipping disabled: Change package name (default)
+INFO: Skipping disabled: MicroG integration (default)
+INFO: Skipping disabled: Disable Pairip license check (default)
+INFO: Applying 1 patches...
+INFO: Deleting existing temporary files directory
+INFO: Decoding all resources
+INFO: Leaving 41 native library files in the input APK
+INFO: Sanitizing unpatched strings
+INFO: Escaping strings
+INFO: Executing patches
+INFO: Building instruction indexes for 21354 classes...
+INFO: Applied: Enable Pro
+INFO: Rebuilding APK...
+INFO: Compiling patched dex files (mode: STRIP_FAST)
+INFO: Changed 52 of 21354 classes to mutable
+INFO: Writing 52 new classes to new DEX files
+INFO: Processing 52 classes (single threaded mode)
+INFO: Wrote 1 dex files to /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/.morphe-tmp-xrecorder-arm64-v8a/patching-1794096845401/patcher/patched/newDex
+INFO: Stripped 51 modified classes from 2 original DEX files
+INFO: Compiling modified resources
+INFO: Stripping libs (keeping architectures arm64-v8a, armeabi-v7a, x86, x86_64)
+INFO: Stripped 0 lib files
+INFO: Unescaping strings
+INFO: Processing aapt macros
+INFO: Generating new resource IDs
+INFO: Writing resource APK
+INFO: Reusing 3544 unchanged archive entries, rebuilding 2 entries, dropping 0 entries, leaving out 5 replaced entries
+INFO: Resource APK scan: 100ms write: 300ms
+INFO: Saved to /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/xrecorder-arm64-v8a-patch-v2.5.1.1.apk
+INFO: Patching took 5.4 seconds
+INFO: Patching result saved to /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/.patch-result-xrecorder-arm64-v8a.json
+2026-11-08 00:14:11 Validated patched APK: 41104975 bytes (ABIs: arm64-v8a, armeabi-v7a)
+2026-11-08 00:14:11 Removed 19 non-target native libraries
+2026-11-08 00:14:12 Validated architecture-filtered APK (ABIs: arm64-v8a)
+2026-11-08 00:14:12 [SIZE] patched: 32970055 bytes (xrecorder-arm64-v8a-patch-v2.5.1.1.apk)
+Signed
+2026-11-08 00:14:13 [SIZE] signed: 33282693 bytes (xrecorder-arm64-v8a-hoo-dles-v2.5.1.1.apk)
+✅ APK built: xrecorder-arm64-v8a-hoo-dles-v2.5.1.1.apk
+✅ Built arm64-v8a: xrecorder-arm64-v8a-hoo-dles-v2.5.1.1.apk
+
+🎯 1 APK(s) built for 'xrecorder':
+   📱 xrecorder-arm64-v8a-hoo-dles-v2.5.1.1.apk
+EOF

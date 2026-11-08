@@ -1,0 +1,23 @@
+{
+  "results": [
+    {
+      "file": "yuucho-tsucho-rushiranpise-universal-universal.apks",
+      "sha256": "2e42f9742bf44c8305af369aba94b0dd307f0aa78138aac8b149cacffea4617f",
+      "size": 109493090,
+      "analysis_id": "YTIzNTQxM2ViMzM0YzQ4OTg0NGRlNjYyYzNmYjk3MDY6MTc5MzcwNjA4NQ==",
+      "malicious": 0,
+      "suspicious": 0,
+      "harmless": 0,
+      "undetected": 63,
+      "timeout": 2,
+      "failure": 0,
+      "unsupported": 10,
+      "verdict": "clean",
+      "method": "persistent hash cache",
+      "engines": {},
+      "permalink": "https://www.virustotal.com/gui/file/2e42f9742bf44c8305af369aba94b0dd307f0aa78138aac8b149cacffea4617f/detection",
+      "last_analysis_date": 1793706085,
+      "reanalyzed": false
+    }
+  ]
+}

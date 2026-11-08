@@ -1,0 +1,89 @@
+app=proton-mail
+source=hxreborn
+source_name=hxreborn
+phase=Patch
+status=success
+run=https://github.com/almeki876/Morphe-AutoBuilds/actions/runs/42427594293
+
+traceback_or_error_tail<<EOF
+Description: Disables ML Kit usage reporting.
+Enabled: true
+
+Index: 494
+Name: Unlock premium
+Description: Removes ads and enables the floating widget, dynamic island, route editing and tab customization. Points, quests and rankings are not included.
+Enabled: true
+
+Index: 495
+Name: Hide ads
+Description: Removes splash, interstitial, banner and native ads. Keeps the optional ad that unlocks an alarm video.
+Enabled: true
+
+Index: 496
+Name: Unlock premium
+Description: Unlocks food preferences, diet alerts and the full history. Search and offline downloads don't work. Signing in on a standard install needs Sign-in token. A root mount install signs in without it.
+Enabled: true
+
+Index: 497
+Name: Sign-in token
+Description: Signs in on a standard install with an App Check token. Requires a token copied from Yuka installed from Google Play on a rooted phone. Steps are in the Yuka section of the README.
+Enabled: false
+2026-11-08 00:11:59 enable_patches=[]  disable_patches=[]
+2026-11-08 00:11:59 Running: java -Djava.awt.headless=true -Xmx6g -Xms3g -Dfile.encoding=UTF-8 -XX:-UsePerfData -XX:+UseG1GC -XX:MaxGCPauseMillis=150 -XX:G1HeapRegionSize=2m -XX:+UseStringDeduplication -XX:+ParallelRefProcEnabled -XX:ConcGCThreads=2 -XX:ParallelGCThreads=4 -XX:CICompilerCount=3 -XX:+UseCompressedOops -XX:+OptimizeStringConcat -XX:+DisableExplicitGC -XX:+TieredCompilation -XX:ReservedCodeCacheSize=128m -XX:InitialCodeCacheSize=32m -XX:SoftRefLRUPolicyMSPerMB=50 --add-opens=java.base/java.lang=ALL-UNNAMED --add-opens=java.base/java.util=ALL-UNNAMED --add-opens=java.base/java.io=ALL-UNNAMED -jar /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/morphe-desktop-2.1.1-all.jar patch --continue-on-error --unsigned --result-file /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/.patch-result-proton-mail-arm64-v8a.json --temporary-files-path /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/.morphe-tmp-proton-mail-arm64-v8a -p /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/patches-1.74.0-dev.3.mpp --out=/home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/proton-mail-arm64-v8a-patch-v7.11.12.apk --bytecode-mode=STRIP_FAST /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/.build-input-arm64-v8a.apk
+⚠️  Ignoring legacy BASE_APK_CACHE_TAG='base-apk-cache-v2'; using 'base-apk-cache-v4-ja-jp-px9a-split'
+INFO: Morphe data root: /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/morphe-data (JAR-adjacent)
+INFO: Initializing patcher...
+INFO: Loading patches from 1 bundle(s)...
+INFO: Filtering patches for ch.protonmail.android v7.11.12...
+INFO: Skipping disabled: Override certificate pinning (default)
+INFO: Applying 11 patches...
+INFO: Deleting existing temporary files directory
+INFO: Decoding the manifest
+INFO: Decoding resources on request, 2739 files can be decoded
+INFO: Executing patches
+INFO: Building instruction indexes for 21963 classes...
+INFO: Applied: AMOLED dark theme
+INFO: Applied: Custom accent color
+INFO: Applied: Hide layout components
+INFO: Applied: Hide upgrade promotions
+INFO: Applied: M3E loading indicator
+INFO: Applied: Material 3 switches
+INFO: Applied: Remove 'Sent from' signature
+INFO: Applied: Remove free accounts limit
+INFO: Applied: Scheduled Trash and Spam deletion
+INFO: Applied: Swipe to switch accounts
+INFO: Applied: Unlock custom time picker
+INFO: Rebuilding APK...
+INFO: Compiling patched dex files (mode: STRIP_FAST)
+INFO: Copied 2229 unchanged extension classes to 1 DEX files
+INFO: Changed 55 of 21963 classes to mutable
+INFO: Writing 55 new classes to new DEX files
+INFO: Processing 55 classes (single threaded mode)
+INFO: Wrote 1 dex files to /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/.morphe-tmp-proton-mail-arm64-v8a/patching-1794096721977/patcher/patched/newDex
+INFO: Stripped 39 modified classes from 2 original DEX files
+INFO: Compiling modified resources
+INFO: Stripping libs (keeping architectures arm64-v8a, armeabi-v7a, x86, x86_64)
+INFO: Stripped 3 lib files
+INFO: Decoded 7 of 2739 files on request
+INFO: Unescaping strings
+INFO: Processing aapt macros
+INFO: Generating new resource IDs
+INFO: Writing resource APK
+INFO: Encoded 3590 of 5369 values in 6 files, 0 resource files and 0 configurations of patches for ch.protonmail.android
+INFO: Reusing 2532 unchanged archive entries, rebuilding 2 entries, dropping 6 entries, leaving out 5 replaced entries
+INFO: Resource APK scan: 400ms write: 400ms
+INFO: Saved to /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/proton-mail-arm64-v8a-patch-v7.11.12.apk
+INFO: Patching took 9.8 seconds
+INFO: Patching result saved to /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/.patch-result-proton-mail-arm64-v8a.json
+2026-11-08 00:12:12 Validated patched APK: 160073952 bytes (ABIs: arm64-v8a, armeabi-v7a, x86, x86_64)
+2026-11-08 00:12:12 Removed 22 non-target native libraries
+2026-11-08 00:12:12 Validated architecture-filtered APK (ABIs: arm64-v8a)
+2026-11-08 00:12:12 [SIZE] patched: 72850673 bytes (proton-mail-arm64-v8a-patch-v7.11.12.apk)
+Signed
+2026-11-08 00:12:14 [SIZE] signed: 73108542 bytes (proton-mail-arm64-v8a-hxreborn-v7.11.12.apk)
+✅ APK built: proton-mail-arm64-v8a-hxreborn-v7.11.12.apk
+✅ Built arm64-v8a: proton-mail-arm64-v8a-hxreborn-v7.11.12.apk
+
+🎯 1 APK(s) built for 'proton-mail':
+   📱 proton-mail-arm64-v8a-hxreborn-v7.11.12.apk
+EOF

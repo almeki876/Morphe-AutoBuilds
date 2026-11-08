@@ -1,0 +1,89 @@
+app=disney-plus
+source=ajstrick81
+source_name=ajstrick81
+phase=Patch
+status=success
+run=https://github.com/almeki876/Morphe-AutoBuilds/actions/runs/42427594293
+
+traceback_or_error_tail<<EOF
+Enabled: true
+
+Index: 49
+Name: Skip ads
+Description: Removes Xumo Play's client-inserted (CSAI) VOD ads by no-opping the player's ad-play step (playAmsOrImaAd) so fetched VAST/AMS/IMA ads are never played and content continues. Applies to both the VOD and Live TV players. FreeWheel SSAI ads that are server-stitched into the stream are not removable client-side and may remain; Xumo is migrating toward SSAI, so coverage can vary by title and region. Not yet device-verified on 4.9.147.
+Enabled: true
+2026-11-08 00:16:38 enable_patches=[]  disable_patches=[]
+2026-11-08 00:16:38 Running: java -Djava.awt.headless=true -Xmx6g -Xms3g -Dfile.encoding=UTF-8 -XX:-UsePerfData -XX:+UseG1GC -XX:MaxGCPauseMillis=150 -XX:G1HeapRegionSize=2m -XX:+UseStringDeduplication -XX:+ParallelRefProcEnabled -XX:ConcGCThreads=2 -XX:ParallelGCThreads=4 -XX:CICompilerCount=3 -XX:+UseCompressedOops -XX:+OptimizeStringConcat -XX:+DisableExplicitGC -XX:+TieredCompilation -XX:ReservedCodeCacheSize=128m -XX:InitialCodeCacheSize=32m -XX:SoftRefLRUPolicyMSPerMB=50 --add-opens=java.base/java.lang=ALL-UNNAMED --add-opens=java.base/java.util=ALL-UNNAMED --add-opens=java.base/java.io=ALL-UNNAMED -jar /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/morphe-desktop-2.1.1-all.jar patch --continue-on-error --unsigned --result-file /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/.patch-result-disney-plus-universal.json --temporary-files-path /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/.morphe-tmp-disney-plus-universal -p /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/patches-1.50.3.mpp --out=/home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/disney-plus-universal-patch-v26.16.0+rc2-2026.09.08.apk --bytecode-mode=STRIP_FAST /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/.build-input-universal.xapk
+INFO: Morphe data root: /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/morphe-data (JAR-adjacent)
+INFO: Merging split APK bundle...
+INFO: Extracting to: /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/.morphe-tmp-disney-plus-universal/patching-1794096999210/tmp_70105577
+INFO: Searching apk files ...
+INFO: Found apk files: 20
+INFO: Found modules: 20
+INFO: Merging: com.disney.disneyplus
+INFO: Added [com.disney.disneyplus] classes.dex -> classes.dex
+INFO: Added [com.disney.disneyplus] classes2.dex -> classes2.dex
+INFO: Added [com.disney.disneyplus] classes3.dex -> classes3.dex
+INFO: Added [com.disney.disneyplus] classes4.dex -> classes4.dex
+INFO: Added [com.disney.disneyplus] classes5.dex -> classes5.dex
+INFO: Merging: config.de
+INFO: Merging: config.hi
+INFO: Merging: config.ru
+INFO: Merging: config.tr
+INFO: Merging: config.th
+INFO: Merging: config.ja
+INFO: Merging: config.ar
+INFO: Merging: config.vi
+INFO: Merging: config.my
+INFO: Merging: config.fr
+INFO: Merging: config.zh
+INFO: Merging: config.es
+INFO: Merging: config.xhdpi
+INFO: Merging: config.en
+INFO: Merging: config.it
+INFO: Merging: config.pt
+INFO: Merging: config.ko
+INFO: Merging: config.armeabi_v7a
+INFO: Merging: config.in
+INFO: Validating resources dir ...
+INFO: Sanitizing manifest ...
+INFO: Setting extractNativeLibs=false
+INFO: Writing apk ...
+INFO: Buffering compress changed files ...
+INFO: Writing files: 3976
+INFO: Writing signature block ...
+INFO: Saved to: /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/.morphe-tmp-disney-plus-universal/patching-1794096999210/.build-input-universal-merged.apk
+INFO: Initializing patcher...
+INFO: Loading patches from 1 bundle(s)...
+INFO: Filtering patches for com.disney.disneyplus v26.16.0+rc2-2026.09.08...
+INFO: Skipping "Suppress Household Prompt": incompatible with com.disney.disneyplus 26.16.0+rc2-2026.09.08
+INFO: Applying 1 patches...
+INFO: Deleting existing temporary files directory
+INFO: Executing patches
+INFO: Building instruction indexes for 36297 classes...
+INFO: Applied: Disney+ Android TV
+INFO: Rebuilding APK...
+INFO: Compiling patched dex files (mode: STRIP_FAST)
+INFO: Changed 2 of 36297 classes to mutable
+INFO: Writing 2 new classes to new DEX files
+INFO: Processing 2 classes (single threaded mode)
+INFO: Wrote 1 dex files to /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/.morphe-tmp-disney-plus-universal/patching-1794096999210/patcher/patched/newDex
+INFO: Stripped 2 modified classes from 2 original DEX files
+INFO: Stripping libs (keeping architectures arm64-v8a, armeabi-v7a, x86, x86_64)
+INFO: Stripped 0 lib files
+INFO: Saved to /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/disney-plus-universal-patch-v26.16.0+rc2-2026.09.08.apk
+INFO: Patching took 3.6 seconds
+INFO: Patching result saved to /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/.patch-result-disney-plus-universal.json
+2026-11-08 00:16:43 Validated patched APK: 35832426 bytes (ABIs: armeabi-v7a)
+2026-11-08 00:16:45 Normalized patched APK ZIP headers
+2026-11-08 00:16:45 Validated architecture-filtered APK (ABIs: armeabi-v7a)
+2026-11-08 00:16:45 [SIZE] patched: 35130690 bytes (disney-plus-universal-patch-v26.16.0+rc2-2026.09.08.apk)
+Signed
+2026-11-08 00:16:47 [SIZE] signed: 35514601 bytes (disney-plus-universal-ajstrick81-v26.16.0+rc2-2026.09.08.apk)
+✅ APK built: disney-plus-universal-ajstrick81-v26.16.0+rc2-2026.09.08.apk
+✅ Built universal: disney-plus-universal-ajstrick81-v26.16.0+rc2-2026.09.08.apk
+2026-11-08 00:16:47 ⚠️  arm64-v8a failed, but universal fallback succeeded.
+
+🎯 1 APK(s) built for 'disney-plus':
+   📱 disney-plus-universal-ajstrick81-v26.16.0+rc2-2026.09.08.apk
+EOF

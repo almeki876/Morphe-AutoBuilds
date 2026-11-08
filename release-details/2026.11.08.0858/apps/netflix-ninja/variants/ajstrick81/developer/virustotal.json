@@ -1,0 +1,23 @@
+{
+  "results": [
+    {
+      "file": "netflix-ninja-ajstrick81-armeabi-v7a.apkm",
+      "sha256": "915f7d362939b21ab81c029ee32ea9ac04ebd55234520c4a4a1709f528408781",
+      "size": 44672361,
+      "analysis_id": "",
+      "malicious": 0,
+      "suspicious": 0,
+      "harmless": 0,
+      "undetected": 56,
+      "timeout": 9,
+      "failure": 1,
+      "unsupported": 9,
+      "verdict": "clean",
+      "method": "persistent hash cache",
+      "engines": {},
+      "permalink": "https://www.virustotal.com/gui/file/915f7d362939b21ab81c029ee32ea9ac04ebd55234520c4a4a1709f528408781/detection",
+      "last_analysis_date": 1786014618,
+      "reanalyzed": false
+    }
+  ]
+}

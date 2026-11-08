@@ -1,0 +1,89 @@
+app=tiktok
+source=icysymmetra
+source_name=icysymmetra
+phase=Patch
+status=success
+run=https://github.com/almeki876/Morphe-AutoBuilds/actions/runs/42427594293
+
+traceback_or_error_tail<<EOF
+[Notification controls] Took 5 wake lock calls.
+INFO: Applied: Notification controls
+INFO: Applied: Open external links directly
+INFO: Applied: Picture-in-picture
+INFO: Applied: Play SDR instead of HDR
+INFO: Applied: Playback quality
+INFO: Applied: Playback speed
+INFO: Applied: Prefer H.264 playback
+INFO: Applied: Profile background
+INFO: Applied: Remember clear display
+INFO: Applied: Remove avatar rings
+INFO: Applied: Repost diagnostics
+[Resource and battery governor] Intercepted 2 sensor registration sites.
+INFO: Applied: Resource and battery governor
+INFO: Applied: Resume videos after scrolling
+INFO: Applied: SIM spoof
+INFO: Applied: Sanitize sharing links
+INFO: Applied: Settings
+INFO: Applied: Share sheet tools
+INFO: Applied: Show LIVE search
+INFO: Applied: Show author region
+INFO: Applied: Show commenter handle and region
+INFO: Applied: Show engagement rate
+INFO: Applied: Show exact counts
+[Show follow status] Added five owned profile count presentation hooks.
+[Show follow status] Added owned nickname badges and both warning presentation hooks.
+INFO: Applied: Show follow status
+INFO: Applied: Show the progress bar
+INFO: Applied: Show the progress bar thumbnail
+INFO: Applied: Skip content warnings
+INFO: Applied: Skip passkey sign-in
+INFO: Applied: Skip the splash ad
+INFO: Applied: Skip update checks
+INFO: Applied: Stay on the video in full screen
+INFO: Applied: Stop on-device AI profiling
+INFO: Applied: Stop recording watch history
+INFO: Applied: Stop saving search history
+INFO: Applied: Stop search autoplay
+INFO: Applied: Stop video looping
+INFO: Applied: Story controls
+INFO: Applied: Subtitle tools
+INFO: Applied: Swipe-left controls
+INFO: Applied: Translate comments
+INFO: Applied: Turn off haptics
+INFO: Applied: Turn off screen transitions
+INFO: Applied: Use non-personalized search
+INFO: Applied: Use system font
+INFO: Applied: Diagnostic tools
+INFO: Rebuilding APK...
+INFO: Compiling patched dex files (mode: STRIP_FAST)
+INFO: Copied 3045 unchanged extension classes to 2 DEX files
+INFO: Changed 1319 of 479000 classes to mutable
+INFO: Writing 1319 new classes to new DEX files
+INFO: Processing 1319 classes in parallel (4 threads)
+INFO: Wrote 4 dex files to /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/.morphe-tmp-tiktok-arm64-v8a/patching-1794096781579/patcher/patched/newDex
+INFO: Stripped 1299 modified classes from 43 original DEX files
+INFO: Compiling modified resources
+INFO: Stripping libs (keeping architectures arm64-v8a, armeabi-v7a, x86, x86_64)
+INFO: Stripped 0 lib files
+INFO: Decoded 0 of 25496 files on request
+INFO: Unescaping strings
+INFO: Processing aapt macros
+INFO: Generating new resource IDs
+INFO: Writing resource APK
+INFO: Reusing 25788 unchanged archive entries, rebuilding 2 entries, dropping 0 entries, leaving out 46 replaced entries
+INFO: Resource APK scan: 100ms write: 7.8s
+INFO: Saved to /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/tiktok-arm64-v8a-patch-v47.4.3.apk
+INFO: Patching took 53.1 seconds
+INFO: Patching result saved to /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/.patch-result-tiktok-arm64-v8a.json
+2026-11-08 00:13:56 Validated patched APK: 626260652 bytes (ABIs: arm64-v8a, armeabi-v7a)
+2026-11-08 00:14:13 Removed 201 non-target native libraries
+2026-11-08 00:14:14 Validated architecture-filtered APK (ABIs: arm64-v8a)
+2026-11-08 00:14:14 [SIZE] patched: 580626901 bytes (tiktok-arm64-v8a-patch-v47.4.3.apk)
+Signed
+2026-11-08 00:14:24 [SIZE] signed: 582483186 bytes (tiktok-arm64-v8a-icysymmetra-v47.4.3.apk)
+✅ APK built: tiktok-arm64-v8a-icysymmetra-v47.4.3.apk
+✅ Built arm64-v8a: tiktok-arm64-v8a-icysymmetra-v47.4.3.apk
+
+🎯 1 APK(s) built for 'tiktok':
+   📱 tiktok-arm64-v8a-icysymmetra-v47.4.3.apk
+EOF
