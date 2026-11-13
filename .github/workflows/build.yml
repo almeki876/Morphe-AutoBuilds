@@ -1,12 +1,11 @@
 name: Build and Release APKs
 
-# 同時に複数回このワークフローが走ると、download-tools ジョブが同じ
-# キャッシュキーを取り合って "Unable to reserve cache" 警告が出る
-# （実害は小さいが、無駄な再ダウンロードや紛らわしいログの原因になる）。
-# 新しい実行が来たら前の実行をキャンセルして直列化する。
-concurrency:
-  group: ${{ github.workflow }}
-  cancel-in-progress: true
+# NOTE: ここで cancel-in-progress: true を使ってはいけない。
+# check-upstream（1日2回 + 手動）が build.yml を dispatch するため、
+# 実行中のビルドが次の dispatch で「理由なく」キャンセルされてしまう。
+# さらにキャンセルされたビルドの更新分は検知済みとして扱われ、取りこぼしの原因になる。
+# concurrency は設定せず、各 dispatch を独立して最後まで実行する
+# （"Unable to reserve cache" の警告が出ることがあるが実害は小さい）。
 
 on:
   workflow_dispatch:
@@ -211,15 +210,14 @@ jobs:
         continue-on-error: true
         env:
           TS_EXIT_NODE: ${{ vars.TS_EXIT_NODE }}
-        run: |
-          exit_node_ip="$(python3 scripts/resolve_tailscale_exit_node.py "$TS_EXIT_NODE")"
-          sudo tailscale set --exit-node="$exit_node_ip"
-          tailscale ping "$exit_node_ip"
+        timeout-minutes: 4
+        run: python3 -m scripts.enable_tailscale_exit_node "$TS_EXIT_NODE"
 
       - name: Verify fallback egress is in Japan
         id: verify-japan-egress
         if: ${{ steps.select-tailscale-exit-node.outcome == 'success' }}
         continue-on-error: true
+        timeout-minutes: 3
         run: python3 scripts/verify_japan_egress.py
 
       - name: Retry Base APK download through Japan
@@ -246,6 +244,11 @@ jobs:
           BASE_APK_CACHE_TAG: 'base-apk-cache-v2'
           BASE_APK_CACHE_REPOSITORY: ${{ github.repository }}
         run: python3 scripts/run_logged.py --output download-japan.log -- python3 scripts/download_apks.py
+
+      - name: Return to default route after Japan attempt
+        if: ${{ always() && steps.tailscale-fallback.outcome == 'success' }}
+        timeout-minutes: 2
+        run: sudo tailscale set --exit-node="" || true
 
       - name: Final provider fallback if Japan path did not succeed
         id: download-apk-provider-rescue

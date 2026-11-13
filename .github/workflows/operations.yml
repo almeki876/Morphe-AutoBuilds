@@ -134,24 +134,27 @@ jobs:
         id: version-tailscale-exit
         if: ${{ steps.version-tailscale.outcome == 'success' }}
         continue-on-error: true
+        timeout-minutes: 4
         env:
           TS_EXIT_NODE: ${{ vars.TS_EXIT_NODE }}
-        run: |
-          exit_node_ip="$(python3 scripts/resolve_tailscale_exit_node.py "$TS_EXIT_NODE")"
-          sudo tailscale set --exit-node="$exit_node_ip" --exit-node-allow-lan-access=true --accept-dns=false
-          tailscale ping -c 3 "$exit_node_ip"
+        # 出口ノードが落ちていると全通信が不通になり、runner が GitHub との
+        # 接続を失ってジョブが "The operation was canceled." になる。
+        # このスクリプトは事前 ping と疎通確認を行い、失敗時は必ず元のルートへ戻す。
+        run: python3 -m scripts.enable_tailscale_exit_node "$TS_EXIT_NODE" --allow-lan-access
 
       - name: Verify Japan Egress
         id: verify-egress
         if: ${{ steps.version-tailscale-exit.outcome == 'success' }}
         continue-on-error: true
+        timeout-minutes: 3
         run: python3 scripts/verify_japan_egress.py
 
       - name: Return to Default Route if Egress Check Fails
-        if: ${{ steps.version-tailscale-exit.outcome == 'success' && steps.verify-egress.outcome != 'success' }}
+        if: ${{ always() && steps.version-tailscale.outcome == 'success' && steps.verify-egress.outcome != 'success' }}
+        timeout-minutes: 2
         run: |
-          echo "::warning::Japan egress verification failed; returning to the default route."
-          sudo tailscale set --exit-node=""
+          echo "::warning::Japan egress is not verified; ensuring the default route is used."
+          sudo tailscale set --exit-node="" || true
 
       - name: Check APK Versions
         id: apkver
@@ -410,14 +413,13 @@ jobs:
           tags: tag:ci
 
       - name: Select Japan Exit Node
+        timeout-minutes: 4
         env:
           TS_EXIT_NODE: ${{ vars.TS_EXIT_NODE }}
-        run: |
-          exit_node_ip="$(python3 scripts/resolve_tailscale_exit_node.py "$TS_EXIT_NODE")"
-          sudo tailscale set --exit-node="$exit_node_ip"
-          tailscale ping "$exit_node_ip"
+        run: python3 -m scripts.enable_tailscale_exit_node "$TS_EXIT_NODE"
 
       - name: Verify Outbound Country
+        timeout-minutes: 3
         run: python3 scripts/verify_japan_egress.py
 
   rebuild-release-details:
