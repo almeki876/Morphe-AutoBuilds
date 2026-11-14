@@ -3,7 +3,7 @@
 [English](Morphe-AutoBuilds-Direct-Download.md) | 日本語
 
 - Releases: [GitHub Releases](https://github.com/almeki876/Morphe-AutoBuilds/releases)
-- 最終更新日時: 2026-11-15 02:51 JST
+- 最終更新日時: 2026-11-15 06:56 JST
 
 ## [Morphe](https://github.com/MorpheApp/morphe-patches)
 
@@ -201,7 +201,7 @@
 
 ### Photoshop Mix
 
-[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.15.0243/photoshop-mix-arm64-v8a-rookie-v2.6.3.apk)
+[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.15.0649/photoshop-mix-arm64-v8a-rookie-v2.6.3.apk)
 
 ### Google Photos
 
@@ -209,7 +209,7 @@
 
 ### Google Recorder
 
-[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.14.0830/google-recorder-arm64-v8a-rookie-v4.2.20260823.992025916.apk)
+[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.15.0649/google-recorder-arm64-v8a-rookie-v4.2.20260823.992025916.apk)
 
 ### Viber
 
