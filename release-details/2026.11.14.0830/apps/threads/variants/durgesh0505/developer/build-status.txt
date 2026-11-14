@@ -1,0 +1,89 @@
+app=threads
+source=durgesh0505
+source_name=durgesh0505
+phase=Patch
+status=success
+run=https://github.com/almeki876/Morphe-AutoBuilds/actions/runs/43527607008
+
+traceback_or_error_tail<<EOF
+Name: Change package name
+Description: Changes the manifest package and package-derived authorities/permissions so Zombie Catchers Morphe can install beside the original. Play Games, Firebase auth, store updates, and server checks can still reject the renamed and re-signed build.
+Enabled: false
+2026-11-13 23:37:55 enable_patches=[]  disable_patches=[]
+2026-11-13 23:37:56 Running: java -Djava.awt.headless=true -Xmx6g -Xms3g -Dfile.encoding=UTF-8 -XX:-UsePerfData -XX:+UseG1GC -XX:MaxGCPauseMillis=150 -XX:G1HeapRegionSize=2m -XX:+UseStringDeduplication -XX:+ParallelRefProcEnabled -XX:ConcGCThreads=2 -XX:ParallelGCThreads=4 -XX:CICompilerCount=3 -XX:+UseCompressedOops -XX:+OptimizeStringConcat -XX:+DisableExplicitGC -XX:+TieredCompilation -XX:ReservedCodeCacheSize=128m -XX:InitialCodeCacheSize=32m -XX:SoftRefLRUPolicyMSPerMB=50 --add-opens=java.base/java.lang=ALL-UNNAMED --add-opens=java.base/java.util=ALL-UNNAMED --add-opens=java.base/java.io=ALL-UNNAMED -jar /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/morphe-desktop-2.1.1-all.jar patch --continue-on-error --unsigned --result-file /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/.patch-result-threads-arm64-v8a.json --temporary-files-path /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/.morphe-tmp-threads-arm64-v8a -p /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/patches-1.27.8.mpp --out=/home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/threads-arm64-v8a-patch-v434.0.0.41.74.apk --bytecode-mode=STRIP_FAST /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/.build-input-arm64-v8a.xapk
+⚠️  Ignoring legacy BASE_APK_CACHE_TAG='base-apk-cache-v2'; using 'base-apk-cache-v4-ja-jp-px9a-split'
+INFO: Morphe data root: /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/morphe-data (JAR-adjacent)
+INFO: Merging split APK bundle...
+INFO: Extracting to: /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/.morphe-tmp-threads-arm64-v8a/patching-1794613076906/tmp_5de0bc76
+INFO: Searching apk files ...
+INFO: Found apk files: 3
+INFO: Found modules: 3
+INFO: Merging: com.instagram.barcelona
+INFO: Added [com.instagram.barcelona] classes.dex -> classes.dex
+INFO: Added [com.instagram.barcelona] classes2.dex -> classes2.dex
+INFO: Added [com.instagram.barcelona] classes3.dex -> classes3.dex
+INFO: Added [com.instagram.barcelona] classes4.dex -> classes4.dex
+INFO: Added [com.instagram.barcelona] classes5.dex -> classes5.dex
+INFO: Added [com.instagram.barcelona] classes6.dex -> classes6.dex
+INFO: Added [com.instagram.barcelona] classes7.dex -> classes7.dex
+INFO: Added [com.instagram.barcelona] classes8.dex -> classes8.dex
+INFO: Added [com.instagram.barcelona] classes9.dex -> classes9.dex
+INFO: Added [com.instagram.barcelona] classes10.dex -> classes10.dex
+INFO: Added [com.instagram.barcelona] classes11.dex -> classes11.dex
+INFO: Added [com.instagram.barcelona] classes12.dex -> classes12.dex
+INFO: Merging: config.hdpi
+INFO: Merging: config.arm64_v8a
+INFO: Validating resources dir ...
+INFO: Sanitizing manifest ...
+INFO: Setting extractNativeLibs=false
+INFO: Writing apk ...
+INFO: Buffering compress changed files ...
+INFO: Writing files: 13648
+INFO: Writing signature block ...
+INFO: Saved to: /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/.morphe-tmp-threads-arm64-v8a/patching-1794613076906/.build-input-arm64-v8a-merged.apk
+INFO: Initializing patcher...
+INFO: Loading patches from 1 bundle(s)...
+INFO: Filtering patches for com.instagram.barcelona v434.0.0.41.74...
+INFO: Applying 4 patches...
+INFO: Deleting existing temporary files directory
+INFO: Decoding all resources
+INFO: Leaving 74 native library files in the input APK
+INFO: Sanitizing unpatched strings
+INFO: Escaping strings
+INFO: Executing patches
+INFO: Applied: Change app name
+INFO: Applied: Hide ads
+INFO: Applied: Remove AD_ID permission
+INFO: Applied: Change package name
+INFO: Rebuilding APK...
+INFO: Compiling patched dex files (mode: STRIP_FAST)
+INFO: Changed 2 of 104936 classes to mutable
+INFO: Writing 2 new classes to new DEX files
+INFO: Processing 2 classes (single threaded mode)
+INFO: Wrote 1 dex files to /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/.morphe-tmp-threads-arm64-v8a/patching-1794613076906/patcher/patched/newDex
+INFO: Stripped 2 modified classes from 2 original DEX files
+INFO: Compiling modified resources
+INFO: Stripping libs (keeping architectures arm64-v8a, armeabi-v7a, x86, x86_64)
+INFO: Stripped 0 lib files
+INFO: Unescaping strings
+INFO: Post-processing package name change
+INFO: Processing aapt macros
+INFO: Generating new resource IDs
+INFO: Writing resource APK
+INFO: Reusing 13641 unchanged archive entries, rebuilding 2 entries, dropping 0 entries, leaving out 5 replaced entries
+INFO: Resource APK scan: 100ms write: 900ms
+INFO: Saved to /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/threads-arm64-v8a-patch-v434.0.0.41.74.apk
+INFO: Patching took 9.7 seconds
+INFO: Patching result saved to /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/.patch-result-threads-arm64-v8a.json
+2026-11-13 23:38:07 Validated patched APK: 131785965 bytes (ABIs: arm64-v8a)
+2026-11-13 23:38:13 Normalized patched APK ZIP headers
+2026-11-13 23:38:13 Validated architecture-filtered APK (ABIs: arm64-v8a)
+2026-11-13 23:38:13 [SIZE] patched: 133026512 bytes (threads-arm64-v8a-patch-v434.0.0.41.74.apk)
+Signed
+2026-11-13 23:38:18 [SIZE] signed: 134624597 bytes (threads-arm64-v8a-durgesh0505-v434.0.0.41.74.apk)
+✅ APK built: threads-arm64-v8a-durgesh0505-v434.0.0.41.74.apk
+✅ Built arm64-v8a: threads-arm64-v8a-durgesh0505-v434.0.0.41.74.apk
+
+🎯 1 APK(s) built for 'threads':
+   📱 threads-arm64-v8a-durgesh0505-v434.0.0.41.74.apk
+EOF
