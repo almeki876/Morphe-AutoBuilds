@@ -159,6 +159,7 @@
     {"app_name":"call-recorder","source":"rushiranpise","disable":[]},
     {"app_name":"camscanner","source":"rushiranpise","disable":[]},
     {"app_name":"countdown-widget","source":"rushiranpise","disable":[]},
-    {"app_name":"disney-plus","source":"ajstrick81","disable":[]}
+    {"app_name":"disney-plus","source":"ajstrick81","disable":[]},
+    {"app_name":"musicolet","source":"hxreborn","disable":[]}
   ]
 }

@@ -90,6 +90,7 @@ APP_LABELS = {
     "lightroom": "Lightroom Mobile",
     "line": "LINE",
     "mega": "MEGA",
+    "musicolet": "Musicolet",
     "netflix-ninja": "Netflix",
     "ninja-vpn": "Ninja VPN",
     "nova": "Nova Launcher",

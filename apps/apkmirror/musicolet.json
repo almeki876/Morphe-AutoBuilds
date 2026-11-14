@@ -1,0 +1,9 @@
+{
+  "org": "krosbits",
+  "name": "musicolet-music-player-free-no-ads",
+  "type": "APK",
+  "arch": "universal",
+  "dpi": "nodpi",
+  "package": "in.krosbits.musicolet",
+  "version": ""
+}
