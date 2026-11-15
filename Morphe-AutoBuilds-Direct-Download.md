@@ -3,7 +3,7 @@
 English | [日本語](Morphe-AutoBuilds-Direct-Download.ja.md)
 
 - Releases: [GitHub Releases](https://github.com/almeki876/Morphe-AutoBuilds/releases)
-- Last updated: 2026-11-15 06:56 JST
+- Last updated: 2026-11-15 09:11 JST
 
 ## [Morphe](https://github.com/MorpheApp/morphe-patches)
 
@@ -201,7 +201,7 @@ English | [日本語](Morphe-AutoBuilds-Direct-Download.ja.md)
 
 ### Photoshop Mix
 
-[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.15.0649/photoshop-mix-arm64-v8a-rookie-v2.6.3.apk)
+[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.15.0905/photoshop-mix-arm64-v8a-rookie-v2.6.3.apk)
 
 ### Google Photos
 
