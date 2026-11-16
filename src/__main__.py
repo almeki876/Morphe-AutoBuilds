@@ -74,6 +74,7 @@ from src import (
     cli_compat,
     console_output,
     downloader,
+    manifest_split_fix,
     provenance,
     providers,
     utils,
@@ -1719,6 +1720,19 @@ def run_build(app_name: str, source: str, arch: str = "universal") -> str:
 
     # ── 9. Align and sign ────────────────────────────────────────────────────
     signed_apk = Path(f"{app_name}-{arch}-{source_name}-v{version}.apk")
+    # A merged APK is complete, but a bundle's base module may still declare
+    # requiredSplitTypes (e.g. base__abi,base__density). Android then refuses to
+    # install it ("failureIncompatible" in Obtainium), so drop those markers.
+    # This must run before alignment and signing, which depend on final bytes.
+    try:
+        removed_split_markers = manifest_split_fix.strip_required_splits(output_apk)
+    except manifest_split_fix.ManifestSplitFixError as error:
+        raise BuildFailure("APK_VALIDATION_FAILED", str(error)) from error
+    if removed_split_markers:
+        logging.info(
+            "Removed split-required manifest markers (%s) so the single APK installs.",
+            ", ".join(removed_split_markers),
+        )
     _align_apk(output_apk)
     _sign_apk(output_apk, signed_apk, app_name)
     output_apk.unlink(missing_ok=True)
@@ -1731,6 +1745,17 @@ def run_build(app_name: str, source: str, arch: str = "universal") -> str:
         apk_validation.validate_apk(signed_apk, expected_abi=arch)
     except apk_validation.ApkValidationError as error:
         raise BuildFailure("APK_VALIDATION_FAILED", str(error)) from error
+    try:
+        leftover_split_markers = manifest_split_fix.required_split_attributes(signed_apk)
+    except manifest_split_fix.ManifestSplitFixError as error:
+        raise BuildFailure("APK_VALIDATION_FAILED", str(error)) from error
+    if leftover_split_markers:
+        # Never publish an APK that Android will refuse to install.
+        raise BuildFailure(
+            "APK_VALIDATION_FAILED",
+            "signed APK still declares split-required manifest attributes: "
+            + ", ".join(leftover_split_markers),
+        )
     logging.info("[SIZE] signed: %d bytes (%s)", signed_apk.stat().st_size, signed_apk.name)
 
     _write_build_report(
