@@ -84,6 +84,16 @@ def main() -> int:
     # Apps with an explicit patch-supported version are intentionally excluded from
     # latest-APK monitoring. Patch compatibility is authoritative: a newer Play APK
     # must never override an explicitly required patch version.
+    # 新規追加・取得元変更されたアプリは、APK 監視にも既存ソースの更新検知にも
+    # 引っかからない。公開カタログに無い (app, source) を自動ビルド対象に加える。
+    try:
+        from scripts.find_unpublished_targets import unpublished_apps
+        new_apps, new_notes = unpublished_apps()
+    except Exception as error:  # この補助機能で本来の APK 監視を止めない
+        new_apps, new_notes = [], [f"unpublished-target check failed: {error}"]
+    for note in new_notes:
+        print(f"NEW TARGET: {note}")
+
     version_pinned = load_version_pinned()
     if version_pinned:
         logging.warning("APK監視スキップ対象（推奨バージョン固定）: %s", sorted(version_pinned))
@@ -206,21 +216,26 @@ def main() -> int:
     finally:
         write_outputs(apps, results, unchecked, any_apk_updated, apk_updated_apps,
                       resolution_failures,
-                      (state["play_reason"] or True) if state["play_disabled"] else False)
+                      (state["play_reason"] or True) if state["play_disabled"] else False,
+                      new_apps)
 
     return 1 if resolution_failures else 0
 
 
 def write_outputs(apps, results, unchecked, any_apk_updated, apk_updated_apps,
-                  resolution_failures, play_disabled):
+                  resolution_failures, play_disabled, new_apps=()):
     github_output = os.environ.get("GITHUB_OUTPUT")
+    # updated_apps は build.yml の matrix 選択に使われる。APK 更新に加え、まだ
+    # 公開されていない新規ターゲットも含める（apk_updated_apps は純粋な APK 更新のまま）。
+    build_apps = list(dict.fromkeys([*apk_updated_apps, *new_apps]))
     lines = []
     for app in apps:
         lines.append(f"apkver_{app}={str(results.get(app, False)).lower()}")
     lines += [
-        f"any_apk_updated={str(any_apk_updated).lower()}",
+        # 既存の dispatch ステップがこの値で起動するため、新規ターゲットも true にする
+        f"any_apk_updated={str(any_apk_updated or bool(new_apps)).lower()}",
         f"apk_updated_apps={json.dumps(apk_updated_apps)}",
-        f"updated_apps={','.join(apk_updated_apps)}",
+        f"updated_apps={','.join(build_apps)}",
         f"apk_version_health_ok={str(not resolution_failures).lower()}",
         f"apk_version_failed_apps={json.dumps(sorted(resolution_failures))}",
     ]
@@ -231,6 +246,12 @@ def write_outputs(apps, results, unchecked, any_apk_updated, apk_updated_apps,
         print("\n".join(lines))
 
     report = ["## APK version discovery", ""]
+    if new_apps:
+        report += [
+            "> 🆕 未公開の新規ターゲットを自動ビルド対象に追加しました: "
+            + ", ".join(new_apps),
+            "",
+        ]
     if play_disabled:
         report += [
             "> ⚠️ Google Play が利用不可と判断されたため、以降はミラーのみで確認しました。"

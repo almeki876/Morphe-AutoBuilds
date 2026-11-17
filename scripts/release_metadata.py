@@ -13,6 +13,7 @@ SOURCE_LABELS = {
     "rushiranpise": "rushiranpise",
     "rushiranpise-universal": "rushiranpise universal",
     "hoomans": "arandomhooman",
+    "mwbra130": "mwbra130",
     "rookie": "RookieEnough",
     "durgesh0505": "durgesh0505",
     "icysymmetra": "icysymmetra",

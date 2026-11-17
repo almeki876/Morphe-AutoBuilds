@@ -141,7 +141,7 @@
     {"app_name":"gboard","source":"adobo","disable":[],"force_enable":["Enable OCR feature","Enable Undo feature","Enable access points menu redesign","Enable key shape selection"]},
     {"app_name":"gboard","source":"morning-entree","disable":[],"force_enable":["Always incognito mode","Block tracking and analytics","Change package name"]},
     {"app_name":"prime-video-android-tv","source":"ajstrick81","disable":[]},
-    {"app_name":"poweramp","source":"hoomans","disable":[]},
+    {"app_name":"poweramp","source":"mwbra130","disable":[]},
     {"app_name":"ninja-vpn","source":"rushiranpise","disable":[]},
     {"app_name":"netflix-ninja","source":"ajstrick81","disable":[]},
     {"app_name":"line","source":"andrewliang25","disable":[]},

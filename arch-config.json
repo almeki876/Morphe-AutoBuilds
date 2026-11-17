@@ -4,7 +4,7 @@
   { "app_name": "youtube-music",          "source": "morphe",         "arches": ["arm64-v8a"] },
   { "app_name": "youtube-music",          "source": "revanced-anddea","arches": ["arm64-v8a"] },
   { "app_name": "prime-video-android-tv", "source": "ajstrick81",     "arches": ["armeabi-v7a"] },
-  { "app_name": "poweramp",               "source": "hoomans",        "arches": ["arm64-v8a"] },
+  { "app_name": "poweramp",               "source": "mwbra130",       "arches": ["arm64-v8a"] },
   { "app_name": "ninja-vpn",              "source": "rushiranpise",   "arches": ["arm64-v8a"] },
   { "app_name": "netflix-ninja",          "source": "ajstrick81",     "arches": ["armeabi-v7a"] },
   { "app_name": "line",                   "source": "andrewliang25",  "arches": ["arm64-v8a"] },
