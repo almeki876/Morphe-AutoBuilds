@@ -3,7 +3,7 @@
 [English](Morphe-AutoBuilds-Direct-Download.md) | 日本語
 
 - Releases: [GitHub Releases](https://github.com/almeki876/Morphe-AutoBuilds/releases)
-- 最終更新日時: 2026-11-17 06:51 JST
+- 最終更新日時: 2026-11-17 10:23 JST
 
 ## [Morphe](https://github.com/MorpheApp/morphe-patches)
 
@@ -171,11 +171,11 @@
 
 ### Proton Mail
 
-[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.17.0642/proton-mail-arm64-v8a-hxreborn-v7.11.12.apk)
+[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.17.1017/proton-mail-arm64-v8a-hxreborn-v7.11.12.apk)
 
 ### Musicolet
 
-[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.17.0642/musicolet-arm64-v8a-hxreborn-v6.14.1.build540.apk)
+[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.17.1017/musicolet-arm64-v8a-hxreborn-v6.14.1.build540.apk)
 
 ## [rushiranpise universal](https://github.com/rushiranpise/Ri-Vanced-Universal-Morphe-Patches)
 
@@ -205,7 +205,7 @@
 
 ### Photoshop Mix
 
-[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.16.0716/photoshop-mix-arm64-v8a-rookie-v2.6.3.apk)
+[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.17.1017/photoshop-mix-arm64-v8a-rookie-v2.6.3.apk)
 
 ### Google Photos
 
