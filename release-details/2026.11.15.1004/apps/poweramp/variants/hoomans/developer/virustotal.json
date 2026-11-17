@@ -1,0 +1,23 @@
+{
+  "results": [
+    {
+      "file": "poweramp-hoomans-arm64-v8a.apkm",
+      "sha256": "5c11b4750c432e844940462957f936500f69b5290809705f2d0ebe73fdc2ed53",
+      "size": 15434006,
+      "analysis_id": "",
+      "malicious": 0,
+      "suspicious": 0,
+      "harmless": 0,
+      "undetected": 63,
+      "timeout": 1,
+      "failure": 1,
+      "unsupported": 10,
+      "verdict": "clean",
+      "method": "persistent hash cache",
+      "engines": {},
+      "permalink": "https://www.virustotal.com/gui/file/5c11b4750c432e844940462957f936500f69b5290809705f2d0ebe73fdc2ed53/detection",
+      "last_analysis_date": 1786895894,
+      "reanalyzed": false
+    }
+  ]
+}

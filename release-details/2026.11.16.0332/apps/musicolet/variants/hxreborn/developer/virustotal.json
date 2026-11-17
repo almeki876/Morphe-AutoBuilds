@@ -1,0 +1,23 @@
+{
+  "results": [
+    {
+      "file": "musicolet-hxreborn-universal.xapk",
+      "sha256": "4a4cccb598f701ebd6b4fee47e061c6e03f794debad532de4707b2c7c87f6a46",
+      "size": 34824998,
+      "analysis_id": "",
+      "malicious": 0,
+      "suspicious": 0,
+      "harmless": 0,
+      "undetected": 65,
+      "timeout": 1,
+      "failure": 0,
+      "unsupported": 9,
+      "verdict": "clean",
+      "method": "persistent hash cache",
+      "engines": {},
+      "permalink": "https://www.virustotal.com/gui/file/4a4cccb598f701ebd6b4fee47e061c6e03f794debad532de4707b2c7c87f6a46/detection",
+      "last_analysis_date": 1792575776,
+      "reanalyzed": false
+    }
+  ]
+}

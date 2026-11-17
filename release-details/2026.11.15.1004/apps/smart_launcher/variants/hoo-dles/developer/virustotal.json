@@ -1,0 +1,23 @@
+{
+  "results": [
+    {
+      "file": "smart_launcher-hoo-dles-universal.xapk",
+      "sha256": "970d362fb229f8f927bab618d5f98653d808aa96c97394d3c03bfa9e3e2b4644",
+      "size": 28063019,
+      "analysis_id": "MjNkN2ZmN2M5MzBiYjFmMzYxZGEzMTNiYmUzOTA5M2U6MTc5MDYyMzkwMQ==",
+      "malicious": 0,
+      "suspicious": 0,
+      "harmless": 0,
+      "undetected": 63,
+      "timeout": 2,
+      "failure": 0,
+      "unsupported": 10,
+      "verdict": "clean",
+      "method": "persistent hash cache",
+      "engines": {},
+      "permalink": "https://www.virustotal.com/gui/file/970d362fb229f8f927bab618d5f98653d808aa96c97394d3c03bfa9e3e2b4644/detection",
+      "last_analysis_date": 1790623901,
+      "reanalyzed": false
+    }
+  ]
+}
