@@ -3,17 +3,17 @@
 [English](Morphe-AutoBuilds-Direct-Download.md) | 日本語
 
 - Releases: [GitHub Releases](https://github.com/almeki876/Morphe-AutoBuilds/releases)
-- 最終更新日時: 2026-11-17 10:23 JST
+- 最終更新日時: 2026-11-18 09:21 JST
 
 ## [Morphe](https://github.com/MorpheApp/morphe-patches)
 
 ### YouTube
 
-[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.17.0642/youtube-arm64-v8a-morphe-v20.51.39.apk)
+[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.18.0912/youtube-arm64-v8a-morphe-v20.51.39.apk)
 
 ### YouTube Music
 
-[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.17.0642/youtube-music-arm64-v8a-morphe-v9.15.51.apk)
+[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.18.0912/youtube-music-arm64-v8a-morphe-v9.15.51.apk)
 
 ## [Anddea](https://github.com/anddea/revanced-patches)
 
@@ -171,11 +171,11 @@
 
 ### Proton Mail
 
-[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.17.1017/proton-mail-arm64-v8a-hxreborn-v7.11.12.apk)
+[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.18.0912/proton-mail-arm64-v8a-hxreborn-v7.11.12.apk)
 
 ### Musicolet
 
-[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.17.1017/musicolet-arm64-v8a-hxreborn-v6.14.1.build540.apk)
+[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.18.0912/musicolet-arm64-v8a-hxreborn-v6.14.1.build540.apk)
 
 ## [rushiranpise universal](https://github.com/rushiranpise/Ri-Vanced-Universal-Morphe-Patches)
 
@@ -205,7 +205,7 @@
 
 ### Photoshop Mix
 
-[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.17.1017/photoshop-mix-arm64-v8a-rookie-v2.6.3.apk)
+[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.18.0912/photoshop-mix-arm64-v8a-rookie-v2.6.3.apk)
 
 ### Google Photos
 
@@ -257,10 +257,6 @@
 
 [arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.15.1004/inshot-arm64-v8a-hoomans-v2.214.1539.apk)
 
-### Poweramp
-
-[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.15.1004/poweramp-arm64-v8a-hoomans-vbuild-1025-bundle-play.apk)
-
 ## [ajstrick81](https://github.com/ajstrick81/morphe-androidtv-patches)
 
 ### Twitch Android TV
@@ -303,6 +299,12 @@
 
 [arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.15.1004/ilovepdf-arm64-v8a-lain-v4.0.1.apk)
 
+## [mwbra130](https://github.com/mwbra130/Retro-Bowl-College)
+
+### Poweramp
+
+[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.18.0912/poweramp-arm64-v8a-mwbra130-vbuild-1031-bundle-play.apk)
+
 ## [andrewliang25](https://github.com/andrewliang25/morphe-patches)
 
 ### Line
@@ -329,7 +331,7 @@
 
 ### Brave Beta
 
-[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.15.1004/brave-beta-arm64-v8a-dh6k-v1.101.47.apk)
+[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.18.0912/brave-beta-arm64-v8a-dh6k-v1.101.50.apk)
 
 ### Brave Nightly
 
