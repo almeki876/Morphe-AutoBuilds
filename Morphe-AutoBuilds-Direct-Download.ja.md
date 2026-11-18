@@ -3,7 +3,7 @@
 [English](Morphe-AutoBuilds-Direct-Download.md) | 日本語
 
 - Releases: [GitHub Releases](https://github.com/almeki876/Morphe-AutoBuilds/releases)
-- 最終更新日時: 2026-11-18 09:21 JST
+- 最終更新日時: 2026-11-18 17:37 JST
 
 ## [Morphe](https://github.com/MorpheApp/morphe-patches)
 
@@ -205,7 +205,7 @@
 
 ### Photoshop Mix
 
-[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.18.0912/photoshop-mix-arm64-v8a-rookie-v2.6.3.apk)
+[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.18.1731/photoshop-mix-arm64-v8a-rookie-v2.6.3.apk)
 
 ### Google Photos
 
@@ -303,7 +303,7 @@
 
 ### Poweramp
 
-[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.18.0912/poweramp-arm64-v8a-mwbra130-vbuild-1031-bundle-play.apk)
+[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.18.1731/poweramp-arm64-v8a-mwbra130-vbuild-1031-bundle-play.apk)
 
 ## [andrewliang25](https://github.com/andrewliang25/morphe-patches)
 
