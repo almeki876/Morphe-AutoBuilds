@@ -3,4 +3,4 @@ beautifulsoup4==4.15.0
 curl-cffi==0.17.0
 justapk==0.1.1
 selenium==4.52.0
-gplaydl==4.2.1
+gplaydl==4.3.0
