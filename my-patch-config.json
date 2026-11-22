@@ -759,7 +759,24 @@
     {
       "app_name": "slack",
       "source": "slick",
-      "disable": []
+      "disable": [],
+      "force_enable": [
+        "Cache cleaner",
+        "Fix blank emoji names",
+        "Feature flags",
+        "Custom font",
+        "Appearance",
+        "Show pronouns",
+        "Message logger",
+        "Who reacted",
+        "Anonymize file names",
+        "Last seen",
+        "Silent typing",
+        "Block telemetry"
+      ],
+      "required": [
+        "Slick Android"
+      ]
     },
     {
       "app_name": "smartnews",
@@ -794,7 +811,13 @@
     {
       "app_name": "tasker",
       "source": "heval",
-      "disable": []
+      "disable": [],
+      "force_enable": [
+        "Remove screenshot restriction"
+      ],
+      "required": [
+        "Remove screenshot restriction"
+      ]
     },
     {
       "app_name": "ffmpeg-media-encoder",

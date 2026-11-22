@@ -20,7 +20,8 @@ from collections.abc import Iterable
 from importlib import metadata
 from typing import Any
 
-SUPPORTED_GPLAYDL_VERSION = "4.2.1"
+SUPPORTED_GPLAYDL_VERSION = "4.4.0"
+_SUPPORTED_GPLAYDL_VERSIONS = frozenset({"4.2.1", "4.3.0", "4.4.0"})
 PREFERRED_PROFILE_ENV = "GPLAYDL_PREFERRED_PROFILE"
 DEFAULT_PLAY_LOCALES = ["en-US", "ja"]
 _ACQUIRE_PARAMETERS = (
@@ -149,9 +150,16 @@ def install_cli_patch() -> None:
     except metadata.PackageNotFoundError:
         version = ""
     if version != SUPPORTED_GPLAYDL_VERSION:
-        raise RuntimeError(
-            "gplaydl profile retry supports exactly "
-            f"{SUPPORTED_GPLAYDL_VERSION}, found {version or 'unknown'}"
+        if version not in _SUPPORTED_GPLAYDL_VERSIONS:
+            raise RuntimeError(
+                "gplaydl profile retry supports exactly "
+                f"{SUPPORTED_GPLAYDL_VERSION}, found {version or 'unknown'}"
+            )
+        import logging as _logging
+        _logging.getLogger(__name__).info(
+            "gplaydl %s is a supported version for profile retry (expected %s)",
+            version,
+            SUPPORTED_GPLAYDL_VERSION,
         )
 
     original = cli._acquire

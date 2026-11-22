@@ -6,6 +6,7 @@ import hashlib
 import json
 import os
 import re
+import sys
 import zipfile
 from pathlib import Path
 
@@ -68,7 +69,12 @@ def validate_anddea_output(app: str, source: str) -> list[str]:
                 return [f"Anddea {contract[1]} {kind} source is missing: {path}"]
             expected[kind].add(hashlib.sha256(path.read_bytes()).hexdigest())
 
-    apk_candidates = sorted(Path(".").glob("*.apk"))
+    apk_candidates = sorted(
+        apk
+        for apk in Path(".").glob(f"{app}-*.apk")
+        if not apk.name.startswith(("cached-", ".build-", "base-"))
+        and "-patch-v" not in apk.name
+    )
     if not apk_candidates:
         return [f"Anddea {contract[1]} validation found no output APK"]
 
@@ -226,6 +232,8 @@ def main() -> int:
     contract_errors = validate_anddea_output(app, source) if status == "success" else []
     if contract_errors:
         status = "failure"
+        for error in contract_errors:
+            print(f"::error::{error}", file=sys.stderr)
 
     directory = Path("build-status")
     directory.mkdir(parents=True, exist_ok=True)

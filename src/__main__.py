@@ -1419,6 +1419,8 @@ def run_build(app_name: str, source: str, arch: str = "universal") -> str:
         exit(1)
     preloaded_apk = getenv("PRE_DOWNLOADED_APK")
     if preloaded_apk:
+        for leftover in Path(".").glob("cached-*.apk"):
+            leftover.unlink(missing_ok=True)
         preloaded_source = Path(preloaded_apk)
         version = getenv("PRE_DOWNLOADED_VERSION")
         if not preloaded_source.is_file() or not version:

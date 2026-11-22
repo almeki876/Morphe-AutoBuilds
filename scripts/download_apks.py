@@ -699,6 +699,10 @@ def main() -> None:
     scan_dir.mkdir(parents=True, exist_ok=True)
     scan_target = scan_dir / f"{app_name}-{source}-{arch}{input_apk.suffix.lower()}"
     shutil.copy2(input_apk, scan_target)
+    if input_apk.resolve() not in {target.resolve(), scan_target.resolve()}:
+        input_apk.unlink(missing_ok=True)
+    for leftover in Path(".").glob("cached-*.apk"):
+        leftover.unlink(missing_ok=True)
     metadata_path = Path("build-metadata/apk-sources.json")
     metadata_path.parent.mkdir(parents=True, exist_ok=True)
     metadata = json.loads(metadata_path.read_text(encoding="utf-8")) if metadata_path.exists() else []

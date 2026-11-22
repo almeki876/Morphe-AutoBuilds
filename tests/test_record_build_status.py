@@ -95,6 +95,22 @@ class RecordBuildStatusTests(unittest.TestCase):
             {"name": "Configured exclusion", "reason": "disabled by config"}
         ])
 
+    def test_validate_anddea_output_ignores_cached_and_intermediate_apks(self) -> None:
+        import os
+        orig_cwd = os.getcwd()
+        with tempfile.TemporaryDirectory() as tmp:
+            os.chdir(tmp)
+            try:
+                # Place an unpatched base APK (which lacks Anddea custom icon assets)
+                Path("cached-youtube-v21.13.164.apk").write_bytes(b"dummy")
+                Path("youtube-arm64-v8a-patch-v21.13.164.apk").write_bytes(b"dummy")
+
+                # Because only cached and patch-v APKs exist and no final APK exists:
+                errors = status.validate_anddea_output("youtube", "revanced-anddea")
+                self.assertEqual(errors, ["Anddea YouTube validation found no output APK"])
+            finally:
+                os.chdir(orig_cwd)
+
 
 if __name__ == "__main__":
     unittest.main()

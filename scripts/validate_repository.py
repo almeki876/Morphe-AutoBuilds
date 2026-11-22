@@ -30,8 +30,9 @@ SOURCE_POLICIES = {"provider-chain", "google-play-first", "google-play-only"}
 # These are deliberate exceptions with app-specific patch-selection semantics:
 # YouTube/YouTube Music carry user customizations, Gboard combines overlapping
 # sources, GitHub explicitly requests its supported AMOLED theme because this
-# source does not publish a machine-readable default-patch list, and Yuucho
-# intentionally enables the non-default Hide ADB patch.
+# source does not publish a machine-readable default-patch list, Yuucho
+# intentionally enables the non-default Hide ADB patch, and Tasker enables the
+# non-default Remove screenshot restriction patch from Heval.
 EXPLICIT_PATCH_SELECTION_EXCEPTIONS = {
     ("youtube", "morphe"),
     ("youtube", "revanced-anddea"),
@@ -43,6 +44,8 @@ EXPLICIT_PATCH_SELECTION_EXCEPTIONS = {
     ("gboard", "morning-entree"),
     ("yuucho-tsucho", "rushiranpise-universal"),
     ("yuucho-ninsho", "rushiranpise-universal"),
+    ("tasker", "heval"),
+    ("slack", "slick"),
 }
 PACKAGE_RE = re.compile(r"^[A-Za-z0-9_]+(?:\.[A-Za-z0-9_]+)+$")
 WORKFLOW_SCRIPT_RE = re.compile(
