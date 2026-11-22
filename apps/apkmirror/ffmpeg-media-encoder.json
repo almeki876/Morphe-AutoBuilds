@@ -1,6 +1,6 @@
 {
-  "org": "silentlexx",
-  "name": "ffmpeg-cli-gui",
+  "org": "silentlexx-ua",
+  "name": "ffmpeg-media-encoder",
   "type": "APK",
   "arch": "universal",
   "dpi": "nodpi",
