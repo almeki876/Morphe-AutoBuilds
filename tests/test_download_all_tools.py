@@ -152,6 +152,77 @@ class DownloadAllToolsTests(unittest.TestCase):
             self.assertEqual(result, 0)
             fake_src.utils.detect_github_release.assert_not_called()
 
+    def test_partial_download_failure_continues_and_succeeds(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            sources_dir = root / "sources"
+            sources_dir.mkdir()
+            (sources_dir / "good.json").write_text(
+                json.dumps([
+                    {"name": "good"},
+                    {"user": "MorpheApp", "repo": "morphe-cli", "tag": "latest"},
+                    {"user": "good-user", "repo": "good-patches", "tag": "latest"},
+                ]),
+                encoding="utf-8",
+            )
+            (sources_dir / "bad.json").write_text(
+                json.dumps([
+                    {"name": "bad"},
+                    {"user": "MorpheApp", "repo": "morphe-cli", "tag": "latest"},
+                    {"user": "bad-user", "repo": "bad-patches", "tag": "latest"},
+                ]),
+                encoding="utf-8",
+            )
+            tools_dir = root / "tools"
+            metadata_dir = root / "build-metadata"
+            output_file = root / "github_output.txt"
+
+            fake_src = types.ModuleType("src")
+            fake_src.utils = types.ModuleType("src.utils")
+            fake_src.patch_bundle_cache = types.ModuleType("src.patch_bundle_cache")
+            fake_src.patch_bundle_cache.restore_cached_bundle = mock.Mock(return_value=None)
+
+            def mock_detect(user: str, repo: str, tag: str, **kwargs):
+                if user == "bad-user":
+                    raise RuntimeError("403 Forbidden: Repository access blocked")
+                return {
+                    "tag_name": "v1.0.0",
+                    "assets": [{"name": "cli.jar", "browser_download_url": "https://example.com/cli.jar"}]
+                    if repo == "morphe-cli"
+                    else [{"name": "patches.mpp", "browser_download_url": "https://example.com/patches.mpp"}],
+                }
+
+            fake_src.utils.detect_github_release = mock_detect
+            fake_download = mock.Mock(return_value=True)
+
+            with (
+                mock.patch.dict(
+                    sys.modules,
+                    {"src": fake_src, "src.utils": fake_src.utils},
+                ),
+                mock.patch.dict(
+                    os.environ,
+                    {
+                        "SOURCE_TAGS_JSON": json.dumps({"good": "v1.0.0", "bad": "v1.0.0"}),
+                        "GITHUB_OUTPUT": str(output_file),
+                    },
+                    clear=False,
+                ),
+                mock.patch.object(download_all_tools, "SOURCES_DIR", sources_dir),
+                mock.patch.object(download_all_tools, "TOOLS_DIR", tools_dir),
+                mock.patch.object(download_all_tools, "download_asset", fake_download),
+                mock.patch("pathlib.Path.cwd", return_value=root),
+            ):
+                result = download_all_tools.main()
+
+            self.assertEqual(result, 0)
+            self.assertTrue((tools_dir / "good").is_dir())
+            self.assertFalse((tools_dir / "bad").is_dir())
+            failures_path = Path("build-metadata/tool-download-failures.json")
+            if failures_path.is_file():
+                data = json.loads(failures_path.read_text(encoding="utf-8"))
+                self.assertIn("bad", data)
+
 
 if __name__ == "__main__":
     unittest.main()

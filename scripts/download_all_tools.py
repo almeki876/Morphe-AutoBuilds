@@ -7,6 +7,7 @@ import json
 import logging
 import os
 import pathlib
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -265,7 +266,8 @@ def main() -> int:
     # dependency-free makes authentication/error handling independently testable.
     from src import utils
 
-    failures = []
+    failed_sources: dict[str, dict] = {}
+    succeeded_sources: dict[str, str] = {}
     try:
         source_tags = json.loads(os.environ.get("SOURCE_TAGS_JSON", "{}"))
     except json.JSONDecodeError as error:
@@ -304,6 +306,8 @@ def main() -> int:
             f"{env_tag or '(not set, will use sources json)'}"
         )
 
+        source_failed = False
+        source_failure_reasons = []
         resolved_patch_release: tuple[str, str, str] | None = None
         for repo_idx, repo_info in enumerate(repos_info[1:]):
             user = repo_info["user"]
@@ -343,8 +347,9 @@ def main() -> int:
                         resolved_patch_release = (user, repo, tag)
                     continue
                 logging.error(f"  ❌ Could not fetch release for {user}/{repo}: {e}")
-                failures.append(f"{name}: {user}/{repo}")
-                continue
+                source_failed = True
+                source_failure_reasons.append(f"{user}/{repo}: {e}")
+                break
 
             if not is_cli_repo:
                 resolved_tag = str(release.get("tag_name") or "").strip()
@@ -353,7 +358,9 @@ def main() -> int:
                         f"  ❌ Patch release for {user}/{repo}@{tag} did not "
                         "provide its resolved tag; refusing unpinned metadata"
                     )
-                    failures.append(f"{name}: unresolved patch release tag")
+                    source_failed = True
+                    source_failure_reasons.append(f"{user}/{repo}: unresolved patch release tag")
+                    break
                 else:
                     resolved_patch_release = (user, repo, resolved_tag)
 
@@ -386,7 +393,12 @@ def main() -> int:
 
                 logging.info(f"  ⬇️  {aname}")
                 if not download_asset(asset["browser_download_url"], dest_file):
-                    failures.append(f"{name}: {aname}")
+                    source_failed = True
+                    source_failure_reasons.append(f"failed to download asset {aname}")
+                    break
+
+            if source_failed:
+                break
 
             if not matched_any:
                 role = "CLI" if is_cli_repo else "patches"
@@ -397,44 +409,77 @@ def main() -> int:
                     f"  ❌ No {role} asset matched for {user}/{repo}@{tag}. "
                     f"Available assets: {available}"
                 )
-                failures.append(
-                    f"{name}: no {role} asset found in {user}/{repo}@{tag}"
+                source_failed = True
+                source_failure_reasons.append(
+                    f"no {role} asset found in {user}/{repo}@{tag}"
                 )
+                break
 
-        patches_list_file = PATCHES_LIST_FILES.get(name)
-        if patches_list_file:
-            if resolved_patch_release is None:
-                logging.error(
-                    "  ❌ Cannot download patches-list.json without the resolved "
-                    "patch bundle release tag"
-                )
-                failures.append(f"{name}: patches-list.json release tag")
-                continue
+        if not source_failed:
+            patches_list_file = PATCHES_LIST_FILES.get(name)
+            if patches_list_file:
+                if resolved_patch_release is None:
+                    logging.error(
+                        "  ❌ Cannot download patches-list.json without the resolved "
+                        "patch bundle release tag"
+                    )
+                    source_failed = True
+                    source_failure_reasons.append("patches-list.json release tag")
+                else:
+                    patch_user, patch_repo, patch_tag = resolved_patch_release
+                    patches_list_url = tagged_patches_list_url(
+                        patch_user,
+                        patch_repo,
+                        patch_tag,
+                        patches_list_file,
+                    )
+                    dest_file = dest_dir / "patches-list.json"
+                    if dest_file.exists() and dest_file.stat().st_size > 0:
+                        logging.info("  ⏭️  already exists: patches-list.json")
+                    else:
+                        logging.info(
+                            f"  ⬇️  patches-list.json (from {patch_user}/{patch_repo}@{patch_tag})"
+                        )
+                        if not download_asset(patches_list_url, dest_file):
+                            source_failed = True
+                            source_failure_reasons.append("failed to download patches-list.json")
 
-            patch_user, patch_repo, patch_tag = resolved_patch_release
-            patches_list_url = tagged_patches_list_url(
-                patch_user,
-                patch_repo,
-                patch_tag,
-                patches_list_file,
-            )
-            dest_file = dest_dir / "patches-list.json"
-            if dest_file.exists() and dest_file.stat().st_size > 0:
-                logging.info("  ⏭️  already exists: patches-list.json")
-            else:
-                logging.info(
-                    f"  ⬇️  patches-list.json (from {patch_user}/{patch_repo}@{patch_tag})"
-                )
-                if not download_asset(patches_list_url, dest_file):
-                    failures.append(f"{name}: patches-list.json")
+        if source_failed:
+            logging.warning(f"❌ Source '{name}' tools download failed. Excluding from active build.")
+            failed_sources[name] = {
+                "source": name,
+                "reasons": source_failure_reasons,
+            }
+            # Clean up incomplete directory
+            shutil.rmtree(dest_dir, ignore_errors=True)
+        else:
+            succeeded_sources[name] = env_tag or tag
 
-    if failures:
-        logging.warning(f"\n⚠️  {len(failures)} download(s) failed:")
-        for failure in failures:
-            logging.warning(f"  - {failure}")
+    # Record failure metadata for automatic issue reporting
+    metadata_dir = pathlib.Path("build-metadata")
+    metadata_dir.mkdir(parents=True, exist_ok=True)
+    failures_file = metadata_dir / "tool-download-failures.json"
+    failures_file.write_text(json.dumps(failed_sources, indent=2), encoding="utf-8")
+
+    # Update GITHUB_OUTPUT with succeeded sources so subsequent steps use only working sources
+    output = os.getenv("GITHUB_OUTPUT")
+    if output:
+        with pathlib.Path(output).open("a", encoding="utf-8") as handle:
+            handle.write(f"resolved_tags={json.dumps(succeeded_sources, separators=(',', ':'))}\n")
+
+    if failed_sources:
+        logging.warning(f"\n⚠️  {len(failed_sources)} source(s) failed and were excluded:")
+        for fname, finfo in failed_sources.items():
+            logging.warning(f"  - {fname}: {'; '.join(finfo['reasons'])}")
+
+    if failed_sources and not succeeded_sources:
+        logging.error("\n❌ All attempted sources failed to download build tools.")
         return 1
 
-    logging.info("\n✅ All tools downloaded successfully.")
+    if succeeded_sources:
+        logging.info(f"\n✅ {len(succeeded_sources)} source(s) downloaded successfully.")
+    else:
+        logging.info("\n⏭️  No sources required tool downloads.")
     return 0
 
 

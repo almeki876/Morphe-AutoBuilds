@@ -44,17 +44,17 @@ def resolve_all(environ: dict[str, str]) -> dict[str, str]:
                     cached_bundle_tags = patch_bundle_cache.get_cached_bundle_tags()
                 except Exception:
                     cached_bundle_tags = {}
-            fallback_tag = str(cached_bundle_tags.get(name) or last_tags.get(name) or "").strip()
-            if fallback_tag:
+            cached_tag = str(cached_bundle_tags.get(name) or "").strip()
+            if cached_tag:
                 print(
                     f"INFO: source '{name}' upstream resolution failed ({error}); "
-                    f"using cached tag '{fallback_tag}' from draft release",
+                    f"using cached tag '{cached_tag}' from draft release",
                     file=sys.stderr,
                 )
-                tag = fallback_tag
+                tag = cached_tag
             else:
                 print(
-                    f"WARNING: skipping source '{name}': upstream release could not be resolved ({error})",
+                    f"WARNING: skipping source '{name}': upstream release could not be resolved ({error}) and no cached bundle exists in draft release",
                     file=sys.stderr,
                 )
                 continue
