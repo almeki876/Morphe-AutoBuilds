@@ -1,0 +1,5 @@
+{
+  "package": "jp.co.yahoo.android.apps.transit",
+  "source_policy": "google-play-first",
+  "egress_policy": "japan-first"
+}

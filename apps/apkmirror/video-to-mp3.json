@@ -1,0 +1,9 @@
+{
+  "org": "inshot-inc",
+  "name": "video-to-mp3-converter",
+  "type": "APK",
+  "arch": "universal",
+  "dpi": "nodpi",
+  "package": "mp3videoconverter.videotomp3.videotomp3converter",
+  "version": ""
+}

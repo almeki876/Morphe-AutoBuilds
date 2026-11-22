@@ -1,0 +1,9 @@
+{
+  "org": "yahoo-japan-corp",
+  "name": "yahoo-norikae-annai",
+  "type": "APK",
+  "arch": "universal",
+  "dpi": "nodpi",
+  "package": "jp.co.yahoo.android.apps.transit",
+  "version": ""
+}

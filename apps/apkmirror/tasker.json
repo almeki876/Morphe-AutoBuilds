@@ -1,0 +1,9 @@
+{
+  "org": "joaomgcd",
+  "name": "tasker",
+  "type": "APK",
+  "arch": "universal",
+  "dpi": "nodpi",
+  "package": "net.dinglisch.android.taskerm",
+  "version": ""
+}

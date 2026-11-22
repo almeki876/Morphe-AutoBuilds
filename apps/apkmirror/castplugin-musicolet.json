@@ -1,0 +1,9 @@
+{
+  "org": "krosbits",
+  "name": "cast-plug-in-for-musicolet",
+  "type": "APK",
+  "arch": "universal",
+  "dpi": "nodpi",
+  "package": "in.krosbits.castplugin",
+  "version": ""
+}

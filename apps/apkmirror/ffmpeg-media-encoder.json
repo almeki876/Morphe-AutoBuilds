@@ -1,0 +1,9 @@
+{
+  "org": "silentlexx",
+  "name": "ffmpeg-cli-gui",
+  "type": "APK",
+  "arch": "universal",
+  "dpi": "nodpi",
+  "package": "com.silentlexx.ffmpeggui",
+  "version": ""
+}

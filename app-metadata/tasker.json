@@ -1,0 +1,4 @@
+{
+  "package": "net.dinglisch.android.taskerm",
+  "source_policy": "provider-chain"
+}

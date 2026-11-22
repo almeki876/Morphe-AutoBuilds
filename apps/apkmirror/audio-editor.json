@@ -1,0 +1,9 @@
+{
+  "org": "audio-editor-music-editor",
+  "name": "audio-editor",
+  "type": "APK",
+  "arch": "universal",
+  "dpi": "nodpi",
+  "package": "audioeditor.musiceditor.soundeditor.songeditor",
+  "version": ""
+}
