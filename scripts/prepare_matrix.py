@@ -101,6 +101,45 @@ else:
     matrix = []
 
 matrix = collapse_gboard_multi_source(matrix, all_items)
+
+resolved_env = (
+    os.environ.get("RESOLVED_SOURCES", "").strip()
+    or os.environ.get("SOURCE_TAGS_JSON", "").strip()
+)
+if resolved_env:
+    try:
+        parsed = json.loads(resolved_env)
+        if isinstance(parsed, dict):
+            available_sources = set(parsed.keys())
+        elif isinstance(parsed, list):
+            available_sources = set(parsed)
+        else:
+            available_sources = None
+    except Exception as e:
+        print(f"WARNING: Could not parse resolved sources: {e}", file=sys.stderr)
+        available_sources = None
+else:
+    available_sources = None
+
+if available_sources is not None:
+    filtered = []
+    for item in matrix:
+        patch_sources = item.get("patch_sources")
+        if patch_sources:
+            is_available = all(s in available_sources for s in patch_sources)
+        else:
+            is_available = item.get("source") in available_sources
+
+        if is_available:
+            filtered.append(item)
+        else:
+            print(
+                f"INFO: Excluding {item.get('app_name')} ({item.get('source')}): "
+                f"source not available/unresolved",
+                file=sys.stderr,
+            )
+    matrix = filtered
+
 for item in matrix:
     item.setdefault('source_label', source_labels.get(item['source'], item['source']))
 

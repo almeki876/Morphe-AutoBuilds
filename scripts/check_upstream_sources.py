@@ -47,13 +47,16 @@ def _gitlab_release_has_patch_bundle(release: dict) -> bool:
 
 
 def latest_tag(owner: str, repo: str) -> str:
+    headers = {
+        "Accept": "application/vnd.github+json",
+        "User-Agent": "Morphe-AutoBuilds",
+    }
+    token = os.environ.get("GITHUB_TOKEN", "").strip()
+    if token:
+        headers["Authorization"] = f"Bearer {token}"
     request = Request(
         f"https://api.github.com/repos/{owner}/{repo}/releases?per_page=100",
-        headers={
-            "Accept": "application/vnd.github+json",
-            "Authorization": f"Bearer {os.environ.get('GITHUB_TOKEN', '')}",
-            "User-Agent": "Morphe-AutoBuilds",
-        },
+        headers=headers,
     )
     with urlopen(request, timeout=30) as response:
         releases = json.load(response)
@@ -122,7 +125,7 @@ def main() -> int:
         source = source_spec["name"]
         try:
             current = resolve_source_tag(source_spec)
-        except (HTTPError, URLError, TimeoutError, KeyError, IndexError, RuntimeError) as error:
+        except Exception as error:
             print(f"WARNING: {source}: could not fetch release: {error}")
             continue
 

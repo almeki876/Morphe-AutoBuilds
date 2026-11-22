@@ -138,6 +138,21 @@ class GboardMultiSourceTests(unittest.TestCase):
             )
         )
 
+    def test_unresolved_sources_are_excluded_from_matrix(self):
+        matrix = self._prepare_matrix(
+            BUILD_ALL_SOURCES="true",
+            RESOLVED_SOURCES=json.dumps({"revanced-anddea": "v1.0.0"}),
+        )
+        self.assertTrue(matrix)
+        self.assertTrue(all(item["source"] == "revanced-anddea" for item in matrix))
+
+    def test_gboard_excluded_if_any_sub_source_unresolved(self):
+        matrix = self._prepare_matrix(
+            UPDATED_SOURCES="jason",
+            RESOLVED_SOURCES=json.dumps({"jason": "v1.0", "adobo": "v1.0"}),
+        )
+        self.assertFalse(any(item["app_name"] == "gboard" for item in matrix))
+
 
 if __name__ == "__main__":
     unittest.main()

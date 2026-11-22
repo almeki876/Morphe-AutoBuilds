@@ -17,6 +17,27 @@ class ResolveBuildToolsTests(unittest.TestCase):
         self.assertEqual(result, {"new": "v1.2.3"})
         resolve.assert_not_called()
 
+    def test_unreachable_source_is_skipped(self) -> None:
+        sources = [{"name": "broken"}, {"name": "healthy"}]
+        def fake_resolve(source: dict) -> str:
+            if source["name"] == "broken":
+                raise RuntimeError("HTTP 403: Forbidden")
+            return "v1.0.0"
+
+        with mock.patch.object(resolve_build_tools, "iter_sources", return_value=sources), mock.patch.object(
+            resolve_build_tools, "resolve_source_tag", side_effect=fake_resolve
+        ):
+            result = resolve_build_tools.resolve_all({})
+        self.assertEqual(result, {"healthy": "v1.0.0"})
+
+    def test_all_sources_unreachable_raises_runtime_error(self) -> None:
+        sources = [{"name": "broken"}]
+        with mock.patch.object(resolve_build_tools, "iter_sources", return_value=sources), mock.patch.object(
+            resolve_build_tools, "resolve_source_tag", side_effect=RuntimeError("blocked")
+        ):
+            with self.assertRaisesRegex(RuntimeError, "could not resolve patch tag for any source"):
+                resolve_build_tools.resolve_all({})
+
     def test_cache_key_is_independent_of_source_order(self) -> None:
         resolved = {
             "morphe": "m",

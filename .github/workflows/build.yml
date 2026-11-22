@@ -36,7 +36,7 @@ jobs:
     name: Download Build Tools
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: write
     outputs:
       cache-key: ${{ steps.resolve-tags.outputs.cache-key }}
       resolved-tags: ${{ steps.resolve-tags.outputs.resolved_tags }}
@@ -79,6 +79,13 @@ jobs:
           SOURCE_TAGS_JSON:           ${{ steps.resolve-tags.outputs.resolved_tags }}
         run: python3 scripts/download_all_tools.py
 
+      - name: Update Hidden Patch Bundle Cache
+        if: steps.cache-restore.outputs.cache-hit != 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SOURCE_TAGS_JSON: ${{ steps.resolve-tags.outputs.resolved_tags }}
+        run: python3 -m scripts.update_patch_bundle_cache
+
       - name: Save Cached Tools
         if: steps.cache-restore.outputs.cache-hit != 'true'
         uses: actions/cache/save@v6
@@ -109,6 +116,7 @@ jobs:
           UPDATED_SOURCES: ${{ github.event.inputs.updated_sources }}
           UPDATED_APPS: ${{ github.event.inputs.updated_apps }}
           APK_UPDATED_APPS: ${{ github.event.inputs.apk_updated_apps }}
+          RESOLVED_SOURCES: ${{ needs.download-tools.outputs.resolved-tags }}
         run: |
           python3 scripts/prepare_matrix.py
 

@@ -122,6 +122,36 @@ class DownloadAllToolsTests(unittest.TestCase):
                 "patches-list.json",
             )
 
+    def test_excluded_sources_are_skipped_without_download(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            sources_dir = root / "sources"
+            sources_dir.mkdir()
+            (sources_dir / "excluded.json").write_text(
+                json.dumps([{"name": "excluded"}]), encoding="utf-8"
+            )
+            fake_src = types.ModuleType("src")
+            fake_src.utils = types.ModuleType("src.utils")
+            fake_src.utils.detect_github_release = mock.Mock()
+
+            with (
+                mock.patch.dict(
+                    sys.modules,
+                    {"src": fake_src, "src.utils": fake_src.utils},
+                ),
+                mock.patch.dict(
+                    os.environ,
+                    {"SOURCE_TAGS_JSON": json.dumps({"other": "v1.0.0"})},
+                    clear=False,
+                ),
+                mock.patch.object(download_all_tools, "SOURCES_DIR", sources_dir),
+                mock.patch.object(download_all_tools, "TOOLS_DIR", root / "tools"),
+            ):
+                result = download_all_tools.main()
+
+            self.assertEqual(result, 0)
+            fake_src.utils.detect_github_release.assert_not_called()
+
 
 if __name__ == "__main__":
     unittest.main()

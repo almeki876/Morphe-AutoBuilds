@@ -285,6 +285,12 @@ def main() -> int:
             continue  # bundle形式はスキップ
 
         name = repos_info[0]["name"]
+        if source_tags and name not in source_tags:
+            logging.warning(
+                f"⏭️  Skipping source '{name}': excluded from resolved source tags"
+            )
+            continue
+
         dest_dir = TOOLS_DIR / name
         dest_dir.mkdir(parents=True, exist_ok=True)
 
@@ -324,6 +330,18 @@ def main() -> int:
                         include_prereleases=not is_cli_repo,
                     )
             except Exception as e:
+                logging.warning(
+                    f"  ⚠️  Could not fetch release for {user}/{repo}: {e}; "
+                    "checking draft release cache"
+                )
+                from src import patch_bundle_cache
+                restored = patch_bundle_cache.restore_cached_bundle(name, dest_dir)
+                if restored:
+                    logging.info(f"  ✅ Restored from draft release cache for {name}: {restored}")
+                    matched_any = True
+                    if not is_cli_repo:
+                        resolved_patch_release = (user, repo, tag)
+                    continue
                 logging.error(f"  ❌ Could not fetch release for {user}/{repo}: {e}")
                 failures.append(f"{name}: {user}/{repo}")
                 continue

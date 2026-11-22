@@ -12,18 +12,61 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from scripts.check_upstream_sources import iter_sources, resolve_source_tag
 
+STATE_FILE = Path("last-tags.json")
+
+
+def _read_last_tags() -> dict[str, str]:
+    if not STATE_FILE.is_file():
+        return {}
+    try:
+        data = json.loads(STATE_FILE.read_text(encoding="utf-8"))
+        return {k: str(v) for k, v in data.items() if isinstance(v, str)}
+    except Exception:
+        return {}
+
 
 def resolve_all(environ: dict[str, str]) -> dict[str, str]:
     raw = environ.get("SOURCE_TAGS_JSON", "").strip()
     supplied = json.loads(raw) if raw else {}
     if not isinstance(supplied, dict):
         raise ValueError("SOURCE_TAGS_JSON must be a JSON object")
+    last_tags = _read_last_tags()
+    cached_bundle_tags: dict[str, str] | None = None
     resolved = {}
     for source in iter_sources():
         name = str(source["name"])
-        resolved[name] = str(supplied.get(name) or resolve_source_tag(source))
-        if not resolved[name]:
-            raise RuntimeError(f"could not resolve patch tag for {name}")
+        try:
+            tag = str(supplied.get(name) or resolve_source_tag(source)).strip()
+        except Exception as error:
+            if cached_bundle_tags is None:
+                try:
+                    from src import patch_bundle_cache
+                    cached_bundle_tags = patch_bundle_cache.get_cached_bundle_tags()
+                except Exception:
+                    cached_bundle_tags = {}
+            fallback_tag = str(cached_bundle_tags.get(name) or last_tags.get(name) or "").strip()
+            if fallback_tag:
+                print(
+                    f"INFO: source '{name}' upstream resolution failed ({error}); "
+                    f"using cached tag '{fallback_tag}' from draft release",
+                    file=sys.stderr,
+                )
+                tag = fallback_tag
+            else:
+                print(
+                    f"WARNING: skipping source '{name}': upstream release could not be resolved ({error})",
+                    file=sys.stderr,
+                )
+                continue
+        if not tag:
+            print(
+                f"WARNING: skipping source '{name}': no release tag found",
+                file=sys.stderr,
+            )
+            continue
+        resolved[name] = tag
+    if not resolved:
+        raise RuntimeError("could not resolve patch tag for any source")
     return resolved
 
 
