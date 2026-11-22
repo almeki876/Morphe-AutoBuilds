@@ -1,0 +1,15 @@
+[
+  {
+    "name": "haukist"
+  },
+  {
+    "user": "MorpheApp",
+    "repo": "morphe-cli",
+    "tag": "latest"
+  },
+  {
+    "user": "haukist",
+    "repo": "morphe-patches-smartnews",
+    "tag": "latest"
+  }
+]

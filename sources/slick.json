@@ -1,0 +1,15 @@
+[
+  {
+    "name": "slick"
+  },
+  {
+    "user": "MorpheApp",
+    "repo": "morphe-cli",
+    "tag": "latest"
+  },
+  {
+    "user": "3kh0",
+    "repo": "slick-morphe",
+    "tag": "latest"
+  }
+]
