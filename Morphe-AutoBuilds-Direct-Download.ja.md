@@ -257,6 +257,10 @@
 
 [arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.18.2134/inshot-arm64-v8a-hoomans-v2.214.1539.apk)
 
+### Poweramp
+
+[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.15.1004/poweramp-arm64-v8a-hoomans-vbuild-1025-bundle-play.apk)
+
 ## [ajstrick81](https://github.com/ajstrick81/morphe-androidtv-patches)
 
 ### Twitch Android TV
