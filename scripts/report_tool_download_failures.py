@@ -58,21 +58,34 @@ def _get_source_repos(source_name: str) -> list[str]:
         return []
 
 
-def _open_source_issues() -> list[dict]:
+STATUS_FILE = Path("build-metadata/tool-download-status.json")
+
+
+def _load_status() -> dict:
+    if not STATUS_FILE.is_file():
+        return {}
+    try:
+        data = json.loads(STATUS_FILE.read_text(encoding="utf-8"))
+        return data if isinstance(data, dict) else {}
+    except Exception:
+        return {}
+
+
+def _get_issues(state: str = "open") -> list[dict]:
     token = os.environ.get("GH_TOKEN") or os.environ.get("GITHUB_TOKEN")
     if not token:
         logging.info("GITHUB_TOKEN not set; skipping issue listing")
         return []
     try:
         result = subprocess.run(
-            ["gh", "issue", "list", "--state", "open", "--json", "number,title"],
+            ["gh", "issue", "list", "--state", state, "--json", "number,title,state"],
             capture_output=True,
             text=True,
             check=True,
         )
         return json.loads(result.stdout)
     except Exception as e:
-        logging.warning("Could not list open issues: %s", e)
+        logging.warning("Could not list %s issues: %s", state, e)
         return []
 
 
@@ -83,7 +96,9 @@ def main() -> int:
         return 0
 
     failures = _load_failures()
-    open_issues = _open_source_issues()
+    status = _load_status()
+    succeeded_sources = status.get("succeeded", {})
+    all_issues = _get_issues(state="all")
 
     # 1. Report open issues for failed sources
     for source_name, info in failures.items():
@@ -118,19 +133,27 @@ def main() -> int:
         body_path = Path(f"issue-source-{source_name}.md")
         body_path.write_text("\n".join(body_lines), encoding="utf-8")
 
-        existing_number = None
-        for issue in open_issues:
+        existing_issue = None
+        for issue in all_issues:
             if issue.get("title") == title:
-                existing_number = issue.get("number")
+                existing_issue = issue
                 break
 
         try:
-            if existing_number:
+            if existing_issue:
+                num = str(existing_issue.get("number"))
+                is_closed = str(existing_issue.get("state") or "").upper() == "CLOSED"
+                if is_closed:
+                    subprocess.run(
+                        ["gh", "issue", "reopen", num, "--comment", "Reopening: source remains unavailable during workflow execution."],
+                        check=True,
+                    )
+                    logging.info("Reopened issue #%s: %s", num, title)
                 subprocess.run(
-                    ["gh", "issue", "comment", str(existing_number), "--body-file", str(body_path)],
+                    ["gh", "issue", "comment", num, "--body-file", str(body_path)],
                     check=True,
                 )
-                logging.info("Updated existing issue #%s: %s", existing_number, title)
+                logging.info("Updated existing issue #%s: %s", num, title)
             else:
                 subprocess.run(
                     ["gh", "issue", "create", "--title", title, "--body-file", str(body_path), "--label", "bug"],
@@ -142,25 +165,42 @@ def main() -> int:
         finally:
             body_path.unlink(missing_ok=True)
 
-    # 2. Close issues for sources that succeeded in this run
+    # 2. Close issues ONLY for sources that genuinely succeeded or were deleted from sources/
+    open_issues = [i for i in all_issues if str(i.get("state") or "").upper() == "OPEN"]
     for issue in open_issues:
         issue_title = str(issue.get("title") or "")
         if issue_title.startswith(ISSUE_PREFIX):
             match = re.search(r"for\s+([A-Za-z0-9_-]+)\s*$", issue_title)
             if match:
                 sname = match.group(1)
-                # If this source didn't fail this run, close it
-                if sname not in failures:
-                    num = str(issue.get("number"))
+                num = str(issue.get("number"))
+                source_file_exists = (SOURCES_DIR / f"{sname}.json").is_file()
+
+                # Close if:
+                # 1) The source succeeded in downloading this run (recovered!)
+                # 2) OR the source definition was deleted from the repository
+                if sname in succeeded_sources:
                     try:
                         subprocess.run(
                             [
                                 "gh", "issue", "close", num,
-                                "--comment", f"Recovered automatically: build tools for `{sname}` downloaded successfully or were removed.",
+                                "--comment", f"Recovered automatically: build tools for `{sname}` downloaded successfully.",
                             ],
                             check=True,
                         )
                         logging.info("Closed recovered issue #%s: %s", num, issue_title)
+                    except Exception as e:
+                        logging.warning("Failed to close issue #%s: %s", num, e)
+                elif not source_file_exists:
+                    try:
+                        subprocess.run(
+                            [
+                                "gh", "issue", "close", num,
+                                "--comment", f"Closed: source `{sname}` was removed from repository configuration.",
+                            ],
+                            check=True,
+                        )
+                        logging.info("Closed removed-source issue #%s: %s", num, issue_title)
                     except Exception as e:
                         logging.warning("Failed to close issue #%s: %s", num, e)
 

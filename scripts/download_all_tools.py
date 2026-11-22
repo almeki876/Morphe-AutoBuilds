@@ -455,11 +455,27 @@ def main() -> int:
         else:
             succeeded_sources[name] = env_tag or tag
 
-    # Record failure metadata for automatic issue reporting
+    # Record failure and status metadata for automatic issue reporting
     metadata_dir = pathlib.Path("build-metadata")
     metadata_dir.mkdir(parents=True, exist_ok=True)
     failures_file = metadata_dir / "tool-download-failures.json"
-    failures_file.write_text(json.dumps(failed_sources, indent=2), encoding="utf-8")
+    all_failed_sources = {}
+    if failures_file.is_file():
+        try:
+            all_failed_sources = json.loads(failures_file.read_text(encoding="utf-8"))
+        except Exception:
+            all_failed_sources = {}
+    all_failed_sources.update(failed_sources)
+    failures_file.write_text(json.dumps(all_failed_sources, indent=2), encoding="utf-8")
+
+    status_file = metadata_dir / "tool-download-status.json"
+    status_file.write_text(
+        json.dumps({
+            "succeeded": succeeded_sources,
+            "failed": all_failed_sources,
+        }, indent=2),
+        encoding="utf-8",
+    )
 
     # Update GITHUB_OUTPUT with succeeded sources so subsequent steps use only working sources
     output = os.getenv("GITHUB_OUTPUT")

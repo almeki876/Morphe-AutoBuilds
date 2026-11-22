@@ -33,6 +33,7 @@ def resolve_all(environ: dict[str, str]) -> dict[str, str]:
     last_tags = _read_last_tags()
     cached_bundle_tags: dict[str, str] | None = None
     resolved = {}
+    unresolved_sources = {}
     for source in iter_sources():
         name = str(source["name"])
         try:
@@ -57,14 +58,36 @@ def resolve_all(environ: dict[str, str]) -> dict[str, str]:
                     f"WARNING: skipping source '{name}': upstream release could not be resolved ({error}) and no cached bundle exists in draft release",
                     file=sys.stderr,
                 )
+                unresolved_sources[name] = {
+                    "source": name,
+                    "reasons": [f"Upstream release could not be resolved: {error}"],
+                }
                 continue
         if not tag:
             print(
                 f"WARNING: skipping source '{name}': no release tag found",
                 file=sys.stderr,
             )
+            unresolved_sources[name] = {
+                "source": name,
+                "reasons": ["No release tag found"],
+            }
             continue
         resolved[name] = tag
+
+    if unresolved_sources:
+        metadata_dir = Path("build-metadata")
+        metadata_dir.mkdir(parents=True, exist_ok=True)
+        failures_file = metadata_dir / "tool-download-failures.json"
+        existing = {}
+        if failures_file.is_file():
+            try:
+                existing = json.loads(failures_file.read_text(encoding="utf-8"))
+            except Exception:
+                existing = {}
+        existing.update(unresolved_sources)
+        failures_file.write_text(json.dumps(existing, indent=2), encoding="utf-8")
+
     if not resolved:
         raise RuntimeError("could not resolve patch tag for any source")
     return resolved
