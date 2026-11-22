@@ -37,6 +37,13 @@ class RepositoryOrganizationTests(unittest.TestCase):
         self.assertIn("gh workflow run build.yml", text)
         self.assertIn("build_all_sources=true", text)
 
+    def test_push_with_buildall_keyword_dispatches_full_build(self):
+        text = (WORKFLOWS / "build-all-apps.yml").read_text(encoding="utf-8")
+        self.assertIn("push:", text)
+        self.assertIn(
+            "contains(github.event.head_commit.message, 'BuildAllApps')", text
+        )
+
     def test_maintenance_tasks_share_one_workflow_entry(self):
         text = (WORKFLOWS / "operations.yml").read_text(encoding="utf-8")
         for task in (
