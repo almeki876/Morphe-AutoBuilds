@@ -14,15 +14,18 @@ class VirusTotalPipelineWorkflowTests(unittest.TestCase):
         release_section = workflow.split(release_marker, 1)[1]
 
         self.assertIn(
-            "needs: [download-tools, prepare-matrix, prepare-release-tag, download-apks]",
+            "needs: [download-tools, prepare-matrix, prepare-release-tag]",
             build_section,
         )
         self.assertNotIn("scan-base-apks", build_section.split("steps:", 1)[0])
+        self.assertIn("Start Concurrent VirusTotal Base APK Scan", build_section)
+        self.assertIn("Wait for Concurrent VirusTotal Scan", build_section)
         self.assertIn(
-            "needs: [download-tools, prepare-matrix, prepare-release-tag, build-apps, scan-base-apks]",
+            "needs: [download-tools, prepare-matrix, prepare-release-tag, build-apps]",
             release_section,
         )
-        self.assertIn("needs.scan-base-apks.result == 'success'", release_section)
+        self.assertIn("needs.build-apps.result != 'skipped'", release_section)
+        self.assertIn("Consolidate VirusTotal Reports", release_section)
 
     def test_create_release_attaches_portable_vt_cache(self) -> None:
         workflow = Path(".github/workflows/build.yml").read_text(encoding="utf-8")

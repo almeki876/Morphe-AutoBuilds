@@ -148,17 +148,17 @@ jobs:
         id: tag
         run: python3 scripts/generate_release_tag.py
 
-  download-apks:
-    name: Download ${{ matrix.app_name }} base APK
-    needs: [download-tools, prepare-matrix]
+  build-apps:
+    name: Build ${{ matrix.app_name }} with ${{ matrix.source_label }}
+    needs: [download-tools, prepare-matrix, prepare-release-tag]
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 60
     permissions:
       contents: write
     continue-on-error: true
     strategy:
       fail-fast: false
-      max-parallel: 8
+      max-parallel: 12
       matrix:
         include: ${{ fromJson(needs.prepare-matrix.outputs.matrix) }}
 
@@ -187,7 +187,7 @@ jobs:
       - name: Install pinned Google Play clients
         run: python3 scripts/install_google_play_clients.py
 
-      - name: Download Base APK
+      - name: Download Base APK (Primary)
         id: download-apk-primary
         continue-on-error: true
         env:
@@ -329,124 +329,51 @@ jobs:
             build-metadata/apk-sources.json
           retention-days: 1
 
-  scan-base-apks:
-    name: Scan Base APKs with VirusTotal
-    needs: [download-apks]
-    if: ${{ !cancelled() && needs.download-apks.result != 'skipped' }}
-    runs-on: ubuntu-latest
-    timeout-minutes: 300
-    permissions:
-      contents: read
-
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v7
-
-      - name: Setup Python
-        uses: ./.github/actions/setup-python-project
-        with:
-          install-dependencies: 'true'
-
       - name: Restore VirusTotal Hash Cache
+        if: success()
         id: vt-cache-restore
         uses: actions/cache/restore@v6
         with:
           path: .cache/virustotal
-          key: virustotal-hash-v1-${{ runner.os }}-${{ github.run_id }}-${{ github.run_attempt }}
+          key: virustotal-hash-v1-${{ runner.os }}-${{ github.run_id }}-${{ github.run_attempt }}-${{ matrix.app_name }}
           restore-keys: |
             virustotal-hash-v1-${{ runner.os }}-
 
-      - name: Download Shared Base APK Inputs
-        uses: actions/download-artifact@v8
-        with:
-          path: ./base-apks
-          pattern: base-input-*
-          merge-multiple: true
-
-      - name: Scan Unmodified Base APKs with VirusTotal
+      - name: Start Concurrent VirusTotal Base APK Scan
+        if: success()
         env:
           VIRUSTOTAL_API_KEY: ${{ secrets.VIRUSTOTAL_API_KEY }}
-          VT_WORKERS: '32'
+          VT_WORKERS: '4'
           VT_REQUEST_INTERVAL_SECONDS: '8'
           VT_POLL_INTERVAL_SECONDS: '30'
           VT_ANALYSIS_TIMEOUT_SECONDS: '2700'
           VT_MAX_RETRIES: '6'
           VT_MAX_ANALYSIS_AGE_DAYS: '90'
         run: |
-          python3 -m scripts.scan_virustotal \
-            --directory ./base-apks \
-            --cache ./.cache/virustotal/hash-results.json \
-            --title "VirusTotal base APK scan results (before patching)" \
-            --markdown ./virustotal_base_results.md \
-            --json ./virustotal_base_results.json
-
-      - name: Save VirusTotal Hash Cache
-        if: always() && hashFiles('.cache/virustotal/hash-results.json') != ''
-        uses: actions/cache/save@v6
-        with:
-          path: .cache/virustotal
-          key: virustotal-hash-v1-${{ runner.os }}-${{ github.run_id }}-${{ github.run_attempt }}
-
-      - name: Upload VirusTotal Report
-        if: always() && hashFiles('virustotal_base_results.*') != ''
-        uses: actions/upload-artifact@v7
-        with:
-          name: virustotal-report
-          path: |
-            virustotal_base_results.md
-            virustotal_base_results.json
-          retention-days: 30
-
-  build-apps:
-    name: Build ${{ matrix.app_name }} with ${{ matrix.source_label }}
-    needs: [download-tools, prepare-matrix, prepare-release-tag, download-apks]
-    runs-on: ubuntu-latest
-    timeout-minutes: 45
-    permissions:
-      contents: write
-    strategy:
-      fail-fast: false
-      max-parallel: 12
-      matrix:
-        include: ${{ fromJson(needs.prepare-matrix.outputs.matrix) }}
-    continue-on-error: true
-
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v7
-
-      - name: Restore Cached Tools
-        uses: actions/cache/restore@v6
-        with:
-          path: tools/
-          key: ${{ needs.download-tools.outputs.cache-key }}
-          fail-on-cache-miss: true
-
-      - name: Install Python
-        uses: ./.github/actions/setup-python-project
-        with:
-          install-dependencies: 'true'
-
-      - name: Setup Java
-        uses: actions/setup-java@v6
-        with:
-          distribution: 'temurin'
-          java-version: '21'
-
-      - name: Install pinned Google Play clients
-        run: python3 scripts/install_google_play_clients.py
-
-      - name: Download Shared Base APK Input
-        uses: actions/download-artifact@v8
-        with:
-          name: base-input-${{ matrix.app_name }}-${{ matrix.source }}
-          path: .
+          mkdir -p vt-results
+          if [ -n "$VIRUSTOTAL_API_KEY" ]; then
+            echo "Starting concurrent VirusTotal base APK scan..."
+            (
+              python3 -m scripts.scan_virustotal \
+                --directory base-apk-input \
+                --cache ./.cache/virustotal/hash-results.json \
+                --title "VirusTotal base APK scan results (before patching)" \
+                --markdown vt-results/virustotal_base_results.md \
+                --json vt-results/virustotal_base_results.json > vt-scan.log 2>&1
+              echo $? > vt-scan.exitcode
+            ) &
+            echo "VT_PID=$!" >> "$GITHUB_ENV"
+          else
+            echo "VIRUSTOTAL_API_KEY is not configured; skipping concurrent scan."
+          fi
 
       - name: Resolve Pre-downloaded APK
+        if: success()
         run: python3 scripts/resolve_pre_downloaded_apk.py
 
       - name: Build APK
         id: build-apk
+        if: success()
         env:
           APP_NAME: ${{ matrix.app_name }}
           SOURCE: ${{ matrix.source }}
@@ -462,8 +389,42 @@ jobs:
           BASE_APK_CACHE_REPOSITORY: ${{ github.repository }}
         run: python3 scripts/run_logged.py --output build.log -- python3 -m src
 
+      - name: Wait for Concurrent VirusTotal Scan
+        if: always() && steps.download-apk.outcome == 'success'
+        run: |
+          if [ -n "$VT_PID" ]; then
+            echo "Waiting for VirusTotal scan (PID $VT_PID) to finish..."
+            while kill -0 "$VT_PID" 2>/dev/null; do
+              sleep 2
+            done
+            if [ -f vt-scan.log ]; then
+              cat vt-scan.log
+            fi
+            if [ -f vt-scan.exitcode ]; then
+              vt_exit=$(cat vt-scan.exitcode)
+              if [ "$vt_exit" -ne 0 ]; then
+                echo "::warning::VirusTotal scan finished with exit code $vt_exit"
+              fi
+            fi
+          fi
+
+      - name: Save VirusTotal Hash Cache
+        if: always() && hashFiles('.cache/virustotal/hash-results.json') != ''
+        uses: actions/cache/save@v6
+        with:
+          path: .cache/virustotal
+          key: virustotal-hash-v1-${{ runner.os }}-${{ github.run_id }}-${{ github.run_attempt }}-${{ matrix.app_name }}
+
+      - name: Upload VirusTotal Report Chunk
+        if: always() && hashFiles('vt-results/virustotal_base_results.json') != ''
+        uses: actions/upload-artifact@v7
+        with:
+          name: vt-report-${{ matrix.app_name }}-${{ matrix.source }}
+          path: vt-results/*
+          retention-days: 7
+
       - name: Record Build Result
-        if: always()
+        if: always() && steps.download-apk.outcome == 'success'
         env:
           APP_NAME: ${{ matrix.app_name }}
           SOURCE: ${{ matrix.source }}
@@ -473,7 +434,7 @@ jobs:
         run: python3 scripts/record_build_status.py
 
       - name: Upload Build Result
-        if: always()
+        if: always() && steps.download-apk.outcome == 'success'
         uses: actions/upload-artifact@v7
         with:
           name: build-status-${{ matrix.app_name }}-${{ matrix.source }}
@@ -481,7 +442,7 @@ jobs:
           retention-days: 7
 
       - name: Upload APK Artifact
-        if: success()
+        if: steps.build-apk.outcome == 'success'
         uses: actions/upload-artifact@v7
         with:
           name: apk-${{ matrix.app_name }}-${{ matrix.source }}
@@ -491,7 +452,7 @@ jobs:
 
   report-build-failures:
     name: Report Per-App Build Failures
-    needs: [prepare-matrix, download-apks, build-apps]
+    needs: [prepare-matrix, build-apps]
     if: ${{ always() && needs.prepare-matrix.result == 'success' }}
     runs-on: ubuntu-latest
     permissions:
@@ -554,7 +515,7 @@ jobs:
 
   update-base-apk-cache:
     name: Update Base APK Cache
-    needs: [download-apks, build-apps]
+    needs: [build-apps]
     if: ${{ !cancelled() && needs.build-apps.result != 'skipped' }}
     runs-on: ubuntu-latest
     permissions:
@@ -602,7 +563,7 @@ jobs:
 
   create-release:
     name: Create Integrated Release
-    needs: [download-tools, prepare-matrix, prepare-release-tag, build-apps, scan-base-apks]
+    needs: [download-tools, prepare-matrix, prepare-release-tag, build-apps]
     runs-on: ubuntu-latest
     timeout-minutes: 300
     if: >-
@@ -610,8 +571,7 @@ jobs:
         !cancelled() &&
         needs.download-tools.result == 'success' &&
         needs.prepare-matrix.result == 'success' &&
-        needs.build-apps.result != 'skipped' &&
-        needs.scan-base-apks.result == 'success'
+        needs.build-apps.result != 'skipped'
       }}
     permissions:
       contents: write
@@ -643,11 +603,19 @@ jobs:
       - name: Collect All APKs
         run: python3 scripts/prepare_release_assets.py
 
-      - name: Download VirusTotal Report
+      - name: Download VirusTotal Report Chunks
+        continue-on-error: true
         uses: actions/download-artifact@v8
         with:
-          path: .
-          name: virustotal-report
+          path: ./vt-chunks
+          pattern: 'vt-report-*'
+
+      - name: Consolidate VirusTotal Reports
+        run: |
+          python3 scripts/merge_virustotal_reports.py \
+            --directory ./vt-chunks \
+            --output-json virustotal_base_results.json \
+            --output-markdown virustotal_base_results.md
 
       - name: Check if Any APKs Were Built
         id: check-apks
@@ -764,14 +732,13 @@ jobs:
 
   handle-build-failure:
     name: Open or Update Build Failure Issue
-    needs: [download-tools, prepare-matrix, download-apks, build-apps, create-release, report-build-failures]
+    needs: [download-tools, prepare-matrix, build-apps, create-release, report-build-failures]
     if: >-
       ${{
         always() &&
         needs.report-build-failures.result != 'success' &&
         (needs.download-tools.result == 'failure' ||
          needs.prepare-matrix.result == 'failure' ||
-         needs.download-apks.result == 'failure' ||
          needs.build-apps.result == 'failure' ||
          needs.create-release.result == 'failure')
       }}
@@ -788,7 +755,6 @@ jobs:
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           TOOLS_RESULT: ${{ needs.download-tools.result }}
           MATRIX_RESULT: ${{ needs.prepare-matrix.result }}
-          DOWNLOAD_RESULT: ${{ needs.download-apks.result }}
           BUILD_RESULT: ${{ needs.build-apps.result }}
           RELEASE_RESULT: ${{ needs.create-release.result }}
           REPORT_RESULT: ${{ needs.report-build-failures.result }}
@@ -802,7 +768,6 @@ jobs:
           ## Job Status Summary
           - **Download Tools**: ${TOOLS_RESULT}
           - **Prepare Matrix**: ${MATRIX_RESULT}
-          - **Download APKs**: ${DOWNLOAD_RESULT}
           - **Build Apps**: ${BUILD_RESULT}
           - **Create Release**: ${RELEASE_RESULT}
           - **Detailed Reporter**: ${REPORT_RESULT}

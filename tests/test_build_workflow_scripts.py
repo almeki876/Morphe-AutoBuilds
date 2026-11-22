@@ -118,7 +118,7 @@ class WorkflowDelegationTests(unittest.TestCase):
     def test_build_workflow_delegates_large_shell_blocks_to_scripts(self) -> None:
         workflow = Path(".github/workflows/build.yml").read_text(encoding="utf-8")
         self.assertIn("python3 scripts/resolve_build_tools.py", workflow)
-        self.assertEqual(workflow.count("python3 scripts/install_google_play_clients.py"), 2)
+        self.assertEqual(workflow.count("python3 scripts/install_google_play_clients.py"), 1)
         self.assertIn("python3 scripts/resolve_download_result.py", workflow)
         self.assertIn("python3 -m scripts.create_release", workflow)
         self.assertIn("pattern: base-input-*", workflow)
