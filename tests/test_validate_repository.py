@@ -1,3 +1,4 @@
+import json
 import tempfile
 import unittest
 from pathlib import Path
@@ -51,6 +52,48 @@ class WorkflowReferenceValidationTests(unittest.TestCase):
             with mock.patch.object(validate_repository, "ROOT", root):
                 validate_repository._validate_workflows(result)
             self.assertEqual(result.errors, [])
+
+
+class PatchConfigValidationTests(unittest.TestCase):
+    def _validate(self, entry: dict) -> validate_repository.Validation:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            sources = root / "sources"
+            sources.mkdir()
+            (sources / "slick.json").write_text("{}", encoding="utf-8")
+            (root / "my-patch-config.json").write_text(
+                json.dumps({"patch_list": [entry]}), encoding="utf-8"
+            )
+            result = validate_repository.Validation()
+            with mock.patch.object(validate_repository, "ROOT", root):
+                validate_repository._validate_patch_config(
+                    {"slack": {"com.Slack"}}, result
+                )
+            return result
+
+    def test_required_outside_force_enable_is_rejected(self) -> None:
+        result = self._validate(
+            {
+                "app_name": "slack",
+                "source": "slick",
+                "force_enable": ["Cache cleaner"],
+                "required": ["Slick Android"],
+            }
+        )
+        self.assertEqual(len(result.errors), 1)
+        self.assertIn("required patches are not in force_enable", result.errors[0])
+        self.assertIn("Slick Android", result.errors[0])
+
+    def test_required_inside_force_enable_is_accepted(self) -> None:
+        result = self._validate(
+            {
+                "app_name": "slack",
+                "source": "slick",
+                "force_enable": ["Cache cleaner", "Slick Android"],
+                "required": ["Slick Android"],
+            }
+        )
+        self.assertEqual(result.errors, [])
 
 
 if __name__ == "__main__":

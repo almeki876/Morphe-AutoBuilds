@@ -772,7 +772,8 @@
         "Anonymize file names",
         "Last seen",
         "Silent typing",
-        "Block telemetry"
+        "Block telemetry",
+        "Slick Android"
       ],
       "required": [
         "Slick Android"

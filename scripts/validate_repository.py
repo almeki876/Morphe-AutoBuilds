@@ -234,12 +234,27 @@ def _validate_patch_config(
         force_enable = _string_list(
             entry.get("force_enable"), "force_enable", context, validation
         )
-        _string_list(entry.get("required"), "required", context, validation)
+        required = _string_list(
+            entry.get("required"), "required", context, validation
+        )
         if force_enable and pair not in EXPLICIT_PATCH_SELECTION_EXCEPTIONS:
             validation.error(
                 f"{context}.force_enable is not allowed for normal apps; "
                 "follow the upstream bundle defaults instead"
             )
+        if force_enable:
+            # A force_enable list activates the CLI's exclusive mode, so a
+            # required patch that is not listed can never be applied and the
+            # build fails after patching. Catch that mismatch here instead.
+            unapplied_required = [
+                name for name in required if name not in force_enable
+            ]
+            if unapplied_required:
+                validation.error(
+                    f"{context}.required patches are not in force_enable "
+                    "and would never be applied (exclusive mode): "
+                    + ", ".join(unapplied_required)
+                )
     return pairs
 
 
