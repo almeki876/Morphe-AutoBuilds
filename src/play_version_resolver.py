@@ -9,8 +9,9 @@ the repository.
 from __future__ import annotations
 
 import logging
+import re
 
-from src.versioning import VersionCandidate, discovered_version_code
+from src.versioning import VersionCandidate, discovered_version_code, remember_version_code
 
 
 class VersionCodeResolutionError(RuntimeError):
@@ -45,6 +46,29 @@ def resolve_candidate(package: str, candidate: VersionCandidate | None) -> Versi
             candidate.name,
         )
         return VersionCandidate(name=candidate.name, code=remembered, raw=candidate.raw)
+
+    # Check if candidate.raw carries explicit [versionCodes: ...] emitted by Morphe/ReVanced CLI
+    if candidate.raw:
+        cli_code_match = re.search(r"\[versionCodes:\s*([^\]]+)\]", candidate.raw, re.IGNORECASE)
+        if cli_code_match:
+            raw_codes = cli_code_match.group(1)
+            arm64 = re.search(r"\bARM64(?:_V8A)?=(\d+)\b", raw_codes, re.IGNORECASE)
+            any_code = re.search(r"\b[A-Za-z0-9_]+=(\d+)\b", raw_codes)
+            match = arm64 or any_code
+            if match:
+                code_str = match.group(1)
+                logging.info(
+                    "🪪 Google Play resolved versionCode %s from CLI [versionCodes: ...] for %s %s",
+                    code_str,
+                    package,
+                    candidate.name,
+                )
+                remember_version_code(package, candidate.name, code_str)
+                return VersionCandidate(
+                    name=candidate.name,
+                    code=code_str,
+                    raw=candidate.raw,
+                )
 
     # Import lazily to avoid a registry import cycle during src initialization.
     from src import providers

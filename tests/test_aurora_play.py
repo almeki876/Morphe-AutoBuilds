@@ -377,5 +377,33 @@ class AuroraPlayTests(unittest.TestCase):
                     )
 
 
+    @mock.patch("src.aurora_play.apk_identity.validate_identity")
+    @mock.patch("src.aurora_play._download_with_playfetch_google_play")
+    @mock.patch("src.aurora_play._download_with_fast_gplaydl")
+    def test_unresolved_version_code_probes_current_release_and_validates_identity(
+        self,
+        fast: mock.Mock,
+        playfetch: mock.Mock,
+        validate: mock.Mock,
+    ) -> None:
+        fast.side_effect = RuntimeError("fast gplaydl failed")
+        with tempfile.TemporaryDirectory() as directory:
+            expected = Path(directory) / "downloaded.apk"
+            expected.write_bytes(b"apk")
+            playfetch.return_value = expected
+            validate.return_value = ApkIdentity("com.anthropic.claude", "1.261023.20", "26102320")
+
+            candidate = VersionCandidate(name="1.261023.20", raw="1.261023.20 (1 patch)")
+            result = aurora_play.download_candidate(
+                "com.anthropic.claude",
+                candidate,
+                Path(directory),
+                require_japanese=False,
+            )
+
+        self.assertIs(result, expected)
+        validate.assert_called_once_with(expected, "com.anthropic.claude", candidate, require_japanese=False)
+
+
 if __name__ == "__main__":
     unittest.main()

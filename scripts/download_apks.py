@@ -434,67 +434,69 @@ def _download(
         _request_japan_first_handoff(app_name)
 
     if play_enabled and not skip_play:
-        play_candidate = _preferred_play_candidate(app_name, package, candidates)
-        play_input: Path | None = None
-        try:
-            play_input = aurora_play.download_candidate(
-                package,
-                play_candidate,
-                Path("."),
-                require_japanese=play_only,
-            )
-            if not apk_cache.is_valid_apk_archive(
-                play_input, require_japanese=play_only
-            ):
-                play_input.unlink(missing_ok=True)
-                raise RuntimeError("Google Play returned a corrupt APK archive")
-            identity = _validate_downloaded_identity(
-                app_name,
-                play_input,
-                package,
-                play_candidate,
-                require_japanese=play_only,
-            )
-            version = identity.version_name or identity.version_code or "unknown"
-            _record_play_download(
-                app_name,
-                package,
-                arch,
-                play_input,
-                version,
-                require_japanese=play_only,
-            )
-            logging.info("✅ Google Play selected as APK origin for %s v%s", app_name, version)
-            return play_input, version
-        except (apk_identity.ApkIdentityError, apk_validation.ApkValidationError) as error:
-            if play_input is not None:
-                play_input.unlink(missing_ok=True)
-            identity_errors.append(f"aurora-google-play: {error}")
-            if play_only:
-                raise RuntimeError(
-                    f"Google Play-only source failed identity validation for {app_name}: {error}"
-                ) from error
-            logging.warning(
-                "⚠️  Google Play release does not match the requested release for %s: %s; "
-                "continuing with fallback downloaders",
-                app_name,
-                error,
-            )
-
-        except Exception as error:
-            if play_input is not None:
-                play_input.unlink(missing_ok=True)
-            if play_only:
-                raise RuntimeError(
-                    f"Google Play-only source failed for {app_name}: {type(error).__name__}: {error}"
-                ) from error
-            logging.warning(
-                "⚠️  Google Play rescue download failed for %s: %s: %s; "
-                "continuing with fallback downloaders",
-                app_name,
-                type(error).__name__,
-                error,
-            )
+        play_candidates_to_try = candidates if candidates else [None]
+        for play_candidate in play_candidates_to_try:
+            play_input: Path | None = None
+            try:
+                play_input = aurora_play.download_candidate(
+                    package,
+                    play_candidate,
+                    Path("."),
+                    require_japanese=play_only,
+                )
+                if not apk_cache.is_valid_apk_archive(
+                    play_input, require_japanese=play_only
+                ):
+                    play_input.unlink(missing_ok=True)
+                    raise RuntimeError("Google Play returned a corrupt APK archive")
+                identity = _validate_downloaded_identity(
+                    app_name,
+                    play_input,
+                    package,
+                    play_candidate,
+                    require_japanese=play_only,
+                )
+                version = identity.version_name or identity.version_code or "unknown"
+                _record_play_download(
+                    app_name,
+                    package,
+                    arch,
+                    play_input,
+                    version,
+                    require_japanese=play_only,
+                )
+                logging.info("✅ Google Play selected as APK origin for %s v%s", app_name, version)
+                return play_input, version
+            except (apk_identity.ApkIdentityError, apk_validation.ApkValidationError) as error:
+                if play_input is not None:
+                    play_input.unlink(missing_ok=True)
+                identity_errors.append(f"aurora-google-play: {error}")
+                if play_only:
+                    raise RuntimeError(
+                        f"Google Play-only source failed identity validation for {app_name}: {error}"
+                    ) from error
+                logging.warning(
+                    "⚠️  Google Play release does not match requested release %s for %s: %s; "
+                    "trying next candidate or fallback downloaders",
+                    play_candidate.describe() if play_candidate else "current",
+                    app_name,
+                    error,
+                )
+            except Exception as error:
+                if play_input is not None:
+                    play_input.unlink(missing_ok=True)
+                if play_only:
+                    raise RuntimeError(
+                        f"Google Play-only source failed for {app_name}: {type(error).__name__}: {error}"
+                    ) from error
+                logging.warning(
+                    "⚠️  Google Play rescue download failed for %s (%s): %s: %s; "
+                    "trying next candidate or fallback downloaders",
+                    app_name,
+                    play_candidate.describe() if play_candidate else "current",
+                    type(error).__name__,
+                    error,
+                )
 
     if play_first and not play_only and not skip_play:
         provider_result = try_providers()

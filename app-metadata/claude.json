@@ -1,4 +1,4 @@
 {
   "package": "com.anthropic.claude",
-  "source_policy": "provider-chain"
+  "source_policy": "google-play-first"
 }

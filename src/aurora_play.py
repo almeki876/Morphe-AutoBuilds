@@ -755,14 +755,34 @@ def download_candidate(
             f"Google Play is disabled by repository policy for {package}; use GitHub"
         )
 
-    play_candidate = play_version_resolver.resolve_candidate(package, candidate)
+    try:
+        play_candidate = play_version_resolver.resolve_candidate(package, candidate)
+    except play_version_resolver.VersionCodeResolutionError as error:
+        logging.warning(
+            "⚠️  Could not dynamically resolve versionCode for %s %s: %s; "
+            "attempting Google Play current release probe with identity verification",
+            package,
+            candidate.describe() if candidate else "unknown",
+            error,
+        )
+        play_candidate = candidate
+
     output_dir = output_dir or Path(".")
     output_dir.mkdir(parents=True, exist_ok=True)
     errors: list[tuple[str, Exception]] = []
     japanese_options = {} if require_japanese else {"require_japanese": False}
 
     try:
-        return _download_with_fast_gplaydl(package, play_candidate, output_dir)
+        fast_result = _download_with_fast_gplaydl(package, play_candidate, output_dir)
+        if play_candidate is not None and not play_candidate.code:
+            return _validate_current_fallback(
+                fast_result,
+                package,
+                play_candidate,
+                "fast-gplaydl",
+                **japanese_options,
+            )
+        return fast_result
     except Exception as error:
         errors.append(("gplaydl", error))
         logging.warning(
@@ -831,9 +851,18 @@ def download_candidate(
         except Exception as error:
             errors.append(("apkeep-current-probe", error))
         try:
-            return _download_with_linked_gplaydl(
+            linked_result = _download_with_linked_gplaydl(
                 package, play_candidate, output_dir
             )
+            if play_candidate is not None and not play_candidate.code:
+                return _validate_current_fallback(
+                    linked_result,
+                    package,
+                    play_candidate,
+                    "linked-gplaydl",
+                    **japanese_options,
+                )
+            return linked_result
         except Exception as error:
             errors.append(("fresh-profile-gplaydl", error))
 

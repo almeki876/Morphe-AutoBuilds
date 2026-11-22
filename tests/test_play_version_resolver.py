@@ -75,6 +75,24 @@ class PlayVersionResolverTests(unittest.TestCase):
                     VersionCandidate(name="5.6.7", raw="5.6.7 (2 patches)"),
                 )
 
+    def test_resolves_version_code_from_raw_cli_version_codes_metadata(self) -> None:
+        raw = (
+            "1.261023.20 [versionCodes: ARM64_V8A=26102320, ARMEABI_V7A=26102320, "
+            "X86_64=26102320, X86=26102320] (1 patch)"
+        )
+        resolved = play_version_resolver.resolve_candidate(
+            "com.anthropic.claude",
+            VersionCandidate(name="1.261023.20", raw=raw),
+        )
+        self.assertIsNotNone(resolved)
+        assert resolved is not None
+        self.assertEqual(resolved.name, "1.261023.20")
+        self.assertEqual(resolved.code, "26102320")
+        self.assertEqual(
+            versioning.discovered_version_code("com.anthropic.claude", "1.261023.20"),
+            "26102320",
+        )
+
     def test_public_history_falls_back_to_exact_current_play_metadata(self) -> None:
         requested = VersionCandidate(name="32.13.2.100", raw="32.13.2.100")
         with (
