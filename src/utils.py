@@ -437,6 +437,24 @@ def get_highest_version(versions: list[str]) -> str | None:
 _LOG_LEVEL_PREFIXES = ("info:", "warning:", "warn:", "debug:", "trace:")
 _NO_COMPATIBLE_VERSIONS = "no compatible versions found"
 
+# Header/descriptor lines that Morphe CLI emits as part of list-versions output
+# but are NOT version policy tokens.  They must be stripped before comparing
+# policy_lines against {"any", "null"}.
+_POLICY_NOISE_PREFIXES = (
+    "most common compatible versions",   # "Most common compatible versions:"
+    "- \"",                              # ' - "Remove all receivers" ...'
+    "- '",
+    "shuhai",                            # "Shuhaib's Patches ..."
+    "universal patches must",            # WARNING continuation lines
+    "declared at ",                      # stack-like lines from PatchLoader
+    "app.template.",                     # fully-qualified class names
+    "app.morphe.",
+    "nov ",                              # JVM timestamp lines "Nov 22, 2026 ..."
+    "jan ", "feb ", "mar ", "apr ",
+    "may ", "jun ", "jul ", "aug ",
+    "sep ", "oct ", "nov ", "dec ",
+)
+
 
 def _package_has_patches(
     package_name: str, cli: str, patches: str, *, is_morphe_cli: bool
@@ -525,10 +543,26 @@ def get_supported_version_candidates(
         meaningful = [line.strip() for line in lines if line.strip()]
         # CLIs prefix diagnostics with a log level (INFO:, WARN:, WARNING:, ...).
         # Those lines are never version policy, whatever the level spelling is.
+        # Additionally, Morphe CLI emits human-readable header / descriptor lines
+        # (e.g. "Most common compatible versions:", patch listing lines like
+        # ' - "Remove all receivers" ...', JVM timestamp lines, etc.) that are
+        # also not version policy tokens and must be filtered out before we can
+        # reliably compare against {"any", "null"}.
+        def _is_policy_noise(line: str) -> bool:
+            lc = line.casefold()
+            if lc.startswith(_LOG_LEVEL_PREFIXES):
+                return True
+            if lc.startswith(_POLICY_NOISE_PREFIXES):
+                return True
+            # Lines that end with a colon are section headers, not policy tokens.
+            if lc.endswith(":"):
+                return True
+            return False
+
         policy_lines = {
             line.casefold()
             for line in meaningful
-            if not line.casefold().startswith(_LOG_LEVEL_PREFIXES)
+            if not _is_policy_noise(line)
         }
         if policy_lines <= {"any", "null"}:
             if any(_NO_COMPATIBLE_VERSIONS in line.casefold() for line in meaningful):

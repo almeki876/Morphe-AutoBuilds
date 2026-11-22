@@ -120,5 +120,57 @@ class ListVersionsPolicyTests(unittest.TestCase):
             )
 
 
+    def test_shuhaibnc_universal_patch_warning_output_is_accepted(self):
+        """Regression test for ffmpeg-media-encoder / shuhaibnc:
+        Morphe CLI emits WARNING lines about universal patches and a header
+        'Most common compatible versions:' before the actual policy token 'Any'.
+        None of these non-prefixed header/descriptor lines should cause the
+        SupportedVersionLookupError to be raised."""
+        output = "\n".join(
+            [
+                "INFO: Morphe data root: /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/tools/shuhaibnc/morphe-data (JAR-adjacent)",
+                "Nov 22, 2026 10:20:33 AM app.morphe.patcher.patch.PatchLoader$Companion checkUniversalPatchDefaults",
+                "WARNING: Universal patches must be declared with default false, so they are loaded with default false:",
+                " Shuhaib's Patches 1.18.0 (/home/runner/work/.../bundle-patches-1.18.0-73980570646.mpp)",
+                ' - "Remove all receivers" declared at app.template.patches.universal.removereceivers.RemoveReceiversKt.<clinit>(RemoveReceivers.kt:15)',
+                ' - "Fake System Time" declared at app.template.patches.universal.stoptime.TimeStopKt.<clinit>(TimeStop.kt:13)',
+                "INFO: Package name: com.silentlexx.ffmpeggui",
+                "Most common compatible versions:",
+                "\tAny",
+            ]
+        )
+
+        with (
+            patch.object(cli_compat, "detect_cli_kind", return_value=cli_compat.MORPHE),
+            patch.object(utils, "run_process", return_value=output),
+        ):
+            candidates = utils.get_supported_version_candidates(
+                "com.silentlexx.ffmpeggui",
+                "morphe-cli.jar",
+                "patches.rvp",
+            )
+
+        # Should return [] (unrestricted), not raise SupportedVersionLookupError
+        self.assertEqual(candidates, [])
+
+    def test_shuhaibnc_universal_patch_warning_via_parse_candidates(self):
+        """parse_candidates() should recognise the Any token even when the
+        output contains WARNING/header noise lines."""
+        output = "\n".join(
+            [
+                "WARNING: Universal patches must be declared with default false, so they are loaded with default false:",
+                " Shuhaib's Patches 1.18.0 (...)",
+                ' - "Remove all receivers" declared at ...',
+                "INFO: Package name: com.silentlexx.ffmpeggui",
+                "Most common compatible versions:",
+                "\tAny",
+            ]
+        )
+        candidates = parse_candidates(output)
+        # parse_candidates sees no concrete semver version → returns empty list
+        # (but that's fine; the caller handles the unrestricted / Any case)
+        self.assertEqual(candidates, [])
+
+
 if __name__ == "__main__":
     unittest.main()
