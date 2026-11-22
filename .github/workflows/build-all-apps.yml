@@ -2,6 +2,8 @@ name: Build All Apps
 
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
 
 permissions:
   actions: write
@@ -11,6 +13,12 @@ jobs:
   trigger-build-all:
     name: Start Full App Build
     runs-on: ubuntu-latest
+    # Manual runs always dispatch a full build. A push dispatches one only
+    # when the head commit message contains the keyword "BuildAllApps"
+    # (case-insensitive), e.g. "fix: update patch config BuildAllApps".
+    # Pushes without the keyword, and pushes made by the build workflow
+    # itself with GITHUB_TOKEN, never start a full build.
+    if: ${{ github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, 'BuildAllApps') }}
     steps:
       - name: Dispatch Build Workflow for All Apps
         env:
