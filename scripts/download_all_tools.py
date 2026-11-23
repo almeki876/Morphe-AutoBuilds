@@ -159,10 +159,15 @@ def expected_asset_digests(
 ) -> dict[str, tuple[str, str]]:
     """Resolve published digests for wanted assets from the same release.
 
-    Sources, strongest first: a per-asset checksum sidecar
-    (``<asset>.sha256`` etc.), an aggregate checksum file
-    (``checksums.txt`` / ``SHA256SUMS`` style), and the ``digest`` field the
-    GitHub API reports for the asset itself.  Returns
+    Sources: a per-asset checksum sidecar (``<asset>.sha256`` etc.), an
+    aggregate checksum file (``checksums.txt`` / ``SHA256SUMS`` style), and
+    the ``digest`` field the GitHub API reports for the asset itself.  When
+    a checksum file and the API digest disagree for the same asset, the API
+    digest wins: GitHub computes it from the stored asset bytes, while a
+    checksum file is author-supplied text that can go stale (rushiranpise's
+    SHA256SUMS.txt, for example, lists the hash of a local build-output
+    path rather than of the uploaded asset, which excluded the whole
+    source in run 45110765179).  Returns
     ``{asset_name: (algorithm, hex_digest)}``; assets with no published
     digest are simply absent from the result.
     """
@@ -236,15 +241,27 @@ def expected_asset_digests(
 
     for asset in assets:
         aname = str(asset.get("name") or "")
-        if aname not in wanted or aname in expected:
+        if aname not in wanted:
             continue
         digest_field = str(asset.get("digest") or "").strip()
-        if digest_field.startswith("sha256:"):
-            candidate = digest_field.split(":", 1)[1].strip().lower()
-            if len(candidate) == 64 and all(
-                char in "0123456789abcdef" for char in candidate
-            ):
-                expected[aname] = ("sha256", candidate)
+        if not digest_field.startswith("sha256:"):
+            continue
+        candidate = digest_field.split(":", 1)[1].strip().lower()
+        if len(candidate) != 64 or any(
+            char not in "0123456789abcdef" for char in candidate
+        ):
+            continue
+        published = expected.get(aname)
+        if published is None:
+            expected[aname] = ("sha256", candidate)
+        elif published[0] == "sha256" and published[1].lower() != candidate:
+            logging.warning(
+                f"  ⚠️  the checksum published for {aname} ({published[1]}) "
+                f"disagrees with the GitHub API digest ({candidate}); "
+                "trusting the API digest, which GitHub computes from the "
+                "stored asset bytes"
+            )
+            expected[aname] = ("sha256", candidate)
     return expected
 
 
@@ -594,6 +611,28 @@ def main() -> int:
                         f"  🔒 {aname} checksum verified ({expected[0]})"
                     )
                 else:
+                    # One corrupted transfer must not exclude a whole
+                    # source: download the asset once more and re-verify.
+                    # Only a repeated mismatch is treated as a real one.
+                    logging.warning(
+                        f"  ⚠️  {aname} failed checksum verification; "
+                        "downloading it once more before deciding"
+                    )
+                    dest_file.unlink(missing_ok=True)
+                    if not download_asset(
+                        asset["browser_download_url"], dest_file
+                    ):
+                        source_failed = True
+                        source_failure_reasons.append(
+                            f"failed to download asset {aname}"
+                        )
+                        break
+                    if verify_asset_checksum(dest_file, expected):
+                        logging.info(
+                            f"  🔒 {aname} checksum verified "
+                            f"({expected[0]}) after re-download"
+                        )
+                        continue
                     dest_file.unlink(missing_ok=True)
                     logging.error(
                         f"  ❌ checksum mismatch for {aname}: the downloaded "

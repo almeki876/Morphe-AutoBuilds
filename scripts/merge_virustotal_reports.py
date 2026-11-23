@@ -48,7 +48,15 @@ def parse_args() -> argparse.Namespace:
 
 
 def load_chunk_results(directory: Path) -> tuple[list[dict[str, Any]], list[str], dict[str, Any]]:
-    combined_results: dict[str, dict[str, Any]] = {}
+    # Results are keyed by (sha256, file), not by sha256 alone: the same
+    # base APK (identical SHA-256) is scanned under a different file name by
+    # each source's build job (e.g. "youtube-music-morphe-arm64-v8a.apk" and
+    # "youtube-music-revanced-anddea-arm64-v8a.apk").  Keying by SHA-256
+    # alone silently kept only one chunk's entry, and downstream consumers
+    # (the release gate, the release-details generator) match results by
+    # file-name prefix, so the overwritten names looked like they were
+    # never scanned at all.
+    combined_results: dict[tuple[str, str], dict[str, Any]] = {}
     combined_failures: set[str] = set()
     combined_cache: dict[str, Any] = {}
 
@@ -73,7 +81,7 @@ def load_chunk_results(directory: Path) -> tuple[list[dict[str, Any]], list[str]
         for item in data.get("results") or []:
             if isinstance(item, dict) and item.get("sha256"):
                 sha = str(item["sha256"])
-                combined_results[sha] = item
+                combined_results[(sha, str(item.get("file") or ""))] = item
 
         for failure in data.get("failures") or []:
             if isinstance(failure, str) and failure.strip():
