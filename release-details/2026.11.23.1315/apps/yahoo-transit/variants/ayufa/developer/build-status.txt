@@ -1,0 +1,89 @@
+app=yahoo-transit
+source=ayufa
+source_name=ayufa
+phase=Patch
+status=success
+run=https://github.com/almeki876/Morphe-AutoBuilds/actions/runs/45110765179
+
+traceback_or_error_tail<<EOF
+Name: プッシュポップアップを無効化
+Description: プッシュキャンペーンのポップアップダイアログを表示しなくします。通常の通知には影響しません。有効・無効はアプリ内設定（Ayufaパッチ設定）でいつでも切り替えられます。
+Enabled: true
+
+Index: 9
+Name: レビュー依頼を無効化
+Description: Google Play の評価依頼を無効化します。Simeji 独自のガイドダイアログと、Play のアプリ内レビューの両方が対象です。有効・無効はアプリ内設定（Ayufaパッチ設定）でいつでも切り替えられます。
+Enabled: true
+
+Index: 10
+Name: アプリ内設定画面を追加
+Description: Simeji の設定タブの一覧に「Ayufaパッチ設定」の入口を追加します。各 Simeji パッチの有効・無効や VIP偽装を、再パッチなしでアプリ内から切り替えられるようになります。他の Simeji パッチを切り替えるには、このパッチの適用が必要です（未適用の場合は各パッチの初期値どおりに動作します）。
+Enabled: true
+
+Index: 11
+Name: 広告を非表示
+Description: Yahoo!乗換案内の広告（各画面のバナー・ネイティブ広告、全画面のオーバーレイ広告）を非表示にします。
+Enabled: true
+
+Index: 12
+Name: プロモーションを非表示
+Description: Yahoo!乗換案内のLY連携プロモーションモーダルを表示しません。
+Enabled: true
+2026-11-23 04:28:08 enable_patches=[]  disable_patches=[]
+2026-11-23 04:28:08 Running: java -Djava.awt.headless=true -Xmx6g -Xms3g -Dfile.encoding=UTF-8 -XX:-UsePerfData -XX:+UseG1GC -XX:MaxGCPauseMillis=150 -XX:G1HeapRegionSize=2m -XX:+UseStringDeduplication -XX:+ParallelRefProcEnabled -XX:ConcGCThreads=2 -XX:ParallelGCThreads=4 -XX:CICompilerCount=3 -XX:+UseCompressedOops -XX:+OptimizeStringConcat -XX:+DisableExplicitGC -XX:+TieredCompilation -XX:ReservedCodeCacheSize=128m -XX:InitialCodeCacheSize=32m -XX:SoftRefLRUPolicyMSPerMB=50 --add-opens=java.base/java.lang=ALL-UNNAMED --add-opens=java.base/java.util=ALL-UNNAMED --add-opens=java.base/java.io=ALL-UNNAMED -jar /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/morphe-desktop-2.3.0-all.jar patch --continue-on-error --unsigned --result-file /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/.patch-result-yahoo-transit-arm64-v8a.json --temporary-files-path /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/.morphe-tmp-yahoo-transit-arm64-v8a -p /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/patches-1.3.0.mpp --out=/home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/yahoo-transit-arm64-v8a-patch-v8.5.8.apk --bytecode-mode=STRIP_FAST /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/.build-input-arm64-v8a.xapk
+⚠️  Ignoring legacy BASE_APK_CACHE_TAG='base-apk-cache-v2'; using 'base-apk-cache-v4-ja-jp-px9a-split'
+INFO: Morphe data root: /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/morphe-data (JAR-adjacent)
+INFO: Merging split APK bundle...
+INFO: Extracting to: /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/.morphe-tmp-yahoo-transit-arm64-v8a/patching-1795408089530/tmp_5de0bc76
+INFO: Searching apk files ...
+INFO: Found apk files: 4
+INFO: Found modules: 4
+INFO: Merging: jp.co.yahoo.android.apps.transit
+INFO: Added [jp.co.yahoo.android.apps.transit] classes.dex -> classes.dex
+INFO: Added [jp.co.yahoo.android.apps.transit] classes2.dex -> classes2.dex
+INFO: Added [jp.co.yahoo.android.apps.transit] classes3.dex -> classes3.dex
+INFO: Added [jp.co.yahoo.android.apps.transit] classes4.dex -> classes4.dex
+INFO: Added [jp.co.yahoo.android.apps.transit] classes5.dex -> classes5.dex
+INFO: Merging: config.arm64_v8a
+INFO: Merging: config.xxhdpi
+INFO: Merging: config.en
+INFO: Validating resources dir ...
+INFO: Sanitizing manifest ...
+INFO: Setting extractNativeLibs=false
+INFO: Writing apk ...
+INFO: Buffering compress changed files ...
+INFO: Writing files: 3797
+INFO: Writing signature block ...
+INFO: Saved to: /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/.morphe-tmp-yahoo-transit-arm64-v8a/patching-1795408089530/.build-input-arm64-v8a-merged.apk
+INFO: Initializing patcher...
+INFO: Loading patches from 1 bundle(s)...
+INFO: Filtering patches for jp.co.yahoo.android.apps.transit v8.5.8...
+INFO: Applying 2 patches...
+INFO: Deleting existing temporary files directory
+INFO: Executing patches
+INFO: Applied: プロモーションを非表示
+INFO: Applied: 広告を非表示
+INFO: Rebuilding APK...
+INFO: Compiling patched dex files (mode: STRIP_FAST)
+INFO: Changed 20 of 54900 classes to mutable
+INFO: Writing 20 new classes to new DEX files
+INFO: Processing 20 classes (single threaded mode)
+INFO: Wrote 1 dex files to /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/.morphe-tmp-yahoo-transit-arm64-v8a/patching-1795408089530/patcher/patched/newDex
+INFO: Stripped 20 modified classes from 2 original DEX files
+INFO: Stripping libs (keeping architectures arm64-v8a, armeabi-v7a, x86, x86_64)
+INFO: Stripped 0 lib files
+INFO: Saved to /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/yahoo-transit-arm64-v8a-patch-v8.5.8.apk
+INFO: Patching took 2.6 seconds
+INFO: Patching result saved to /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/.patch-result-yahoo-transit-arm64-v8a.json
+2026-11-23 04:28:12 Validated patched APK: 54772429 bytes (ABIs: arm64-v8a)
+2026-11-23 04:28:15 Normalized patched APK ZIP headers
+2026-11-23 04:28:15 Validated architecture-filtered APK (ABIs: arm64-v8a)
+2026-11-23 04:28:15 [SIZE] patched: 52369835 bytes (yahoo-transit-arm64-v8a-patch-v8.5.8.apk)
+Signed
+2026-11-23 04:28:17 [SIZE] signed: 52778900 bytes (yahoo-transit-arm64-v8a-ayufa-v8.5.8.apk)
+✅ APK built: yahoo-transit-arm64-v8a-ayufa-v8.5.8.apk
+✅ Built arm64-v8a: yahoo-transit-arm64-v8a-ayufa-v8.5.8.apk
+
+🎯 1 APK(s) built for 'yahoo-transit':
+   📱 yahoo-transit-arm64-v8a-ayufa-v8.5.8.apk
+EOF

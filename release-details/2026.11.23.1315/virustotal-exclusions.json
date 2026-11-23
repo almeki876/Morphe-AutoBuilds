@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "release_tag": "2026.11.23.1315",
+  "exclusions": [
+    {
+      "app_name": "youtube-music",
+      "source": "morphe",
+      "verdict": "unknown",
+      "reason": "No VirusTotal scan result was recorded for this app's base APK, so it cannot be published as scanned.",
+      "base_files": [],
+      "malicious": 0,
+      "suspicious": 0,
+      "sha256": [],
+      "permalinks": [],
+      "failures": [],
+      "apk_files": [
+        "youtube-music-arm64-v8a-morphe-v9.15.51.apk"
+      ]
+    }
+  ]
+}

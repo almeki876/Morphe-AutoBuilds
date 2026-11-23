@@ -1,0 +1,26 @@
+{
+  "app_name": "yahoo-transit",
+  "source": "ayufa",
+  "patch_source": "ayufa",
+  "source_name": "ayufa",
+  "version": "8.5.8",
+  "status": "success",
+  "lifecycle_status": "success_full",
+  "requested_patches": [],
+  "requested_options": [],
+  "applying_count": 2,
+  "applied_patches": [
+    "プロモーションを非表示",
+    "広告を非表示"
+  ],
+  "excluded_patches": [],
+  "disabled_patches": [],
+  "feature_failures": [],
+  "failed_patches": [],
+  "required_patches": [],
+  "required_failures": [],
+  "required_patches_satisfied": true,
+  "fully_applied": true,
+  "error_category": null,
+  "error_summary": null
+}

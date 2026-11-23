@@ -1,0 +1,42 @@
+{
+  "app_name": "camscanner",
+  "source": "dyno",
+  "patch_source": "dyno",
+  "source_name": "dyno",
+  "version": "7.27.0.2609220000",
+  "status": "success",
+  "lifecycle_status": "success_full",
+  "requested_patches": [],
+  "requested_options": [],
+  "applying_count": 1,
+  "applied_patches": [
+    "Unlock premium"
+  ],
+  "excluded_patches": [],
+  "disabled_patches": [],
+  "feature_failures": [
+    {
+      "name": "Remove ads",
+      "reason": "[runtime-skipped-default] default"
+    },
+    {
+      "name": "Hide piracy warning",
+      "reason": "[runtime-skipped-default] default"
+    },
+    {
+      "name": "Remove PDF watermark",
+      "reason": "[runtime-skipped-default] default"
+    },
+    {
+      "name": "Spoof app signature",
+      "reason": "[runtime-skipped-default] default"
+    }
+  ],
+  "failed_patches": [],
+  "required_patches": [],
+  "required_failures": [],
+  "required_patches_satisfied": true,
+  "fully_applied": true,
+  "error_category": null,
+  "error_summary": null
+}

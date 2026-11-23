@@ -1,0 +1,23 @@
+{
+  "results": [
+    {
+      "file": "slack-slick-universal.xapk",
+      "sha256": "7e2e3302c24482a70f27d12f354a9abbc75037737f973b5e3579ebaf579e6026",
+      "size": 136252334,
+      "analysis_id": "NDNkYzU4YzVjYjdiZGM0OGIwOGUyMTkyNWZjNWY4YzI6MTc5NTM0NTAxNQ==",
+      "malicious": 0,
+      "suspicious": 0,
+      "harmless": 0,
+      "undetected": 60,
+      "timeout": 3,
+      "failure": 1,
+      "unsupported": 10,
+      "verdict": "clean",
+      "method": "persistent hash cache",
+      "engines": {},
+      "permalink": "https://www.virustotal.com/gui/file/7e2e3302c24482a70f27d12f354a9abbc75037737f973b5e3579ebaf579e6026/detection",
+      "last_analysis_date": 1795345015,
+      "reanalyzed": false
+    }
+  ]
+}
