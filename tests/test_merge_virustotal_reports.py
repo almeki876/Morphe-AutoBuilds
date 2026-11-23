@@ -106,6 +106,87 @@ class MergeVirusTotalReportsTests(unittest.TestCase):
         self.assertIn("app2.apk", md_content)
         self.assertIn("VirusTotal base APK scan results (before patching)", md_content)
 
+    def test_same_hash_under_different_file_names_both_survive(self) -> None:
+        """Regression: one base APK shared by two patch sources.
+
+        Run 45110765179 lost the youtube-music/morphe scan result because
+        the merge keyed results by SHA-256 alone: the morphe and
+        revanced-anddea jobs scanned the identical base APK under
+        different file names, and only the later chunk's name survived, so
+        the release gate found no result for the morphe pair and excluded
+        YouTube Music as "unknown".
+        """
+        shared_sha = (
+            "a003ac2e673c2979b2268e5acfbfd74f88b93c4b75af5c7d604b3c7fb92768a4"
+        )
+
+        def chunk(file_name: str) -> dict:
+            return {
+                "results": [
+                    {
+                        "file": file_name,
+                        "sha256": shared_sha,
+                        "size": 74431248,
+                        "analysis_id": "",
+                        "malicious": 0,
+                        "suspicious": 0,
+                        "harmless": 0,
+                        "undetected": 65,
+                        "timeout": 0,
+                        "failure": 0,
+                        "unsupported": 0,
+                        "verdict": "clean",
+                        "method": "persistent hash cache",
+                        "engines": {},
+                        "permalink": (
+                            "https://www.virustotal.com/gui/file/"
+                            f"{shared_sha}/detection"
+                        ),
+                        "last_analysis_date": 1787164347,
+                        "reanalyzed": False,
+                    }
+                ],
+                "failures": [],
+                "cache": {
+                    "version": 1,
+                    "results": {shared_sha: {"sha256": shared_sha}},
+                },
+            }
+
+        chunks = {
+            "vt-report-youtube-music-morphe": "youtube-music-morphe-arm64-v8a.apk",
+            "vt-report-youtube-music-revanced-anddea": (
+                "youtube-music-revanced-anddea-arm64-v8a.apk"
+            ),
+        }
+        for directory, file_name in chunks.items():
+            sub = self.root / directory
+            sub.mkdir()
+            (sub / "virustotal_base_results.json").write_text(
+                json.dumps(chunk(file_name)), encoding="utf-8"
+            )
+
+        results, failures, cache = load_chunk_results(self.root)
+        self.assertEqual(failures, [])
+        self.assertEqual(
+            sorted(item["file"] for item in results),
+            [
+                "youtube-music-morphe-arm64-v8a.apk",
+                "youtube-music-revanced-anddea-arm64-v8a.apk",
+            ],
+        )
+        self.assertIn(shared_sha, cache)
+
+        # The release gate matches by "{app}-{source}-" file prefix, so
+        # both pairs must resolve as publishable from the merged payload.
+        from scripts.virustotal_gate import compute_exclusions
+
+        exclusions = compute_exclusions(
+            {"results": results, "failures": failures},
+            [("youtube-music", "morphe"), ("youtube-music", "revanced-anddea")],
+        )
+        self.assertEqual(exclusions, [])
+
 
 if __name__ == "__main__":
     unittest.main()
