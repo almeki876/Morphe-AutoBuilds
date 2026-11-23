@@ -26,6 +26,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from urllib.parse import quote
 
+from scripts import virustotal_gate
 from scripts.release_notes import APP_LABELS, SOURCE_LABELS, _source_url
 
 
@@ -52,6 +53,7 @@ def _args() -> argparse.Namespace:
     parser.add_argument("--download-results", type=Path, default=Path("details-input/download"))
     parser.add_argument("--base-inputs", type=Path, default=Path("details-input/base"))
     parser.add_argument("--virustotal", type=Path, default=Path("virustotal_base_results.json"))
+    parser.add_argument("--virustotal-exclusions", type=Path, default=virustotal_gate.DEFAULT_EXCLUSIONS_PATH)
     parser.add_argument("--output-root", type=Path, default=Path("release-details"))
     parser.add_argument("--release-notes", type=Path, default=Path("release-notes-details.md"))
     return parser.parse_args()
@@ -548,14 +550,57 @@ def _write_variant(
     )
 
 
+def _exclusion_notes_lines(exclusions: list[dict]) -> list[str]:
+    lines = [
+        "",
+        "## Excluded by VirusTotal scan",
+        "",
+        "The apps below were built successfully but withheld from this "
+        "release because the VirusTotal scan of their base APK did not "
+        "return a clean verdict.",
+        "",
+        "| App | Patch source | Verdict | Malicious | Suspicious | VirusTotal |",
+        "| --- | --- | --- | ---: | ---: | --- |",
+    ]
+    for item in exclusions:
+        app = str(item.get("app_name") or "")
+        source = str(item.get("source") or "")
+        permalinks = item.get("permalinks") or []
+        permalink = str(permalinks[0]) if permalinks else ""
+        vt_link = f"[Open]({permalink})" if permalink else "-"
+        lines.append(
+            f"| {_label_app(app)} | {_source_display(app, source)} | "
+            f"`{_safe(item.get('verdict'))}` | "
+            f"{int(item.get('malicious') or 0)} | "
+            f"{int(item.get('suspicious') or 0)} | {vt_link} |"
+        )
+    return lines
+
+
 def generate(args: argparse.Namespace) -> tuple[Path, Path]:
     if not args.tag:
         raise ValueError("release tag is required")
+
+    exclusions_path = getattr(args, "virustotal_exclusions", None)
+    exclusions = (
+        virustotal_gate.load_exclusions(exclusions_path)
+        if exclusions_path
+        else []
+    )
+    excluded_keys = {
+        (str(item.get("app_name") or ""), str(item.get("source") or ""))
+        for item in exclusions
+    }
 
     reports = [
         report
         for report in _load_reports(args.build_results)
         if report.get("status") == "success"
+        and (
+            str(report.get("app_name") or ""),
+            str(report.get("source") or ""),
+        )
+        not in excluded_keys
     ]
     origins = _load_origins(args.base_inputs)
     vt = _load_vt(args.virustotal)
@@ -621,6 +666,40 @@ def generate(args: argparse.Namespace) -> tuple[Path, Path]:
         index_lines.append(
             f"| [{_label_app(app)}](apps/{app}/README.md) | {len(variants)} | {versions} | {_safe(sources)} |"
         )
+    if exclusions:
+        (release_dir / "virustotal-exclusions.json").write_text(
+            json.dumps(
+                {
+                    "version": virustotal_gate.EXCLUSIONS_VERSION,
+                    "release_tag": args.tag,
+                    "exclusions": exclusions,
+                },
+                ensure_ascii=False,
+                indent=2,
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+        index_lines.extend(
+            [
+                "",
+                "## VirusTotal により除外されたアプリ",
+                "",
+                "以下のアプリはビルドに成功しましたが、ベースAPKのVirusTotalスキャンでクリーンな判定が得られなかったため、このReleaseには含まれていません。",
+                "",
+                "| App | Patch source | Verdict | Malicious | Suspicious |",
+                "| --- | --- | --- | ---: | ---: |",
+            ]
+        )
+        for item in exclusions:
+            app = str(item.get("app_name") or "")
+            source = str(item.get("source") or "")
+            index_lines.append(
+                f"| {_label_app(app)} | {_source_display(app, source)} | "
+                f"`{_safe(item.get('verdict'))}` | "
+                f"{int(item.get('malicious') or 0)} | "
+                f"{int(item.get('suspicious') or 0)} |"
+            )
     (release_dir / "README.md").write_text(
         "\n".join(index_lines) + "\n", encoding="utf-8"
     )
@@ -652,6 +731,8 @@ def generate(args: argparse.Namespace) -> tuple[Path, Path]:
         notes.append(
             f"| [{_label_app(app)}]({app_url}) | {versions} | {_safe(sources)} |"
         )
+    if exclusions:
+        notes.extend(_exclusion_notes_lines(exclusions))
     notes.extend(["", f"[Release details / 詳細]({release_index_url})"])
     args.release_notes.write_text("\n".join(notes) + "\n", encoding="utf-8")
     return release_dir, args.release_notes

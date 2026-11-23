@@ -7,12 +7,16 @@ import subprocess
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
+from scripts import virustotal_gate
 from scripts.export_virustotal_cache import export_cache
 
 
 RELEASE_DIR = Path("release-apks")
 VT_REPORT = Path("virustotal_base_results.json")
 VT_CACHE = Path("virustotal-cache-v1.json")
+ARTIFACT_ROOT = Path("all-apks")
+REPORT_ROOT = Path("build-results")
+EXCLUSIONS_PATH = Path("virustotal_exclusions.json")
 
 
 def run(command: list[str], *, check: bool = True) -> subprocess.CompletedProcess[str]:
@@ -26,6 +30,31 @@ def upload_apk(tag: str, path: Path) -> None:
 def create_release(tag: str, repository: str) -> None:
     title = f"Morphe AutoBuilds {tag}"
     print(f"Creating release: {tag}")
+
+    # VirusTotal gate: withhold every app whose base APK did not come back
+    # clean (or could not be conclusively scanned) before anything is
+    # published.  Only the flagged apps are removed; the rest of the
+    # release proceeds.  The decision is recorded in
+    # virustotal_exclusions.json and in the release notes.
+    exclusions = virustotal_gate.enforce_release_gate(
+        vt_report=VT_REPORT,
+        artifact_root=ARTIFACT_ROOT,
+        report_root=REPORT_ROOT,
+        release_dir=RELEASE_DIR,
+        exclusions_path=EXCLUSIONS_PATH,
+        release_tag=tag,
+    )
+    if exclusions:
+        print(
+            f"VirusTotal gate withheld {len(exclusions)} app(s) from this release: "
+            + ", ".join(
+                f"{item.app_name} ({item.source})" for item in exclusions
+            )
+        )
+
+    apks = sorted(RELEASE_DIR.glob("*.apk"))
+    if not apks:
+        raise RuntimeError("No APK assets found in release-apks")
 
     run(["gh", "release", "delete", tag, "--yes"], check=False)
     run(["git", "push", "--delete", "origin", f"refs/tags/{tag}"], check=False)
@@ -42,9 +71,6 @@ def create_release(tag: str, repository: str) -> None:
         ]
     )
 
-    apks = sorted(RELEASE_DIR.glob("*.apk"))
-    if not apks:
-        raise RuntimeError("No APK assets found in release-apks")
     with ThreadPoolExecutor(max_workers=min(8, len(apks))) as executor:
         list(executor.map(lambda path: upload_apk(tag, path), apks))
 

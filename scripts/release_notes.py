@@ -23,6 +23,8 @@ from pathlib import Path
 from types import SimpleNamespace
 from zoneinfo import ZoneInfo
 
+from scripts import virustotal_gate
+
 
 MAX_RELEASE_NOTES_LENGTH = 120_000
 
@@ -254,6 +256,15 @@ def _readme_url() -> str:
     return f"https://github.com/{repository}#readme"
 
 
+def _excluded_pairs() -> set[tuple[str, str]]:
+    return {
+        (str(item.get("app_name") or ""), str(item.get("source") or ""))
+        for item in virustotal_gate.load_exclusions(
+            virustotal_gate.DEFAULT_EXCLUSIONS_PATH
+        )
+    }
+
+
 def render() -> str:
     inputs = _load_event_inputs()
     successful = _successful_release_matrix()
@@ -262,6 +273,19 @@ def render() -> str:
         if successful is not None
         else _requested_matrix(_load_patch_config(), inputs)
     )
+
+    excluded = _excluded_pairs()
+    withheld = [
+        item
+        for item in selected
+        if (str(item["app_name"]), str(item["source"])) in excluded
+    ]
+    if withheld:
+        selected = [
+            item
+            for item in selected
+            if (str(item["app_name"]), str(item["source"])) not in excluded
+        ]
 
     grouped: dict[str, list[str]] = defaultdict(list)
     seen: set[tuple[str, str]] = set()
@@ -292,6 +316,54 @@ def render() -> str:
         url = _source_url(source)
         apps_text = ", ".join(APP_LABELS.get(app, app) for app in apps)
         lines.append(f"| {apps_text} | {_source_cell(source, url)} |")
+
+    if withheld:
+        lines.extend(
+            [
+                "",
+                "## Excluded by VirusTotal scan",
+                "",
+                "The apps below were built successfully but withheld from "
+                "this release because the VirusTotal scan of their base APK "
+                "did not return a clean verdict.",
+                "",
+                "| Apps | Patch source | Verdict |",
+                "| --- | --- | --- |",
+            ]
+        )
+        records = {
+            (str(item.get("app_name") or ""), str(item.get("source") or "")): item
+            for item in virustotal_gate.load_exclusions(
+                virustotal_gate.DEFAULT_EXCLUSIONS_PATH
+            )
+        }
+        withheld_grouped: dict[str, list[str]] = defaultdict(list)
+        for item in withheld:
+            withheld_grouped[str(item["source"])].append(str(item["app_name"]))
+        for source in sorted(
+            withheld_grouped,
+            key=lambda key: SOURCE_LABELS.get(key, key).casefold(),
+        ):
+            apps = sorted(
+                withheld_grouped[source],
+                key=lambda app: APP_LABELS.get(app, app).casefold(),
+            )
+            url = _source_url(source)
+            apps_text = ", ".join(APP_LABELS.get(app, app) for app in apps)
+            verdicts = ", ".join(
+                sorted(
+                    {
+                        str(
+                            records.get((app, source), {}).get("verdict")
+                            or "unknown"
+                        )
+                        for app in apps
+                    }
+                )
+            )
+            lines.append(
+                f"| {apps_text} | {_source_cell(source, url)} | {verdicts} |"
+            )
 
     lines.extend(["", f"[Details / 詳細]({_readme_url()})"])
     return "\n".join(lines) + "\n"
@@ -441,6 +513,7 @@ def _generate_and_publish_release_details(output: Path) -> bool:
         # without a second artifact-download phase.
         base_inputs=Path("all-apks"),
         virustotal=Path("virustotal_base_results.json"),
+        virustotal_exclusions=virustotal_gate.DEFAULT_EXCLUSIONS_PATH,
         output_root=Path("release-details"),
         release_notes=output,
     )
@@ -458,8 +531,40 @@ def _generate_and_publish_release_details(output: Path) -> bool:
     return True
 
 
+def _apply_virustotal_gate() -> None:
+    """Withhold VT-flagged apps from release-apks before notes are written.
+
+    Runs only in the create-release job (where the merged VirusTotal report
+    and the downloaded artifacts exist).  create_release.py re-enforces the
+    same gate immediately before publishing, so this early pass exists to
+    keep the generated notes and details consistent with what is uploaded.
+    """
+    if not _release_ci_inputs_available():
+        return
+    successful = _successful_release_matrix()
+    if successful is None:
+        return
+    pairs = [
+        (str(item["app_name"]), str(item["source"])) for item in successful
+    ]
+    payload = virustotal_gate.load_report(Path("virustotal_base_results.json"))
+    if payload is None:
+        exclusions = virustotal_gate.unknown_exclusions(pairs)
+    else:
+        exclusions = virustotal_gate.compute_exclusions(payload, pairs)
+    virustotal_gate.apply_exclusions(
+        exclusions,
+        artifact_root=Path("all-apks"),
+        release_dir=Path("release-apks"),
+        exclusions_path=virustotal_gate.DEFAULT_EXCLUSIONS_PATH,
+        release_tag=_release_tag_from_previous_step(),
+    )
+
+
 def main() -> None:
     output = Path(os.environ.get("RELEASE_NOTES_PATH", "release_notes.md"))
+
+    _apply_virustotal_gate()
 
     if _generate_and_publish_release_details(output):
         print(f"Linked release notes generated: {output}")
