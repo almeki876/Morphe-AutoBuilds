@@ -354,6 +354,12 @@ def main() -> int:
             tunnel_log = root / "cloudflared.log"
             tunnel_process, tunnel_handle, public_url = _start_tunnel(local_url, tunnel_log)
 
+            # The tunnel URL is a bearer-style capability for the short
+            # registration window: mask it before it is printed anywhere so
+            # the workflow log and annotations never show it in clear text.
+            # The operator copies it from the job summary instead.
+            print(f"::add-mask::{public_url}", flush=True)
+
             server_env = os.environ.copy()
             server_env.update(
                 {

@@ -3,6 +3,7 @@
 tools/<source_name>/ 以下に配置する。
 各ビルドジョブはこのディレクトリをキャッシュから取得して使う。
 """
+import hashlib
 import json
 import logging
 import os
@@ -93,6 +94,166 @@ def download_asset(url: str, dest: pathlib.Path, retries: int = 3, token: str = 
             time.sleep(10 * attempt)
     logging.error(f"  ❌ failed after {retries} attempts: {url}")
     return False
+
+def hash_file(path: pathlib.Path, algorithm: str) -> str:
+    """Compute a hex digest, mirroring scripts/install_google_play_clients."""
+    digest = hashlib.new(algorithm)
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+# Checksum sidecar files published next to a release asset, mapped to the
+# digest algorithm they carry: "<asset>.sha256" and friends.
+CHECKSUM_SUFFIX_ALGORITHMS = {
+    ".sha256": "sha256",
+    ".sha256sum": "sha256",
+    ".sha512": "sha512",
+    ".md5": "md5",
+}
+
+# Aggregate checksum files that list one "<digest>  <filename>" line per asset.
+AGGREGATE_CHECKSUM_NAMES = {
+    "checksums.txt",
+    "checksums",
+    "checksum.txt",
+    "sha256sums",
+    "sha256sums.txt",
+    "sha512sums",
+    "sha512sums.txt",
+    "md5sums",
+    "md5sums.txt",
+}
+
+_ALGORITHM_BY_DIGEST_LENGTH = {32: "md5", 64: "sha256", 128: "sha512"}
+
+
+def _parse_checksum_lines(text: str) -> list[tuple[str, str]]:
+    """Parse (filename, digest) pairs from checksum file content.
+
+    Handles the standard "<digest>  <filename>" / "<digest> *<filename>"
+    layout as well as bare digest lines (returned with an empty filename).
+    """
+    pairs: list[tuple[str, str]] = []
+    for line in text.splitlines():
+        parts = line.strip().split()
+        if not parts:
+            continue
+        digest = parts[0].strip().lower()
+        if len(digest) not in _ALGORITHM_BY_DIGEST_LENGTH or any(
+            char not in "0123456789abcdef" for char in digest
+        ):
+            continue
+        filename = ""
+        if len(parts) > 1:
+            filename = pathlib.PurePath(parts[1].lstrip("*")).name
+        pairs.append((filename, digest))
+    return pairs
+
+
+def expected_asset_digests(
+    assets: list[dict],
+    wanted_names: list[str],
+    dest_dir: pathlib.Path,
+) -> dict[str, tuple[str, str]]:
+    """Resolve published digests for wanted assets from the same release.
+
+    Sources, strongest first: a per-asset checksum sidecar
+    (``<asset>.sha256`` etc.), an aggregate checksum file
+    (``checksums.txt`` / ``SHA256SUMS`` style), and the ``digest`` field the
+    GitHub API reports for the asset itself.  Returns
+    ``{asset_name: (algorithm, hex_digest)}``; assets with no published
+    digest are simply absent from the result.
+    """
+    expected: dict[str, tuple[str, str]] = {}
+    wanted = set(wanted_names)
+
+    checksum_assets: list[tuple[str, str, str]] = []  # (target, algorithm, url)
+    aggregate_assets: list[tuple[str, str]] = []  # (name, url)
+    for asset in assets:
+        aname = str(asset.get("name") or "")
+        url = str(asset.get("browser_download_url") or "")
+        if not url:
+            continue
+        lowered = aname.lower()
+        for suffix, algorithm in CHECKSUM_SUFFIX_ALGORITHMS.items():
+            if lowered.endswith(suffix):
+                target = aname[: -len(suffix)]
+                if target in wanted:
+                    checksum_assets.append((target, algorithm, url))
+                break
+        else:
+            if lowered in AGGREGATE_CHECKSUM_NAMES:
+                aggregate_assets.append((aname, url))
+
+    if checksum_assets or aggregate_assets:
+        with tempfile.TemporaryDirectory(
+            prefix=".checksums.", dir=dest_dir
+        ) as temp_dir:
+            temp_root = pathlib.Path(temp_dir)
+            for target, algorithm, url in checksum_assets:
+                sidecar = temp_root / f"{target}.checksum"
+                if not download_asset(url, sidecar):
+                    logging.warning(
+                        f"  ⚠️  could not download checksum file for {target}; "
+                        "treating the asset as unverified"
+                    )
+                    continue
+                try:
+                    pairs = _parse_checksum_lines(
+                        sidecar.read_text(encoding="utf-8", errors="replace")
+                    )
+                except OSError as error:
+                    logging.warning(
+                        f"  ⚠️  could not read checksum file for {target}: {error}"
+                    )
+                    continue
+                for _filename, digest in pairs:
+                    expected[target] = (algorithm, digest)
+                    break
+            for name, url in aggregate_assets:
+                listing = temp_root / name
+                if not download_asset(url, listing):
+                    logging.warning(
+                        f"  ⚠️  could not download checksum file {name}; "
+                        "ignoring it"
+                    )
+                    continue
+                try:
+                    pairs = _parse_checksum_lines(
+                        listing.read_text(encoding="utf-8", errors="replace")
+                    )
+                except OSError as error:
+                    logging.warning(
+                        f"  ⚠️  could not read checksum file {name}: {error}"
+                    )
+                    continue
+                for filename, digest in pairs:
+                    if filename in wanted and filename not in expected:
+                        algorithm = _ALGORITHM_BY_DIGEST_LENGTH[len(digest)]
+                        expected[filename] = (algorithm, digest)
+
+    for asset in assets:
+        aname = str(asset.get("name") or "")
+        if aname not in wanted or aname in expected:
+            continue
+        digest_field = str(asset.get("digest") or "").strip()
+        if digest_field.startswith("sha256:"):
+            candidate = digest_field.split(":", 1)[1].strip().lower()
+            if len(candidate) == 64 and all(
+                char in "0123456789abcdef" for char in candidate
+            ):
+                expected[aname] = ("sha256", candidate)
+    return expected
+
+
+def verify_asset_checksum(
+    path: pathlib.Path, expected: tuple[str, str]
+) -> bool:
+    algorithm, expected_hex = expected
+    return hash_file(path, algorithm).lower() == expected_hex.lower()
+
 
 def _is_permanent_github_error(message: str) -> bool:
     """Return whether retrying the same GitHub credential cannot help."""
@@ -365,8 +526,8 @@ def main() -> int:
                     resolved_patch_release = (user, repo, resolved_tag)
 
             all_assets = release.get("assets", [])
-            matched_any = False
 
+            wanted_assets: list[dict] = []
             for asset in all_assets:
                 aname = asset["name"]
                 if aname.endswith((".asc", ".sig", ".sha256", ".sha512", ".md5")):
@@ -380,21 +541,69 @@ def main() -> int:
                     is_wanted = aname.endswith((".mpp", ".rvp")) or (
                         aname.endswith(".jar") and "patch" in aname.lower()
                     )
-                if not is_wanted:
-                    continue
+                if is_wanted:
+                    wanted_assets.append(asset)
 
+            # Integrity: when the release publishes a checksum for an asset
+            # (sidecar file, aggregate checksum file, or the GitHub API
+            # digest), the downloaded bytes must match it.  Assets without
+            # any published checksum are used with a warning, matching the
+            # reality that most upstream sources publish none.
+            expected_digests = expected_asset_digests(
+                all_assets,
+                [str(asset["name"]) for asset in wanted_assets],
+                dest_dir,
+            )
+
+            matched_any = False
+            for asset in wanted_assets:
+                aname = asset["name"]
                 matched_any = True
                 dest_file = dest_dir / aname
+                expected = expected_digests.get(aname)
                 if dest_file.exists() and dest_file.stat().st_size > 0:
-                    logging.info(
-                        f"  ⏭️  already exists (unexpected on cache miss): {aname}"
+                    if expected is None:
+                        logging.info(
+                            f"  ⏭️  already exists (unexpected on cache miss): {aname}"
+                        )
+                        continue
+                    if verify_asset_checksum(dest_file, expected):
+                        logging.info(
+                            f"  ⏭️  already exists and checksum verified: {aname}"
+                        )
+                        continue
+                    logging.warning(
+                        f"  ⚠️  existing {aname} failed checksum verification; "
+                        "downloading it again"
                     )
-                    continue
+                    dest_file.unlink(missing_ok=True)
 
                 logging.info(f"  ⬇️  {aname}")
                 if not download_asset(asset["browser_download_url"], dest_file):
                     source_failed = True
                     source_failure_reasons.append(f"failed to download asset {aname}")
+                    break
+
+                if expected is None:
+                    logging.warning(
+                        f"  ⚠️  no checksum published for {aname}; "
+                        "its integrity cannot be verified"
+                    )
+                elif verify_asset_checksum(dest_file, expected):
+                    logging.info(
+                        f"  🔒 {aname} checksum verified ({expected[0]})"
+                    )
+                else:
+                    dest_file.unlink(missing_ok=True)
+                    logging.error(
+                        f"  ❌ checksum mismatch for {aname}: the downloaded "
+                        "file does not match the digest published with the "
+                        "release; refusing to use it"
+                    )
+                    source_failed = True
+                    source_failure_reasons.append(
+                        f"checksum mismatch for asset {aname}"
+                    )
                     break
 
             if source_failed:

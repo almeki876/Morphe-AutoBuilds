@@ -614,7 +614,11 @@ def extract_filename(response, fallback_url=None) -> str:
         _, params = parse_header(cd)
         filename = params.get('filename') or params.get('filename*')
         if filename:
-            return unquote(filename)
+            # The name comes from the server; never let it carry directory
+            # components into a local write path.
+            name = Path(unquote(filename)).name
+            if name:
+                return name
 
     parsed = urlparse(response.url)
     query_params = parse_qs(parsed.query)
@@ -623,7 +627,9 @@ def extract_filename(response, fallback_url=None) -> str:
         _, params = parse_header(unquote(rcd[0]))
         filename = params.get('filename') or params.get('filename*')
         if filename:
-            return unquote(filename)
+            name = Path(unquote(filename)).name
+            if name:
+                return name
 
     path = urlparse(fallback_url or response.url).path
     return unquote(Path(path).name)
