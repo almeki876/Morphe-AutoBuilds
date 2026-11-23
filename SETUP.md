@@ -134,6 +134,8 @@ Before release, the workflow checks the SHA-256 hash of each original, unpatched
 4. Poll newly started analyses together.
 5. Save successful results to the cache.
 
+Results are tracked per file name in addition to the hash, so a base APK shared by several patch sources keeps a scan result for each of them.
+
 Google Play split APKs are combined deterministically into an `.apks` archive, so the same APK set produces the same hash even if runner or file timestamps differ. Successful VirusTotal results are also saved as a Release asset so they can be reused if the Actions cache is lost. If the scan cannot be completed, the workflow blocks the release.
 
 ## Registering a Google Play account

@@ -136,6 +136,8 @@ Google Play split APKをまとめる `.apks` は決定論的に生成し、同�
 
 Actions cacheに加え、成功したVT結果はRelease assetにも永続化し、Actions cache消失時にも再利用します。VirusTotalを確認できない場合はfail-closedでReleaseを止めます。
 
+スキャン結果はハッシュだけでなくファイル名ごとにも記録します。同じベースAPKを複数のパッチソースが使う場合でも、ソースごとに結果が残ります。
+
 ## Google Play アカウント登録
 
 1. `GPLAYDL_API_KEY` をSecretへ登録
