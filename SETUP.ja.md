@@ -33,7 +33,7 @@ Actions画面では、通常ビルド、全アプリの手動ビルド、CI、�
 | `Repository Validation` (`configuration-check.yml`) | main系ブランチへのpushとPull Requestで、設定とテストを自動検証します。 |
 | `Repository Operations` (`operations.yml`) | 定期メンテナンス、または選択した保守作業を実行します。 |
 
-全アプリをビルドするときは `Build All Apps` を実行してください。保守作業の選択メニューには統合していません。
+全アプリをビルドするときは `Build All Apps` を実行してください。保守作業の選択メニューには統合していません。なお、`main` へのコミットのメッセージに `BuildAllApps` というキーワードが含まれている場合も、全アプリビルドが自動で起動します。
 
 手動で保守作業を行う場合は **Repository Operations → Run workflow** を開き、`task` から選びます。
 
