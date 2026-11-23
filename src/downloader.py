@@ -61,10 +61,14 @@ def download_resource(
             resolved_name = name or utils.extract_filename(
                 res, fallback_url=final_url
             )
-            # Defense in depth: whatever name the caller or the server
-            # supplied, the download is written to a plain file name in the
-            # working directory, never to a server-chosen path.
-            filepath = Path(Path(resolved_name).name)
+            # Defense in depth: extract_filename already reduces
+            # server-supplied names to a plain file name.  If a name with
+            # parent-directory traversal still reaches this point (for
+            # example from a direct caller), collapse it to its base name;
+            # legitimate caller-chosen paths are left untouched.
+            filepath = Path(resolved_name)
+            if ".." in filepath.parts:
+                filepath = Path(filepath.name)
             if filepath.name.casefold() in APK_ARCHIVE_SUFFIXES:
                 filepath = filepath.with_name(f"download{filepath.name}")
             filepath.parent.mkdir(parents=True, exist_ok=True)
