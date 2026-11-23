@@ -1,0 +1,53 @@
+{
+  "app_name": "slack",
+  "source": "slick",
+  "patch_source": "slick",
+  "source_name": "slick",
+  "version": "26.11.30.0",
+  "status": "success",
+  "lifecycle_status": "success_full",
+  "requested_patches": [
+    "Anonymize file names",
+    "Appearance",
+    "Block telemetry",
+    "Cache cleaner",
+    "Custom font",
+    "Feature flags",
+    "Fix blank emoji names",
+    "Last seen",
+    "Message logger",
+    "Show pronouns",
+    "Silent typing",
+    "Slick Android",
+    "Who reacted"
+  ],
+  "requested_options": [],
+  "applying_count": 13,
+  "applied_patches": [
+    "Slick Android",
+    "Who reacted",
+    "Silent typing",
+    "Show pronouns",
+    "Message logger",
+    "Last seen",
+    "Fix blank emoji names",
+    "Feature flags",
+    "Custom font",
+    "Cache cleaner",
+    "Block telemetry",
+    "Appearance",
+    "Anonymize file names"
+  ],
+  "excluded_patches": [],
+  "disabled_patches": [],
+  "feature_failures": [],
+  "failed_patches": [],
+  "required_patches": [
+    "Slick Android"
+  ],
+  "required_failures": [],
+  "required_patches_satisfied": true,
+  "fully_applied": true,
+  "error_category": null,
+  "error_summary": null
+}

@@ -1,0 +1,23 @@
+{
+  "results": [
+    {
+      "file": "chatgpt-proteus-universal.xapk",
+      "sha256": "be312a88ecf369d6eaa241e78640a9b63af13e83ff5a76b062df46847fc2be9a",
+      "size": 123239977,
+      "analysis_id": "",
+      "malicious": 0,
+      "suspicious": 0,
+      "harmless": 0,
+      "undetected": 65,
+      "timeout": 0,
+      "failure": 0,
+      "unsupported": 9,
+      "verdict": "clean",
+      "method": "persistent hash cache",
+      "engines": {},
+      "permalink": "https://www.virustotal.com/gui/file/be312a88ecf369d6eaa241e78640a9b63af13e83ff5a76b062df46847fc2be9a/detection",
+      "last_analysis_date": 1793676623,
+      "reanalyzed": false
+    }
+  ]
+}

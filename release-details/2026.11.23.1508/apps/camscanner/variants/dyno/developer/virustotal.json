@@ -1,0 +1,23 @@
+{
+  "results": [
+    {
+      "file": "camscanner-dyno-universal.xapk",
+      "sha256": "3b314a2bbc994247e75fb45cd574a8e90d65623c21687d7c23fd6b72ac93b45c",
+      "size": 180910367,
+      "analysis_id": "",
+      "malicious": 0,
+      "suspicious": 0,
+      "harmless": 0,
+      "undetected": 55,
+      "timeout": 8,
+      "failure": 1,
+      "unsupported": 10,
+      "verdict": "clean",
+      "method": "persistent hash cache",
+      "engines": {},
+      "permalink": "https://www.virustotal.com/gui/file/3b314a2bbc994247e75fb45cd574a8e90d65623c21687d7c23fd6b72ac93b45c/detection",
+      "last_analysis_date": 1795346966,
+      "reanalyzed": false
+    }
+  ]
+}

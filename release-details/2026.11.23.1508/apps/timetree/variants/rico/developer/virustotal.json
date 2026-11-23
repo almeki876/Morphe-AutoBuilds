@@ -1,0 +1,23 @@
+{
+  "results": [
+    {
+      "file": "timetree-rico-universal.apks",
+      "sha256": "c6146d69de9f5f17d12bc33d2c2c2d9be968fe81c6e2ad1a5752772431a1ade3",
+      "size": 51972791,
+      "analysis_id": "NTQ4ZjRmMmMyNTNmMmM5ODQxOTY2NTZmMzQwMzc2MDM6MTc5NTM1MDA2Mg==",
+      "malicious": 0,
+      "suspicious": 0,
+      "harmless": 0,
+      "undetected": 60,
+      "timeout": 3,
+      "failure": 1,
+      "unsupported": 10,
+      "verdict": "clean",
+      "method": "persistent hash cache",
+      "engines": {},
+      "permalink": "https://www.virustotal.com/gui/file/c6146d69de9f5f17d12bc33d2c2c2d9be968fe81c6e2ad1a5752772431a1ade3/detection",
+      "last_analysis_date": 1795350062,
+      "reanalyzed": false
+    }
+  ]
+}

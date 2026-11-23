@@ -1,0 +1,23 @@
+{
+  "results": [
+    {
+      "file": "windscribe-vpn-rushiranpise-arm64-v8a.xapk",
+      "sha256": "74741bf634cd018974d013298a71dd9b174eb1070f8e7284d9c900490cadd321",
+      "size": 31958458,
+      "analysis_id": "",
+      "malicious": 0,
+      "suspicious": 0,
+      "harmless": 0,
+      "undetected": 65,
+      "timeout": 1,
+      "failure": 0,
+      "unsupported": 9,
+      "verdict": "clean",
+      "method": "persistent hash cache",
+      "engines": {},
+      "permalink": "https://www.virustotal.com/gui/file/74741bf634cd018974d013298a71dd9b174eb1070f8e7284d9c900490cadd321/detection",
+      "last_analysis_date": 1788310403,
+      "reanalyzed": false
+    }
+  ]
+}

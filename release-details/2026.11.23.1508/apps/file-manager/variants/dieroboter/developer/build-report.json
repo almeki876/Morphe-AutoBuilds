@@ -1,0 +1,28 @@
+{
+  "app_name": "file-manager",
+  "source": "dieroboter",
+  "patch_source": "dieroboter",
+  "source_name": "dieroboter",
+  "version": "3.8.5",
+  "status": "success",
+  "lifecycle_status": "success_full",
+  "requested_patches": [],
+  "requested_options": [],
+  "applying_count": 4,
+  "applied_patches": [
+    "Disable analytics and telemetry",
+    "Hide premium section in settings",
+    "Remove ad and tracking components",
+    "Unlock premium"
+  ],
+  "excluded_patches": [],
+  "disabled_patches": [],
+  "feature_failures": [],
+  "failed_patches": [],
+  "required_patches": [],
+  "required_failures": [],
+  "required_patches_satisfied": true,
+  "fully_applied": true,
+  "error_category": null,
+  "error_summary": null
+}

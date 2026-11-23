@@ -1,0 +1,23 @@
+{
+  "results": [
+    {
+      "file": "poweramp-mwbra130-arm64-v8a.xapk",
+      "sha256": "73671072c044d765f1236f7803ba1f89281be78d208559a08d09be8b0e92f1ab",
+      "size": 25436810,
+      "analysis_id": "ZjFhODU5OGJmNmM0MTZlZjNlYmM5ZTM4ZGE0M2IzYjg6MTc5NDk2MTA5Ng==",
+      "malicious": 0,
+      "suspicious": 0,
+      "harmless": 0,
+      "undetected": 64,
+      "timeout": 1,
+      "failure": 0,
+      "unsupported": 9,
+      "verdict": "clean",
+      "method": "persistent hash cache",
+      "engines": {},
+      "permalink": "https://www.virustotal.com/gui/file/73671072c044d765f1236f7803ba1f89281be78d208559a08d09be8b0e92f1ab/detection",
+      "last_analysis_date": 1794961096,
+      "reanalyzed": false
+    }
+  ]
+}

@@ -1,0 +1,66 @@
+{
+  "app_name": "audio-editor",
+  "source": "mightymichs",
+  "patch_source": "mightymichs",
+  "source_name": "mightymichs",
+  "version": "2.01.65.1014",
+  "status": "success",
+  "lifecycle_status": "success_full",
+  "requested_patches": [],
+  "requested_options": [],
+  "applying_count": 1,
+  "applied_patches": [
+    "Unlock Premium Features"
+  ],
+  "excluded_patches": [],
+  "disabled_patches": [],
+  "feature_failures": [
+    {
+      "name": "Bypass in-app purchase",
+      "reason": "[runtime-skipped-default] default"
+    },
+    {
+      "name": "Change app name",
+      "reason": "[runtime-skipped-default] default"
+    },
+    {
+      "name": "Change package name",
+      "reason": "[runtime-skipped-default] default"
+    },
+    {
+      "name": "Change version code",
+      "reason": "[runtime-skipped-default] default"
+    },
+    {
+      "name": "Disable ads",
+      "reason": "[runtime-skipped] basic"
+    },
+    {
+      "name": "Disable PairIP license check",
+      "reason": "[runtime-skipped-default] default"
+    },
+    {
+      "name": "Remove Flag Secure",
+      "reason": "[runtime-skipped-default] default"
+    },
+    {
+      "name": "Disable all telemetry",
+      "reason": "[runtime-skipped-default] default"
+    },
+    {
+      "name": "Remove INTERNET permission",
+      "reason": "[runtime-skipped-default] default"
+    },
+    {
+      "name": "Spoof device & network",
+      "reason": "[runtime-skipped-default] default"
+    }
+  ],
+  "failed_patches": [],
+  "required_patches": [],
+  "required_failures": [],
+  "required_patches_satisfied": true,
+  "fully_applied": true,
+  "error_category": null,
+  "error_summary": null
+}

@@ -1,0 +1,23 @@
+{
+  "results": [
+    {
+      "file": "file-manager-dieroboter-universal.apk",
+      "sha256": "b6c103b0fc27bb9712093cd7d0ffb13c8c2bb0f8bc9956efb62de64292c5df25",
+      "size": 13733770,
+      "analysis_id": "",
+      "malicious": 0,
+      "suspicious": 0,
+      "harmless": 0,
+      "undetected": 67,
+      "timeout": 0,
+      "failure": 0,
+      "unsupported": 8,
+      "verdict": "clean",
+      "method": "persistent hash cache",
+      "engines": {},
+      "permalink": "https://www.virustotal.com/gui/file/b6c103b0fc27bb9712093cd7d0ffb13c8c2bb0f8bc9956efb62de64292c5df25/detection",
+      "last_analysis_date": 1794580383,
+      "reanalyzed": false
+    }
+  ]
+}

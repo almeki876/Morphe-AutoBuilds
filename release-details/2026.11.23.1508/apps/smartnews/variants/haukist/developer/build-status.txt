@@ -1,0 +1,89 @@
+app=smartnews
+source=haukist
+source_name=haukist
+phase=Patch
+status=success
+run=https://github.com/almeki876/Morphe-AutoBuilds/actions/runs/45122121691
+
+traceback_or_error_tail<<EOF
+2026-11-23 06:19:21 [SIZE] prepared: 39943158 bytes (.build-input-universal.xapk)
+2026-11-23 06:19:22 CLI raw output lines: ['INFO: Morphe data root: /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/morphe-data (JAR-adjacent)', 'INFO: Package name: jp.gocro.smartnews.android', 'Most common compatible versions:', '\t26.10.30 (3 patches)']
+2026-11-23 06:19:22 CLI parsed compatible versions: ['26.10.30']
+2026-11-23 06:19:22 ℹ️  No explicit patch allowlist for patches/smartnews-haukist.txt; using patch bundle defaults
+2026-11-23 06:19:22 🔧 Patching with morphe CLI (morphe-desktop-2.3.0-all.jar)…
+2026-11-23 06:19:22 Available patches in patches-1.1.0.mpp:
+INFO: Morphe data root: /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/morphe-data (JAR-adjacent)
+INFO: Index: 0
+Name: Disable ads and trackers
+Description: Disables first-party and third-party advertisements, analytics, and tracking SDKs in SmartNews.
+Enabled: true
+
+Index: 1
+Name: Direct article share URL
+Description: Shares and copies the original article URL directly instead of SmartNews tracking redirect links (l.smartnews.com).
+Enabled: true
+
+Index: 2
+Name: Popup share menu
+Description: Restores the legacy popup share menu when tapping the top-right share button, replacing the default system share sheet (identical to the menu used in web mode).
+Enabled: true
+2026-11-23 06:19:22 enable_patches=[]  disable_patches=[]
+2026-11-23 06:19:22 Running: java -Djava.awt.headless=true -Xmx6g -Xms3g -Dfile.encoding=UTF-8 -XX:-UsePerfData -XX:+UseG1GC -XX:MaxGCPauseMillis=150 -XX:G1HeapRegionSize=2m -XX:+UseStringDeduplication -XX:+ParallelRefProcEnabled -XX:ConcGCThreads=2 -XX:ParallelGCThreads=4 -XX:CICompilerCount=3 -XX:+UseCompressedOops -XX:+OptimizeStringConcat -XX:+DisableExplicitGC -XX:+TieredCompilation -XX:ReservedCodeCacheSize=128m -XX:InitialCodeCacheSize=32m -XX:SoftRefLRUPolicyMSPerMB=50 --add-opens=java.base/java.lang=ALL-UNNAMED --add-opens=java.base/java.util=ALL-UNNAMED --add-opens=java.base/java.io=ALL-UNNAMED -jar /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/morphe-desktop-2.3.0-all.jar patch --continue-on-error --unsigned --result-file /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/.patch-result-smartnews-universal.json --temporary-files-path /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/.morphe-tmp-smartnews-universal -p /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/patches-1.1.0.mpp --out=/home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/smartnews-universal-patch-v26.10.30.apk --bytecode-mode=STRIP_FAST /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/.build-input-universal.xapk
+INFO: Morphe data root: /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/morphe-data (JAR-adjacent)
+INFO: Merging split APK bundle...
+INFO: Extracting to: /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/.morphe-tmp-smartnews-universal/patching-1795414762903/tmp_70105577
+INFO: Searching apk files ...
+INFO: Found apk files: 3
+INFO: Found modules: 3
+INFO: Merging: jp.gocro.smartnews.android
+INFO: Added [jp.gocro.smartnews.android] classes.dex -> classes.dex
+INFO: Added [jp.gocro.smartnews.android] classes2.dex -> classes2.dex
+INFO: Added [jp.gocro.smartnews.android] classes3.dex -> classes3.dex
+INFO: Added [jp.gocro.smartnews.android] classes4.dex -> classes4.dex
+INFO: Added [jp.gocro.smartnews.android] classes5.dex -> classes5.dex
+INFO: Merging: config.xhdpi
+INFO: Merging: config.armeabi_v7a
+INFO: Validating resources dir ...
+INFO: Sanitizing manifest ...
+INFO: Setting extractNativeLibs=false
+INFO: Writing apk ...
+INFO: Buffering compress changed files ...
+INFO: Writing files: 4474
+INFO: Writing signature block ...
+INFO: Saved to: /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/.morphe-tmp-smartnews-universal/patching-1795414762903/.build-input-universal-merged.apk
+INFO: Initializing patcher...
+INFO: Loading patches from 1 bundle(s)...
+INFO: Filtering patches for jp.gocro.smartnews.android v26.10.30...
+INFO: Applying 3 patches...
+INFO: Deleting existing temporary files directory
+INFO: Executing patches
+INFO: Building instruction indexes for 50923 classes...
+INFO: Applied: Direct article share URL
+INFO: Applied: Disable ads and trackers
+INFO: Applied: Popup share menu
+INFO: Rebuilding APK...
+INFO: Compiling patched dex files (mode: STRIP_FAST)
+INFO: Copied 575 unchanged extension classes to 1 DEX files
+INFO: Changed 148 of 51498 classes to mutable
+INFO: Writing 148 new classes to new DEX files
+INFO: Processing 148 classes (single threaded mode)
+INFO: Wrote 1 dex files to /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/.morphe-tmp-smartnews-universal/patching-1795414762903/patcher/patched/newDex
+INFO: Stripped 148 modified classes from 5 original DEX files
+INFO: Stripping libs (keeping architectures arm64-v8a, armeabi-v7a, x86, x86_64)
+INFO: Stripped 0 lib files
+INFO: Saved to /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/smartnews-universal-patch-v26.10.30.apk
+INFO: Patching took 3.2 seconds
+INFO: Patching result saved to /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/.patch-result-smartnews-universal.json
+2026-11-23 06:19:26 Validated patched APK: 42701001 bytes (ABIs: armeabi-v7a)
+2026-11-23 06:19:29 Normalized patched APK ZIP headers
+2026-11-23 06:19:29 Validated architecture-filtered APK (ABIs: armeabi-v7a)
+2026-11-23 06:19:29 [SIZE] patched: 40760737 bytes (smartnews-universal-patch-v26.10.30.apk)
+Signed
+2026-11-23 06:19:31 [SIZE] signed: 41256009 bytes (smartnews-universal-haukist-v26.10.30.apk)
+✅ APK built: smartnews-universal-haukist-v26.10.30.apk
+✅ Built universal: smartnews-universal-haukist-v26.10.30.apk
+2026-11-23 06:19:31 ⚠️  arm64-v8a failed, but universal fallback succeeded.
+
+🎯 1 APK(s) built for 'smartnews':
+   📱 smartnews-universal-haukist-v26.10.30.apk
+EOF

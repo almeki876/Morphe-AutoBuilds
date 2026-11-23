@@ -1,0 +1,120 @@
+{
+  "app_name": "chatgpt",
+  "source": "proteus",
+  "patch_source": "proteus",
+  "source_name": "proteus",
+  "version": "1.2026.293",
+  "status": "success",
+  "lifecycle_status": "success_full",
+  "requested_patches": [],
+  "requested_options": [],
+  "applying_count": 3,
+  "applied_patches": [
+    "Privacy: block trackers & analytics",
+    "Privacy: no location, contacts or phone data",
+    "Privacy: no mic or camera"
+  ],
+  "excluded_patches": [],
+  "disabled_patches": [],
+  "feature_failures": [
+    {
+      "name": "Disable PairIP license check",
+      "reason": "[runtime-skipped-default] default"
+    },
+    {
+      "name": "Provide Original app certificate",
+      "reason": "[runtime-skipped-default] default"
+    },
+    {
+      "name": "Spoof Widevine / DRM level",
+      "reason": "[runtime-skipped-default] default"
+    },
+    {
+      "name": "Fix Firebase after re-signing",
+      "reason": "[runtime-skipped-default] default"
+    },
+    {
+      "name": "GmsCore support",
+      "reason": "[runtime-skipped] MicroG"
+    },
+    {
+      "name": "Block cleartext",
+      "reason": "[runtime-skipped] HTTP"
+    },
+    {
+      "name": "Block user-added certificate authorities",
+      "reason": "[runtime-skipped-default] default"
+    },
+    {
+      "name": "Disable app backup",
+      "reason": "[runtime-skipped] allowBackup=false"
+    },
+    {
+      "name": "Remove dangerous permissions",
+      "reason": "[runtime-skipped-default] default"
+    },
+    {
+      "name": "Disable video autoplay",
+      "reason": "[runtime-skipped] ExoPlayer/Media3"
+    },
+    {
+      "name": "Block in-app update & review prompts",
+      "reason": "[runtime-skipped-default] default"
+    },
+    {
+      "name": "Block Play Billing purchase prompts",
+      "reason": "[runtime-skipped-default] default"
+    },
+    {
+      "name": "Prefer external browser over Custom Tabs",
+      "reason": "[runtime-skipped-default] default"
+    },
+    {
+      "name": "Force offline mode",
+      "reason": "[runtime-skipped] simulate no network"
+    },
+    {
+      "name": "Strip logging",
+      "reason": "[runtime-skipped] android.util.Log"
+    },
+    {
+      "name": "Allow screenshots & screen recording",
+      "reason": "[runtime-skipped-default] default"
+    },
+    {
+      "name": "Block advertising & device IDs",
+      "reason": "[runtime-skipped-default] default"
+    },
+    {
+      "name": "Block analytics & tracking SDKs",
+      "reason": "[runtime-skipped-default] default"
+    },
+    {
+      "name": "Block crash-reporting SDKs",
+      "reason": "[runtime-skipped-default] default"
+    },
+    {
+      "name": "Block screenshots & screen recording",
+      "reason": "[runtime-skipped-default] default"
+    },
+    {
+      "name": "Empty telephony identifiers",
+      "reason": "[runtime-skipped] IMEI, phone number, SIM"
+    },
+    {
+      "name": "Hide developer options & USB debugging",
+      "reason": "[runtime-skipped-default] default"
+    },
+    {
+      "name": "WebView hardening",
+      "reason": "[runtime-skipped-default] default"
+    }
+  ],
+  "failed_patches": [],
+  "required_patches": [],
+  "required_failures": [],
+  "required_patches_satisfied": true,
+  "fully_applied": true,
+  "error_category": null,
+  "error_summary": null
+}
