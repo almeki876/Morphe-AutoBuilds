@@ -37,7 +37,7 @@ The Actions page keeps the main build, a one-click full build, validation, and m
 | `Repository Validation` (`configuration-check.yml`) | Runs automatically for pushes to the main branches and pull requests. |
 | `Repository Operations` (`operations.yml`) | Runs scheduled maintenance or a selected manual maintenance task. |
 
-Use `Build All Apps` when you want to rebuild everything; it does not share the maintenance task selector.
+Use `Build All Apps` when you want to rebuild everything; it does not share the maintenance task selector. A full build also starts automatically when a commit pushed to `main` contains the keyword `BuildAllApps` in its commit message.
 
 Select **Repository Operations → Run workflow** and choose one task from the `task` menu:
 
