@@ -211,7 +211,7 @@ Releaseは次を満たした場合だけ作成します。
 - VirusTotal base APK scanが成功
 - package/version identity検証を通過
 
-一部アプリが失敗した場合は、正常に完成したAPKだけが部分Releaseになることがあります。失敗情報はper-app status artifactとIssue reporterへ渡されます。
+一部アプリが失敗した場合は、正常に完成したAPKだけが部分Releaseになることがあります。失敗情報はper-app status artifactとIssue reporterへ渡されます。そのアプリやパッチソースが後のビルドで成功すると、開いている失敗issueは復旧のコメント付きで自動的に閉じられます。
 
 ## メンテナンス作業
 

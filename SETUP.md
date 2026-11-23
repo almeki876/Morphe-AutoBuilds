@@ -209,7 +209,7 @@ A release is created only when:
 - The VirusTotal scan for the original APK succeeded.
 - Package and version identity checks passed.
 
-If some apps fail, the release may contain only the APKs that completed successfully. Per-app status artifacts and the issue reporter contain failure details.
+If some apps fail, the release may contain only the APKs that completed successfully. Per-app status artifacts and the issue reporter contain failure details. When a later build succeeds for that app or patch source, the open failure issue is closed automatically with a recovery note.
 
 ## Maintenance tasks
 
