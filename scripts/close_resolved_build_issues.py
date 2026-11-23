@@ -21,9 +21,16 @@ AUTO_PREFIXES = (
     "[Build Failure]",
     "[Feature Failure]",
     "[Partial Patch Failure]",
+    "[Source Unavailable]",
 )
 GITHUB_ACTIONS_BOT_LOGINS = {"app/github-actions", "github-actions", "github-actions[bot]"}
 FEATURE_NAME_RE = re.compile(r"^- \*\*Failed patch feature:\*\* `(.+?)`$", re.MULTILINE)
+# Title format created by scripts/report_tool_download_failures.py. The
+# trailing source name is the only reliable identifier for these per-source
+# issues, so matching stays title-based (no body fallback).
+SOURCE_UNAVAILABLE_TITLE_RE = re.compile(
+    r"^\[Source Unavailable\] Build tools failed to download for ([A-Za-z0-9_-]+)\s*$"
+)
 SOURCE_ALIASES = {
     # Universal patches moved to a dedicated upstream bundle. A successful
     # migrated build should resolve tracking issues opened under the old source.
@@ -99,6 +106,9 @@ def _matches(issue: dict, report: dict) -> bool:
             title.startswith(f"[Partial Patch Failure] {app} ({name}) -")
             for name in source_names
         )
+    if title.startswith("[Source Unavailable]"):
+        match = SOURCE_UNAVAILABLE_TITLE_RE.match(title)
+        return bool(match) and match.group(1) in source_names
 
     # Defensive fallback for older auto-generated title formats.
     return (
@@ -142,6 +152,10 @@ def _issue_resolved(issue: dict, report: dict) -> bool:
 
     if title.startswith("[Build Failure]"):
         return True
+    if title.startswith("[Source Unavailable]"):
+        # The report already proves a build succeeded with this patch
+        # source, so its build tools were downloadable and usable again.
+        return True
     if title.startswith("[Feature Failure]"):
         feature = _feature_issue_name(issue)
         return bool(feature) and feature not in actionable
@@ -170,11 +184,18 @@ def close_resolved(root: Path, run_url: str) -> int:
                 or not _issue_resolved(issue, report)
             ):
                 continue
-            message = (
-                f"CI verified a later successful build for `{app}` with patch source `{source}`, "
-                "and the condition tracked by this auto-generated issue is no longer an "
-                "actionable failure. Closing it as resolved."
-            )
+            if str(issue.get("title") or "").startswith("[Source Unavailable]"):
+                message = (
+                    f"CI verified a later successful build for `{app}` with patch source `{source}`, "
+                    "and the tool download failure tracked by this auto-generated issue is no "
+                    "longer occurring. Closing it as resolved."
+                )
+            else:
+                message = (
+                    f"CI verified a later successful build for `{app}` with patch source `{source}`, "
+                    "and the condition tracked by this auto-generated issue is no longer an "
+                    "actionable failure. Closing it as resolved."
+                )
             if run_url:
                 message += f"\n\nSuccessful workflow run: {run_url}"
             subprocess.run(
