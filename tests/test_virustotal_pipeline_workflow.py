@@ -1,5 +1,10 @@
 from __future__ import annotations
 
+import os
+import subprocess
+import sys
+import tempfile
+import textwrap
 import unittest
 from pathlib import Path
 
@@ -40,6 +45,75 @@ class VirusTotalPipelineWorkflowTests(unittest.TestCase):
         self.assertIn("virustotal-cache-v1.json", release_script)
         self.assertIn('"--clobber"', release_script)
         self.assertFalse(Path(".github/workflows/publish-virustotal-cache.yml").exists())
+
+    def test_merge_reports_runs_without_installed_dependencies(self) -> None:
+        """Regression test for run 45084059347.
+
+        The Create Integrated Release job sets up Python with
+        ``install-dependencies: 'false'``, so ``curl-cffi`` is not
+        installed there. ``merge_virustotal_reports.py`` used to import
+        ``ScanResult``/``markdown_report`` from ``scripts.virustotal``,
+        whose top-level ``curl_cffi`` import made the consolidate step
+        fail with ``ModuleNotFoundError: No module named 'curl_cffi'``.
+        The report types now live in the standard-library-only
+        ``scripts.virustotal_report`` module, so the merge must run even
+        when ``curl_cffi`` cannot be imported at all.
+        """
+        root = Path(__file__).resolve().parents[1]
+        blocker = textwrap.dedent(
+            """
+            import sys
+
+
+            class _BlockCurlCffi:
+                def find_module(self, name, path=None):
+                    if name == "curl_cffi" or name.startswith("curl_cffi."):
+                        return self
+                    return None
+
+                def load_module(self, name):
+                    raise ImportError(f"blocked in test: {name}")
+
+
+            sys.meta_path.insert(0, _BlockCurlCffi())
+            """
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            sitecustomize_dir = tmp_path / "blocker"
+            sitecustomize_dir.mkdir()
+            (sitecustomize_dir / "sitecustomize.py").write_text(
+                blocker, encoding="utf-8"
+            )
+            empty_dir = tmp_path / "vt-chunks"
+            empty_dir.mkdir()
+            env = dict(os.environ)
+            env["PYTHONPATH"] = os.pathsep.join(
+                [str(sitecustomize_dir), str(root)]
+            )
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    "scripts/merge_virustotal_reports.py",
+                    "--directory",
+                    str(empty_dir),
+                    "--output-json",
+                    str(tmp_path / "out.json"),
+                    "--output-markdown",
+                    str(tmp_path / "out.md"),
+                ],
+                cwd=root,
+                env=env,
+                capture_output=True,
+                text=True,
+                timeout=60,
+            )
+            self.assertEqual(
+                result.returncode,
+                0,
+                f"merge failed without curl_cffi: {result.stderr}",
+            )
+            self.assertIn("skipping consolidated report", result.stdout)
 
     def test_successful_state_job_closes_resolved_issues_in_primary_workflow(self) -> None:
         workflow = Path(".github/workflows/build.yml").read_text(encoding="utf-8")

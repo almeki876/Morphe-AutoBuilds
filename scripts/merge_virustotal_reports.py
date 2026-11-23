@@ -13,7 +13,7 @@ REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 if str(REPOSITORY_ROOT) not in sys.path:
     sys.path.insert(0, str(REPOSITORY_ROOT))
 
-from scripts.virustotal import ScanResult, markdown_report
+from scripts.virustotal_report import ScanResult, markdown_report
 
 CACHE_VERSION = 1
 SCAN_RESULT_FIELDS = {field.name for field in fields(ScanResult)}
