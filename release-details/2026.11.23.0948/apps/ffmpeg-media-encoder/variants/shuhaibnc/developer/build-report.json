@@ -1,0 +1,38 @@
+{
+  "app_name": "ffmpeg-media-encoder",
+  "source": "shuhaibnc",
+  "patch_source": "shuhaibnc",
+  "source_name": "shuhaibnc",
+  "version": "6.1.3_1",
+  "status": "success",
+  "lifecycle_status": "success_full",
+  "requested_patches": [],
+  "requested_options": [],
+  "applying_count": 1,
+  "applied_patches": [
+    "Remove Ads of FFmpeg"
+  ],
+  "excluded_patches": [],
+  "disabled_patches": [],
+  "feature_failures": [
+    {
+      "name": "Hide launcher icon",
+      "reason": "[runtime-skipped-default] default"
+    },
+    {
+      "name": "Remove all receivers",
+      "reason": "[runtime-skipped-default] default"
+    },
+    {
+      "name": "Fake System Time",
+      "reason": "[runtime-skipped-default] default"
+    }
+  ],
+  "failed_patches": [],
+  "required_patches": [],
+  "required_failures": [],
+  "required_patches_satisfied": true,
+  "fully_applied": true,
+  "error_category": null,
+  "error_summary": null
+}

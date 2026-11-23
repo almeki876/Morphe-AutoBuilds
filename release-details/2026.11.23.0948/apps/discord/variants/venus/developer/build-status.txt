@@ -1,0 +1,89 @@
+app=discord
+source=venus
+source_name=venus
+phase=Patch
+status=success
+run=https://github.com/almeki876/Morphe-AutoBuilds/actions/runs/45090920501
+
+traceback_or_error_tail<<EOF
+INFO: Applied: Fix link previews
+INFO: Applied: Fix unknown mentions
+INFO: Applied: Full-screen chat in landscape
+INFO: Applied: Hide blocked or ignored messages
+INFO: Applied: Hide typing indicator
+INFO: Applied: HypeSquad house
+INFO: Applied: Icon packs
+INFO: Applied: Jump to first message
+INFO: Applied: Keep Bluetooth audio clear in calls
+INFO: Applied: Keep deleted messages
+INFO: Applied: Keep media playing
+INFO: Applied: Leave group DMs silently
+INFO: Applied: Listen along
+INFO: Applied: Load full-quality images
+INFO: Applied: Material You colors
+INFO: Applied: Message highlights
+INFO: Applied: Mutual group DMs
+INFO: Applied: Pastel name colors
+INFO: Applied: Pause invites
+INFO: Applied: Platform spoof
+INFO: Applied: Preview servers without joining
+INFO: Applied: Read all button
+INFO: Applied: Remove anything
+INFO: Applied: Reply without pinging
+INFO: Applied: Send Nitro stickers and emojis as links
+INFO: Applied: Send audio as voice messages
+INFO: Applied: Send long messages
+INFO: Applied: Server info
+INFO: Applied: Show device indicators
+INFO: Applied: Show file sizes when attaching
+INFO: Applied: Show hidden channels
+INFO: Applied: Show owner and mod tags
+INFO: Applied: Show timeout duration
+INFO: Applied: Skip delete confirmation
+INFO: Applied: Skip pin confirmation
+INFO: Applied: Tap mentions to open profiles
+INFO: Applied: Translate messages
+INFO: Applied: Unlock Discord experiments
+INFO: Applied: Unlock Nitro themes
+INFO: Applied: Unlock app icons
+INFO: Applied: Use your phone's emojis
+INFO: Applied: Use your phone's font
+INFO: Applied: User activity notifications
+INFO: Applied: User and server reviews
+INFO: Applied: Venus button on profile bar
+INFO: Applied: Venus settings
+INFO: Applied: View raw data
+INFO: Applied: Voice channel options
+INFO: Rebuilding APK...
+INFO: Compiling patched dex files (mode: STRIP_FAST)
+INFO: Copied 59 unchanged extension classes to 10 DEX files
+INFO: Changed 56 of 18959 classes to mutable
+INFO: Writing 56 new classes to new DEX files
+INFO: Processing 56 classes (single threaded mode)
+INFO: Wrote 1 dex files to /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/.morphe-tmp-discord-universal/patching-1795395758572/patcher/patched/newDex
+INFO: Stripped 56 modified classes from 2 original DEX files
+INFO: Compiling modified resources
+INFO: Stripping libs (keeping architectures arm64-v8a, armeabi-v7a, x86, x86_64)
+INFO: Stripped 0 lib files
+INFO: Unescaping strings
+INFO: Processing aapt macros
+INFO: Generating new resource IDs
+INFO: Writing resource APK
+INFO: Reusing 10793 unchanged archive entries, rebuilding 2 entries, dropping 1 entries, leaving out 7 replaced entries
+INFO: Resource APK scan: 100ms write: 500ms
+INFO: Saved to /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/discord-universal-patch-v351.11 - Stable.apk
+INFO: Patching took 9.9 seconds
+INFO: Patching result saved to /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/.patch-result-discord-universal.json
+2026-11-23 01:02:49 Validated patched APK: 175244658 bytes (ABIs: armeabi-v7a)
+2026-11-23 01:02:53 Normalized patched APK ZIP headers
+2026-11-23 01:02:53 Validated architecture-filtered APK (ABIs: armeabi-v7a)
+2026-11-23 01:02:53 [SIZE] patched: 173695793 bytes (discord-universal-patch-v351.11 - Stable.apk)
+Signed
+2026-11-23 01:02:57 [SIZE] signed: 175040844 bytes (discord-universal-venus-v351.11 - Stable.apk)
+✅ APK built: discord-universal-venus-v351.11 - Stable.apk
+✅ Built universal: discord-universal-venus-v351.11 - Stable.apk
+2026-11-23 01:02:57 ⚠️  arm64-v8a failed, but universal fallback succeeded.
+
+🎯 1 APK(s) built for 'discord':
+   📱 discord-universal-venus-v351.11 - Stable.apk
+EOF

@@ -1,0 +1,27 @@
+{
+  "app_name": "smartnews",
+  "source": "haukist",
+  "patch_source": "haukist",
+  "source_name": "haukist",
+  "version": "26.10.30",
+  "status": "success",
+  "lifecycle_status": "success_full",
+  "requested_patches": [],
+  "requested_options": [],
+  "applying_count": 3,
+  "applied_patches": [
+    "Direct article share URL",
+    "Disable ads and trackers",
+    "Popup share menu"
+  ],
+  "excluded_patches": [],
+  "disabled_patches": [],
+  "feature_failures": [],
+  "failed_patches": [],
+  "required_patches": [],
+  "required_failures": [],
+  "required_patches_satisfied": true,
+  "fully_applied": true,
+  "error_category": null,
+  "error_summary": null
+}

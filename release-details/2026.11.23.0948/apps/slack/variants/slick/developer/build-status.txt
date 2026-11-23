@@ -1,0 +1,89 @@
+app=slack
+source=slick
+source_name=slick
+phase=Patch
+status=success
+run=https://github.com/almeki876/Morphe-AutoBuilds/actions/runs/45090920501
+
+traceback_or_error_tail<<EOF
+INFO: Morphe data root: /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/morphe-data (JAR-adjacent)
+INFO: Merging split APK bundle...
+INFO: Extracting to: /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/.morphe-tmp-slack-universal/patching-1795395803660/tmp_70105577
+INFO: Searching apk files ...
+INFO: Found apk files: 3
+INFO: Found modules: 3
+INFO: Merging: com.Slack
+INFO: Added [com.Slack] classes.dex -> classes.dex
+INFO: Added [com.Slack] classes2.dex -> classes2.dex
+INFO: Added [com.Slack] classes3.dex -> classes3.dex
+INFO: Added [com.Slack] classes4.dex -> classes4.dex
+INFO: Added [com.Slack] classes5.dex -> classes5.dex
+INFO: Added [com.Slack] classes6.dex -> classes6.dex
+INFO: Added [com.Slack] classes7.dex -> classes7.dex
+INFO: Added [com.Slack] classes8.dex -> classes8.dex
+INFO: Merging: config.mdpi
+INFO: Merging: config.armeabi_v7a
+INFO: Validating resources dir ...
+INFO: Sanitizing manifest ...
+INFO: Setting extractNativeLibs=false
+INFO: Writing apk ...
+INFO: Buffering compress changed files ...
+INFO: Writing files: 4826
+INFO: Writing signature block ...
+INFO: Saved to: /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/.morphe-tmp-slack-universal/patching-1795395803660/.build-input-universal-merged.apk
+INFO: Initializing patcher...
+INFO: Loading patches from 1 bundle(s)...
+INFO: Filtering patches for com.Slack v26.11.30.0...
+INFO: Applying 13 patches...
+INFO: Deleting existing temporary files directory
+INFO: Decoding the manifest
+INFO: Decoding resources on request, 4912 files can be decoded
+INFO: Executing patches
+INFO: Applied: Slick Android
+INFO: Applied: Who reacted
+INFO: Applied: Silent typing
+INFO: Applied: Show pronouns
+INFO: Applied: Message logger
+INFO: Applied: Last seen
+INFO: Applied: Fix blank emoji names
+INFO: Applied: Feature flags
+INFO: Applied: Custom font
+INFO: Applied: Cache cleaner
+INFO: Applied: Block telemetry
+INFO: Applied: Appearance
+INFO: Applied: Anonymize file names
+INFO: Rebuilding APK...
+INFO: Compiling patched dex files (mode: STRIP_FAST)
+INFO: Copied 111 unchanged extension classes to 1 DEX files
+INFO: Changed 46 of 73617 classes to mutable
+INFO: Writing 46 new classes to new DEX files
+INFO: Processing 46 classes (single threaded mode)
+INFO: Wrote 1 dex files to /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/.morphe-tmp-slack-universal/patching-1795395803660/patcher/patched/newDex
+INFO: Stripped 44 modified classes from 6 original DEX files
+INFO: Compiling modified resources
+INFO: Stripping libs (keeping architectures arm64-v8a, armeabi-v7a, x86, x86_64)
+INFO: Stripped 0 lib files
+INFO: Decoded 2 of 4912 files on request
+INFO: Unescaping strings
+INFO: Processing aapt macros
+INFO: Generating new resource IDs
+INFO: Writing resource APK
+INFO: Encoded 1935 of 13832 values in 2 files, 0 resource files and 0 configurations of patches for com.Slack
+INFO: Reusing 4816 unchanged archive entries, rebuilding 2 entries, dropping 0 entries, leaving out 8 replaced entries
+INFO: Resource APK scan: 700ms write: 300ms
+INFO: Saved to /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/slack-universal-patch-v26.11.30.0.apk
+INFO: Patching took 6.8 seconds
+INFO: Patching result saved to /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/.patch-result-slack-universal.json
+2026-11-23 01:03:31 Validated patched APK: 91787305 bytes (ABIs: armeabi-v7a)
+2026-11-23 01:03:35 Normalized patched APK ZIP headers
+2026-11-23 01:03:36 Validated architecture-filtered APK (ABIs: armeabi-v7a)
+2026-11-23 01:03:36 [SIZE] patched: 88614945 bytes (slack-universal-patch-v26.11.30.0.apk)
+Signed
+2026-11-23 01:03:38 [SIZE] signed: 89114346 bytes (slack-universal-slick-v26.11.30.0.apk)
+✅ APK built: slack-universal-slick-v26.11.30.0.apk
+✅ Built universal: slack-universal-slick-v26.11.30.0.apk
+2026-11-23 01:03:38 ⚠️  arm64-v8a failed, but universal fallback succeeded.
+
+🎯 1 APK(s) built for 'slack':
+   📱 slack-universal-slick-v26.11.30.0.apk
+EOF

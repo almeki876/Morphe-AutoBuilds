@@ -1,0 +1,23 @@
+{
+  "results": [
+    {
+      "file": "aliexpress-quantro-universal.apkm",
+      "sha256": "bc498461ce50f020b745909f191542a2b4414b950fbf4e392916d5af98f1edc7",
+      "size": 83230358,
+      "analysis_id": "",
+      "malicious": 0,
+      "suspicious": 0,
+      "harmless": 0,
+      "undetected": 60,
+      "timeout": 2,
+      "failure": 0,
+      "unsupported": 10,
+      "verdict": "clean",
+      "method": "persistent hash cache",
+      "engines": {},
+      "permalink": "https://www.virustotal.com/gui/file/bc498461ce50f020b745909f191542a2b4414b950fbf4e392916d5af98f1edc7/detection",
+      "last_analysis_date": 1786215959,
+      "reanalyzed": false
+    }
+  ]
+}

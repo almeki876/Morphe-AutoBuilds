@@ -1,0 +1,28 @@
+{
+  "app_name": "threads",
+  "source": "durgesh0505",
+  "patch_source": "durgesh0505",
+  "source_name": "durgesh0505",
+  "version": "434.0.0.41.74",
+  "status": "success",
+  "lifecycle_status": "success_full",
+  "requested_patches": [],
+  "requested_options": [],
+  "applying_count": 4,
+  "applied_patches": [
+    "Change app name",
+    "Hide ads",
+    "Remove AD_ID permission",
+    "Change package name"
+  ],
+  "excluded_patches": [],
+  "disabled_patches": [],
+  "feature_failures": [],
+  "failed_patches": [],
+  "required_patches": [],
+  "required_failures": [],
+  "required_patches_satisfied": true,
+  "fully_applied": true,
+  "error_category": null,
+  "error_summary": null
+}

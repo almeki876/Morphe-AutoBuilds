@@ -1,0 +1,89 @@
+app=line
+source=andrewliang25
+source_name=andrewliang25
+phase=Patch
+status=success
+run=https://github.com/almeki876/Morphe-AutoBuilds/actions/runs/45090920501
+
+traceback_or_error_tail<<EOF
+INFO: Applying 40 patches...
+INFO: Deleting existing temporary files directory
+INFO: Decoding all resources
+INFO: Leaving 160 native library files in the input APK
+INFO: Sanitizing unpatched strings
+INFO: Escaping strings
+INFO: Executing patches
+INFO: Building instruction indexes for 212336 classes...
+INFO: Applied: [Ad] Hide ad views
+INFO: Applied: [Ad] Remove banner ads
+INFO: Applied: [Call] Auto-record calls
+INFO: Applied: [Call] Record calls without notifying
+INFO: Applied: [Call] Remove recording time limit
+INFO: Applied: [Call] Save recordings to device
+INFO: Applied: [Chat] Hide AI Friends button
+INFO: Applied: [Chat] Hide Events button
+INFO: Applied: [Chat] Hide LINE GIFT button
+INFO: Applied: [Chat] Hide Transfer button
+INFO: Applied: [Chat] Hide attach menu extra tools
+INFO: Applied: [Chat] Hide calendar buttons
+INFO: Applied: [Chat] Hide community button
+INFO: Applied: [Chat] Hide tips under messages
+INFO: Applied: [Chat] Keep chats unread
+INFO: Applied: [Chat] Keep unsent messages
+INFO: Applied: [Fix] Restore Google login via MicroG-RE
+INFO: Applied: [Fix] Restore biometric login
+INFO: Applied: [Fix] Restore chat backup sign-in via MicroG-RE
+INFO: Applied: [Fix] Restore location maps via MicroG-RE
+INFO: Applied: [Fix] Restore push notifications
+INFO: Applied: [General] Andrew's Patch Setting
+INFO: Applied: [General] Block analytics
+INFO: Applied: [General] Custom font
+INFO: Applied: [General] Disable VOOM
+INFO: Applied: [General] Enable themes on sub devices
+INFO: Applied: [General] Hide Agent i buttons
+INFO: Applied: [General] Hide LINE AI image editing
+INFO: Applied: [General] Hide new item badges
+INFO: Applied: [General] Open links in external browser
+INFO: Applied: [General] Redirect LINE Pay
+INFO: Applied: [Home] Hide Home content feed
+INFO: Applied: [Home] Hide Home modules
+INFO: Applied: [Premium] Disable LINE Premium
+INFO: Applied: [Premium] Hide premium unsend upsells
+INFO: Applied: [Premium] Unlock app icons
+INFO: Applied: [Tab] Hide LINE TODAY tab
+INFO: Applied: [Tab] Hide Shopping tab
+INFO: Applied: [Tab] Hide VOOM tab
+INFO: Applied: [Tab] Hide Wallet tab
+INFO: Rebuilding APK...
+INFO: Compiling patched dex files (mode: STRIP_FAST)
+INFO: Copied 1170 unchanged extension classes to 1 DEX files
+INFO: Changed 110 of 213508 classes to mutable
+INFO: Writing 110 new classes to new DEX files
+INFO: Processing 110 classes (single threaded mode)
+INFO: Wrote 1 dex files to /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/.morphe-tmp-line-arm64-v8a/patching-1795395619390/patcher/patched/newDex
+INFO: Stripped 108 modified classes from 13 original DEX files
+INFO: Compiling modified resources
+INFO: Stripping libs (keeping architectures arm64-v8a, armeabi-v7a, x86, x86_64)
+INFO: Stripped 0 lib files
+INFO: Unescaping strings
+INFO: Processing aapt macros
+INFO: Generating new resource IDs
+INFO: Writing resource APK
+INFO: Encoded 161 of 18506 values in 1 files, 2 resource files and 0 configurations of patches for jp.naver.line.android
+INFO: Reusing 20196 unchanged archive entries, rebuilding 4 entries, dropping 0 entries, leaving out 14 replaced entries
+INFO: Resource APK scan: 700ms write: 1.9s
+INFO: Saved to /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/line-arm64-v8a-patch-v26.16.0.apk
+INFO: Patching took 24.7 seconds
+INFO: Patching result saved to /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/.patch-result-line-arm64-v8a.json
+2026-11-23 01:00:45 Validated patched APK: 283770205 bytes (ABIs: arm64-v8a, armeabi-v7a)
+2026-11-23 01:00:52 Removed 73 non-target native libraries
+2026-11-23 01:00:53 Validated architecture-filtered APK (ABIs: arm64-v8a)
+2026-11-23 01:00:53 [SIZE] patched: 209846060 bytes (line-arm64-v8a-patch-v26.16.0.apk)
+Signed
+2026-11-23 01:00:58 [SIZE] signed: 212195692 bytes (line-arm64-v8a-andrewliang25-v26.16.0.apk)
+✅ APK built: line-arm64-v8a-andrewliang25-v26.16.0.apk
+✅ Built arm64-v8a: line-arm64-v8a-andrewliang25-v26.16.0.apk
+
+🎯 1 APK(s) built for 'line':
+   📱 line-arm64-v8a-andrewliang25-v26.16.0.apk
+EOF

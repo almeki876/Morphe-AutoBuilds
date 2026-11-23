@@ -1,0 +1,89 @@
+app=chatgpt
+source=proteus
+source_name=proteus
+phase=Patch
+status=success
+run=https://github.com/almeki876/Morphe-AutoBuilds/actions/runs/45090920501
+
+traceback_or_error_tail<<EOF
+INFO: Merging: config.it
+INFO: Merging: config.armeabi_v7a
+INFO: Merging: config.ko
+INFO: Merging: config.pt
+INFO: Merging: config.in
+INFO: Validating resources dir ...
+INFO: Sanitizing manifest ...
+INFO: Setting extractNativeLibs=false
+INFO: Writing apk ...
+INFO: Buffering compress changed files ...
+INFO: Writing files: 5448
+INFO: Writing signature block ...
+INFO: Saved to: /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/.morphe-tmp-chatgpt-universal/patching-1795395790951/.build-input-universal-merged.apk
+INFO: Initializing patcher...
+INFO: Loading patches from 1 bundle(s)...
+INFO: Filtering patches for com.openai.chatgpt v1.2026.293...
+INFO: Skipping disabled: Disable PairIP license check (default)
+INFO: Skipping disabled: Provide Original app certificate (default)
+INFO: Skipping disabled: Spoof Widevine / DRM level (default)
+INFO: Skipping disabled: Fix Firebase after re-signing (default)
+INFO: Skipping disabled: GmsCore support (MicroG) (default)
+INFO: Skipping disabled: Block cleartext (HTTP) traffic (default)
+INFO: Skipping disabled: Block user-added certificate authorities (default)
+INFO: Skipping disabled: Disable app backup (allowBackup=false) (default)
+INFO: Skipping disabled: Remove dangerous permissions (default)
+INFO: Skipping disabled: Disable video autoplay (ExoPlayer/Media3) (default)
+INFO: Skipping disabled: Block in-app update & review prompts (default)
+INFO: Skipping disabled: Block Play Billing purchase prompts (default)
+INFO: Skipping disabled: Prefer external browser over Custom Tabs (default)
+INFO: Skipping disabled: Force offline mode (simulate no network) (default)
+INFO: Skipping disabled: Strip logging (android.util.Log) (default)
+INFO: Skipping disabled: Allow screenshots & screen recording (default)
+INFO: Skipping disabled: Block advertising & device IDs (default)
+INFO: Skipping disabled: Block analytics & tracking SDKs (default)
+INFO: Skipping disabled: Block crash-reporting SDKs (default)
+INFO: Skipping disabled: Block screenshots & screen recording (default)
+INFO: Skipping disabled: Empty telephony identifiers (IMEI, phone number, SIM) (default)
+INFO: Skipping disabled: Hide developer options & USB debugging (default)
+INFO: Skipping disabled: WebView hardening (default)
+INFO: Applying 3 patches...
+INFO: Deleting existing temporary files directory
+INFO: Decoding all resources
+INFO: Leaving 21 native library files in the input APK
+INFO: Sanitizing unpatched strings
+INFO: Escaping strings
+INFO: Executing patches
+INFO: Applied: Privacy: block trackers & analytics
+INFO: Applied: Privacy: no location, contacts or phone data
+INFO: Applied: Privacy: no mic or camera
+INFO: Rebuilding APK...
+INFO: Compiling patched dex files (mode: STRIP_FAST)
+INFO: Changed 8 of 83679 classes to mutable
+INFO: Writing 8 new classes to new DEX files
+INFO: Processing 8 classes (single threaded mode)
+INFO: Wrote 1 dex files to /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/.morphe-tmp-chatgpt-universal/patching-1795395790951/patcher/patched/newDex
+INFO: Stripped 8 modified classes from 4 original DEX files
+INFO: Compiling modified resources
+INFO: Stripping libs (keeping architectures arm64-v8a, armeabi-v7a, x86, x86_64)
+INFO: Stripped 0 lib files
+INFO: Unescaping strings
+INFO: Processing aapt macros
+INFO: Generating new resource IDs
+INFO: Writing resource APK
+INFO: Reusing 5437 unchanged archive entries, rebuilding 2 entries, dropping 0 entries, leaving out 9 replaced entries
+INFO: Resource APK scan: 400ms write: 600ms
+INFO: Saved to /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/chatgpt-universal-patch-v1.2026.293.apk
+INFO: Patching took 10.9 seconds
+INFO: Patching result saved to /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/.patch-result-chatgpt-universal.json
+2026-11-23 01:03:22 Validated patched APK: 85130021 bytes (ABIs: armeabi-v7a)
+2026-11-23 01:03:26 Normalized patched APK ZIP headers
+2026-11-23 01:03:26 Validated architecture-filtered APK (ABIs: armeabi-v7a)
+2026-11-23 01:03:26 [SIZE] patched: 82357417 bytes (chatgpt-universal-patch-v1.2026.293.apk)
+Signed
+2026-11-23 01:03:29 [SIZE] signed: 82971444 bytes (chatgpt-universal-proteus-v1.2026.293.apk)
+✅ APK built: chatgpt-universal-proteus-v1.2026.293.apk
+✅ Built universal: chatgpt-universal-proteus-v1.2026.293.apk
+2026-11-23 01:03:29 ⚠️  arm64-v8a failed, but universal fallback succeeded.
+
+🎯 1 APK(s) built for 'chatgpt':
+   📱 chatgpt-universal-proteus-v1.2026.293.apk
+EOF
