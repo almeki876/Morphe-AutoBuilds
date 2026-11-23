@@ -1,0 +1,23 @@
+{
+  "results": [
+    {
+      "file": "smartnews-haukist-universal.xapk",
+      "sha256": "391adb905ed28611247790e8a82b48563e0254d755c2724c5283d4a92bfa1702",
+      "size": 39943158,
+      "analysis_id": "MjUxZjU0ODRmYWZlN2RiMWQzMWYzMTdhZTEyNjY4ZTA6MTc5NTM0NTAwNQ==",
+      "malicious": 0,
+      "suspicious": 0,
+      "harmless": 0,
+      "undetected": 57,
+      "timeout": 6,
+      "failure": 1,
+      "unsupported": 10,
+      "verdict": "clean",
+      "method": "persistent hash cache",
+      "engines": {},
+      "permalink": "https://www.virustotal.com/gui/file/391adb905ed28611247790e8a82b48563e0254d755c2724c5283d4a92bfa1702/detection",
+      "last_analysis_date": 1795345005,
+      "reanalyzed": false
+    }
+  ]
+}

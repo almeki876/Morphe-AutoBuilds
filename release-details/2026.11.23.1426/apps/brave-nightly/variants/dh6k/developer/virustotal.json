@@ -1,0 +1,23 @@
+{
+  "results": [
+    {
+      "file": "brave-nightly-dh6k-universal.apkm",
+      "sha256": "5c6835917824027d531a167c6bb5730eeb731b2a5da303ed0114bc16819e2f64",
+      "size": 144037764,
+      "analysis_id": "M2M4ZGY1ZGMxYzgxNWVlYzZiNTgzNmFhMzk5Mzk3Mjc6MTc5NTM0NTAyMw==",
+      "malicious": 0,
+      "suspicious": 0,
+      "harmless": 0,
+      "undetected": 62,
+      "timeout": 3,
+      "failure": 0,
+      "unsupported": 9,
+      "verdict": "clean",
+      "method": "persistent hash cache",
+      "engines": {},
+      "permalink": "https://www.virustotal.com/gui/file/5c6835917824027d531a167c6bb5730eeb731b2a5da303ed0114bc16819e2f64/detection",
+      "last_analysis_date": 1795345023,
+      "reanalyzed": false
+    }
+  ]
+}

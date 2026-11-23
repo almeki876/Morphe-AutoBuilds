@@ -1,0 +1,10 @@
+# Poweramp — APK取得元
+
+- **Version:** `build-1031-bundle-play`
+- **Architecture:** `arm64-v8a`
+- **取得経路:** GitHub Base APK Cache から復元
+- **元Provider:** `APKPure`
+- **Provider:** [公式/配布ページ](https://apkpure.com/)
+- **元リンク:** [取得元を開く](https://apkpure.com/)
+- **日本語リソース:** 検証できず（aapt exited with 1: error: Failed to retrieve resource table.）
+- **Cache tag:** `base-apk-cache-v4-ja-jp-px9a-split`

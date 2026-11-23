@@ -1,0 +1,89 @@
+app=camscanner
+source=dyno
+source_name=dyno
+phase=Patch
+status=success
+run=https://github.com/almeki876/Morphe-AutoBuilds/actions/runs/45117778425
+
+traceback_or_error_tail<<EOF
+INFO: Searching apk files ...
+INFO: Found apk files: 19
+INFO: Found modules: 19
+INFO: Merging: com.intsig.camscanner
+INFO: Added [com.intsig.camscanner] classes.dex -> classes.dex
+INFO: Added [com.intsig.camscanner] classes2.dex -> classes2.dex
+INFO: Added [com.intsig.camscanner] classes3.dex -> classes3.dex
+INFO: Added [com.intsig.camscanner] classes4.dex -> classes4.dex
+INFO: Added [com.intsig.camscanner] classes5.dex -> classes5.dex
+INFO: Added [com.intsig.camscanner] classes6.dex -> classes6.dex
+INFO: Added [com.intsig.camscanner] classes7.dex -> classes7.dex
+INFO: Added [com.intsig.camscanner] classes8.dex -> classes8.dex
+INFO: Added [com.intsig.camscanner] classes9.dex -> classes9.dex
+INFO: Added [com.intsig.camscanner] classes10.dex -> classes10.dex
+INFO: Added [com.intsig.camscanner] classes11.dex -> classes11.dex
+INFO: Added [com.intsig.camscanner] classes12.dex -> classes12.dex
+INFO: Added [com.intsig.camscanner] classes13.dex -> classes13.dex
+INFO: Added [com.intsig.camscanner] classes14.dex -> classes14.dex
+INFO: Added [com.intsig.camscanner] classes15.dex -> classes15.dex
+INFO: Added [com.intsig.camscanner] classes16.dex -> classes16.dex
+INFO: Merging: config.de
+INFO: Merging: config.hi
+INFO: Merging: config.ru
+INFO: Merging: config.tr
+INFO: Merging: config.armeabi
+INFO: Merging: config.th
+INFO: Merging: config.ja
+INFO: Merging: config.ar
+INFO: Merging: config.vi
+INFO: Merging: config.fr
+INFO: Merging: config.my
+INFO: Merging: config.es
+INFO: Merging: config.zh
+INFO: Merging: config.en
+INFO: Merging: config.it
+INFO: Merging: config.ko
+INFO: Merging: config.pt
+INFO: Merging: config.in
+INFO: Validating resources dir ...
+INFO: Sanitizing manifest ...
+INFO: Setting extractNativeLibs=true
+INFO: Writing apk ...
+INFO: Buffering compress changed files ...
+INFO: Writing files: 13497
+INFO: Writing signature block ...
+INFO: Saved to: /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/.morphe-tmp-camscanner-arm64-v8a/patching-1795412208045/.build-input-arm64-v8a-merged.apk
+INFO: Initializing patcher...
+INFO: Loading patches from 1 bundle(s)...
+INFO: Filtering patches for com.intsig.camscanner v7.27.0.2609220000...
+INFO: Skipping disabled: Remove ads (default)
+INFO: Skipping disabled: Hide piracy warning (default)
+INFO: Skipping disabled: Remove PDF watermark (default)
+INFO: Skipping disabled: Spoof app signature (default)
+INFO: Applying 1 patches...
+INFO: Deleting existing temporary files directory
+INFO: Executing patches
+INFO: Applied: Unlock premium
+INFO: Rebuilding APK...
+INFO: Compiling patched dex files (mode: STRIP_FAST)
+INFO: Changed 1 of 95750 classes to mutable
+INFO: Writing 1 new classes to new DEX files
+INFO: Processing 1 classes (single threaded mode)
+INFO: Wrote 1 dex files to /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/.morphe-tmp-camscanner-arm64-v8a/patching-1795412208045/patcher/patched/newDex
+INFO: Stripped 1 modified classes from 1 original DEX files
+INFO: Stripping libs (keeping architectures arm64-v8a, armeabi-v7a, x86, x86_64)
+INFO: Stripped 68 lib files
+INFO: Saved to /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/camscanner-arm64-v8a-patch-v7.27.0.2609220000.apk
+INFO: Patching took 5.6 seconds
+INFO: Patching result saved to /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/.patch-result-camscanner-arm64-v8a.json
+2026-11-23 05:36:54 Validated patched APK: 113751096 bytes (ABIs: none)
+2026-11-23 05:37:01 Normalized patched APK ZIP headers
+2026-11-23 05:37:02 Validated architecture-filtered APK (ABIs: none)
+2026-11-23 05:37:02 [SIZE] patched: 113420073 bytes (camscanner-arm64-v8a-patch-v7.27.0.2609220000.apk)
+Signed
+2026-11-23 05:37:06 [SIZE] signed: 114610098 bytes (camscanner-arm64-v8a-dyno-v7.27.0.2609220000.apk)
+✅ APK built: camscanner-arm64-v8a-dyno-v7.27.0.2609220000.apk
+✅ Built arm64-v8a: camscanner-arm64-v8a-dyno-v7.27.0.2609220000.apk
+
+🎯 1 APK(s) built for 'camscanner':
+   📱 camscanner-arm64-v8a-dyno-v7.27.0.2609220000.apk
+EOF
