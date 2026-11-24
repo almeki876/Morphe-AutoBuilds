@@ -3,17 +3,17 @@
 [English](Morphe-AutoBuilds-Direct-Download.md) | 日本語
 
 - Releases: [GitHub Releases](https://github.com/almeki876/Morphe-AutoBuilds/releases)
-- 最終更新日時: 2026-11-24 12:49 JST
+- 最終更新日時: 2026-11-25 07:13 JST
 
 ## [Morphe](https://github.com/MorpheApp/morphe-patches)
 
 ### YouTube
 
-[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.24.0828/youtube-arm64-v8a-morphe-v20.51.39.apk)
+[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.25.0702/youtube-arm64-v8a-morphe-v20.51.39.apk)
 
 ### YouTube Music
 
-[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.24.0828/youtube-music-arm64-v8a-morphe-v9.15.51.apk)
+[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.25.0702/youtube-music-arm64-v8a-morphe-v9.15.51.apk)
 
 ## [Anddea](https://github.com/anddea/revanced-patches)
 
@@ -171,15 +171,15 @@
 
 ### Proton Mail
 
-[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.24.0828/proton-mail-arm64-v8a-hxreborn-v7.12.1.apk)
+[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.25.0702/proton-mail-arm64-v8a-hxreborn-v7.12.1.apk)
 
 ### Musicolet
 
-[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.24.0828/musicolet-arm64-v8a-hxreborn-v6.14.1.build540.apk)
+[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.25.0702/musicolet-arm64-v8a-hxreborn-v6.14.1.build540.apk)
 
 ### Castplugin Musicolet
 
-[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.24.0828/castplugin-musicolet-arm64-v8a-hxreborn-v1.9.apk)
+[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.25.0702/castplugin-musicolet-arm64-v8a-hxreborn-v1.9.apk)
 
 ## [rushiranpise universal](https://github.com/rushiranpise/Ri-Vanced-Universal-Morphe-Patches)
 
@@ -209,7 +209,7 @@
 
 ### Photoshop Mix
 
-[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.24.1240/photoshop-mix-arm64-v8a-rookie-v2.6.3.apk)
+[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.25.0702/photoshop-mix-arm64-v8a-rookie-v2.6.3.apk)
 
 ### Google Photos
 
@@ -323,7 +323,7 @@
 
 ### Speedtest
 
-[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.24.0828/speedtest-arm64-v8a-bholey-v7.0.4.apk)
+[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.25.0702/speedtest-arm64-v8a-bholey-v7.0.4.apk)
 
 ## [Paresh-Maheshwari](https://gitlab.com/Paresh-Maheshwari/paresh-patches)
 
@@ -339,7 +339,7 @@
 
 ### Brave Beta
 
-[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.23.1508/brave-beta-arm64-v8a-dh6k-v1.101.52.apk)
+[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.25.0702/brave-beta-arm64-v8a-dh6k-v1.101.55.apk)
 
 ### Brave Nightly
 
@@ -349,7 +349,7 @@
 
 ### Bitwarden
 
-[universal](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.23.1508/bitwarden-universal-zimza1abim-v2026.10.1.apk)
+[universal](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.25.0702/bitwarden-universal-zimza1abim-v2026.10.1.apk)
 
 ## [venus](https://github.com/VenusIsJaded/Venus-Patches)
 
@@ -371,7 +371,7 @@
 
 ### Claude
 
-[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.24.1240/claude-arm64-v8a-proteus-v1.261023.20.apk)
+[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.25.0702/claude-arm64-v8a-proteus-v1.261023.20.apk)
 
 ## [ayufa](https://github.com/Ayufa/ayufa-patches)
 
@@ -413,7 +413,7 @@
 
 ### Tasker
 
-[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.24.1240/tasker-arm64-v8a-heval-v6.7.8.apk)
+[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.25.0702/tasker-arm64-v8a-heval-v6.6.18.apk)
 
 ## [shuhaibnc](https://github.com/shuhaibnc/morphe-patches)
 
