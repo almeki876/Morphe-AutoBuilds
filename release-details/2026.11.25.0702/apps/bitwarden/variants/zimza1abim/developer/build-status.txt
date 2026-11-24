@@ -1,0 +1,89 @@
+app=bitwarden
+source=zimza1abim
+source_name=zimza1abim
+phase=Patch
+status=success
+run=https://github.com/almeki876/Morphe-AutoBuilds/actions/runs/45496928044
+
+traceback_or_error_tail<<EOF
+Description: Follow the system font or choose an installed device font in Settings > Appearance > Font.
+Enabled: true
+
+Index: 18
+Name: Orca font and bot pictures
+Description: Choose a system, installed or imported font in Settings > Appearance > Font, and see each bot's picture on Home. Code and icon fonts keep their faces.
+Enabled: true
+2026-11-24 22:10:07 enable_patches=[]  disable_patches=[]
+2026-11-24 22:10:07 Running: java -Djava.awt.headless=true -Xmx6g -Xms3g -Dfile.encoding=UTF-8 -XX:-UsePerfData -XX:+UseG1GC -XX:MaxGCPauseMillis=150 -XX:G1HeapRegionSize=2m -XX:+UseStringDeduplication -XX:+ParallelRefProcEnabled -XX:ConcGCThreads=2 -XX:ParallelGCThreads=4 -XX:CICompilerCount=3 -XX:+UseCompressedOops -XX:+OptimizeStringConcat -XX:+DisableExplicitGC -XX:+TieredCompilation -XX:ReservedCodeCacheSize=128m -XX:InitialCodeCacheSize=32m -XX:SoftRefLRUPolicyMSPerMB=50 --add-opens=java.base/java.lang=ALL-UNNAMED --add-opens=java.base/java.util=ALL-UNNAMED --add-opens=java.base/java.io=ALL-UNNAMED -jar /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/morphe-desktop-2.3.0-all.jar patch --continue-on-error --unsigned --result-file /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/.patch-result-bitwarden-universal.json --temporary-files-path /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/.morphe-tmp-bitwarden-universal -p /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/patches-0.3.3.mpp --out=/home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/bitwarden-universal-patch-v2026.10.1.apk --bytecode-mode=STRIP_FAST /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/.build-input-universal.xapk
+INFO: Morphe data root: /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/morphe-data (JAR-adjacent)
+INFO: Merging split APK bundle...
+INFO: Extracting to: /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/.morphe-tmp-bitwarden-universal/patching-1795558207945/tmp_70105577
+INFO: Searching apk files ...
+INFO: Found apk files: 20
+INFO: Found modules: 20
+INFO: Merging: com.x8bit.bitwarden
+INFO: Added [com.x8bit.bitwarden] classes.dex -> classes.dex
+INFO: Added [com.x8bit.bitwarden] classes2.dex -> classes2.dex
+INFO: Merging: config.de
+INFO: Merging: config.hi
+INFO: Merging: config.ru
+INFO: Merging: config.tr
+INFO: Merging: config.mdpi
+INFO: Merging: config.th
+INFO: Merging: config.ja
+INFO: Merging: config.ar
+INFO: Merging: config.vi
+INFO: Merging: config.fr
+INFO: Merging: config.my
+INFO: Merging: config.es
+INFO: Merging: config.zh
+INFO: Merging: config.en
+INFO: Merging: config.it
+INFO: Merging: config.armeabi_v7a
+INFO: Merging: config.ko
+INFO: Merging: config.pt
+INFO: Merging: config.in
+INFO: Validating resources dir ...
+INFO: Sanitizing manifest ...
+INFO: Setting extractNativeLibs=false
+INFO: Writing apk ...
+INFO: Buffering compress changed files ...
+INFO: Writing files: 556
+INFO: Writing signature block ...
+INFO: Saved to: /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/.morphe-tmp-bitwarden-universal/patching-1795558207945/.build-input-universal-merged.apk
+INFO: Initializing patcher...
+INFO: Loading patches from 1 bundle(s)...
+INFO: Filtering patches for com.x8bit.bitwarden v2026.10.1...
+INFO: Applying 3 patches...
+INFO: Deleting existing temporary files directory
+INFO: Executing patches
+INFO: Building instruction indexes for 21798 classes...
+INFO: Applied: Bitwarden custom special characters
+INFO: Applied: Bitwarden passphrase total length
+INFO: Applied: Bitwarden trust re-signed browsers for passkeys
+INFO: Rebuilding APK...
+INFO: Compiling patched dex files (mode: STRIP_FAST)
+INFO: Copied 5 unchanged extension classes to 1 DEX files
+INFO: Changed 8 of 21798 classes to mutable
+INFO: Writing 8 new classes to new DEX files
+INFO: Processing 8 classes (single threaded mode)
+INFO: Wrote 1 dex files to /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/.morphe-tmp-bitwarden-universal/patching-1795558207945/patcher/patched/newDex
+INFO: Stripped 8 modified classes from 2 original DEX files
+INFO: Stripping libs (keeping architectures arm64-v8a, armeabi-v7a, x86, x86_64)
+INFO: Stripped 0 lib files
+INFO: Saved to /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/bitwarden-universal-patch-v2026.10.1.apk
+INFO: Patching took 3.1 seconds
+INFO: Patching result saved to /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/.patch-result-bitwarden-universal.json
+2026-11-24 22:10:11 Validated patched APK: 43908229 bytes (ABIs: armeabi-v7a)
+2026-11-24 22:10:12 Normalized patched APK ZIP headers
+2026-11-24 22:10:12 Validated architecture-filtered APK (ABIs: armeabi-v7a)
+2026-11-24 22:10:12 [SIZE] patched: 43188892 bytes (bitwarden-universal-patch-v2026.10.1.apk)
+Signed
+2026-11-24 22:10:14 [SIZE] signed: 43291620 bytes (bitwarden-universal-zimza1abim-v2026.10.1.apk)
+✅ APK built: bitwarden-universal-zimza1abim-v2026.10.1.apk
+✅ Built universal: bitwarden-universal-zimza1abim-v2026.10.1.apk
+2026-11-24 22:10:14 ⚠️  arm64-v8a failed, but universal fallback succeeded.
+
+🎯 1 APK(s) built for 'bitwarden':
+   📱 bitwarden-universal-zimza1abim-v2026.10.1.apk
+EOF
