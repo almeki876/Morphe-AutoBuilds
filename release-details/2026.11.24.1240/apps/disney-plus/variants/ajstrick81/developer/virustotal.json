@@ -1,0 +1,23 @@
+{
+  "results": [
+    {
+      "file": "disney-plus-ajstrick81-universal.xapk",
+      "sha256": "608c710c2f5cc658e67aba4e556329145e8ad3c4636e28983abe7df70cb0dec3",
+      "size": 33527685,
+      "analysis_id": "",
+      "malicious": 0,
+      "suspicious": 0,
+      "harmless": 0,
+      "undetected": 62,
+      "timeout": 3,
+      "failure": 0,
+      "unsupported": 9,
+      "verdict": "clean",
+      "method": "persistent hash cache",
+      "engines": {},
+      "permalink": "https://www.virustotal.com/gui/file/608c710c2f5cc658e67aba4e556329145e8ad3c4636e28983abe7df70cb0dec3/detection",
+      "last_analysis_date": 1789574863,
+      "reanalyzed": false
+    }
+  ]
+}
