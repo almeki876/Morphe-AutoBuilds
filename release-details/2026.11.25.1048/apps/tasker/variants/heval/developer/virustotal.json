@@ -1,0 +1,23 @@
+{
+  "results": [
+    {
+      "file": "tasker-heval-universal.apk",
+      "sha256": "9ecb979b6b7c1ede17c1998743812eec9d188e5c01e828004fd9bc14766a7f6c",
+      "size": 48204892,
+      "analysis_id": "",
+      "malicious": 0,
+      "suspicious": 0,
+      "harmless": 0,
+      "undetected": 35,
+      "timeout": 31,
+      "failure": 1,
+      "unsupported": 7,
+      "verdict": "clean",
+      "method": "persistent hash cache",
+      "engines": {},
+      "permalink": "https://www.virustotal.com/gui/file/9ecb979b6b7c1ede17c1998743812eec9d188e5c01e828004fd9bc14766a7f6c/detection",
+      "last_analysis_date": 1794844634,
+      "reanalyzed": false
+    }
+  ]
+}
