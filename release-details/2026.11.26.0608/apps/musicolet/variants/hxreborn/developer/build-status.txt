@@ -1,0 +1,89 @@
+app=musicolet
+source=hxreborn
+source_name=hxreborn
+phase=Patch
+status=success
+run=https://github.com/almeki876/Morphe-AutoBuilds/actions/runs/45701557982
+
+traceback_or_error_tail<<EOF
+Description: Removes splash, interstitial, banner and native ads. Hides promotional cards and popups on Home and Highlights. Keeps the optional ad that unlocks an alarm video.
+Enabled: true
+
+Index: 618
+Name: Unlock premium
+Description: Unlocks food preferences, diet alerts and the full history. Search and offline downloads don't work. Signing in needs Sign-in token, except on a root mount install.
+Enabled: true
+
+Index: 619
+Name: Sign-in token
+Description: Signs in with an App Check token. Requires a token copied from Yuka installed from Google Play on a rooted phone. Steps are in the Yuka section of PATCHES.md.
+Enabled: false
+2026-11-25 21:16:49 enable_patches=[]  disable_patches=[]
+2026-11-25 21:16:50 Running: java -Djava.awt.headless=true -Xmx6g -Xms3g -Dfile.encoding=UTF-8 -XX:-UsePerfData -XX:+UseG1GC -XX:MaxGCPauseMillis=150 -XX:G1HeapRegionSize=2m -XX:+UseStringDeduplication -XX:+ParallelRefProcEnabled -XX:ConcGCThreads=2 -XX:ParallelGCThreads=4 -XX:CICompilerCount=3 -XX:+UseCompressedOops -XX:+OptimizeStringConcat -XX:+DisableExplicitGC -XX:+TieredCompilation -XX:ReservedCodeCacheSize=128m -XX:InitialCodeCacheSize=32m -XX:SoftRefLRUPolicyMSPerMB=50 --add-opens=java.base/java.lang=ALL-UNNAMED --add-opens=java.base/java.util=ALL-UNNAMED --add-opens=java.base/java.io=ALL-UNNAMED -jar /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/morphe-desktop-2.3.0-all.jar patch --continue-on-error --unsigned --result-file /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/.patch-result-musicolet-arm64-v8a.json --temporary-files-path /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/.morphe-tmp-musicolet-arm64-v8a -p /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/patches-1.89.0-dev.4.mpp --out=/home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/musicolet-arm64-v8a-patch-v6.14.1 build540.apk --bytecode-mode=STRIP_FAST /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/.build-input-arm64-v8a.xapk
+⚠️  Ignoring legacy BASE_APK_CACHE_TAG='base-apk-cache-v2'; using 'base-apk-cache-v4-ja-jp-px9a-split'
+INFO: Morphe data root: /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/morphe-data (JAR-adjacent)
+INFO: Merging split APK bundle...
+INFO: Extracting to: /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/.morphe-tmp-musicolet-arm64-v8a/patching-1795641410611/tmp_5de0bc76
+INFO: Searching apk files ...
+INFO: Found apk files: 17
+INFO: Found modules: 17
+INFO: Merging: in.krosbits.musicolet
+INFO: Added [in.krosbits.musicolet] classes.dex -> classes.dex
+INFO: Added [in.krosbits.musicolet] classes2.dex -> classes2.dex
+INFO: Merging: config.de
+INFO: Merging: config.hi
+INFO: Merging: config.ru
+INFO: Merging: config.arm64_v8a
+INFO: Merging: config.xxxhdpi
+INFO: Merging: config.tr
+INFO: Merging: config.ja
+INFO: Merging: config.ar
+INFO: Merging: config.vi
+INFO: Merging: config.fr
+INFO: Merging: config.es
+INFO: Merging: config.zh
+INFO: Merging: config.it
+INFO: Merging: config.ko
+INFO: Merging: config.pt
+INFO: Merging: config.in
+INFO: Validating resources dir ...
+INFO: Sanitizing manifest ...
+INFO: Setting extractNativeLibs=false
+INFO: Writing apk ...
+INFO: Buffering compress changed files ...
+INFO: Writing files: 1653
+INFO: Writing signature block ...
+INFO: Saved to: /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/.morphe-tmp-musicolet-arm64-v8a/patching-1795641410611/.build-input-arm64-v8a-merged.apk
+INFO: Initializing patcher...
+INFO: Loading patches from 1 bundle(s)...
+INFO: Filtering patches for in.krosbits.musicolet v6.14.1 build540...
+INFO: Skipping disabled: Override certificate pinning (default)
+INFO: Applying 1 patches...
+INFO: Deleting existing temporary files directory
+INFO: Executing patches
+INFO: Extracting raw resources on request
+INFO: Building instruction indexes for 4793 classes...
+INFO: Applied: Unlock premium
+INFO: Rebuilding APK...
+INFO: Compiling patched dex files (mode: STRIP_FAST)
+INFO: Copied 18 unchanged extension classes to 3 DEX files
+INFO: Changed 59 of 4797 classes to mutable
+INFO: Writing 59 new classes to new DEX files
+INFO: Processing 59 classes (single threaded mode)
+INFO: Wrote 1 dex files to /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/.morphe-tmp-musicolet-arm64-v8a/patching-1795641410611/patcher/patched/newDex
+INFO: Stripped 58 modified classes from 1 original DEX files
+INFO: Saved to /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/musicolet-arm64-v8a-patch-v6.14.1 build540.apk
+INFO: Patching took 4.0 seconds
+INFO: Patching result saved to /home/runner/work/Morphe-AutoBuilds/Morphe-AutoBuilds/.patch-result-musicolet-arm64-v8a.json
+2026-11-25 21:16:54 Validated patched APK: 29239470 bytes (ABIs: arm64-v8a)
+2026-11-25 21:16:55 Normalized patched APK ZIP headers
+2026-11-25 21:16:55 Validated architecture-filtered APK (ABIs: arm64-v8a)
+2026-11-25 21:16:55 [SIZE] patched: 28992160 bytes (musicolet-arm64-v8a-patch-v6.14.1 build540.apk)
+Signed
+2026-11-25 21:16:56 [SIZE] signed: 29138529 bytes (musicolet-arm64-v8a-hxreborn-v6.14.1 build540.apk)
+✅ APK built: musicolet-arm64-v8a-hxreborn-v6.14.1 build540.apk
+✅ Built arm64-v8a: musicolet-arm64-v8a-hxreborn-v6.14.1 build540.apk
+
+🎯 1 APK(s) built for 'musicolet':
+   📱 musicolet-arm64-v8a-hxreborn-v6.14.1 build540.apk
+EOF

@@ -1,0 +1,23 @@
+{
+  "results": [
+    {
+      "file": "claude-proteus-universal.apks",
+      "sha256": "b2214dd5e1776aafff8f269c049ac5259acfb19a4b64a9a1f559ea2beb92ee1f",
+      "size": 30524779,
+      "analysis_id": "",
+      "malicious": 0,
+      "suspicious": 0,
+      "harmless": 0,
+      "undetected": 63,
+      "timeout": 1,
+      "failure": 0,
+      "unsupported": 10,
+      "verdict": "clean",
+      "method": "persistent hash cache",
+      "engines": {},
+      "permalink": "https://www.virustotal.com/gui/file/b2214dd5e1776aafff8f269c049ac5259acfb19a4b64a9a1f559ea2beb92ee1f/detection",
+      "last_analysis_date": 1795350038,
+      "reanalyzed": false
+    }
+  ]
+}
