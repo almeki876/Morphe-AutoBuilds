@@ -1,0 +1,10 @@
+# yahoo-transit — VirusTotal
+
+**対象:** パッチ適用前に取得したBase APK（配布元から取得/キャッシュ復元した原本）
+
+- **結果:** ✅ Clean
+- **スキャン対象:** 1 file(s)
+
+| File | SHA-256 | Malicious | Suspicious | Method | VirusTotal |
+| --- | --- | ---: | ---: | --- | --- |
+| `yahoo-transit-ayufa-universal.xapk` | `bf99db999b745817dcbd16ce6b38d05c2e02ec99dac9254ea953c79627fe73af` | 0 | 0 | `persistent hash cache` | [Open](https://www.virustotal.com/gui/file/bf99db999b745817dcbd16ce6b38d05c2e02ec99dac9254ea953c79627fe73af/detection) |
