@@ -3,17 +3,17 @@
 English | [日本語](Morphe-AutoBuilds-Direct-Download.ja.md)
 
 - Releases: [GitHub Releases](https://github.com/almeki876/Morphe-AutoBuilds/releases)
-- Last updated: 2026-11-26 10:31 JST
+- Last updated: 2026-11-27 06:16 JST
 
 ## [Morphe](https://github.com/MorpheApp/morphe-patches)
 
 ### YouTube
 
-[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.26.1022/youtube-arm64-v8a-morphe-v20.51.39.apk)
+[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.27.0602/youtube-arm64-v8a-morphe-v20.51.39.apk)
 
 ### YouTube Music
 
-[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.26.1022/youtube-music-arm64-v8a-morphe-v9.15.51.apk)
+[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.27.0602/youtube-music-arm64-v8a-morphe-v9.15.51.apk)
 
 ## [Anddea](https://github.com/anddea/revanced-patches)
 
@@ -171,15 +171,15 @@ English | [日本語](Morphe-AutoBuilds-Direct-Download.ja.md)
 
 ### Proton Mail
 
-[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.26.0608/proton-mail-arm64-v8a-hxreborn-v7.12.1.apk)
+[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.27.0602/proton-mail-arm64-v8a-hxreborn-v7.12.1.apk)
 
 ### Musicolet
 
-[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.26.0608/musicolet-arm64-v8a-hxreborn-v6.14.1.build540.apk)
+[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.27.0602/musicolet-arm64-v8a-hxreborn-v6.14.1.build540.apk)
 
 ### Castplugin Musicolet
 
-[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.26.0608/castplugin-musicolet-arm64-v8a-hxreborn-v1.9.apk)
+[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.27.0602/castplugin-musicolet-arm64-v8a-hxreborn-v1.9.apk)
 
 ## [rushiranpise universal](https://github.com/rushiranpise/Ri-Vanced-Universal-Morphe-Patches)
 
@@ -209,7 +209,7 @@ English | [日本語](Morphe-AutoBuilds-Direct-Download.ja.md)
 
 ### Photoshop Mix
 
-[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.26.1022/photoshop-mix-arm64-v8a-rookie-v2.6.3.apk)
+[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.27.0602/photoshop-mix-arm64-v8a-rookie-v2.6.3.apk)
 
 ### Google Photos
 
@@ -335,21 +335,21 @@ English | [日本語](Morphe-AutoBuilds-Direct-Download.ja.md)
 
 ### Brave
 
-[universal](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026-09-05_06-02-JST/brave-universal-dh6k-v1.94.119.apk) · [arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.23.1508/brave-arm64-v8a-dh6k-v1.100.58.apk)
+[universal](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026-09-05_06-02-JST/brave-universal-dh6k-v1.94.119.apk) · [arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.27.0602/brave-arm64-v8a-dh6k-v1.100.59.apk)
 
 ### Brave Beta
 
-[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.25.0702/brave-beta-arm64-v8a-dh6k-v1.101.55.apk)
+[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.27.0602/brave-beta-arm64-v8a-dh6k-v1.101.57.apk)
 
 ### Brave Nightly
 
-[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.24.0828/brave-nightly-arm64-v8a-dh6k-v1.102.31.apk)
+[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.27.0602/brave-nightly-arm64-v8a-dh6k-v1.102.43.apk)
 
 ## [zimza1abim](https://github.com/zimza1abim/kanye-morphe-patches)
 
 ### Bitwarden
 
-[universal](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.26.0608/bitwarden-universal-zimza1abim-v2026.10.1.apk)
+[universal](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.27.0602/bitwarden-universal-zimza1abim-v2026.10.1.apk)
 
 ## [venus](https://github.com/VenusIsJaded/Venus-Patches)
 
@@ -371,13 +371,13 @@ English | [日本語](Morphe-AutoBuilds-Direct-Download.ja.md)
 
 ### Claude
 
-[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.26.1022/claude-arm64-v8a-proteus-v1.261023.20.apk)
+[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.27.0602/claude-arm64-v8a-proteus-v1.261023.20.apk)
 
 ## [ayufa](https://github.com/Ayufa/ayufa-patches)
 
 ### Yahoo Transit
 
-[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.26.0608/yahoo-transit-arm64-v8a-ayufa-v8.5.8.apk)
+[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.27.0602/yahoo-transit-arm64-v8a-ayufa-v8.5.8.apk)
 
 ## [slick](https://github.com/3kh0/slick-morphe)
 
@@ -407,13 +407,13 @@ English | [日本語](Morphe-AutoBuilds-Direct-Download.ja.md)
 
 ### Audio Editor
 
-[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.23.1508/audio-editor-arm64-v8a-mightymichs-v2.01.65.1014.apk)
+[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.27.0602/audio-editor-arm64-v8a-mightymichs-v2.01.65.1014.apk)
 
 ## [heval](https://github.com/heval99/Heval-Morphe-Patches)
 
 ### Tasker
 
-[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.26.1022/tasker-arm64-v8a-heval-v6.7.8.apk)
+[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.27.0602/tasker-arm64-v8a-heval-v6.7.8.apk)
 
 ## [shuhaibnc](https://github.com/shuhaibnc/morphe-patches)
 
