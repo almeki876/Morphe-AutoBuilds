@@ -1,0 +1,23 @@
+{
+  "results": [
+    {
+      "file": "yahoo-transit-ayufa-universal.xapk",
+      "sha256": "bf99db999b745817dcbd16ce6b38d05c2e02ec99dac9254ea953c79627fe73af",
+      "size": 88317512,
+      "analysis_id": "ZTc3NmRiZjFjNTY5ZmQ1NmU4NzQyMzI3ZTA5MzhjMWI6MTc5NTM0NTAxOA==",
+      "malicious": 0,
+      "suspicious": 0,
+      "harmless": 0,
+      "undetected": 64,
+      "timeout": 0,
+      "failure": 0,
+      "unsupported": 10,
+      "verdict": "clean",
+      "method": "persistent hash cache",
+      "engines": {},
+      "permalink": "https://www.virustotal.com/gui/file/bf99db999b745817dcbd16ce6b38d05c2e02ec99dac9254ea953c79627fe73af/detection",
+      "last_analysis_date": 1795345018,
+      "reanalyzed": false
+    }
+  ]
+}

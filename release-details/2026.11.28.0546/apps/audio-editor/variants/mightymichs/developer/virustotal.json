@@ -1,0 +1,23 @@
+{
+  "results": [
+    {
+      "file": "audio-editor-mightymichs-universal.xapk",
+      "sha256": "31710ae1535d1deea8a4e888365000632976ec5ce0bad9e0b4e3a7c1ab17da64",
+      "size": 96187023,
+      "analysis_id": "",
+      "malicious": 0,
+      "suspicious": 0,
+      "harmless": 0,
+      "undetected": 57,
+      "timeout": 8,
+      "failure": 2,
+      "unsupported": 8,
+      "verdict": "clean",
+      "method": "persistent hash cache",
+      "engines": {},
+      "permalink": "https://www.virustotal.com/gui/file/31710ae1535d1deea8a4e888365000632976ec5ce0bad9e0b4e3a7c1ab17da64/detection",
+      "last_analysis_date": 1792919153,
+      "reanalyzed": false
+    }
+  ]
+}
