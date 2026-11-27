@@ -3,7 +3,7 @@
 English | [日本語](Morphe-AutoBuilds-Direct-Download.ja.md)
 
 - Releases: [GitHub Releases](https://github.com/almeki876/Morphe-AutoBuilds/releases)
-- Last updated: 2026-11-27 06:16 JST
+- Last updated: 2026-11-27 10:28 JST
 
 ## [Morphe](https://github.com/MorpheApp/morphe-patches)
 
@@ -171,15 +171,15 @@ English | [日本語](Morphe-AutoBuilds-Direct-Download.ja.md)
 
 ### Proton Mail
 
-[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.27.0602/proton-mail-arm64-v8a-hxreborn-v7.12.1.apk)
+[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.27.1020/proton-mail-arm64-v8a-hxreborn-v7.12.1.apk)
 
 ### Musicolet
 
-[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.27.0602/musicolet-arm64-v8a-hxreborn-v6.14.1.build540.apk)
+[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.27.1020/musicolet-arm64-v8a-hxreborn-v6.14.1.build540.apk)
 
 ### Castplugin Musicolet
 
-[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.27.0602/castplugin-musicolet-arm64-v8a-hxreborn-v1.9.apk)
+[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.27.1020/castplugin-musicolet-arm64-v8a-hxreborn-v1.9.apk)
 
 ## [rushiranpise universal](https://github.com/rushiranpise/Ri-Vanced-Universal-Morphe-Patches)
 
@@ -209,7 +209,7 @@ English | [日本語](Morphe-AutoBuilds-Direct-Download.ja.md)
 
 ### Photoshop Mix
 
-[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.27.0602/photoshop-mix-arm64-v8a-rookie-v2.6.3.apk)
+[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.27.1020/photoshop-mix-arm64-v8a-rookie-v2.6.3.apk)
 
 ### Google Photos
 
@@ -371,7 +371,7 @@ English | [日本語](Morphe-AutoBuilds-Direct-Download.ja.md)
 
 ### Claude
 
-[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.27.0602/claude-arm64-v8a-proteus-v1.261023.20.apk)
+[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.27.1020/claude-arm64-v8a-proteus-v1.261023.20.apk)
 
 ## [ayufa](https://github.com/Ayufa/ayufa-patches)
 
@@ -413,7 +413,7 @@ English | [日本語](Morphe-AutoBuilds-Direct-Download.ja.md)
 
 ### Tasker
 
-[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.27.0602/tasker-arm64-v8a-heval-v6.7.8.apk)
+[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.27.1020/tasker-arm64-v8a-heval-v6.7.8.apk)
 
 ## [shuhaibnc](https://github.com/shuhaibnc/morphe-patches)
 
