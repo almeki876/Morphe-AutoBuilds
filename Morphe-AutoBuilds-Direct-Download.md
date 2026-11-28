@@ -3,7 +3,7 @@
 English | [日本語](Morphe-AutoBuilds-Direct-Download.ja.md)
 
 - Releases: [GitHub Releases](https://github.com/almeki876/Morphe-AutoBuilds/releases)
-- Last updated: 2026-11-28 05:55 JST
+- Last updated: 2026-11-28 10:01 JST
 
 ## [Morphe](https://github.com/MorpheApp/morphe-patches)
 
@@ -209,7 +209,7 @@ English | [日本語](Morphe-AutoBuilds-Direct-Download.ja.md)
 
 ### Photoshop Mix
 
-[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.28.0546/photoshop-mix-arm64-v8a-rookie-v2.6.3.apk)
+[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.28.0954/photoshop-mix-arm64-v8a-rookie-v2.6.3.apk)
 
 ### Google Photos
 
@@ -371,7 +371,7 @@ English | [日本語](Morphe-AutoBuilds-Direct-Download.ja.md)
 
 ### Claude
 
-[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.28.0546/claude-arm64-v8a-proteus-v1.261023.20.apk)
+[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.28.0954/claude-arm64-v8a-proteus-v1.261023.20.apk)
 
 ## [ayufa](https://github.com/Ayufa/ayufa-patches)
 
@@ -413,7 +413,7 @@ English | [日本語](Morphe-AutoBuilds-Direct-Download.ja.md)
 
 ### Tasker
 
-[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.28.0546/tasker-arm64-v8a-heval-v6.6.18.apk)
+[arm64-v8a](https://github.com/almeki876/Morphe-AutoBuilds/releases/download/2026.11.28.0954/tasker-arm64-v8a-heval-v6.6.18.apk)
 
 ## [shuhaibnc](https://github.com/shuhaibnc/morphe-patches)
 
